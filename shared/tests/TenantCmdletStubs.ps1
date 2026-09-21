@@ -92,6 +92,17 @@ function global:Get-MgUserMemberOf {
     throw 'Get-MgUserMemberOf was called for real. Mock it in the test.'
 }
 
+function global:Get-MgUserMemberOfAsGroup {
+    [CmdletBinding()]
+    param(
+        [string]$UserId,
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgUserMemberOfAsGroup was called for real. Mock it in the test.'
+}
+
 function global:Get-MgAuditLogDirectoryAudit {
     [CmdletBinding()]
     param(
@@ -125,4 +136,13 @@ function global:Search-UnifiedAuditLog {
         [object]$ResultSize
     )
     throw 'Search-UnifiedAuditLog was called for real. Mock it in the test.'
+}
+
+function global:Disconnect-ExchangeOnline {
+    [CmdletBinding()]
+    param(
+        [switch]$Confirm
+    )
+    # No-op: tests that care assert via a Mock. An unmocked call must not fail a
+    # collector that opened a session, and must not reach the real cmdlet.
 }

@@ -77,7 +77,9 @@ collector that could change something cannot be merged.
 
 Interactive sign-in by default, which asks only for read scopes. For unattended runs, pass
 `-AppId`, `-CertificateThumbprint`, `-TenantId`, and `-Organization` (the tenant's
-`*.onmicrosoft.com` domain, needed by the Exchange-based services).
+`*.onmicrosoft.com` domain, needed by the Exchange-based services). App-only Exchange
+Online also needs the `Exchange.ManageAsApp` application permission and the audit role
+on the service principal — see each report's README.
 
 ## Requirements
 

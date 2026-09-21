@@ -9,7 +9,11 @@
         (https://learn.microsoft.com/graph/api/user-list-memberof), available in all clouds.
 
         IsTeam is true when the group's resourceProvisioningOptions contains 'Team'
-        (https://learn.microsoft.com/graph/api/resources/group).
+        (https://learn.microsoft.com/graph/api/resources/group). Those properties are
+        requested with $select. App-only sign-in needs the Directory.Read.All application
+        permission for another user's memberOf; GroupMember.Read.All is not enough, and
+        Graph then returns id-only objects instead of failing
+        (https://learn.microsoft.com/graph/api/user-list-memberof).
 
         The guests come from the latest snapshot in guests.csv, so run Get-Guests.ps1 first.
 
@@ -67,10 +71,13 @@ if ($guests.Count -eq 0) {
 
 $rows = [System.Collections.Generic.List[object]]::new()
 $failed = 0
+$limitedInfo = 0
 
 foreach ($guest in $guests) {
     try {
-        $memberships = @(Get-MgUserMemberOf -UserId $guest.Id -All -ErrorAction Stop)
+        $memberships = @(Get-MgUserMemberOfAsGroup -UserId $guest.Id -All -Property @(
+                'id', 'displayName', 'visibility', 'resourceProvisioningOptions'
+            ) -ErrorAction Stop)
     }
     catch {
         $failed++
@@ -83,13 +90,26 @@ foreach ($guest in $guests) {
         $odataType = [string](Get-GraphAdditionalProperty -Object $membership -Name '@odata.type')
         if ($odataType -and $odataType -ne '#microsoft.graph.group') { continue }
 
+        $groupId = [string](Get-GraphAdditionalProperty -Object $membership -Name 'id')
+        if ([string]::IsNullOrWhiteSpace($groupId)) { continue }
+
+        $displayName = [string](Get-GraphAdditionalProperty -Object $membership -Name 'displayName')
+        if ([string]::IsNullOrWhiteSpace($displayName)) {
+            # Limited-information payload: Graph returns id and @odata.type when the
+            # sign-in cannot read the group, and does not throw.
+            $limitedInfo++
+            Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+                'Group {0} for guest {1} came back with no display name. App-only memberOf of another user needs the Directory.Read.All application permission.' -f $groupId, $guest.Id)
+            continue
+        }
+
         $provisioning = @(Get-GraphAdditionalProperty -Object $membership -Name 'resourceProvisioningOptions')
 
         $rows.Add([pscustomobject]@{
                 RunDate          = $runDate
                 GuestId          = $guest.Id
-                GroupId          = [string](Get-GraphAdditionalProperty -Object $membership -Name 'id')
-                GroupDisplayName = [string](Get-GraphAdditionalProperty -Object $membership -Name 'displayName')
+                GroupId          = $groupId
+                GroupDisplayName = $displayName
                 IsTeam           = $provisioning -contains 'Team'
                 Visibility       = [string](Get-GraphAdditionalProperty -Object $membership -Name 'visibility')
             })
@@ -98,7 +118,14 @@ foreach ($guest in $guests) {
 
 if ($failed -eq $guests.Count) {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
-        'Group memberships could not be read for any guest. The sign-in needs the GroupMember.Read.All or Directory.Read.All permission. Writing the header only.')
+        'Group memberships could not be read for any guest. Delegated sign-in needs GroupMember.Read.All or Directory.Read.All; app-only needs Directory.Read.All. Writing the header only.')
+    Export-AppendCsv -Path $csvPath -Column $columns
+    return
+}
+
+if ($limitedInfo -gt 0 -and $rows.Count -eq 0) {
+    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+        'Group memberships came back with ids only. App-only sign-in needs the Directory.Read.All application permission for another user''s memberOf; Graph then returns limited objects instead of failing. Writing the header only.')
     Export-AppendCsv -Path $csvPath -Column $columns
     return
 }

@@ -389,6 +389,11 @@ Describe 'ConvertTo-CsvTimestamp' {
     It 'normalises a string timestamp' {
         ConvertTo-CsvTimestamp '2026-03-04T05:06:07+00:00' | Should -Be '2026-03-04T05:06:07Z'
     }
+
+    It 'treats an Unspecified DateTime as UTC, not as the machine local time' {
+        $unspecified = [datetime]::new(2026, 8, 10, 12, 0, 0, [System.DateTimeKind]::Unspecified)
+        ConvertTo-CsvTimestamp $unspecified | Should -Be '2026-08-10T12:00:00Z'
+    }
 }
 
 Describe 'Invoke-EntraUserCollector' {

@@ -78,6 +78,7 @@ $steps = @(
     @{ Name = 'guest-memberships'; Script = 'Get-GuestMemberships.ps1'; Range = $false }
 )
 
+$failed = 0
 foreach ($step in $steps) {
     try {
         if ($null -eq $step.Script) {
@@ -91,9 +92,14 @@ foreach ($step in $steps) {
     }
     catch {
         # One collector failing outright must not stop the rest of the run.
+        $failed++
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source 'run-all' -Message (
             'The {0} collector stopped with an error: {1}' -f $step.Name, $_.Exception.Message)
     }
 }
 
 Write-CollectorLog -OutputPath $OutputPath -Source 'run-all' -Message 'Finished.'
+
+if ($failed -gt 0) {
+    throw ('{0} collector(s) stopped with an error. See run.log.' -f $failed)
+}

@@ -219,7 +219,7 @@ Describe 'Collector output matches the committed sample files' {
 
     It 'guest-memberships.csv' {
         Set-TestGuestsCsv -OutputPath $script:folder
-        Mock Get-MgUserMemberOf -MockWith { New-MockMembership }
+        Mock Get-MgUserMemberOfAsGroup -MockWith { New-MockMembership }
 
         & (Join-Path $script:Collectors 'Get-GuestMemberships.ps1') -OutputPath $script:folder
 
@@ -389,7 +389,7 @@ Describe 'Event collectors resume from the watermark' {
             }
         )
 
-        Mock Search-UnifiedAuditLog -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
 
         & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder
 
@@ -407,7 +407,7 @@ Describe 'Event collectors resume from the watermark' {
         Set-TestGuestsCsv -OutputPath $script:folder
         Mock Get-MgAuditLogDirectoryAudit -MockWith { }
         Mock Get-MgAuditLogSignIn -MockWith { }
-        Mock Search-UnifiedAuditLog -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
 
         {
             & (Join-Path $script:Collectors $CollectorScript) -OutputPath $script:folder `
@@ -517,7 +517,7 @@ Describe 'A source that is unavailable or unlicensed leaves a header-only CSV an
 
     It 'guest-memberships.csv when group membership cannot be read for any guest' {
         Set-TestGuestsCsv -OutputPath $script:folder
-        Mock Get-MgUserMemberOf -MockWith { throw 'Insufficient privileges to complete the operation.' }
+        Mock Get-MgUserMemberOfAsGroup -MockWith { throw 'Insufficient privileges to complete the operation.' }
 
         & (Join-Path $script:Collectors 'Get-GuestMemberships.ps1') -OutputPath $script:folder -WarningAction SilentlyContinue
 
@@ -535,8 +535,8 @@ Describe 'Collectors connect to the cloud they were asked for' {
         Mock Get-MgUser -MockWith { }
         Mock Get-MgAuditLogDirectoryAudit -MockWith { }
         Mock Get-MgAuditLogSignIn -MockWith { }
-        Mock Get-MgUserMemberOf -MockWith { }
-        Mock Search-UnifiedAuditLog -MockWith { }
+        Mock Get-MgUserMemberOfAsGroup -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
     }
 
     AfterEach {
@@ -597,7 +597,7 @@ Describe 'Get-SharingEvents.ps1' {
     }
 
     It 'splits the range into windows so no one search covers too much' {
-        Mock Search-UnifiedAuditLog -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
 
         & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
             -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-13T00:00:00Z') -WindowHours 24
@@ -618,6 +618,59 @@ Describe 'Get-SharingEvents.ps1' {
         $row.TargetUserOrGroupType | Should -Be 'Guest'
         $row.CreationTime | Should -Be '2026-08-10T12:00:00Z'
     }
+
+    It 'retries a $null page and then writes the records' {
+        $script:ualCalls = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $script:ualCalls++
+            if ($script:ualCalls -eq 1) { return $null }
+            New-MockAuditRecord -Id 'share-after-retry'
+        }
+
+        & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
+            -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-11T00:00:00Z')
+
+        (Import-Csv -LiteralPath (Join-Path $script:folder 'sharing-events.csv')).Id | Should -Be 'share-after-retry'
+        Should -Invoke Search-UnifiedAuditLog -Times 2 -Exactly
+    }
+
+    It 'does not write a window whose ResultCount exceeds the session cap' {
+        Mock Search-UnifiedAuditLog -MockWith {
+            $record = New-MockAuditRecord -Id 'share-too-many'
+            $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 60000
+            $record
+        }
+
+        {
+            & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
+                -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-11T00:00:00Z')
+        } | Should -Throw '*50,000*'
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'sharing-events.csv')).Count | Should -Be 0
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match '2026-08-10T00:00:00Z'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match '2026-08-11T00:00:00Z'
+    }
+
+    It 'disconnects Exchange Online when it opened the session' {
+        Mock Disconnect-ExchangeOnline -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
+
+        & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
+            -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-11T00:00:00Z')
+
+        Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
+    }
+
+    It 'leaves the session alone when -SkipConnect is given' {
+        Mock Disconnect-ExchangeOnline -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { @() }
+
+        & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
+            -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-11T00:00:00Z') -SkipConnect
+
+        Should -Invoke Connect-M365Service -Times 0 -Exactly
+        Should -Invoke Disconnect-ExchangeOnline -Times 0 -Exactly
+    }
 }
 
 Describe 'Get-GuestMemberships.ps1' {
@@ -632,7 +685,7 @@ Describe 'Get-GuestMemberships.ps1' {
     }
 
     It 'marks a group as a Team only when resourceProvisioningOptions says so' {
-        Mock Get-MgUserMemberOf -MockWith {
+        Mock Get-MgUserMemberOfAsGroup -MockWith {
             @(
                 New-MockMembership -Id 'group-1' -Name 'Project Northwind' -Provisioning @('Team')
                 New-MockMembership -Id 'group-2' -Name 'Budget Planning' -Provisioning @()
@@ -647,7 +700,7 @@ Describe 'Get-GuestMemberships.ps1' {
     }
 
     It 'ignores directory objects that are not groups' {
-        Mock Get-MgUserMemberOf -MockWith {
+        Mock Get-MgUserMemberOfAsGroup -MockWith {
             @(
                 New-MockMembership -Id 'group-1'
                 [pscustomobject]@{
@@ -663,6 +716,21 @@ Describe 'Get-GuestMemberships.ps1' {
         $rows.Count | Should -Be 1
         $rows[0].GroupId | Should -Be 'group-1'
     }
+
+    It 'writes the header only when Graph returns id-only memberships' {
+        Mock Get-MgUserMemberOfAsGroup -MockWith {
+            [pscustomobject]@{
+                Id                   = 'group-1'
+                AdditionalProperties = @{ '@odata.type' = '#microsoft.graph.group' }
+            }
+        }
+
+        & (Join-Path $script:Collectors 'Get-GuestMemberships.ps1') -OutputPath $script:folder -WarningAction SilentlyContinue
+
+        $csv = Join-Path $script:folder 'guest-memberships.csv'
+        (Get-Content -LiteralPath $csv).Count | Should -Be 1
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Directory.Read.All'
+    }
 }
 
 Describe 'Run-All.ps1' {
@@ -676,7 +744,7 @@ Describe 'Run-All.ps1' {
         Mock Connect-MgGraph -ModuleName M365ReportLibrary -MockWith { }
         Mock Get-MgAuditLogDirectoryAudit -MockWith { New-MockDirectoryAudit }
         Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
-        Mock Get-MgUserMemberOf -MockWith { New-MockMembership }
+        Mock Get-MgUserMemberOfAsGroup -MockWith { New-MockMembership }
         Mock Search-UnifiedAuditLog -MockWith { New-MockAuditRecord }
     }
 
@@ -695,13 +763,16 @@ Describe 'Run-All.ps1' {
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Finished\.'
     }
 
-    It 'keeps going when one collector fails outright' {
+    It 'keeps going when one collector fails outright, then reports the failure' {
         Mock Get-MgAuditLogDirectoryAudit -MockWith { throw 'boom' }
 
-        & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:folder `
-            -StartDate ([datetime]::UtcNow.AddHours(-2)) -EndDate ([datetime]::UtcNow) -WarningAction SilentlyContinue
+        {
+            & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:folder `
+                -StartDate ([datetime]::UtcNow.AddHours(-2)) -EndDate ([datetime]::UtcNow) -WarningAction SilentlyContinue
+        } | Should -Throw '*stopped with an error*'
 
         Test-Path -LiteralPath (Join-Path $script:folder 'guest-memberships.csv') | Should -BeTrue
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Finished\.'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'guest-invitations collector stopped'
     }
 }

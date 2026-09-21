@@ -664,7 +664,15 @@ function ConvertTo-CsvTimestamp {
 
     [datetime]$parsed = [datetime]::MinValue
     if ($Value -is [datetime]) {
-        $parsed = $Value
+        # Graph SDK properties and ConvertFrom-Json of audit JSON often produce
+        # Unspecified. Those values are UTC; ToUniversalTime() would otherwise treat
+        # Unspecified as the machine's local time and shift the stamp.
+        $parsed = if ($Value.Kind -eq [DateTimeKind]::Unspecified) {
+            [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
+        }
+        else {
+            $Value
+        }
     }
     elseif ($Value -is [datetimeoffset]) {
         $parsed = $Value.UtcDateTime

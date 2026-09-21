@@ -106,8 +106,10 @@ Describe 'Only read-only tenant commands are called' {
         $names = ($script:TenantCalls.Name | Sort-Object -Unique)
         $names | Should -Not -BeNullOrEmpty
         $names | Should -Contain 'Get-MgUser'
+        $names | Should -Contain 'Get-MgUserMemberOfAsGroup'
         $names | Should -Contain 'Search-UnifiedAuditLog'
         $names | Should -Contain 'Connect-MgGraph'
+        $names | Should -Contain 'Disconnect-ExchangeOnline'
     }
 }
 

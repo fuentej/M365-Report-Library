@@ -57,11 +57,13 @@ saying so. The run carries on.
 | --- | --- |
 | `User.Read.All` | `users.csv`, `guests.csv` |
 | `AuditLog.Read.All` | `signInActivity`, `guest-invitations.csv`, `guest-signins.csv` |
-| `Directory.Read.All` | manager and group lookups |
-| `GroupMember.Read.All` | `guest-memberships.csv` |
+| `Directory.Read.All` | manager lookups; **required** as an application permission for `guest-memberships.csv` (another user's `memberOf`) |
+| `GroupMember.Read.All` | `guest-memberships.csv` when signing in interactively (delegated) |
 
 An interactive sign-in asks for exactly these. App-only needs them granted as application
-permissions with admin consent.
+permissions with admin consent. Application `GroupMember.Read.All` is not enough for
+another user's `memberOf`: Graph then returns id-only objects and does not throw. Use
+`Directory.Read.All`.
 
 ### Directory and Exchange roles
 
@@ -72,6 +74,11 @@ permissions with admin consent.
 
 Auditing also has to be turned on for the organisation before the unified audit log
 returns anything — see the same page.
+
+App-only Exchange Online (the unattended `Get-SharingEvents.ps1` path) also needs the
+`Exchange.ManageAsApp` application permission on the Office 365 Exchange Online API, and
+the same audit role assigned to the service principal. The collector disconnects the
+Exchange Online session when it opened it.
 
 ## Cloud availability
 
@@ -225,7 +232,10 @@ activities](https://learn.microsoft.com/purview/audit-log-activities#sharing-and
 
 `Search-UnifiedAuditLog` returns at most 50,000 unsorted results per session, so the
 collector walks the range in windows and starts a new session for each. A window that
-reaches the cap is logged as possibly truncated; re-run it with a smaller `-WindowHours`.
+matches more than 50,000 records is not written: appending it would move the watermark
+past events that were never returned. The collector logs the exact `-StartDate` and
+`-EndDate` of that window and stops. Re-run that window with those dates and a smaller
+`-WindowHours`.
 
 ### `guest-memberships.csv` — snapshot
 
