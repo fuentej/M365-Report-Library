@@ -546,18 +546,23 @@ Describe 'Collectors connect to the cloud they were asked for' {
     # The data keys are deliberately not named Service or Environment: inside a
     # -ParameterFilter those names are the mocked call's own bound parameters.
     It '<CollectorScript> asks for the <ExpectedService> service in <Cloud>' -ForEach @(
-        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'Commercial' }
-        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'GCC' }
-        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh' }
-        @{ CollectorScript = 'Get-GuestInvitations.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh' }
-        @{ CollectorScript = 'Get-GuestSignIns.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh' }
-        @{ CollectorScript = 'Get-GuestMemberships.ps1'; ExpectedService = 'Graph'; Cloud = 'GCC' }
-        @{ CollectorScript = 'Get-SharingEvents.ps1'; ExpectedService = 'ExchangeOnline'; Cloud = 'Commercial' }
-        @{ CollectorScript = 'Get-SharingEvents.ps1'; ExpectedService = 'ExchangeOnline'; Cloud = 'GCCHigh' }
+        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'Commercial'; Extra = @{} }
+        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'GCC'; Extra = @{} }
+        @{ CollectorScript = 'Get-Guests.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh'; Extra = @{} }
+        @{ CollectorScript = 'Get-GuestInvitations.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh'; Extra = @{} }
+        @{ CollectorScript = 'Get-GuestSignIns.ps1'; ExpectedService = 'Graph'; Cloud = 'GCCHigh'; Extra = @{} }
+        @{ CollectorScript = 'Get-GuestMemberships.ps1'; ExpectedService = 'Graph'; Cloud = 'GCC'; Extra = @{} }
+        @{ CollectorScript = 'Get-SharingEvents.ps1'; ExpectedService = 'ExchangeOnline'; Cloud = 'Commercial'; Extra = @{ LookbackDays = 1 } }
+        @{ CollectorScript = 'Get-SharingEvents.ps1'; ExpectedService = 'ExchangeOnline'; Cloud = 'GCCHigh'; Extra = @{ LookbackDays = 1 } }
     ) {
         Set-TestGuestsCsv -OutputPath $script:folder
 
-        & (Join-Path $script:Collectors $CollectorScript) -OutputPath $script:folder -Environment $Cloud -WarningAction SilentlyContinue
+        $params = @{
+            OutputPath      = $script:folder
+            Environment     = $Cloud
+            WarningAction   = 'SilentlyContinue'
+        } + $Extra
+        & (Join-Path $script:Collectors $CollectorScript) @params
 
         Should -Invoke Connect-M365Service -Times 1 -Exactly -ParameterFilter {
             $Service -eq $ExpectedService -and $Environment -eq $Cloud
@@ -602,7 +607,8 @@ Describe 'Get-SharingEvents.ps1' {
         & (Join-Path $script:Collectors 'Get-SharingEvents.ps1') -OutputPath $script:folder `
             -StartDate ([datetime]'2026-08-10T00:00:00Z') -EndDate ([datetime]'2026-08-13T00:00:00Z') -WindowHours 24
 
-        Should -Invoke Search-UnifiedAuditLog -Times 3 -Exactly
+        # Three windows, each retried while the empty result looks like "not ready".
+        Should -Invoke Search-UnifiedAuditLog -Times 12 -Exactly
     }
 
     It 'reads the columns out of each record''s AuditData' {
@@ -620,10 +626,12 @@ Describe 'Get-SharingEvents.ps1' {
     }
 
     It 'retries a $null page and then writes the records' {
-        $script:ualCalls = 0
+        # The mock runs under the collector's StrictMode and script scope, so the
+        # counter has to live in global, not $script.
+        $global:GuestAccessUalState = @{ Calls = 0 }
         Mock Search-UnifiedAuditLog -MockWith {
-            $script:ualCalls++
-            if ($script:ualCalls -eq 1) { return $null }
+            $global:GuestAccessUalState.Calls++
+            if ($global:GuestAccessUalState.Calls -eq 1) { return $null }
             New-MockAuditRecord -Id 'share-after-retry'
         }
 
@@ -764,14 +772,15 @@ Describe 'Run-All.ps1' {
     }
 
     It 'keeps going when one collector fails outright, then reports the failure' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { throw 'boom' }
-
+        # An inverted range is a terminating error in the event collectors. A source that
+        # is merely unavailable is caught inside the collector and is not a run failure.
         {
             & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:folder `
-                -StartDate ([datetime]::UtcNow.AddHours(-2)) -EndDate ([datetime]::UtcNow) -WarningAction SilentlyContinue
+                -StartDate ([datetime]'2026-08-16T00:00:00Z') -EndDate ([datetime]'2026-08-15T00:00:00Z') -WarningAction SilentlyContinue
         } | Should -Throw '*stopped with an error*'
 
         Test-Path -LiteralPath (Join-Path $script:folder 'guest-memberships.csv') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:folder 'users.csv') | Should -BeTrue
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Finished\.'
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'guest-invitations collector stopped'
     }

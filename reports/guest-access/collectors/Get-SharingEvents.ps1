@@ -73,8 +73,10 @@ $csvPath = Join-Path $OutputPath 'sharing-events.csv'
 # ReturnLargeSet caps a session at 50,000 records, returned in pages of -ResultSize.
 $pageSize = 5000
 $sessionCap = 50000
-# $null (as opposed to an empty collection) usually means the search is not ready yet.
+# A function or cmdlet that outputs nothing assigns $null, same as "not ready".
+# Retry a few times, briefly, then treat the window as empty.
 $nullPageRetries = 3
+$nullPageRetryDelayMs = 200
 
 if (-not (Test-Path -LiteralPath $OutputPath)) {
     New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
@@ -142,19 +144,19 @@ try {
                 return
             }
 
-            # $null = not ready. @() = this session has nothing (more). Do not wrap $null
-            # in @(): that is a one-element array and looks like a page of data.
-            if ($null -eq $raw) {
-                if ($nullTries -lt $nullPageRetries) {
+            # Do not wrap $null in @(): that is a one-element array and looks like data.
+            # $null and an empty collection both mean "nothing this call". Retry a few
+            # times (the service often returns nothing while the search is prepared),
+            # then treat the window as empty.
+            $records = @($raw | Where-Object { $null -ne $_ })
+            if ($records.Count -eq 0) {
+                if ($collected -eq 0 -and $nullTries -lt $nullPageRetries) {
                     $nullTries++
-                    Start-Sleep -Seconds 1
+                    Start-Sleep -Milliseconds $nullPageRetryDelayMs
                     continue
                 }
                 break
             }
-
-            $records = @($raw | Where-Object { $null -ne $_ })
-            if ($records.Count -eq 0) { break }
 
             $resultCountProperty = $records[0].PSObject.Properties['ResultCount']
             if ($resultCountProperty -and $null -ne $resultCountProperty.Value) {
