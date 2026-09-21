@@ -1,0 +1,6 @@
+# Invoke-Pester -CI writes its NUnit report here.
+testResults.xml
+
+# Collector output. Point -OutputPath at a folder outside the repository, or at this one.
+out/
+*.log
