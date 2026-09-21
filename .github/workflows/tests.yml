@@ -29,6 +29,9 @@ jobs:
         shell: pwsh
         run: |
           Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests -CI
-          # -CI does not set Run.Exit. Pester still records the failed-test count in
-          # $LASTEXITCODE; leave through that so a failed run is a red check, not a green one.
+          # -CI does set Run.Exit, so a failing run already exits non-zero: against a
+          # deliberately failing test this step exits 1 with -CI and 0 without it, and
+          # that held even through the nested `pwsh -Command` this step used to use.
+          # Leaving the exit explicit anyway, so the check stays red if -CI is ever
+          # dropped from the line above.
           exit $LASTEXITCODE
