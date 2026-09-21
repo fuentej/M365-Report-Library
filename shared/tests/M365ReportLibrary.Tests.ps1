@@ -129,6 +129,21 @@ Describe 'Connect-M365Service' {
         { Connect-M365Service -Service ExchangeOnline -AppId 'app' -CertificateThumbprint 'ABC123' } |
             Should -Throw '*requires -Organization*'
     }
+
+    It 'refuses half a credential: <Given> without <Missing>' -ForEach @(
+        @{ Given = '-AppId'; Missing = '-CertificateThumbprint'; Splat = @{ AppId = 'app' } }
+        @{ Given = '-CertificateThumbprint'; Missing = '-AppId'; Splat = @{ CertificateThumbprint = 'ABC123' } }
+    ) {
+        # Falling back to interactive here would prompt, or sign in as whoever is at the
+        # keyboard, on a run meant to be unattended.
+        { Connect-M365Service -Service Graph @Splat } | Should -Throw '*needs both -AppId and -CertificateThumbprint*'
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 0 -Exactly
+    }
+
+    It 'still signs in interactively when neither half is given' {
+        { Connect-M365Service -Service Graph -AppId '' -CertificateThumbprint '' } | Should -Not -Throw
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly
+    }
 }
 
 Describe 'Export-AppendCsv' {

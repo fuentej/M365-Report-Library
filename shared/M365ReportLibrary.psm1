@@ -158,7 +158,18 @@ function Connect-M365Service {
     )
 
     $endpoint = Get-M365ServiceEndpoint -Service $Service -Environment $Environment
-    $appOnly = -not [string]::IsNullOrWhiteSpace($AppId) -and -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
+
+    # Half a credential is a mistake worth stopping on. Treating it as "no credential"
+    # would quietly fall back to an interactive prompt, which on an unattended run
+    # either hangs or signs in as whoever is at the keyboard.
+    $hasAppId = -not [string]::IsNullOrWhiteSpace($AppId)
+    $hasCertificate = -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
+    if ($hasAppId -ne $hasCertificate) {
+        $supplied = if ($hasAppId) { '-AppId' } else { '-CertificateThumbprint' }
+        $missing = if ($hasAppId) { '-CertificateThumbprint' } else { '-AppId' }
+        throw "App-only sign-in needs both -AppId and -CertificateThumbprint; $supplied was given without $missing. Omit both to sign in interactively."
+    }
+    $appOnly = $hasAppId -and $hasCertificate
 
     switch ($Service) {
         'Graph' {

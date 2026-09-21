@@ -163,6 +163,54 @@ Describe 'The events span the window the report charts' {
         @($script:Sharing | Where-Object Operation -EQ $Operation).Count | Should -BeGreaterThan 0
     }
 
+    It 'dates no event after the moment the set is generated around' {
+        # The generator's -EndDate is its "now". An event after it has not happened yet.
+        $endOfWindow = ([datetime]$script:LatestRunDate).AddDays(1)
+
+        $strays = @(
+            $script:Invitations | ForEach-Object { [pscustomobject]@{ File = 'guest-invitations.csv'; When = [datetime]$_.ActivityDateTime; Id = $_.Id } }
+            $script:SignIns | ForEach-Object { [pscustomobject]@{ File = 'guest-signins.csv'; When = [datetime]$_.CreatedDateTime; Id = $_.Id } }
+            $script:Sharing | ForEach-Object { [pscustomobject]@{ File = 'sharing-events.csv'; When = [datetime]$_.CreationTime; Id = $_.Id } }
+        ) | Where-Object { $_.When -ge $endOfWindow } | ForEach-Object { '{0}:{1}' -f $_.File, $_.Id }
+
+        $strays -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'records no sign-in before the guest redeemed their invitation' {
+        $acceptedAt = @{}
+        foreach ($guest in $script:LatestGuests) {
+            if ($guest.ExternalUserState -eq 'Accepted' -and -not [string]::IsNullOrWhiteSpace($guest.ExternalUserStateChangeDateTime)) {
+                $acceptedAt[$guest.Id] = [datetime]$guest.ExternalUserStateChangeDateTime
+            }
+        }
+
+        $early = @($script:SignIns | Where-Object {
+                $acceptedAt.ContainsKey($_.UserId) -and ([datetime]$_.CreatedDateTime) -lt $acceptedAt[$_.UserId]
+            } | ForEach-Object { $_.Id })
+
+        $early -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'never shows a guest as accepted in a snapshot taken before they redeemed' {
+        $wrong = @($script:Guests | Where-Object {
+                $_.ExternalUserState -eq 'Accepted' -and
+                -not [string]::IsNullOrWhiteSpace($_.ExternalUserStateChangeDateTime) -and
+                ([datetime]$_.ExternalUserStateChangeDateTime) -gt ([datetime]$_.RunDate).AddDays(1)
+            } | ForEach-Object { '{0}@{1}' -f $_.Id, $_.RunDate })
+
+        $wrong -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'shows at least one guest pending in an early snapshot and accepted in a later one' {
+        # The per-snapshot state is what makes the redemption funnel visible over time.
+        $byId = $script:Guests | Group-Object Id
+        $changed = @($byId | Where-Object {
+                ($_.Group.ExternalUserState | Sort-Object -Unique).Count -gt 1
+            })
+
+        $changed.Count | Should -BeGreaterThan 0
+    }
+
     It 'attributes every sign-in to a guest' {
         $guestIds = @($script:Guests.Id | Sort-Object -Unique)
         $strays = @($script:SignIns.UserId | Sort-Object -Unique | Where-Object { $guestIds -notcontains $_ })

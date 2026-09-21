@@ -92,6 +92,22 @@ else { [datetime]::UtcNow.AddDays(-$LookbackDays) }
 
 $end = if ($PSBoundParameters.ContainsKey('EndDate')) { $EndDate.ToUniversalTime() } else { [datetime]::UtcNow }
 
+if ($end -le $start) {
+    if ($PSBoundParameters.ContainsKey('StartDate') -or $PSBoundParameters.ContainsKey('EndDate')) {
+        # An inverted or empty range asked for explicitly is a mistake, and collecting
+        # nothing while reporting success would hide it.
+        throw ('The requested range is empty: the end ({0}) is not later than the start ({1}).' -f
+            (ConvertTo-CsvTimestamp $end), (ConvertTo-CsvTimestamp $start))
+    }
+
+    # Resuming from a watermark that already sits at or past now: nothing has happened
+    # since the last run. Make sure the file exists, say so, and stop.
+    Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
+        'Nothing new to collect: the watermark ({0}) is already at or after the end of the range.' -f (ConvertTo-CsvTimestamp $start))
+    Export-AppendCsv -Path $csvPath -Column $columns
+    return
+}
+
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'Querying sign-ins for {0} guests from {1} to {2} in {3}-hour windows (watermark: {4}).' -f
     $guestIds.Count, (ConvertTo-CsvTimestamp $start), (ConvertTo-CsvTimestamp $end), $WindowHours,

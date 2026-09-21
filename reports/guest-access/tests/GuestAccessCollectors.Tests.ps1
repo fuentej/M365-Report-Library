@@ -398,6 +398,49 @@ Describe 'Event collectors resume from the watermark' {
         }
     }
 
+    It '<CollectorScript> refuses a range that ends at or before it starts' -ForEach @(
+        @{ CollectorScript = 'Get-GuestInvitations.ps1' }
+        @{ CollectorScript = 'Get-GuestSignIns.ps1' }
+        @{ CollectorScript = 'Get-SharingEvents.ps1' }
+    ) {
+        # Collecting nothing and reporting success would hide the mistake.
+        Set-TestGuestsCsv -OutputPath $script:folder
+        Mock Get-MgAuditLogDirectoryAudit -MockWith { }
+        Mock Get-MgAuditLogSignIn -MockWith { }
+        Mock Search-UnifiedAuditLog -MockWith { }
+
+        {
+            & (Join-Path $script:Collectors $CollectorScript) -OutputPath $script:folder `
+                -StartDate ([datetime]'2026-08-16T00:00:00Z') -EndDate ([datetime]'2026-08-15T00:00:00Z')
+        } | Should -Throw '*range is empty*'
+
+        Should -Invoke Get-MgAuditLogDirectoryAudit -Times 0 -Exactly
+        Should -Invoke Get-MgAuditLogSignIn -Times 0 -Exactly
+        Should -Invoke Search-UnifiedAuditLog -Times 0 -Exactly
+    }
+
+    It 'Get-GuestInvitations.ps1 stops quietly when the watermark is already up to date' {
+        # A resumed run with nothing new is not an error: leave the file alone, say so.
+        $future = [datetime]::UtcNow.AddHours(2).ToString('yyyy-MM-ddTHH:mm:00Z')
+        Export-AppendCsv -Path (Join-Path $script:folder 'guest-invitations.csv') -Column $script:Schema.GuestInvitations -Rows @(
+            [pscustomobject]@{
+                ActivityDateTime = $future; Id = 'audit-0'
+                ActivityDisplayName = 'Invite external user'; Result = 'success'
+                InitiatedByUserPrincipalName = 'blair.bergstrom@example.com'
+                InitiatedByAppDisplayName = 'Microsoft Entra admin center'
+                TargetUserId = 'guest-0'; TargetUserPrincipalName = 'old@example.com'
+            }
+        )
+
+        Mock Get-MgAuditLogDirectoryAudit -MockWith { }
+
+        { & (Join-Path $script:Collectors 'Get-GuestInvitations.ps1') -OutputPath $script:folder } | Should -Not -Throw
+
+        Should -Invoke Get-MgAuditLogDirectoryAudit -Times 0 -Exactly
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'guest-invitations.csv')).Count | Should -Be 1
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Nothing new to collect'
+    }
+
     It 'Get-GuestInvitations.ps1 skips an event it already holds' {
         Mock Get-MgAuditLogDirectoryAudit -MockWith { New-MockDirectoryAudit -Id 'audit-1' }
 

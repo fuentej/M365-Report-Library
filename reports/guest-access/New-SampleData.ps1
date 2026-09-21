@@ -88,9 +88,17 @@ function New-EventTime {
 
     $span = ($To - $From).TotalMinutes
     if ($span -le 1) { return $From }
+
     $moment = $From.AddMinutes($random.Next(0, [int]$span))
-    return [datetime]::new($moment.Year, $moment.Month, $moment.Day,
+
+    # Pull the instant onto a working hour of the same day, but only when that keeps it
+    # inside the window. Moving it unconditionally would put events before the moment
+    # they follow from - a sign-in before the guest accepted, say - near either edge.
+    $working = [datetime]::new($moment.Year, $moment.Month, $moment.Day,
         $random.Next(7, 20), $random.Next(0, 60), $random.Next(0, 60), [System.DateTimeKind]::Utc)
+
+    if ($working -ge $From -and $working -le $To) { return $working }
+    return $moment
 }
 
 $firstNames = @(
@@ -226,7 +234,15 @@ for ($g = 0; $g -lt $guestCount; $g++) {
         New-EventTime -From $eventStart -To $EndDate.AddDays(-5)
     }
 
-    $accepted = if ($neverAccepted) { $null } else { $invited.AddDays($random.Next(0, 6)).AddHours($random.Next(1, 20)) }
+    # Redemption follows the invitation within about a week, and never after the date
+    # the whole set is generated around.
+    $accepted = if ($neverAccepted) {
+        $null
+    }
+    else {
+        $window = $invited.AddDays($random.Next(0, 6)).AddHours($random.Next(1, 20))
+        if ($window -gt $EndDate) { $EndDate } else { $window }
+    }
 
     $lastSignIn = $null
     if (-not $neverAccepted) {
@@ -237,6 +253,7 @@ for ($g = 0; $g -lt $guestCount; $g++) {
             $EndDate.AddDays(-$random.Next(0, 25)).AddHours($random.Next(0, 23))
         }
         if ($lastSignIn -lt $accepted) { $lastSignIn = $accepted.AddDays(1) }
+        if ($lastSignIn -gt $EndDate) { $lastSignIn = $EndDate }
     }
 
     $guests.Add([pscustomobject]@{
@@ -346,6 +363,13 @@ foreach ($snapshot in $snapshotDates) {
         $enabled = $guest.AccountEnabled -or ($null -ne $guest.DisabledFrom -and $guest.DisabledFrom -gt $snapshot)
         $signInAsOf = if ($null -ne $guest.LastSignIn -and $guest.LastSignIn -le $snapshot) { $guest.LastSignIn } else { $null }
 
+        # A guest who redeems later than this snapshot was still pending when it was
+        # taken. Carrying the final state back over every snapshot would show guests as
+        # accepted before they had accepted.
+        $acceptedAsOf = $guest.ExternalUserState -eq 'Accepted' -and $null -ne $guest.StateChanged -and $guest.StateChanged -le $snapshot
+        $stateAsOf = if ($acceptedAsOf) { 'Accepted' } else { 'PendingAcceptance' }
+        $stateChangedAsOf = if ($acceptedAsOf) { $guest.StateChanged } else { $guest.CreatedDateTime }
+
         $userRows.Add([pscustomobject]@{
                 RunDate                  = $runDate
                 Id                       = $guest.Id
@@ -372,8 +396,8 @@ foreach ($snapshot in $snapshotDates) {
                 ExternalDomain                   = $guest.ExternalDomain
                 CreatedDateTime                  = ConvertTo-CsvTimestamp $guest.CreatedDateTime
                 CreationType                     = $guest.CreationType
-                ExternalUserState                = $guest.ExternalUserState
-                ExternalUserStateChangeDateTime  = ConvertTo-CsvTimestamp $guest.StateChanged
+                ExternalUserState                = $stateAsOf
+                ExternalUserStateChangeDateTime  = ConvertTo-CsvTimestamp $stateChangedAsOf
                 AccountEnabled                   = $enabled
                 LastSignInDateTime               = ConvertTo-CsvTimestamp $signInAsOf
                 LastNonInteractiveSignInDateTime = if ($null -eq $signInAsOf) { '' } else { ConvertTo-CsvTimestamp $signInAsOf.AddHours(-$random.Next(1, 72)) }
@@ -420,8 +444,9 @@ foreach ($guest in $guests) {
                 TargetUserPrincipalName      = $guest.UserPrincipalName
             })
     }
-    else {
-        # An invitation that was re-sent and still not redeemed.
+    elseif ($guest.CreatedDateTime.AddDays(14) -le $EndDate) {
+        # An invitation that was re-sent and still not redeemed - only for a guest
+        # invited long enough ago for the resend to have happened by now.
         $invitationRows.Add([pscustomobject]@{
                 ActivityDateTime             = ConvertTo-CsvTimestamp $guest.CreatedDateTime.AddDays(14)
                 Id                           = New-DeterministicGuid
@@ -496,6 +521,10 @@ function Add-SharingEvent {
         [AllowNull()][string]$TargetType
     )
 
+    # A single guard for every caller: an event dated after the moment the set is
+    # generated around has not happened yet, so it does not belong in the data.
+    if ($When -gt $EndDate) { return }
+
     $site = Get-RandomItem $sites
     $file = Get-RandomItem $fileNames
     $workload = if ($site -like '*-my.sharepoint.com*') { 'OneDrive' } else { 'SharePoint' }
@@ -544,7 +573,11 @@ foreach ($guest in $guests) {
         }
     }
     else {
-        Add-SharingEvent -Operation 'SharingInvitationRevoked' -When $invitedAt.AddDays($random.Next(20, 60)) `
+        # Revoked some weeks after it was sent, if there is still room before the end of
+        # the window; otherwise the revocation has not happened yet and Add-SharingEvent
+        # drops it.
+        Add-SharingEvent -Operation 'SharingInvitationRevoked' `
+            -When (New-EventTime -From $invitedAt.AddDays(20) -To $EndDate) `
             -UserId $sharer.UserPrincipalName -TargetName $guest.Mail -TargetType 'Guest'
     }
 
