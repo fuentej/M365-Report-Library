@@ -1,0 +1,34 @@
+name: tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pester:
+    name: Pester
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install Pester 5
+        shell: pwsh
+        run: |
+          $installed = Get-Module Pester -ListAvailable | Where-Object { $_.Version -ge [version]'5.0.0' }
+          if (-not $installed) {
+            Install-Module Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser -SkipPublisherCheck
+          }
+          (Get-Module Pester -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1).Version.ToString()
+
+      - name: Run the tests
+        shell: pwsh
+        run: |
+          Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests -CI
+          # -CI does not set Run.Exit. Pester still records the failed-test count in
+          # $LASTEXITCODE; leave through that so a failed run is a red check, not a green one.
+          exit $LASTEXITCODE
