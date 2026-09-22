@@ -120,22 +120,40 @@ when any other check suite finishes. The decision itself lives in
 2. One collector per CSV, each writing a single file and taking `-OutputPath`,
    `-Environment` and the four authentication parameters. Add a `Run-All.ps1` that runs
    them in order.
-3. Put the column order of every CSV in one data file the collectors, the sample
+3. Import the shared module by its relative path, never with `-Force`. From `collectors/`
+   that is
+   `Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')` —
+   `-Force` removes the loaded module and imports it again, which drops any Pester mock a caller
+   installed against it before running the collector. Without `-Force`, a session that already
+   imported the module keeps that copy, so an edit to `shared/M365ReportLibrary.psm1` is not
+   loaded until a new session. Scripts under `tests/` are outside this rule: they import with
+   `-Force` so the file on disk is the one under test, and they install mocks only after that.
+4. Put the column order of every CSV in one data file the collectors, the sample
    generator and the tests all read, so the three cannot disagree.
-4. Snapshot data gets a `RunDate` column and a composite key of `RunDate` plus the
+5. Snapshot data gets a `RunDate` column and a composite key of `RunDate` plus the
    object's id. Event data is keyed on the source's own id, and resumes from
    `Get-CsvWatermark`.
-5. A source that is missing from a cloud, or unlicensed in the tenant, writes its header
+6. A source that is missing from a cloud, or unlicensed in the tenant, writes its header
    and a line in `run.log`. It never stops the run and never writes a half-populated row.
-6. A `New-SampleData.ps1` that is deterministic and uses only `example.com`, writing
+7. A `New-SampleData.ps1` that is deterministic and uses only `example.com`, writing
    through the same column lists as the collectors.
-7. Tests covering the column order against the samples, the endpoints per cloud, the
+8. Tests covering the column order against the samples, the endpoints per cloud, the
    watermark, and the header-only path. New scripts are picked up by the read-only scan
    automatically.
-8. The report's README lists prerequisites, per-cloud availability with a Learn link or
+9. The report's README lists prerequisites, per-cloud availability with a Learn link or
    `UNVERIFIED`, how to run it, and what every column means.
-9. Add the report to the table above and to the `Invoke-Pester -Path` list in
-   `.github/workflows/tests.yml` (and in this README's own copy of that command, above).
+10. Add the report to the table above and to the `Invoke-Pester -Path` list in
+    `.github/workflows/tests.yml` (and in this README's own copy of that command, above).
+
+Why relative-path import rather than a module manifest on `PSModulePath`: putting
+`shared/M365ReportLibrary.psm1` on `PSModulePath` would let a collector write
+`Import-Module M365ReportLibrary` by name, but only after every machine (and CI job) that
+runs a collector adds this repo's `shared/` folder to `PSModulePath` first — an extra setup
+step the current path-based import needs from nobody, since a fresh `git clone` already has
+everything `$PSScriptRoot`-relative imports need. It also keeps each collector's import
+statement an unambiguous pointer to exactly one module file, with no possibility of a
+same-named module elsewhere on `PSModulePath` shadowing it. Not worth the trade for a
+single-repo shared module; revisit if the shared module ever ships to more than one repo.
 
 ## Licence
 

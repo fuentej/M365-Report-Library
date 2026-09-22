@@ -57,6 +57,76 @@ BeforeAll {
         }
     }
 
+    function Get-CommandCallFromText {
+        <#
+            .SYNOPSIS
+                Every command invocation in a snippet, in the same shape as Get-CommandCall.
+        #>
+        param([Parameter(Mandatory)][string]$Text)
+
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$tokens, [ref]$errors)
+
+        if ($errors.Count -gt 0) {
+            throw ("snippet does not parse: {0}" -f $errors[0].Message)
+        }
+
+        foreach ($command in $ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] }, $true)) {
+            $name = $command.GetCommandName()
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            [pscustomobject]@{ Name = $name; Ast = $command; Path = '<snippet>' }
+        }
+    }
+
+    function Get-InvokedCommandName {
+        <#
+            .SYNOPSIS
+                The command name with a module qualifier removed.
+        #>
+        param([Parameter(Mandatory)][string]$Name)
+
+        $slash = $Name.LastIndexOf('\')
+        if ($slash -ge 0 -and $slash -lt ($Name.Length - 1)) {
+            return $Name.Substring($slash + 1)
+        }
+        return $Name
+    }
+
+    function Test-ForcedImportModule {
+        <#
+            .SYNOPSIS
+                True when the call is Import-Module and -Force is bound.
+
+            .DESCRIPTION
+                ParameterName is the text the author wrote, so -Fo and -For are not equal to
+                Force. StaticParameterBinder resolves those abbreviations the way the engine
+                does at runtime. A module-qualified call such as
+                Microsoft.PowerShell.Core\Import-Module is still Import-Module.
+        #>
+        param([Parameter(Mandatory)]$Call)
+
+        if ((Get-InvokedCommandName -Name $Call.Name) -ne 'Import-Module') {
+            return $false
+        }
+
+        $bound = [System.Management.Automation.Language.StaticParameterBinder]::BindCommand($Call.Ast, $true)
+        return @($bound.BoundParameters.Keys) -contains 'Force'
+    }
+
+    function Test-SharedModuleImport {
+        <#
+            .SYNOPSIS
+                True when an Import-Module call names M365ReportLibrary.psm1.
+        #>
+        param([Parameter(Mandatory)]$Call)
+
+        if ((Get-InvokedCommandName -Name $Call.Name) -ne 'Import-Module') {
+            return $false
+        }
+        return $Call.Ast.Extent.Text -match 'M365ReportLibrary\.psm1'
+    }
+
     function Test-TenantCommand {
         param([Parameter(Mandatory)][string]$Name)
 
@@ -85,6 +155,66 @@ Describe 'Every script in the library parses' {
     It 'reads a meaningful number of tenant commands' {
         # Guards the checks below against silently passing because the scan found nothing.
         $script:TenantCalls.Count | Should -BeGreaterThan 5
+    }
+}
+
+Describe 'The shared module is never imported with -Force' {
+    It 'imports the shared module at least once, so the check below is not vacuous' {
+        $imports = @($script:Calls | Where-Object { Test-SharedModuleImport -Call $_ })
+        $imports.Count | Should -BeGreaterThan 0
+    }
+
+    It 'passes no -Force switch to Import-Module' {
+        # -Force removes the loaded module and imports it again, discarding any Pester mock
+        # a caller installed against it (-ModuleName M365ReportLibrary) before the collector
+        # runs. See the "Adding a report" section of the root README.md.
+        # https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/import-module
+        $offenders = foreach ($call in $script:Calls) {
+            if (-not (Test-ForcedImportModule -Call $call)) { continue }
+            '{0}:{1} Import-Module -Force' -f (Split-Path $call.Path -Leaf), $call.Ast.Extent.StartLineNumber
+        }
+
+        $offenders -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'treats an abbreviated or module-qualified -Force as a forced import' {
+        # These bind -Force at runtime. A check of ParameterName -eq 'Force', or of the
+        # command name -eq 'Import-Module', misses both.
+        $samples = @(
+            'Import-Module (Join-Path $PSScriptRoot ''../../../shared/M365ReportLibrary.psm1'') -Fo'
+            'Import-Module (Join-Path $PSScriptRoot ''../../../shared/M365ReportLibrary.psm1'') -For'
+            'Microsoft.PowerShell.Core\Import-Module (Join-Path $PSScriptRoot ''../../../shared/M365ReportLibrary.psm1'') -Force'
+        )
+
+        foreach ($sample in $samples) {
+            $forced = @(Get-CommandCallFromText -Text $sample | Where-Object { Test-ForcedImportModule -Call $_ })
+            $forced.Count | Should -Be 1
+            (Test-SharedModuleImport -Call $forced[0]) | Should -BeTrue
+        }
+    }
+
+    It 'records the convention, the mock reason, and the already-loaded trade-off' {
+        $readme = Get-Content -LiteralPath (Join-Path $script:Root 'README.md') -Raw
+        $start = $readme.IndexOf('## Adding a report')
+        $start | Should -BeGreaterThan -1
+        $section = ($readme.Substring($start) -replace '\s+', ' ')
+        $section | Should -Match 'never with `-Force`'
+        $section | Should -Match 'drops any Pester mock'
+        $section | Should -Match 'already imported the module keeps that copy'
+        $section | Should -Match 'Scripts under `tests/` are outside this rule'
+    }
+
+    It 'does not treat a plain import, an ambiguous -F, or -Function as -Force' {
+        $samples = @(
+            'Import-Module (Join-Path $PSScriptRoot ''../../../shared/M365ReportLibrary.psm1'')'
+            'Import-Module $m -F'
+            'Import-Module $m -Function Get-Thing'
+        )
+
+        foreach ($sample in $samples) {
+            $forced = @(Get-CommandCallFromText -Text $sample | Where-Object { Test-ForcedImportModule -Call $_ })
+            $forced.Count | Should -Be 0
+        }
     }
 }
 
