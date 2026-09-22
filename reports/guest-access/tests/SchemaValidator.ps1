@@ -10,12 +10,10 @@
     https://github.com/microsoft/json-schemas so a `$ref` between two vendored files
     resolves the same way it would against the published schema tree.
 
-    This is deliberately not a complete draft-07 implementation -- see the PR
-    description for what it checks (type, required, additionalProperties, items,
-    $ref, anyOf/oneOf, const, enum, pattern) and what it does not (format,
-    if/then/else, complex combinators). That is what "structurally validates" means
-    per the issue: correct required properties and correct shapes, checked
-    deterministically and offline.
+    This is deliberately not a complete draft-07 implementation. It checks type,
+    required, additionalProperties (false or a schema), items, $ref, anyOf,
+    oneOf (exactly one match), const, enum, and pattern. It does not check
+    format, if/then/else, or unevaluatedProperties.
 #>
 
 $script:SchemaDocumentCache = @{}
@@ -159,17 +157,28 @@ function Test-JsonSchema {
 
     foreach ($combinatorKey in 'anyOf', 'oneOf') {
         if (-not $Schema.ContainsKey($combinatorKey)) { continue }
-        $passed = $false
+        # oneOf is exactly one match. anyOf is at least one. Stopping at the first
+        # success makes oneOf accept an instance that also matches a later branch.
+        $passCount = 0
         $firstAltErrors = $null
         foreach ($alt in $Schema[$combinatorKey]) {
             $altErrors = Test-JsonSchema -Instance $Instance -Schema $alt -SchemaFile $SchemaFile `
                 -InstancePath $InstancePath -Depth ($Depth + 1)
-            if ($altErrors.Count -eq 0) { $passed = $true; break }
-            if ($null -eq $firstAltErrors) { $firstAltErrors = $altErrors }
+            if ($altErrors.Count -eq 0) {
+                $passCount++
+                if ($combinatorKey -eq 'anyOf') { break }
+            }
+            elseif ($null -eq $firstAltErrors) { $firstAltErrors = $altErrors }
         }
-        if (-not $passed) {
-            $detail = if ($firstAltErrors) { $firstAltErrors -join '; ' } else { '(no alternatives)' }
-            $errors.Add("$InstancePath : matched no $combinatorKey alternative (closest: $detail)")
+        $ok = if ($combinatorKey -eq 'oneOf') { $passCount -eq 1 } else { $passCount -ge 1 }
+        if (-not $ok) {
+            if ($combinatorKey -eq 'oneOf' -and $passCount -gt 1) {
+                $errors.Add("$InstancePath : matched $passCount oneOf alternatives; exactly one is required")
+            }
+            else {
+                $detail = if ($firstAltErrors) { $firstAltErrors -join '; ' } else { '(no alternatives)' }
+                $errors.Add("$InstancePath : matched no $combinatorKey alternative (closest: $detail)")
+            }
         }
     }
 
@@ -185,21 +194,22 @@ function Test-JsonSchema {
         $declared = @()
         if ($Schema.ContainsKey('properties')) { $declared = @($Schema['properties'].Keys) }
 
-        if ($Schema.ContainsKey('additionalProperties') -and $Schema['additionalProperties'] -eq $false) {
-            foreach ($key in $Instance.Keys) {
-                if ($declared -notcontains $key) {
-                    $errors.Add("$InstancePath.$key : property not allowed (additionalProperties: false)")
-                }
-            }
-        }
+        $additional = $true
+        if ($Schema.ContainsKey('additionalProperties')) { $additional = $Schema['additionalProperties'] }
 
-        if ($Schema.ContainsKey('properties')) {
-            foreach ($key in $Instance.Keys) {
-                if ($Schema['properties'].ContainsKey($key)) {
-                    $subErrors = Test-JsonSchema -Instance $Instance[$key] -Schema $Schema['properties'][$key] `
-                        -SchemaFile $SchemaFile -InstancePath "$InstancePath.$key" -Depth ($Depth + 1)
-                    $errors.AddRange($subErrors)
-                }
+        foreach ($key in $Instance.Keys) {
+            if ($declared -contains $key) {
+                $subErrors = Test-JsonSchema -Instance $Instance[$key] -Schema $Schema['properties'][$key] `
+                    -SchemaFile $SchemaFile -InstancePath "$InstancePath.$key" -Depth ($Depth + 1)
+                $errors.AddRange($subErrors)
+            }
+            elseif ($additional -eq $false) {
+                $errors.Add("$InstancePath.$key : property not allowed (additionalProperties: false)")
+            }
+            elseif ($additional -is [System.Collections.IDictionary]) {
+                $subErrors = Test-JsonSchema -Instance $Instance[$key] -Schema $additional `
+                    -SchemaFile $SchemaFile -InstancePath "$InstancePath.$key" -Depth ($Depth + 1)
+                $errors.AddRange($subErrors)
             }
         }
     }

@@ -13,6 +13,13 @@ $script:Root = Join-Path $PSScriptRoot '../../..' | Resolve-Path | Select-Object
 $script:ReportRoot = Join-Path $script:Root 'reports/guest-access/report'
 $script:TablesFolder = Join-Path $script:ReportRoot 'GuestAccess.SemanticModel/definition/tables'
 $script:PagesFolder = Join-Path $script:ReportRoot 'GuestAccess.Report/definition/pages'
+BeforeAll {
+    $script:Root = Join-Path $PSScriptRoot '../../..' | Resolve-Path | Select-Object -ExpandProperty Path
+    $script:ReportRoot = Join-Path $script:Root 'reports/guest-access/report'
+    $script:TablesFolder = Join-Path $script:ReportRoot 'GuestAccess.SemanticModel/definition/tables'
+    $script:PagesFolder = Join-Path $script:ReportRoot 'GuestAccess.Report/definition/pages'
+}
+
 $script:UtcColumns = @{
     'Guests.tmdl'           = @('CreatedDateTime', 'ExternalUserStateChangeDateTime', 'LastSignInDateTime', 'LastNonInteractiveSignInDateTime', 'LastSuccessfulSignInDateTime')
     'Users.tmdl'            = @('CreatedDateTime')
@@ -41,8 +48,8 @@ Describe 'Collector UTC timestamps are parsed with an explicit Z format' {
 Describe 'The date slicer is a date range on DateDim[Date]' {
     It 'formats YearMonth with the documented four-digit year token' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'DateDim.tmdl') -Raw
-        $tmdl | Should -Match 'FORMAT\(DateDim\[Date\], "yyyy-MM"\)'
-        $tmdl | Should -Not -Match 'FORMAT\(DateDim\[Date\], "YYYY-MM"\)'
+        $tmdl | Should -MatchExactly 'FORMAT\(DateDim\[Date\], "yyyy-MM"\)'
+        ($tmdl -cmatch 'FORMAT\(DateDim\[Date\], "YYYY-MM"\)') | Should -BeFalse
     }
 
     It 'binds <Page> to DateDim[Date] in Between mode' -ForEach @(

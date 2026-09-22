@@ -138,6 +138,27 @@ Describe 'The schema validator actually catches structural problems' {
         }
     }
 
+    It 'rejects an instance that matches more than one oneOf branch' {
+        $schema = @{
+            oneOf = @(
+                @{ type = 'object'; required = @('name') }
+                @{ type = 'object' }
+            )
+        }
+        $errors = Test-JsonSchema -Instance @{ name = 'x' } -Schema $schema -SchemaFile 'inline'
+        $errors.Count | Should -BeGreaterThan 0
+        $errors -join '; ' | Should -Match 'oneOf'
+    }
+
+    It 'validates properties that are only described by additionalProperties' {
+        $schema = @{
+            type                 = 'object'
+            additionalProperties = @{ type = 'number' }
+        }
+        $errors = Test-JsonSchema -Instance @{ extra = 'nope' } -Schema $schema -SchemaFile 'inline'
+        $errors -join '; ' | Should -Match 'expected type'
+    }
+
     It 'flags the wrong type for position.width' {
         $broken = [hashtable]$script:SampleVisual.Clone()
         $broken['position'] = [hashtable]$broken['position'].Clone()
