@@ -33,13 +33,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Guest Display Name"
                 }
               },
-              "queryRef": "GuestsCurrent.Guest Display Name"
+              "queryRef": "Guests.Guest Display Name"
             }
           ]
         },
@@ -50,13 +50,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestMembershipsCurrent"
+                      "Entity": "GuestMemberships"
                     }
                   },
                   "Property": "Visibility"
                 }
               },
-              "queryRef": "GuestMembershipsCurrent.Visibility"
+              "queryRef": "GuestMemberships.Visibility"
             }
           ]
         },
@@ -67,13 +67,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestMembershipsCurrent"
+                      "Entity": "GuestMemberships"
                     }
                   },
                   "Property": "Membership Count"
                 }
               },
-              "queryRef": "GuestMembershipsCurrent.Membership Count"
+              "queryRef": "GuestMemberships.Membership Count"
             }
           ]
         }

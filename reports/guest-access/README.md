@@ -41,21 +41,23 @@ folder for a real tenant. Every table is a plain CSV import from
 | --- | --- | --- |
 | `Users`, `Guests`, `GuestInvitations`, `GuestSignIns`, `SharingEvents`, `GuestMemberships` | One per CSV above, full history | Exactly what the CSV holds — column-for-column, in `GuestAccessSchema.psd1` order |
 | `UsersCurrent`, `GuestsCurrent`, `GuestMembershipsCurrent` | Calculated: the latest `RunDate` snapshot of the table above | The dimension every relationship, slicer and card is built on, so a guest or member is never double-counted across snapshots |
-| `DateDim` | Calculated: a plain calendar | Drives the date-range slicer on every page |
+| `DateDim` | Calculated: a plain calendar | Drives the Between date-range slicer on every page |
 | `AnonymizeMode` | Calculated, disconnected | Drives the anonymize toggle (see below) |
 
 Seven pages — Overview, Guest lifecycle, Dormant guests, Invitations, Sign-ins,
 Sharing, Access footprint — each carrying the same four slicers (date range, external
 domain, member department, guest) plus the anonymize toggle.
 
-**Dormant guests / the "never zero" rule:** when a guest's `LastSignInDateTime` (from
-`guests.csv`) is empty, `GuestsCurrent[EffectiveLastSignIn]` falls back to that guest's
-latest `CreatedDateTime` value in `guest-signins.csv` — i.e. the most recent recorded
-sign-in event, which the README for that file documents as "when the sign-in
-happened" — and `GuestsCurrent[LastSignInSource]` records which source the value came
-from. When neither source has a value, `[Days Since Last Sign-In (Display)]` and
-`[Dormant Guest Status]` read `"Unknown"` as text rather than showing a number, so a
-truly-unknown guest can never be misread as "0 days" or silently summed as zero.
+**Dormant guests / the "never zero" rule:** each `Guests` snapshot row keeps its own
+answer. When `LastSignInDateTime` is empty, `EffectiveLastSignIn` falls back to that
+guest's latest `CreatedDateTime` in `guest-signins.csv` at or before the snapshot's
+UTC `RunDate` (that column is when the sign-in happened). `LastSignInSource` records
+which source was used. Days since creation and days since last sign-in are counted
+to that `RunDate`, not to `TODAY()`, so the number stays on the UTC snapshot date.
+When neither source has a value, `[Days Since Last Sign-In (Display)]` and
+`[Dormant Guest Status]` read `"Unknown"`. Cards and charts use the latest snapshot
+inside the date-range slicer, so an earlier range does not keep showing the newest
+snapshot.
 
 **Anonymize toggle:** `AnonymizeMode` is a two-row disconnected table ("Show names" /
 "Anonymize") with a slicer on every page. `GuestsCurrent[Guest Display Name]` and

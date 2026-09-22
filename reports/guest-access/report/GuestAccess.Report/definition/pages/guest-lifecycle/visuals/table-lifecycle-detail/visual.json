@@ -20,78 +20,78 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GuestsCurrent.Pseudonym"
+              "queryRef": "Guests.Pseudonym"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Guest Display Name"
                 }
               },
-              "queryRef": "GuestsCurrent.Guest Display Name"
+              "queryRef": "Guests.Guest Display Name"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
-                  "Property": "ExternalDomain"
+                  "Property": "External Domain"
                 }
               },
-              "queryRef": "GuestsCurrent.ExternalDomain"
+              "queryRef": "Guests.External Domain"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
-                  "Property": "ExternalUserState"
+                  "Property": "External User State"
                 }
               },
-              "queryRef": "GuestsCurrent.ExternalUserState"
+              "queryRef": "Guests.External User State"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
-                  "Property": "DaysSinceCreated"
+                  "Property": "Days Since Created"
                 }
               },
-              "queryRef": "GuestsCurrent.DaysSinceCreated"
+              "queryRef": "Guests.Days Since Created"
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
-                  "Property": "AccountEnabled"
+                  "Property": "Account Enabled"
                 }
               },
-              "queryRef": "GuestsCurrent.AccountEnabled"
+              "queryRef": "Guests.Account Enabled"
             }
           ]
         }

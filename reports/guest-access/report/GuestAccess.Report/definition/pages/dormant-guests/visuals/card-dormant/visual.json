@@ -20,13 +20,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Dormant Guests (90+ days)"
                 }
               },
-              "queryRef": "GuestsCurrent.Dormant Guests (90+ days)"
+              "queryRef": "Guests.Dormant Guests (90+ days)"
             }
           ]
         }

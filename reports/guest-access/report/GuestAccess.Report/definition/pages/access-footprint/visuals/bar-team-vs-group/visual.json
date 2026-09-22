@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestMembershipsCurrent"
+                      "Entity": "GuestMemberships"
                     }
                   },
                   "Property": "IsTeamLabel"
                 }
               },
-              "queryRef": "GuestMembershipsCurrent.IsTeamLabel"
+              "queryRef": "GuestMemberships.IsTeamLabel"
             }
           ]
         },
@@ -37,13 +37,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestMembershipsCurrent"
+                      "Entity": "GuestMemberships"
                     }
                   },
                   "Property": "Membership Count"
                 }
               },
-              "queryRef": "GuestMembershipsCurrent.Membership Count"
+              "queryRef": "GuestMemberships.Membership Count"
             }
           ]
         }

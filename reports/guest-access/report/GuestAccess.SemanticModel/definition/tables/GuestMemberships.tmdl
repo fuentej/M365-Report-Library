@@ -38,6 +38,19 @@ table GuestMemberships
         summarizeBy: none
         sourceColumn: Visibility
 
+    column IsTeamLabel = IF(GuestMemberships[IsTeam] = TRUE(), "Team", "Group")
+        dataType: string
+        lineageTag: e2b4c6d8-0a19-5f37-84c1-6d8e0b2a4f59
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Memberships on the latest snapshot inside the current date slicer.
+    measure 'Membership Count' = 
+        VAR SnapshotDate = CALCULATE(MAX(GuestMemberships[RunDate]), ALLSELECTED(GuestMemberships))
+        RETURN CALCULATE(COUNTROWS(GuestMemberships), GuestMemberships[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 3020530a-b787-5943-9376-8a9f166ee69b
+
     partition GuestMemberships = m
         mode: import
         source =

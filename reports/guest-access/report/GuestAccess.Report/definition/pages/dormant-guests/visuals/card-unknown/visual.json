@@ -20,13 +20,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Unknown Last Sign-In Guests"
                 }
               },
-              "queryRef": "GuestsCurrent.Unknown Last Sign-In Guests"
+              "queryRef": "Guests.Unknown Last Sign-In Guests"
             }
           ]
         }

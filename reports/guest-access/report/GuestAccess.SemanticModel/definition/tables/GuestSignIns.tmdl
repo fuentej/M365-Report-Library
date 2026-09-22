@@ -99,8 +99,8 @@ table GuestSignIns
         formatString: #,0
         lineageTag: e5f91a60-234c-5d5d-90d7-9b10f13dac00
 
-    /// ErrorCode <> 0; 0 is success (see README).
-    measure 'Failed Sign-Ins' = CALCULATE(COUNTROWS(GuestSignIns), GuestSignIns[ErrorCode] <> 0)
+    /// Non-zero errorCode is a failure. Blank is a missing status, not a failure; in DAX blank <> 0 is true.
+    measure 'Failed Sign-Ins' = CALCULATE(COUNTROWS(GuestSignIns), NOT ISBLANK(GuestSignIns[ErrorCode]), GuestSignIns[ErrorCode] <> 0)
         formatString: #,0
         lineageTag: 8a60fda8-ea53-5ace-820c-86ce0c64c40d
 

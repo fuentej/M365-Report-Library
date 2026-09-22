@@ -92,3 +92,31 @@ Describe 'The anonymize toggle covers every displayed name' {
         }
     }
 }
+
+Describe 'Snapshot metrics follow the date slicer and stay on UTC dates' {
+    It 'does not measure age with TODAY()' {
+        $hits = Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl' |
+            Select-String -Pattern 'TODAY\(' -SimpleMatch:$false
+        @($hits).Count | Should -Be 0
+    }
+
+    It 'counts guests on the snapshot inside the selected date range' {
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Guests.tmdl') -Raw
+        $tmdl | Should -Match "measure 'Selected Snapshot Date'"
+        $tmdl | Should -Match 'Guests\[RunDate\] = SnapshotDate'
+        $tmdl | Should -Match 'DATEDIFF\(Guests\[CreatedDateTime\], Guests\[RunDate\], DAY\)'
+        $tmdl | Should -Match 'DATEDIFF\(d, Guests\[RunDate\], DAY\)'
+        $tmdl | Should -Match 'GuestSignIns\[CreatedDateTime\] < AsOfEnd'
+    }
+
+    It 'counts memberships on the snapshot inside the selected date range' {
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GuestMemberships.tmdl') -Raw
+        $tmdl | Should -Match 'GuestMemberships\[RunDate\] = SnapshotDate'
+    }
+
+    It 'does not treat a blank sign-in error code as a failure' {
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GuestSignIns.tmdl') -Raw
+        $tmdl | Should -Match 'NOT ISBLANK\(GuestSignIns\[ErrorCode\]\)'
+        $tmdl | Should -Match 'GuestSignIns\[ErrorCode\] <> 0'
+    }
+}

@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "ExternalDomain"
                 }
               },
-              "queryRef": "GuestsCurrent.ExternalDomain"
+              "queryRef": "Guests.ExternalDomain"
             }
           ]
         },
@@ -37,13 +37,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Guest Count"
                 }
               },
-              "queryRef": "GuestsCurrent.Guest Count"
+              "queryRef": "Guests.Guest Count"
             }
           ]
         }
@@ -55,7 +55,7 @@
               "Measure": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "GuestsCurrent"
+                    "Entity": "Guests"
                   }
                 },
                 "Property": "Guest Count"

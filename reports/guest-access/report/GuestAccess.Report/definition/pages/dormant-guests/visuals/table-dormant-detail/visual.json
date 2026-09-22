@@ -20,78 +20,78 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GuestsCurrent.Pseudonym"
+              "queryRef": "Guests.Pseudonym"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Guest Display Name"
                 }
               },
-              "queryRef": "GuestsCurrent.Guest Display Name"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "GuestsCurrent"
-                    }
-                  },
-                  "Property": "ExternalDomain"
-                }
-              },
-              "queryRef": "GuestsCurrent.ExternalDomain"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "GuestsCurrent"
-                    }
-                  },
-                  "Property": "LastSignInSource"
-                }
-              },
-              "queryRef": "GuestsCurrent.LastSignInSource"
+              "queryRef": "Guests.Guest Display Name"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "External Domain"
+                }
+              },
+              "queryRef": "Guests.External Domain"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "Last Sign-In Source"
+                }
+              },
+              "queryRef": "Guests.Last Sign-In Source"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Days Since Last Sign-In (Display)"
                 }
               },
-              "queryRef": "GuestsCurrent.Days Since Last Sign-In (Display)"
+              "queryRef": "Guests.Days Since Last Sign-In (Display)"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Dormant Guest Status"
                 }
               },
-              "queryRef": "GuestsCurrent.Dormant Guest Status"
+              "queryRef": "Guests.Dormant Guest Status"
             }
           ]
         }

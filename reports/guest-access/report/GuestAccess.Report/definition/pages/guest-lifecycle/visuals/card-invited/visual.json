@@ -20,13 +20,13 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GuestsCurrent"
+                      "Entity": "Guests"
                     }
                   },
                   "Property": "Invited Guests"
                 }
               },
-              "queryRef": "GuestsCurrent.Invited Guests"
+              "queryRef": "Guests.Invited Guests"
             }
           ]
         }

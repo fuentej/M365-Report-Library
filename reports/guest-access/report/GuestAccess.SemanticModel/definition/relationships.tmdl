@@ -37,3 +37,11 @@ relationship 55c59078-54ba-588d-b511-d0d8b66997bf
 relationship df9065b2-3199-50c3-88d8-54cc95790c0d
     fromColumn: UsersCurrent.UserPrincipalName
     toColumn: SharingEvents.UserId
+
+relationship 6c1e8a40-2b57-5d94-8e03-1f7a4c9b0d26
+    fromColumn: GuestsCurrent.Id
+    toColumn: Guests.Id
+
+relationship 8d2f9b51-3c68-5ea5-9f14-2a8b5d0c1e37
+    fromColumn: GuestsCurrent.Id
+    toColumn: GuestMemberships.GuestId
