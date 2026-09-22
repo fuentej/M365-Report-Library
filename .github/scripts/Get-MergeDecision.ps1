@@ -101,3 +101,150 @@ function Get-MergeDecision {
         Reason   = 'Ready to merge and every other check passed.'
     }
 }
+
+function Get-CompleteGitHubPageItems {
+    <#
+        .SYNOPSIS
+            The items from one already-concatenated GitHub list response.
+
+        .DESCRIPTION
+            List check runs and the combined commit status both default to 30
+            results per page and both return total_count for the full set. A
+            caller hands this the concatenated pages. Duplicate ids, from a
+            page that was requested twice, are collapsed. The result is thrown
+            away when the distinct count does not equal total_count, so a
+            decision cannot treat a missing page as "no more checks".
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Json,
+
+        [Parameter(Mandatory)]
+        [string]$ItemsProperty,
+
+        [Parameter(Mandatory)]
+        [string]$Label
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Json)) {
+        throw "The $Label payload was empty."
+    }
+
+    $document = $Json | ConvertFrom-Json
+    if ($null -eq $document.total_count) {
+        throw "The $Label payload has no total_count."
+    }
+
+    $items = @($document.$ItemsProperty | Where-Object { $null -ne $_ })
+    $unique = [System.Collections.Generic.List[object]]::new()
+    $seen = @{}
+    foreach ($item in $items) {
+        $id = [string]$item.id
+        if ($seen.ContainsKey($id)) { continue }
+        $seen[$id] = $true
+        $unique.Add($item)
+    }
+
+    if ($unique.Count -ne [int]$document.total_count) {
+        throw "The $Label payload is incomplete: total_count is $($document.total_count) but $($unique.Count) distinct results were returned."
+    }
+
+    # A bare array returned from a function is enumerated. Hand back one object
+    # so the caller can read .Items without losing a page of checks.
+    return [pscustomobject]@{
+        Items = $unique.ToArray()
+    }
+}
+
+function ConvertFrom-GitHubCheckPayload {
+    <#
+        .SYNOPSIS
+            Normalises check-run and combined-status documents into Name/State pairs.
+
+        .DESCRIPTION
+            Check runs contribute their status until they complete, then their
+            conclusion. Commit statuses contribute their state. Both documents
+            must be complete pages; see Get-CompleteGitHubPageItems.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$CheckRunJson,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$StatusJson
+    )
+
+    $runs = @(
+        (Get-CompleteGitHubPageItems -Json $CheckRunJson -ItemsProperty 'check_runs' -Label 'check runs').Items
+    )
+    $statuses = @(
+        (Get-CompleteGitHubPageItems -Json $StatusJson -ItemsProperty 'statuses' -Label 'commit statuses').Items
+    )
+
+    $checks = [System.Collections.Generic.List[object]]::new()
+    foreach ($run in $runs) {
+        if ($null -eq $run) { continue }
+        $state = if ([string]$run.status -ne 'completed') { [string]$run.status } else { [string]$run.conclusion }
+        $checks.Add([pscustomobject]@{ Name = [string]$run.name; State = $state })
+    }
+    foreach ($status in $statuses) {
+        if ($null -eq $status) { continue }
+        $checks.Add([pscustomobject]@{ Name = [string]$status.context; State = [string]$status.state })
+    }
+
+    return [pscustomobject]@{
+        Items = $checks.ToArray()
+    }
+}
+
+function Test-WorkflowRunsOnPush {
+    <#
+        .SYNOPSIS
+            Whether a workflow file's trigger block includes push.
+
+        .DESCRIPTION
+            Reads the workflow text. The top-level key is on, including the
+            quoted forms. A push mentioned only inside a job is not a trigger.
+            Parser failures are the caller's to surface; this returns false
+            only when the trigger block was read and does not list push.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$Yaml
+    )
+
+    $inTrigger = $false
+    foreach ($line in ($Yaml -split "`r?`n")) {
+        if ($line -match '^\s*(#|$)') { continue }
+
+        $isTopLevel = $line -match '^[^ \t#]'
+        if ($isTopLevel) {
+            if ($inTrigger) { return $false }
+
+            if ($line -match '^(?:"on"|''on''|on)\s*:\s*(.*)$') {
+                $rest = ($Matches[1] -replace '\s+#.*$', '').Trim()
+                if ([string]::IsNullOrWhiteSpace($rest) -or $rest -eq '|' -or $rest -eq '>') {
+                    $inTrigger = $true
+                    continue
+                }
+
+                return [bool]($rest -cmatch '(^|[\s\[''"])push([\s\]''",]|$)')
+            }
+
+            continue
+        }
+
+        if (-not $inTrigger) { continue }
+        if ($line -cmatch '^\s+-\s+[''"]?push[''"]?\s*(#.*)?$') { return $true }
+        if ($line -cmatch '^\s+[''"]?push[''"]?\s*:') { return $true }
+    }
+
+    return $false
+}
