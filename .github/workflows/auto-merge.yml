@@ -1,0 +1,194 @@
+name: auto-merge
+
+# Cursor's review automation ends every run by pushing an empty commit to the pull
+# request branch, with Joshua's GitHub account. The first line of that commit's message
+# is exactly 'Verdict: Ready to merge' or 'Verdict: Not ready' - the message decides,
+# never the author. This workflow watches for that commit and for the checks it triggers,
+# and merges automatically once both say go. See Get-MergeDecision.ps1 for the decision
+# logic and README.md#merging for the rule in one place.
+
+on:
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+  check_suite:
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to evaluate (manual runs only)
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+  actions: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number || github.event.check_suite.head_sha || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    name: auto-merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Resolve the pull request for this event
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          case "${{ github.event_name }}" in
+            pull_request)
+              number="${{ github.event.pull_request.number }}"
+              ;;
+            workflow_dispatch)
+              number="${{ github.event.inputs.pr_number }}"
+              ;;
+            check_suite)
+              sha="${{ github.event.check_suite.head_sha }}"
+              number=$(gh api "repos/$REPO/commits/$sha/pulls" \
+                --jq '[.[] | select(.state == "open")] | .[0].number // empty')
+              ;;
+            *)
+              number=""
+              ;;
+          esac
+
+          if [ -z "${number:-}" ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Load the pull request and its head commit
+        id: head
+        if: steps.pr.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+
+          pr_json=$(gh api "repos/$REPO/pulls/$NUMBER")
+          sha=$(jq -r '.head.sha' <<<"$pr_json")
+          state=$(jq -r '.state' <<<"$pr_json")
+          draft=$(jq -r '.draft' <<<"$pr_json")
+          base=$(jq -r '.base.ref' <<<"$pr_json")
+          title=$(jq -r '.title' <<<"$pr_json")
+          message=$(gh api "repos/$REPO/commits/$sha" --jq '.commit.message')
+
+          {
+            echo "sha=$sha"
+            echo "state=$state"
+            echo "draft=$draft"
+            echo "base=$base"
+            echo 'title<<EOF_AUTO_MERGE_TITLE'
+            echo "$title"
+            echo 'EOF_AUTO_MERGE_TITLE'
+            echo 'message<<EOF_AUTO_MERGE_MESSAGE'
+            echo "$message"
+            echo 'EOF_AUTO_MERGE_MESSAGE'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Gather checks on the head commit
+        id: checks
+        if: steps.pr.outputs.found == 'true' && steps.head.outputs.state == 'open' && steps.head.outputs.base == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.head.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          check_runs=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+            --jq '[.check_runs[] | {Name: .name, State: (if .status != "completed" then .status else .conclusion end)}]')
+          statuses=$(gh api "repos/$REPO/commits/$SHA/status" \
+            --jq '[.statuses[] | {Name: .context, State: .state}]')
+          combined=$(jq -c -n --argjson a "$check_runs" --argjson b "$statuses" '$a + $b')
+
+          {
+            echo 'checks<<EOF_AUTO_MERGE_CHECKS'
+            echo "$combined"
+            echo 'EOF_AUTO_MERGE_CHECKS'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to merge
+        id: decision
+        if: steps.pr.outputs.found == 'true' && steps.head.outputs.state == 'open' && steps.head.outputs.base == github.event.repository.default_branch
+        shell: pwsh
+        env:
+          COMMIT_MESSAGE: ${{ steps.head.outputs.message }}
+          CHECKS_JSON: ${{ steps.checks.outputs.checks }}
+        run: |
+          . "${{ github.workspace }}/.github/scripts/Get-MergeDecision.ps1"
+
+          $checks = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:CHECKS_JSON)) {
+            $checks = @($env:CHECKS_JSON | ConvertFrom-Json)
+          }
+
+          $result = Get-MergeDecision -CommitMessage $env:COMMIT_MESSAGE -Check $checks -SelfCheckName 'auto-merge'
+
+          Write-Host "Decision: $($result.Decision) - $($result.Reason)"
+          "decision=$($result.Decision)" >> $env:GITHUB_OUTPUT
+          "reason=$($result.Reason)" >> $env:GITHUB_OUTPUT
+
+      - name: Mark ready for review
+        if: steps.decision.outputs.decision == 'Merge' && steps.head.outputs.draft == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+        run: gh pr ready "$NUMBER" --repo "$REPO"
+
+      - name: Squash-merge and delete the branch
+        if: steps.decision.outputs.decision == 'Merge'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+          TITLE: ${{ steps.head.outputs.title }}
+        run: |
+          gh pr merge "$NUMBER" --repo "$REPO" --squash --delete-branch --subject "$TITLE"
+
+      - name: Dispatch push-triggered workflows on the default branch
+        if: steps.decision.outputs.decision == 'Merge'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          for file in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$file" ] || continue
+            name=$(basename "$file")
+
+            # Never re-dispatch this workflow from itself.
+            case "$name" in
+              auto-merge.yml|auto-merge.yaml) continue ;;
+            esac
+
+            on_json=$(yq eval -o=json '.on' "$file" 2>/dev/null || echo 'null')
+            has_push=$(jq -r 'if type == "string" then (. == "push")
+                               elif type == "array" then (index("push") != null)
+                               elif type == "object" then has("push")
+                               else false end' <<<"$on_json")
+
+            if [ "$has_push" = "true" ]; then
+              echo "Dispatching $name on $DEFAULT_BRANCH"
+              gh workflow run "$name" --repo "$REPO" --ref "$DEFAULT_BRANCH"
+            fi
+          done
