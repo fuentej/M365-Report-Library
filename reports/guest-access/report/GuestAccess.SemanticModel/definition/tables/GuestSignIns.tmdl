@@ -1,0 +1,122 @@
+table GuestSignIns
+    lineageTag: f18b4ef3-6af6-541a-8b59-a1dce718bd2b
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 6d6e5c9b-a1ac-5b34-b604-d51ed0b90605
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 9f3a7e87-a0ef-5d22-9959-15a770d50bd3
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: 1e28a1f1-4ef5-58b9-adba-1a6f55da5f87
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 9163ad9e-6ca6-5629-9237-a054c0857bd3
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column AppDisplayName
+        dataType: string
+        lineageTag: 58eb95f9-362e-53f5-a366-ada6d8fa82ab
+        summarizeBy: none
+        sourceColumn: AppDisplayName
+
+    column ResourceDisplayName
+        dataType: string
+        lineageTag: e4c60845-2f28-5bda-b444-a45f30df4715
+        summarizeBy: none
+        sourceColumn: ResourceDisplayName
+
+    column IpAddress
+        dataType: string
+        lineageTag: 215c8d01-9988-5807-8c45-defb6f6ffdd8
+        summarizeBy: none
+        sourceColumn: IpAddress
+
+    column City
+        dataType: string
+        lineageTag: c365cc28-6a9a-50a9-8ac5-7dce80b57b18
+        summarizeBy: none
+        sourceColumn: City
+
+    column CountryOrRegion
+        dataType: string
+        lineageTag: 229fec2b-4d05-5c30-90ea-666d823e3d90
+        summarizeBy: none
+        sourceColumn: CountryOrRegion
+
+    column ClientAppUsed
+        dataType: string
+        lineageTag: 21c81352-37e9-5db6-b15b-f5e385394ed3
+        summarizeBy: none
+        sourceColumn: ClientAppUsed
+
+    column IsInteractive
+        dataType: logical
+        lineageTag: ffb77d5a-64ac-5582-a40f-627e1e7a28ba
+        summarizeBy: none
+        sourceColumn: IsInteractive
+
+    column ErrorCode
+        dataType: int64
+        lineageTag: cb68f5eb-2a6e-5fb5-8ad7-e3257241de6c
+        summarizeBy: none
+        sourceColumn: ErrorCode
+
+    column ConditionalAccessStatus
+        dataType: string
+        lineageTag: 43a6462c-4599-578e-95c8-cbe8a6c5c1b6
+        summarizeBy: none
+        sourceColumn: ConditionalAccessStatus
+
+    column ActivityDate = DATE(YEAR(GuestSignIns[CreatedDateTime]), MONTH(GuestSignIns[CreatedDateTime]), DAY(GuestSignIns[CreatedDateTime]))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 71b168d4-fc28-5dce-ab31-ecd2aef15489
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Sign-In Count' = COUNTROWS(GuestSignIns)
+        formatString: #,0
+        lineageTag: 33040c6d-58db-5f71-a818-dd90648c91ef
+
+    measure 'Interactive Sign-Ins' = CALCULATE(COUNTROWS(GuestSignIns), GuestSignIns[IsInteractive] = TRUE())
+        formatString: #,0
+        lineageTag: 1959e0ac-c672-563f-9373-2683d45e7005
+
+    measure 'Non-Interactive Sign-Ins' = CALCULATE(COUNTROWS(GuestSignIns), GuestSignIns[IsInteractive] = FALSE())
+        formatString: #,0
+        lineageTag: e5f91a60-234c-5d5d-90d7-9b10f13dac00
+
+    /// Non-zero errorCode is a failure. Blank is a missing status, not a failure; in DAX blank <> 0 is true.
+    measure 'Failed Sign-Ins' = CALCULATE(COUNTROWS(GuestSignIns), NOT ISBLANK(GuestSignIns[ErrorCode]), GuestSignIns[ErrorCode] <> 0)
+        formatString: #,0
+        lineageTag: 8a60fda8-ea53-5ace-820c-86ce0c64c40d
+
+    partition GuestSignIns = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-signins.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"IsInteractive", type logical}, {"ErrorCode", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

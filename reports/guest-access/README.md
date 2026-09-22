@@ -8,8 +8,9 @@ The collectors write one CSV per source into an output folder of your choosing, 
 from where the last run stopped. Nothing is ever rewritten or deleted, so the folder is a
 history you can chart over time.
 
-The Power BI report that reads these files is tracked separately. `samples/` holds a
-generated set of fake data so the report can be built without a tenant.
+`report/` holds the Power BI report that reads these files, as a Power BI Project
+(PBIP): a TMDL semantic model plus a PBIR report. `samples/` holds a generated set of
+fake data so the report can be built and opened without a tenant.
 
 ## Contents
 
@@ -23,7 +24,50 @@ generated set of fake data so the report can be built without a tenant.
 | `collectors/Run-All.ps1` | Runs the users collector and all five of the above |
 | `collectors/GuestAccessSchema.psd1` | The column order of every CSV, and the activity and operation names collected |
 | `New-SampleData.ps1` | Regenerates `samples/` |
+| `report/` | The Power BI report (PBIP: TMDL semantic model + PBIR report) |
 | `tests/` | Pester tests; every tenant call is mocked |
+
+## The Power BI report
+
+Open `report/GuestAccess.pbip` in Power BI Desktop (Store reports using enhanced
+metadata format (PBIR) and Store semantic model using TMDL format must be enabled
+under Preview features — both are required to read this project). On first open, Power
+BI Desktop asks for the `CsvFolder` parameter's value: point it at a folder holding the
+same CSVs described below — `samples/` to explore with fake data, or a collector output
+folder for a real tenant. Every table is a plain CSV import from
+`CsvFolder & "\<file>.csv"`; nothing else about the model depends on where that folder is.
+
+| Table | Source | What it's for |
+| --- | --- | --- |
+| `Users`, `Guests`, `GuestInvitations`, `GuestSignIns`, `SharingEvents`, `GuestMemberships` | One per CSV above, full history | Exactly what the CSV holds — column-for-column, in `GuestAccessSchema.psd1` order |
+| `UsersCurrent`, `GuestsCurrent`, `GuestMembershipsCurrent` | Calculated: the latest `RunDate` snapshot of the table above | The dimension every relationship, slicer and card is built on, so a guest or member is never double-counted across snapshots |
+| `DateDim` | Calculated: a plain calendar | Drives the Between date-range slicer on every page |
+| `AnonymizeMode` | Calculated, disconnected | Drives the anonymize toggle (see below) |
+
+Seven pages — Overview, Guest lifecycle, Dormant guests, Invitations, Sign-ins,
+Sharing, Access footprint — each carrying the same four slicers (date range, external
+domain, member department, guest) plus the anonymize toggle.
+
+**Dormant guests / the "never zero" rule:** each `Guests` snapshot row keeps its own
+answer. When `LastSignInDateTime` is empty, `EffectiveLastSignIn` falls back to that
+guest's latest `CreatedDateTime` in `guest-signins.csv` at or before the snapshot's
+UTC `RunDate` (that column is when the sign-in happened). `LastSignInSource` records
+which source was used. Days since creation and days since last sign-in are counted
+to that `RunDate`, not to `TODAY()`, so the number stays on the UTC snapshot date.
+When neither source has a value, `[Days Since Last Sign-In (Display)]` and
+`[Dormant Guest Status]` read `"Unknown"`. Cards and charts use the latest snapshot
+inside the date-range slicer, so an earlier range does not keep showing the newest
+snapshot.
+
+**Anonymize toggle:** `AnonymizeMode` is a two-row disconnected table ("Show names" /
+"Anonymize") with a slicer on every page. `GuestsCurrent[Guest Display Name]` and
+`UsersCurrent[Member Display Name]` read `SELECTEDVALUE(AnonymizeMode[Mode])` and
+return either the real `DisplayName` or a stable pseudonym (`"Guest 1234"` /
+`"Member 1234"`) derived from the object's `Id` (a character-code hash, mod 9000 +
+1000). Tables and matrices group on that pseudonym column, because a measure alone
+does not create one row per person, and they show the measure so "Show names" can
+still reveal the real name. The guest slicer filters on `Pseudonym`, not
+`DisplayName`, so turning anonymize on cannot leave a real name in the slicer.
 
 `users.csv` comes from `Invoke-EntraUserCollector` in the shared module, not from this
 folder, because every report needs it.

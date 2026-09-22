@@ -1,0 +1,16 @@
+model Model
+    culture: en-US
+    defaultPowerBIDataSourceVersion: powerBI_V3
+    sourceQueryCulture: en-US
+
+ref table GuestsCurrent
+ref table UsersCurrent
+ref table GuestMembershipsCurrent
+ref table DateDim
+ref table AnonymizeMode
+ref table Guests
+ref table Users
+ref table GuestInvitations
+ref table GuestSignIns
+ref table SharingEvents
+ref table GuestMemberships

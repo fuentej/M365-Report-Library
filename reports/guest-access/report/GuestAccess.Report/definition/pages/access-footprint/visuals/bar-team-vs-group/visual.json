@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-team-vs-group",
+  "position": {
+    "x": 710,
+    "y": 310,
+    "z": 0,
+    "width": 570,
+    "height": 190,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestMemberships"
+                    }
+                  },
+                  "Property": "IsTeamLabel"
+                }
+              },
+              "queryRef": "GuestMemberships.IsTeamLabel"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestMemberships"
+                    }
+                  },
+                  "Property": "Membership Count"
+                }
+              },
+              "queryRef": "GuestMemberships.Membership Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Team vs. plain group memberships"
+          }
+        }
+      ]
+    }
+  }
+}

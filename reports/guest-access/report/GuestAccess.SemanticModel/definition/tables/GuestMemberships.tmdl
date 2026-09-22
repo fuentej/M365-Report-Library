@@ -1,0 +1,66 @@
+table GuestMemberships
+    lineageTag: 093c4fbf-953d-5ebd-88d6-b0575c64b2c4
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 9fdb4cfb-88a1-5fbc-9a2c-a108123586b2
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column GuestId
+        dataType: string
+        lineageTag: bb7c5722-7bde-57c7-ab16-6e9c49444255
+        summarizeBy: none
+        sourceColumn: GuestId
+
+    column GroupId
+        dataType: string
+        lineageTag: ab0c458c-db51-5356-9bf6-a669dd558eb9
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column GroupDisplayName
+        dataType: string
+        lineageTag: a41dbb21-8730-513f-aca3-a46a906dd61b
+        summarizeBy: none
+        sourceColumn: GroupDisplayName
+
+    column IsTeam
+        dataType: logical
+        lineageTag: cbde16df-6315-53d5-bd09-2d05803ee8d5
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    column Visibility
+        dataType: string
+        lineageTag: 3c35f3bb-6749-5776-9cc1-0d9b1a78edc1
+        summarizeBy: none
+        sourceColumn: Visibility
+
+    column IsTeamLabel = IF(GuestMemberships[IsTeam] = TRUE(), "Team", "Group")
+        dataType: string
+        lineageTag: e2b4c6d8-0a19-5f37-84c1-6d8e0b2a4f59
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Memberships on the latest snapshot inside the current date slicer.
+    measure 'Membership Count' = 
+        VAR SnapshotDate = CALCULATE(MAX(GuestMemberships[RunDate]), ALLSELECTED(GuestMemberships))
+        RETURN CALCULATE(COUNTROWS(GuestMemberships), GuestMemberships[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 3020530a-b787-5943-9376-8a9f166ee69b
+
+    partition GuestMemberships = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-memberships.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsTeam", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

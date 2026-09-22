@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-failed",
+  "position": {
+    "x": 310,
+    "y": 370,
+    "z": 0,
+    "width": 260,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestSignIns"
+                    }
+                  },
+                  "Property": "Failed Sign-Ins"
+                }
+              },
+              "queryRef": "GuestSignIns.Failed Sign-Ins"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Failed sign-ins"
+          }
+        }
+      ]
+    }
+  }
+}

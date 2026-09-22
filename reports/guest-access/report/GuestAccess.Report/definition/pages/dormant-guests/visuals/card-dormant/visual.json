@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-dormant",
+  "position": {
+    "x": 0,
+    "y": 100,
+    "z": 0,
+    "width": 300,
+    "height": 160,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "Dormant Guests (90+ days)"
+                }
+              },
+              "queryRef": "Guests.Dormant Guests (90+ days)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Dormant 90+ days"
+          }
+        }
+      ]
+    }
+  }
+}

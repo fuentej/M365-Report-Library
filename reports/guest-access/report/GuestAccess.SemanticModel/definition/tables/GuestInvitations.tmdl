@@ -1,0 +1,96 @@
+table GuestInvitations
+    lineageTag: 5281f787-8074-5375-b2a6-97df0d0a922e
+
+    column ActivityDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 516c2977-fe7f-5c4f-a7c1-cbff2c999950
+        summarizeBy: none
+        sourceColumn: ActivityDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 4d2e7c02-b4c5-5f67-aeb5-52cc7505b2b2
+        summarizeBy: none
+        sourceColumn: Id
+
+    column ActivityDisplayName
+        dataType: string
+        lineageTag: d534abef-c498-52d3-b1a2-6cb626e40ea3
+        summarizeBy: none
+        sourceColumn: ActivityDisplayName
+
+    column Result
+        dataType: string
+        lineageTag: 8bca5a44-0ebf-5061-9041-c391df0206cd
+        summarizeBy: none
+        sourceColumn: Result
+
+    column InitiatedByUserPrincipalName
+        dataType: string
+        lineageTag: 101c322f-08ea-53a2-b6d8-65e54ecf54f3
+        summarizeBy: none
+        sourceColumn: InitiatedByUserPrincipalName
+
+    column InitiatedByAppDisplayName
+        dataType: string
+        lineageTag: 1222aa5d-e90b-5aaa-87ce-c3ec127816bf
+        summarizeBy: none
+        sourceColumn: InitiatedByAppDisplayName
+
+    column TargetUserId
+        dataType: string
+        lineageTag: bc179050-8a14-5d36-9659-598d0efc6cf0
+        summarizeBy: none
+        sourceColumn: TargetUserId
+
+    column TargetUserPrincipalName
+        dataType: string
+        lineageTag: 3d0e8d02-0264-595e-857f-31e5a0e87f5f
+        summarizeBy: none
+        sourceColumn: TargetUserPrincipalName
+
+    column EventCategory = 
+        SWITCH(
+            TRUE(),
+            GuestInvitations[ActivityDisplayName] = "Redeem external user invite", "Redemption",
+            GuestInvitations[ActivityDisplayName] = "Redeem extern user invite", "Redemption",
+            "Invitation"
+        )
+        dataType: string
+        lineageTag: df0f5df6-81ed-5709-bcd3-618935e4a5fe
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActivityDate = DATE(YEAR(GuestInvitations[ActivityDateTime]), MONTH(GuestInvitations[ActivityDateTime]), DAY(GuestInvitations[ActivityDateTime]))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: ea6c7d04-d7b5-591a-b336-53636f170bef
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Rows whose ActivityDisplayName is one of the Invite* activities.
+    measure 'Invitation Events' = CALCULATE(COUNTROWS(GuestInvitations), GuestInvitations[EventCategory] = "Invitation")
+        formatString: #,0
+        lineageTag: cfde838c-858b-59de-a7ce-98f831e19593
+
+    /// Rows whose ActivityDisplayName is "Redeem external user invite" or "Redeem extern user invite".
+    measure 'Redemption Events' = CALCULATE(COUNTROWS(GuestInvitations), GuestInvitations[EventCategory] = "Redemption")
+        formatString: #,0
+        lineageTag: 2f223aed-c6fd-52f8-b256-8b0fd696cb48
+
+    partition GuestInvitations = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-invitations.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumns(Cleaned, {{"ActivityDateTime", ParseUtc, type datetime}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,47 @@
+relationship 4afb6e90-ca28-5357-9935-f31a0e90a41e
+    fromColumn: DateDim.Date
+    toColumn: Guests.RunDate
+
+relationship 9e6ffcdd-6116-57f6-8b42-6c7d23c86414
+    fromColumn: DateDim.Date
+    toColumn: GuestInvitations.ActivityDate
+
+relationship 5cc3f0b6-bb1c-571d-b417-990e4cc18a6c
+    fromColumn: DateDim.Date
+    toColumn: GuestSignIns.ActivityDate
+
+relationship 15a5756d-9945-54cd-9aec-d50c7475e94c
+    fromColumn: DateDim.Date
+    toColumn: SharingEvents.ActivityDate
+
+relationship afaff1d1-957f-5681-a67d-f001d9d73312
+    fromColumn: DateDim.Date
+    toColumn: GuestMemberships.RunDate
+
+relationship 07cebf28-af96-5f10-9fb0-b8a10291b238
+    fromColumn: GuestsCurrent.Id
+    toColumn: GuestSignIns.UserId
+
+relationship 2183e2ad-84dc-57cd-983b-4098f7477a83
+    fromColumn: GuestsCurrent.Id
+    toColumn: GuestInvitations.TargetUserId
+
+relationship c940538d-2101-5a5e-8372-353ecf74fc99
+    fromColumn: GuestsCurrent.Id
+    toColumn: GuestMembershipsCurrent.GuestId
+
+relationship 55c59078-54ba-588d-b511-d0d8b66997bf
+    fromColumn: UsersCurrent.UserPrincipalName
+    toColumn: GuestInvitations.InitiatedByUserPrincipalName
+
+relationship df9065b2-3199-50c3-88d8-54cc95790c0d
+    fromColumn: UsersCurrent.UserPrincipalName
+    toColumn: SharingEvents.UserId
+
+relationship 6c1e8a40-2b57-5d94-8e03-1f7a4c9b0d26
+    fromColumn: GuestsCurrent.Id
+    toColumn: Guests.Id
+
+relationship 8d2f9b51-3c68-5ea5-9f14-2a8b5d0c1e37
+    fromColumn: GuestsCurrent.Id
+    toColumn: GuestMemberships.GuestId
