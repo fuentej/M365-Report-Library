@@ -193,6 +193,17 @@ Describe 'The shared module is never imported with -Force' {
         }
     }
 
+    It 'records the convention, the mock reason, and the already-loaded trade-off' {
+        $readme = Get-Content -LiteralPath (Join-Path $script:Root 'README.md') -Raw
+        $start = $readme.IndexOf('## Adding a report')
+        $start | Should -BeGreaterThan -1
+        $section = ($readme.Substring($start) -replace '\s+', ' ')
+        $section | Should -Match 'never with `-Force`'
+        $section | Should -Match 'drops any Pester mock'
+        $section | Should -Match 'already imported the module keeps that copy'
+        $section | Should -Match 'Scripts under `tests/` are outside this rule'
+    }
+
     It 'does not treat a plain import, an ambiguous -F, or -Function as -Force' {
         $samples = @(
             'Import-Module (Join-Path $PSScriptRoot ''../../../shared/M365ReportLibrary.psm1'')'

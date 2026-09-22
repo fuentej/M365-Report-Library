@@ -120,10 +120,14 @@ when any other check suite finishes. The decision itself lives in
 2. One collector per CSV, each writing a single file and taking `-OutputPath`,
    `-Environment` and the four authentication parameters. Add a `Run-All.ps1` that runs
    them in order.
-3. Import the shared module by its relative path, never with `-Force`:
+3. Import the shared module by its relative path, never with `-Force`. From `collectors/`
+   that is
    `Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')` —
-   `-Force` rebuilds the module's session state, which drops any Pester mock a caller
-   installed against it before running the collector.
+   `-Force` removes the loaded module and imports it again, which drops any Pester mock a caller
+   installed against it before running the collector. Without `-Force`, a session that already
+   imported the module keeps that copy, so an edit to `shared/M365ReportLibrary.psm1` is not
+   loaded until a new session. Scripts under `tests/` are outside this rule: they import with
+   `-Force` so the file on disk is the one under test, and they install mocks only after that.
 4. Put the column order of every CSV in one data file the collectors, the sample
    generator and the tests all read, so the three cannot disagree.
 5. Snapshot data gets a `RunDate` column and a composite key of `RunDate` plus the
