@@ -143,6 +143,12 @@ table GuestsCurrent
         summarizeBy: none
         isDataTypeInferred: false
 
+    column Pseudonym = "Guest " & FORMAT(GuestsCurrent[PseudonymNumber], "0000")
+        dataType: string
+        lineageTag: 1c8a0d4e-6b27-5f31-9a44-0e5d7c2b8f10
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Guests as of the latest snapshot in guests.csv.
     measure 'Guest Count' = COUNTROWS(GuestsCurrent)
         formatString: #,0
@@ -190,7 +196,7 @@ table GuestsCurrent
     measure 'Guest Display Name' = 
         VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
         VAR RealName = SELECTEDVALUE(GuestsCurrent[DisplayName])
-        VAR Pseudo = "Guest " & SELECTEDVALUE(GuestsCurrent[PseudonymNumber])
+        VAR Pseudo = SELECTEDVALUE(GuestsCurrent[Pseudonym])
         RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: c50177a3-f177-58e8-9aeb-d51db050c7c3
 

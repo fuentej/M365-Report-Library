@@ -58,3 +58,37 @@ Describe 'The date slicer is a date range on DateDim[Date]' {
         $visual.visual.objects.data[0].properties.mode.expr.Literal.Value | Should -Be "'Between'"
     }
 }
+
+Describe 'The anonymize toggle covers every displayed name' {
+    It 'does not bind a visual to a raw DisplayName column' {
+        $leaks = foreach ($file in (Get-ChildItem -LiteralPath $script:PagesFolder -Filter 'visual.json' -Recurse -File)) {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            $raw = $json | ConvertTo-Json -Depth 30
+            if ($raw -match '"Property":\s*"DisplayName"') {
+                $file.FullName.Substring($script:PagesFolder.Length + 1)
+            }
+        }
+        $leaks -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'filters the guest slicer on Pseudonym' {
+        $slicers = @(Get-ChildItem -LiteralPath $script:PagesFolder -Recurse -Filter 'visual.json' |
+                Where-Object { $_.Directory.Name -eq 'slicer-guest' })
+        $slicers.Count | Should -Be 7
+        foreach ($file in $slicers) {
+            $json = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            $json.visual.query.queryState.Values.projections[0].field.Column.Property | Should -Be 'Pseudonym'
+        }
+    }
+
+    It 'shows member names through Member Display Name' {
+        foreach ($relative in @(
+                'sharing/visuals/table-by-sharer/visual.json',
+                'invitations/visuals/table-top-inviters/visual.json'
+            )) {
+            $json = Get-Content -LiteralPath (Join-Path $script:PagesFolder $relative) -Raw
+            $json | Should -Match 'Member Display Name'
+            $json | Should -Match 'Pseudonym'
+        }
+    }
+}

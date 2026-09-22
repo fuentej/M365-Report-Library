@@ -23,10 +23,10 @@
                       "Entity": "GuestsCurrent"
                     }
                   },
-                  "Property": "DisplayName"
+                  "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GuestsCurrent.DisplayName"
+              "queryRef": "GuestsCurrent.Pseudonym"
             }
           ]
         }

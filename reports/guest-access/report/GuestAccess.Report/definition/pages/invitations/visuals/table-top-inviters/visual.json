@@ -17,16 +17,29 @@
           "projections": [
             {
               "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Member Display Name"
+                }
+              },
+              "queryRef": "UsersCurrent.Member Display Name"
+            },
+            {
+              "field": {
                 "Column": {
                   "Expression": {
                     "SourceRef": {
                       "Entity": "UsersCurrent"
                     }
                   },
-                  "Property": "DisplayName"
+                  "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.DisplayName"
+              "queryRef": "UsersCurrent.Pseudonym"
             },
             {
               "field": {

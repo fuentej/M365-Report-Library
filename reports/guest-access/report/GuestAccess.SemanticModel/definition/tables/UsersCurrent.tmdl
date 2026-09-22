@@ -87,9 +87,34 @@ table UsersCurrent
         summarizeBy: none
         sourceColumn: ManagerUserPrincipalName
 
+    column PseudonymNumber = 
+        VAR IdText = UsersCurrent[Id]
+        VAR CharCount = LEN(IdText)
+        VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+        RETURN MOD(HashSeed, 9000) + 1000
+        dataType: int64
+        formatString: 0000
+        lineageTag: 6a91e2c4-3d08-5b77-84e1-9c0f5a6d2b33
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "Member " & FORMAT(UsersCurrent[PseudonymNumber], "0000")
+        dataType: string
+        lineageTag: 90c4b7e1-2a56-5d48-b319-7e8a1f0c4d62
+        summarizeBy: none
+        isDataTypeInferred: false
+
     measure 'Member Count' = CALCULATE(COUNTROWS(UsersCurrent), UsersCurrent[UserType] = "Member")
         formatString: #,0
         lineageTag: 5cdb94b4-37f3-593d-b124-6fe3e18bca40
+
+    /// Same toggle as guests: a stable Id-derived pseudonym when Anonymize is selected.
+    measure 'Member Display Name' = 
+        VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+        VAR RealName = SELECTEDVALUE(UsersCurrent[DisplayName])
+        VAR Pseudo = SELECTEDVALUE(UsersCurrent[Pseudonym])
+        RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 4e7b1a90-c5d2-5f68-91ab-3c6e8d0f1a74
 
     partition UsersCurrent = calculated
         mode: import
