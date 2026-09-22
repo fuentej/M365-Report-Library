@@ -106,10 +106,13 @@ branch, with Joshua's GitHub account. `.github/workflows/auto-merge.yml` watches
 commit: when its first line is exactly `Verdict: Ready to merge` and every other check
 run or commit status on it has passed, the workflow marks the pull request ready for
 review (if it was a draft), squash-merges it with the pull request title as the commit
-title, and deletes the branch. `Verdict: Not ready`, a failed check, or no other check at
-all leaves the pull request alone; a pending check makes it wait and try again once that
-check finishes. The decision itself lives in `.github/scripts/Get-MergeDecision.ps1`,
-which the workflow calls and which `.github/scripts/tests/` tests on its own.
+title, and deletes the branch. `Verdict: Not ready`, a failed check, a skipped or
+neutral check, or no other check at all leaves the pull request alone; a check that is
+still running makes it wait. GitHub does not deliver `check_suite` for a suite created
+by GitHub Actions, so the workflow runs again when the `tests` workflow finishes, and
+when any other check suite finishes. The decision itself lives in
+`.github/scripts/Get-MergeDecision.ps1`, which the workflow calls and which
+`.github/scripts/tests/` tests on its own.
 
 ## Adding a report
 

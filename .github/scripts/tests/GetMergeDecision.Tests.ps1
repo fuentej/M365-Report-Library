@@ -232,3 +232,40 @@ jobs:
         Test-WorkflowRunsOnPush -Yaml $yaml | Should -BeTrue
     }
 }
+
+Describe 'auto-merge workflow' {
+    BeforeAll {
+        $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
+        $script:AutoMerge = Get-Content -LiteralPath (Join-Path $script:RepoRoot '.github/workflows/auto-merge.yml') -Raw
+        $script:TestsWorkflow = Get-Content -LiteralPath (Join-Path $script:RepoRoot '.github/workflows/tests.yml') -Raw
+    }
+
+    It 'runs again when the tests workflow completes, because check_suite ignores GitHub Actions' {
+        $script:AutoMerge -cmatch '(?m)^  workflow_run:' | Should -BeTrue
+        $script:TestsWorkflow -cmatch '(?m)^name:\s*tests\s*$' | Should -BeTrue
+        $script:AutoMerge -cmatch 'workflows:\s*\[tests\]' | Should -BeTrue
+        $script:AutoMerge -cmatch '(?m)^  check_suite:' | Should -BeTrue
+    }
+
+    It 'reads every check page and pins the merge to the commit it evaluated' {
+        $script:AutoMerge -cmatch 'per_page=100' | Should -BeTrue
+        $script:AutoMerge -cmatch 'ConvertFrom-GitHubCheckPayload' | Should -BeTrue
+        $script:AutoMerge -cmatch '--match-head-commit' | Should -BeTrue
+    }
+
+    It 'does not interpolate event payloads into the shell that resolves the pull request' {
+        $run = [regex]::Match(
+            $script:AutoMerge,
+            '(?s)- name: Resolve the pull request.*?run: \|\r?\n(?<script>.*?)(?=\r?\n      - name:)'
+        ).Groups['script'].Value
+
+        $run -cmatch '\{\{' | Should -BeFalse
+        $run -cmatch 'DISPATCH_PR_NUMBER' | Should -BeTrue
+    }
+
+    It 'does not cancel an in-progress merge while it dispatches workflows' {
+        $script:AutoMerge -cmatch 'cancel-in-progress:\s*false' | Should -BeTrue
+        $script:AutoMerge -cmatch 'Test-WorkflowRunsOnPush' | Should -BeTrue
+        $script:AutoMerge -cmatch '\byq\b' | Should -BeFalse
+    }
+}

@@ -6,10 +6,19 @@ name: auto-merge
 # never the author. This workflow watches for that commit and for the checks it triggers,
 # and merges automatically once both say go. See Get-MergeDecision.ps1 for the decision
 # logic and README.md#merging for the rule in one place.
+#
+# check_suite does not run this workflow when the suite was created by GitHub Actions
+# (https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#check_suite).
+# The repository's own CI is a GitHub Actions check, so workflow_run on the tests
+# workflow is what runs the decision again once those checks finish. check_suite stays
+# for suites created by other apps.
 
 on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_run:
+    workflows: [tests]
+    types: [completed]
   check_suite:
     types: [completed]
   workflow_dispatch:
@@ -27,8 +36,8 @@ permissions:
   actions: write
 
 concurrency:
-  group: auto-merge-${{ github.event.pull_request.number || github.event.check_suite.head_sha || github.event.inputs.pr_number }}
-  cancel-in-progress: true
+  group: auto-merge-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.event.workflow_run.pull_requests[0].number || github.event.check_suite.pull_requests[0].number || github.event.workflow_run.head_sha || github.event.check_suite.head_sha }}
+  cancel-in-progress: false
 
 jobs:
   auto-merge:
@@ -43,30 +52,72 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DISPATCH_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          CHECK_SHA: ${{ github.event.check_suite.head_sha }}
+          CHECK_SUITE_PR: ${{ github.event.check_suite.pull_requests[0].number }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
         run: |
           set -euo pipefail
 
-          case "${{ github.event_name }}" in
+          gh_api() {
+            local attempt=1
+            local status=0
+            local tmp
+            tmp=$(mktemp)
+            while [ "$attempt" -le 3 ]; do
+              if "$@" >"$tmp"; then
+                cat "$tmp"
+                rm -f "$tmp"
+                return 0
+              fi
+              status=$?
+              echo "gh attempt ${attempt} failed" >&2
+              if [ "$attempt" -eq 3 ]; then
+                rm -f "$tmp"
+                return "$status"
+              fi
+              sleep $((attempt * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          number=""
+          sha=""
+          case "$EVENT_NAME" in
             pull_request)
-              number="${{ github.event.pull_request.number }}"
+              number="$PR_NUMBER"
               ;;
             workflow_dispatch)
-              number="${{ github.event.inputs.pr_number }}"
+              number="$DISPATCH_PR_NUMBER"
               ;;
             check_suite)
-              sha="${{ github.event.check_suite.head_sha }}"
-              number=$(gh api "repos/$REPO/commits/$sha/pulls" \
-                --jq '[.[] | select(.state == "open")] | .[0].number // empty')
+              number="${CHECK_SUITE_PR:-}"
+              sha="$CHECK_SHA"
+              ;;
+            workflow_run)
+              number="${WORKFLOW_RUN_PR:-}"
+              sha="$WORKFLOW_RUN_SHA"
               ;;
             *)
-              number=""
               ;;
           esac
 
-          if [ -z "${number:-}" ]; then
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -z "$number" ] && [ -n "$sha" ]; then
+            if ! number=$(gh_api gh api "repos/$REPO/commits/$sha/pulls" \
+              --jq '[.[] | select(.state == "open")] | .[0].number // empty'); then
+              exit 1
+            fi
           fi
+
+          case "$number" in
+            ''|*[!0-9]*)
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
 
           echo "found=true" >> "$GITHUB_OUTPUT"
           echo "number=$number" >> "$GITHUB_OUTPUT"
@@ -112,16 +163,76 @@ jobs:
         run: |
           set -euo pipefail
 
-          check_runs=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
-            --jq '[.check_runs[] | {Name: .name, State: (if .status != "completed" then .status else .conclusion end)}]')
-          statuses=$(gh api "repos/$REPO/commits/$SHA/status" \
-            --jq '[.statuses[] | {Name: .context, State: .state}]')
-          combined=$(jq -c -n --argjson a "$check_runs" --argjson b "$statuses" '$a + $b')
+          gh_api() {
+            local attempt=1
+            local status=0
+            local tmp
+            tmp=$(mktemp)
+            while [ "$attempt" -le 3 ]; do
+              if "$@" >"$tmp"; then
+                cat "$tmp"
+                rm -f "$tmp"
+                return 0
+              fi
+              status=$?
+              echo "gh attempt ${attempt} failed" >&2
+              if [ "$attempt" -eq 3 ]; then
+                rm -f "$tmp"
+                return "$status"
+              fi
+              sleep $((attempt * 2))
+              attempt=$((attempt + 1))
+            done
+          }
+
+          # per_page defaults to 30. Keep requesting pages until the collected
+          # rows cover total_count; ConvertFrom-GitHubCheckPayload throws if
+          # they do not, so a missing page cannot look like a pass.
+          collect_pages() {
+            local endpoint="$1"
+            local extra="$2"
+            local items_key="$3"
+            local page=1
+            local items='[]'
+            local total=0
+            local resp=""
+            local batch=""
+            local count=0
+            local got=0
+            local query=""
+            while [ "$page" -le 20 ]; do
+              query="per_page=100&page=${page}"
+              if [ -n "$extra" ]; then
+                query="${extra}&${query}"
+              fi
+              if ! resp=$(gh_api gh api "repos/$REPO/commits/$SHA/${endpoint}?${query}"); then
+                echo "Failed to read ${endpoint} page ${page}" >&2
+                return 1
+              fi
+              total=$(jq -r '.total_count' <<<"$resp")
+              batch=$(jq -c --arg key "$items_key" '.[$key]' <<<"$resp")
+              count=$(jq -r 'length' <<<"$batch")
+              items=$(jq -c -n --argjson a "$items" --argjson b "$batch" '$a + $b')
+              got=$(jq -r 'length' <<<"$items")
+              if [ "$count" -eq 0 ] || [ "$got" -ge "$total" ]; then
+                break
+              fi
+              page=$((page + 1))
+            done
+            jq -nc --arg key "$items_key" --argjson items "$items" --argjson total "$total" \
+              '{total_count: $total} + {($key): $items}'
+          }
+
+          check_runs=$(collect_pages 'check-runs' 'filter=latest' 'check_runs')
+          statuses=$(collect_pages 'status' '' 'statuses')
 
           {
-            echo 'checks<<EOF_AUTO_MERGE_CHECKS'
-            echo "$combined"
-            echo 'EOF_AUTO_MERGE_CHECKS'
+            echo 'check_runs<<EOF_AUTO_MERGE_CHECK_RUNS'
+            echo "$check_runs"
+            echo 'EOF_AUTO_MERGE_CHECK_RUNS'
+            echo 'statuses<<EOF_AUTO_MERGE_STATUSES'
+            echo "$statuses"
+            echo 'EOF_AUTO_MERGE_STATUSES'
           } >> "$GITHUB_OUTPUT"
 
       - name: Decide whether to merge
@@ -130,15 +241,14 @@ jobs:
         shell: pwsh
         env:
           COMMIT_MESSAGE: ${{ steps.head.outputs.message }}
-          CHECKS_JSON: ${{ steps.checks.outputs.checks }}
+          CHECK_RUNS_JSON: ${{ steps.checks.outputs.check_runs }}
+          STATUS_JSON: ${{ steps.checks.outputs.statuses }}
         run: |
+          $ErrorActionPreference = 'Stop'
           . "${{ github.workspace }}/.github/scripts/Get-MergeDecision.ps1"
 
-          $checks = @()
-          if (-not [string]::IsNullOrWhiteSpace($env:CHECKS_JSON)) {
-            $checks = @($env:CHECKS_JSON | ConvertFrom-Json)
-          }
-
+          $parsed = ConvertFrom-GitHubCheckPayload -CheckRunJson $env:CHECK_RUNS_JSON -StatusJson $env:STATUS_JSON
+          $checks = @($parsed.Items)
           $result = Get-MergeDecision -CommitMessage $env:COMMIT_MESSAGE -Check $checks -SelfCheckName 'auto-merge'
 
           Write-Host "Decision: $($result.Decision) - $($result.Reason)"
@@ -154,41 +264,61 @@ jobs:
         run: gh pr ready "$NUMBER" --repo "$REPO"
 
       - name: Squash-merge and delete the branch
+        id: merge
         if: steps.decision.outputs.decision == 'Merge'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           NUMBER: ${{ steps.pr.outputs.number }}
           TITLE: ${{ steps.head.outputs.title }}
+          SHA: ${{ steps.head.outputs.sha }}
         run: |
-          gh pr merge "$NUMBER" --repo "$REPO" --squash --delete-branch --subject "$TITLE"
+          set -euo pipefail
+
+          if gh pr merge "$NUMBER" --repo "$REPO" --squash --delete-branch --subject "$TITLE" --match-head-commit "$SHA"; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          merged_state=$(gh api "repos/$REPO/pulls/$NUMBER" --jq '.state + " " + (.merged | tostring)')
+          case "$merged_state" in
+            "closed true")
+              echo "Pull request $NUMBER is already merged."
+              echo "merged=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+          exit 1
 
       - name: Dispatch push-triggered workflows on the default branch
-        if: steps.decision.outputs.decision == 'Merge'
+        if: steps.merge.outputs.merged == 'true'
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          set -euo pipefail
+          $ErrorActionPreference = 'Stop'
+          . "${{ github.workspace }}/.github/scripts/Get-MergeDecision.ps1"
 
-          for file in .github/workflows/*.yml .github/workflows/*.yaml; do
-            [ -f "$file" ] || continue
-            name=$(basename "$file")
+          $workflows = Get-ChildItem -LiteralPath .github/workflows -File |
+            Where-Object { $_.Extension -in '.yml', '.yaml' }
+          foreach ($file in $workflows) {
+            if ($file.Name -in @('auto-merge.yml', 'auto-merge.yaml')) { continue }
+            $yaml = Get-Content -LiteralPath $file.FullName -Raw
+            if (-not (Test-WorkflowRunsOnPush -Yaml $yaml)) { continue }
 
-            # Never re-dispatch this workflow from itself.
-            case "$name" in
-              auto-merge.yml|auto-merge.yaml) continue ;;
-            esac
-
-            on_json=$(yq eval -o=json '.on' "$file" 2>/dev/null || echo 'null')
-            has_push=$(jq -r 'if type == "string" then (. == "push")
-                               elif type == "array" then (index("push") != null)
-                               elif type == "object" then has("push")
-                               else false end' <<<"$on_json")
-
-            if [ "$has_push" = "true" ]; then
-              echo "Dispatching $name on $DEFAULT_BRANCH"
-              gh workflow run "$name" --repo "$REPO" --ref "$DEFAULT_BRANCH"
-            fi
-          done
+            Write-Host "Dispatching $($file.Name) on $env:DEFAULT_BRANCH"
+            $dispatched = $false
+            foreach ($attempt in 1..3) {
+              & gh workflow run $file.Name --repo $env:REPO --ref $env:DEFAULT_BRANCH
+              if ($LASTEXITCODE -eq 0) {
+                $dispatched = $true
+                break
+              }
+              Start-Sleep -Seconds ($attempt * 2)
+            }
+            if (-not $dispatched) {
+              throw "Could not dispatch $($file.Name) on $env:DEFAULT_BRANCH."
+            }
+          }
