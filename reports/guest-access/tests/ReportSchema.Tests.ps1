@@ -17,12 +17,11 @@
 # BeforeAll: Pester builds the "validates <RelativePath>" test below with -ForEach,
 # and -ForEach is evaluated during Discovery (as the file is dot-sourced), before
 # any BeforeAll runs. Everything here is read-only filesystem/JSON inspection, so
-# doing it at Discovery time is safe.
+# doing it at Discovery time is safe. It does not call anything from
+# SchemaValidator.ps1, so it does not need that file dot-sourced yet.
 $script:Root = Join-Path $PSScriptRoot '../../..' | Resolve-Path | Select-Object -ExpandProperty Path
 $script:ReportRoot = Join-Path $script:Root 'reports/guest-access/report'
 $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot 'schemas')).ProviderPath
-
-. (Join-Path $PSScriptRoot 'SchemaValidator.ps1')
 
 # -Force: a `.platform` file is a dotfile and Get-ChildItem hides those by default
 # even though only the *name*, not a separate extension, starts with the dot.
@@ -33,6 +32,28 @@ $script:SchemaBearingFiles = @($script:AllFiles | Where-Object {
         $data = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
         $data.ContainsKey('$schema')
     })
+
+# Pester only *executes* top-level script code (everything above, outside a block)
+# during Discovery, to build the test tree; none of those script-scoped variables
+# survive into the Run phase, where the It/BeforeAll bodies below actually execute.
+# -ForEach values are the one exception -- Pester closes over them explicitly. So
+# every one of those variables, and the SchemaValidator.ps1 dot-source, has to be
+# redone here to exist when Run-phase code below reads them.
+BeforeAll {
+    . (Join-Path $PSScriptRoot 'SchemaValidator.ps1')
+
+    $script:Root = Join-Path $PSScriptRoot '../../..' | Resolve-Path | Select-Object -ExpandProperty Path
+    $script:ReportRoot = Join-Path $script:Root 'reports/guest-access/report'
+    $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot 'schemas')).ProviderPath
+
+    $script:AllFiles = @(Get-ChildItem -LiteralPath $script:ReportRoot -Recurse -File -Force |
+            Where-Object { $_.Extension -eq '.json' -or $_.Name -eq '.platform' })
+
+    $script:SchemaBearingFiles = @($script:AllFiles | Where-Object {
+            $data = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
+            $data.ContainsKey('$schema')
+        })
+}
 
 Describe 'Every PBIR/platform JSON file declares and validates against its schema' {
     It 'finds report files to check' {
