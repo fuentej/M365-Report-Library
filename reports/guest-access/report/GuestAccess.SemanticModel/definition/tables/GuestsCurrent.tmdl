@@ -1,0 +1,202 @@
+table GuestsCurrent
+    lineageTag: fd3abb23-ba61-5ed3-963e-f86583e0efb0
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: d71e5832-bc24-569f-95fa-337d74c65def
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: cafa92ba-e4a6-5e4a-80c4-cfa3af4396b1
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 9d356b11-30e2-5c5b-bbc8-4b962c17f448
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Mail
+        dataType: string
+        lineageTag: ae16752a-2e75-5980-af12-e2742790fe5a
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 62aebe2d-0a14-5ebe-a152-bc3a8c089240
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column ExternalDomain
+        dataType: string
+        lineageTag: 8fc276b9-baf3-53a3-bfa1-f230fe76e6ff
+        summarizeBy: none
+        sourceColumn: ExternalDomain
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: d30d2856-88fc-57e2-b065-611e88da3775
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column CreationType
+        dataType: string
+        lineageTag: da9db9ed-7ccc-571e-a6ae-efe51bca26a4
+        summarizeBy: none
+        sourceColumn: CreationType
+
+    column ExternalUserState
+        dataType: string
+        lineageTag: 87b07b33-a728-5b14-b9df-e0dd1fc0b625
+        summarizeBy: none
+        sourceColumn: ExternalUserState
+
+    column ExternalUserStateChangeDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: bccc05cb-77a7-5c25-a04c-f33e4b81cfd5
+        summarizeBy: none
+        sourceColumn: ExternalUserStateChangeDateTime
+
+    column AccountEnabled
+        dataType: logical
+        lineageTag: defcf43c-396c-51ce-be92-861459ad4d06
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column LastSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7a8fa233-0a94-5c40-871c-502d23a01f8f
+        summarizeBy: none
+        sourceColumn: LastSignInDateTime
+
+    column LastNonInteractiveSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: a56339b5-48ea-5922-99b6-be35b50c9980
+        summarizeBy: none
+        sourceColumn: LastNonInteractiveSignInDateTime
+
+    column LastSuccessfulSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 0593735d-9b40-5318-ac63-871ba3f10208
+        summarizeBy: none
+        sourceColumn: LastSuccessfulSignInDateTime
+
+    column DaysSinceCreated = DATEDIFF(GuestsCurrent[CreatedDateTime], TODAY(), DAY)
+        dataType: int64
+        formatString: #,0
+        lineageTag: 4b27cf70-1c56-5e3a-a78d-4e5fabde96ed
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column EffectiveLastSignIn = 
+        VAR DirectValue = GuestsCurrent[LastSignInDateTime]
+        VAR FallbackValue = CALCULATE(MAX(GuestSignIns[CreatedDateTime]))
+        RETURN IF(NOT ISBLANK(DirectValue), DirectValue, FallbackValue)
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: b606b6c7-da1e-5aae-8b0e-ce0b6a669b57
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column LastSignInIsDerived = ISBLANK(GuestsCurrent[LastSignInDateTime]) && NOT ISBLANK(GuestsCurrent[EffectiveLastSignIn])
+        dataType: logical
+        lineageTag: a3d2a8a8-829e-52e4-9235-e0bb33f8f963
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column LastSignInSource = 
+        VAR HasDirect = NOT ISBLANK(GuestsCurrent[LastSignInDateTime])
+        VAR HasFallback = NOT ISBLANK(GuestsCurrent[EffectiveLastSignIn])
+        RETURN IF(HasDirect, "Recorded sign-in (guests.csv)", IF(HasFallback, "Derived from guest-signins.csv", "Unknown"))
+        dataType: string
+        lineageTag: c924a047-518f-523c-8007-4e637573c9a0
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DaysSinceLastSignInValue = 
+        VAR d = GuestsCurrent[EffectiveLastSignIn]
+        RETURN IF(ISBLANK(d), BLANK(), DATEDIFF(d, TODAY(), DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: aa09537b-89a4-506b-991c-446563f81e12
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column PseudonymNumber = 
+        VAR IdText = GuestsCurrent[Id]
+        VAR CharCount = LEN(IdText)
+        VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+        RETURN MOD(HashSeed, 9000) + 1000
+        dataType: int64
+        formatString: 0000
+        lineageTag: d6efc5c7-8af8-5cb6-8131-4dd9e6c2759d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Guests as of the latest snapshot in guests.csv.
+    measure 'Guest Count' = COUNTROWS(GuestsCurrent)
+        formatString: #,0
+        lineageTag: 871d5b7c-765a-5420-a6e3-bd69b93de2ad
+
+    /// Every guest row is created by an invitation, so this equals Guest Count.
+    measure 'Invited Guests' = [Guest Count]
+        formatString: #,0
+        lineageTag: 59aa7718-48f0-5db3-add8-dc6031eed2a5
+
+    measure 'Accepted Guests' = CALCULATE(COUNTROWS(GuestsCurrent), GuestsCurrent[ExternalUserState] = "Accepted")
+        formatString: #,0
+        lineageTag: 80fe32eb-7bd9-5c16-99da-953d576e24e2
+
+    measure 'Never Accepted Guests' = CALCULATE(COUNTROWS(GuestsCurrent), GuestsCurrent[ExternalUserState] <> "Accepted")
+        formatString: #,0
+        lineageTag: 29f6c0d6-2030-5476-a9b5-a33609337c0b
+
+    measure 'Disabled Guests' = CALCULATE(COUNTROWS(GuestsCurrent), GuestsCurrent[AccountEnabled] = FALSE())
+        formatString: #,0
+        lineageTag: 5fed851d-cfe3-5da2-a6b7-d0e200151fa0
+
+    /// Blank DaysSinceLastSignInValue (Unknown) is excluded, never counted as 0 days.
+    measure 'Dormant Guests (90+ days)' = CALCULATE(COUNTROWS(GuestsCurrent), GuestsCurrent[DaysSinceLastSignInValue] >= 90)
+        formatString: #,0
+        lineageTag: 2640444f-a0d1-523e-9228-61f7f499160b
+
+    /// Neither guests.csv nor guest-signins.csv records a sign-in for this guest.
+    measure 'Unknown Last Sign-In Guests' = CALCULATE(COUNTROWS(GuestsCurrent), ISBLANK(GuestsCurrent[EffectiveLastSignIn]))
+        formatString: #,0
+        lineageTag: 7f90196d-8ee5-58fa-b29f-b9ddd55a0193
+
+    /// Text measure so a truly-unknown guest reads "Unknown" instead of a blank that a visual could render or total as zero.
+    measure 'Days Since Last Sign-In (Display)' = 
+        VAR d = SELECTEDVALUE(GuestsCurrent[DaysSinceLastSignInValue])
+        RETURN IF(ISBLANK(d), "Unknown", FORMAT(d, "#,0") & " days")
+        lineageTag: 327c802a-9aa1-598e-89b4-62da69feca7a
+
+    measure 'Dormant Guest Status' = 
+        VAR d = SELECTEDVALUE(GuestsCurrent[DaysSinceLastSignInValue])
+        RETURN IF(ISBLANK(d), "Unknown", IF(d >= 90, "Dormant (90+ days)", "Active"))
+        lineageTag: d469fe48-5791-5038-9c84-f45bfc7f8142
+
+    /// The anonymize toggle: swaps DisplayName for a pseudonym derived deterministically from the guest's Id (stable across refreshes) when AnonymizeMode[Mode] = "Anonymize".
+    measure 'Guest Display Name' = 
+        VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+        VAR RealName = SELECTEDVALUE(GuestsCurrent[DisplayName])
+        VAR Pseudo = "Guest " & SELECTEDVALUE(GuestsCurrent[PseudonymNumber])
+        RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: c50177a3-f177-58e8-9aeb-d51db050c7c3
+
+    partition GuestsCurrent = calculated
+        mode: import
+        source =
+            FILTER(Guests, Guests[RunDate] = MAX(Guests[RunDate]))
+
+    annotation PBI_ResultType = Table

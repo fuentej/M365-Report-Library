@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-accepted",
+  "position": {
+    "x": 200,
+    "y": 100,
+    "z": 0,
+    "width": 190,
+    "height": 130,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Accepted Guests"
+                }
+              },
+              "queryRef": "GuestsCurrent.Accepted Guests"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Accepted"
+          }
+        }
+      ]
+    }
+  }
+}

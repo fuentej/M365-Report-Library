@@ -1,0 +1,77 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-by-site",
+  "position": {
+    "x": 0,
+    "y": 370,
+    "z": 0,
+    "width": 630,
+    "height": 300,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharingEvents"
+                    }
+                  },
+                  "Property": "SiteUrl"
+                }
+              },
+              "queryRef": "SharingEvents.SiteUrl"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharingEvents"
+                    }
+                  },
+                  "Property": "Sharing Event Count"
+                }
+              },
+              "queryRef": "SharingEvents.Sharing Event Count"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "SharingEvents"
+                  }
+                },
+                "Property": "Sharing Event Count"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "By site"
+          }
+        }
+      ]
+    }
+  }
+}

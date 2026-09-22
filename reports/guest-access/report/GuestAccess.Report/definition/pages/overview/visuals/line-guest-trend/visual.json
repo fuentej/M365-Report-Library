@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "line-guest-trend",
+  "position": {
+    "x": 800,
+    "y": 100,
+    "z": 0,
+    "width": 480,
+    "height": 280,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "Guests.RunDate"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "Guest Count (All Snapshots)"
+                }
+              },
+              "queryRef": "Guests.Guest Count (All Snapshots)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Guest count across snapshots"
+          }
+        }
+      ]
+    }
+  }
+}

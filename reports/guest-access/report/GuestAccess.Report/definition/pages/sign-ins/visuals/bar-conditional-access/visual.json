@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-conditional-access",
+  "position": {
+    "x": 580,
+    "y": 370,
+    "z": 0,
+    "width": 700,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestSignIns"
+                    }
+                  },
+                  "Property": "ConditionalAccessStatus"
+                }
+              },
+              "queryRef": "GuestSignIns.ConditionalAccessStatus"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestSignIns"
+                    }
+                  },
+                  "Property": "Sign-In Count"
+                }
+              },
+              "queryRef": "GuestSignIns.Sign-In Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Conditional Access status"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-top-inviters",
+  "position": {
+    "x": 650,
+    "y": 100,
+    "z": 0,
+    "width": 630,
+    "height": 340,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "UsersCurrent.DisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Department"
+                }
+              },
+              "queryRef": "UsersCurrent.Department"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestInvitations"
+                    }
+                  },
+                  "Property": "Invitation Events"
+                }
+              },
+              "queryRef": "GuestInvitations.Invitation Events"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "GuestInvitations"
+                  }
+                },
+                "Property": "Invitation Events"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Top inviting members and their departments"
+          }
+        }
+      ]
+    }
+  }
+}

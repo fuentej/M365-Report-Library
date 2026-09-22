@@ -1,0 +1,99 @@
+table UsersCurrent
+    lineageTag: 98903314-72c3-5c02-80e0-c09ef5917955
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6341c5ee-21a4-5c89-9309-34e0b89f3154
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: c50eafbf-6486-5cb0-94b7-1d46419564dd
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 6e945fbe-6524-5d74-acb2-550a6ceb17bc
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: ffed7364-2a20-5de3-8e49-daaae6046d7a
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: 7d0b98cd-39fb-597a-a8fa-663fedb81a70
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 4ed4f1fa-a74b-585b-870f-4753c27f94c8
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: logical
+        lineageTag: d989ad6e-331c-5408-92ad-9da93291d791
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 3a7c1899-db17-5712-9b5f-0313e56280dd
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Department
+        dataType: string
+        lineageTag: ded130f4-1921-56b7-b69e-f62f96800f1c
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: 5200ea98-3f5e-520c-8d33-428a2b047f2c
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column City
+        dataType: string
+        lineageTag: ba32c08f-5d77-509b-a237-e6cdbeb88ed0
+        summarizeBy: none
+        sourceColumn: City
+
+    column Country
+        dataType: string
+        lineageTag: 8471dbe8-e941-5b00-af2b-32a6189a9454
+        summarizeBy: none
+        sourceColumn: Country
+
+    column ManagerId
+        dataType: string
+        lineageTag: 81da82ac-6138-5344-97ed-bd63952917d5
+        summarizeBy: none
+        sourceColumn: ManagerId
+
+    column ManagerUserPrincipalName
+        dataType: string
+        lineageTag: 2fdfed9a-849e-5d77-b16b-c8fe03c8d69c
+        summarizeBy: none
+        sourceColumn: ManagerUserPrincipalName
+
+    measure 'Member Count' = CALCULATE(COUNTROWS(UsersCurrent), UsersCurrent[UserType] = "Member")
+        formatString: #,0
+        lineageTag: 5cdb94b4-37f3-593d-b124-6fe3e18bca40
+
+    partition UsersCurrent = calculated
+        mode: import
+        source =
+            FILTER(Users, Users[RunDate] = MAX(Users[RunDate]))
+
+    annotation PBI_ResultType = Table

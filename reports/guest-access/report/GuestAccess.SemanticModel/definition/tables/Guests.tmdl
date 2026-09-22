@@ -1,0 +1,111 @@
+table Guests
+    lineageTag: 8e7cd3b0-2777-5725-afa3-a3937944b766
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 86c91512-8269-55ef-830e-e304f183de19
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 9affdbaa-3d98-57ba-b577-9e3b36b574d9
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 97791df7-8e85-5337-9ec1-f4e6b2c4b829
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Mail
+        dataType: string
+        lineageTag: d42679d7-a58b-5bed-88f3-89e54dde7e35
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 11c81566-5787-5619-a739-b5f062d042a0
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column ExternalDomain
+        dataType: string
+        lineageTag: cc086798-ba78-53c6-8493-795e9eb0ff9c
+        summarizeBy: none
+        sourceColumn: ExternalDomain
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: e8834224-bf7f-54e4-9d39-a219f2cdf87d
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column CreationType
+        dataType: string
+        lineageTag: d6cef925-20dd-521c-a098-f3d2adca658f
+        summarizeBy: none
+        sourceColumn: CreationType
+
+    column ExternalUserState
+        dataType: string
+        lineageTag: 61c8e490-353b-5cee-b93f-27500b45c304
+        summarizeBy: none
+        sourceColumn: ExternalUserState
+
+    column ExternalUserStateChangeDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: e68a625f-f9b6-5c8b-bb96-8a953078464c
+        summarizeBy: none
+        sourceColumn: ExternalUserStateChangeDateTime
+
+    column AccountEnabled
+        dataType: logical
+        lineageTag: 4af54e6c-7077-577e-ba99-d70ec66db935
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column LastSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 4bbd30b7-bac2-57c9-ae85-394e2bbaeb38
+        summarizeBy: none
+        sourceColumn: LastSignInDateTime
+
+    column LastNonInteractiveSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 9bf81d75-5b48-5b53-9190-b34da26161b5
+        summarizeBy: none
+        sourceColumn: LastNonInteractiveSignInDateTime
+
+    column LastSuccessfulSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7b11305f-6930-504a-be0a-07c512dae258
+        summarizeBy: none
+        sourceColumn: LastSuccessfulSignInDateTime
+
+    /// Every snapshot row, unlike [Guest Count] on GuestsCurrent which is the latest snapshot only -- this is what the Overview trend line plots by RunDate.
+    measure 'Guest Count (All Snapshots)' = COUNTROWS(Guests)
+        formatString: #,0
+        lineageTag: ada95879-23c1-5ece-82a1-8db005b9bdaf
+
+    partition Guests = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guests.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"CreatedDateTime", type datetime}, {"ExternalUserStateChangeDateTime", type datetime}, {"AccountEnabled", type logical}, {"LastSignInDateTime", type datetime}, {"LastNonInteractiveSignInDateTime", type datetime}, {"LastSuccessfulSignInDateTime", type datetime}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

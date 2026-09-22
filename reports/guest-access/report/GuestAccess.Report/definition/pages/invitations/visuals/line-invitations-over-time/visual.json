@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "line-invitations-over-time",
+  "position": {
+    "x": 0,
+    "y": 100,
+    "z": 0,
+    "width": 630,
+    "height": 340,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestInvitations"
+                    }
+                  },
+                  "Property": "ActivityDate"
+                }
+              },
+              "queryRef": "GuestInvitations.ActivityDate"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestInvitations"
+                    }
+                  },
+                  "Property": "Invitation Events"
+                }
+              },
+              "queryRef": "GuestInvitations.Invitation Events"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestInvitations"
+                    }
+                  },
+                  "Property": "Redemption Events"
+                }
+              },
+              "queryRef": "GuestInvitations.Redemption Events"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Invitations and redemptions over time"
+          }
+        }
+      ]
+    }
+  }
+}

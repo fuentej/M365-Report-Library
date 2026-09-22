@@ -8,8 +8,9 @@ The collectors write one CSV per source into an output folder of your choosing, 
 from where the last run stopped. Nothing is ever rewritten or deleted, so the folder is a
 history you can chart over time.
 
-The Power BI report that reads these files is tracked separately. `samples/` holds a
-generated set of fake data so the report can be built without a tenant.
+`report/` holds the Power BI report that reads these files, as a Power BI Project
+(PBIP): a TMDL semantic model plus a PBIR report. `samples/` holds a generated set of
+fake data so the report can be built and opened without a tenant.
 
 ## Contents
 
@@ -23,7 +24,49 @@ generated set of fake data so the report can be built without a tenant.
 | `collectors/Run-All.ps1` | Runs the users collector and all five of the above |
 | `collectors/GuestAccessSchema.psd1` | The column order of every CSV, and the activity and operation names collected |
 | `New-SampleData.ps1` | Regenerates `samples/` |
+| `report/` | The Power BI report (PBIP: TMDL semantic model + PBIR report) |
 | `tests/` | Pester tests; every tenant call is mocked |
+
+## The Power BI report
+
+Open `report/GuestAccess.pbip` in Power BI Desktop (Store reports using enhanced
+metadata format (PBIR) and Store semantic model using TMDL format must be enabled
+under Preview features — both are required to read this project). On first open, Power
+BI Desktop asks for the `CsvFolder` parameter's value: point it at a folder holding the
+same CSVs described below — `samples/` to explore with fake data, or a collector output
+folder for a real tenant. Every table is a plain CSV import from
+`CsvFolder & "\<file>.csv"`; nothing else about the model depends on where that folder is.
+
+| Table | Source | What it's for |
+| --- | --- | --- |
+| `Users`, `Guests`, `GuestInvitations`, `GuestSignIns`, `SharingEvents`, `GuestMemberships` | One per CSV above, full history | Exactly what the CSV holds — column-for-column, in `GuestAccessSchema.psd1` order |
+| `UsersCurrent`, `GuestsCurrent`, `GuestMembershipsCurrent` | Calculated: the latest `RunDate` snapshot of the table above | The dimension every relationship, slicer and card is built on, so a guest or member is never double-counted across snapshots |
+| `DateDim` | Calculated: a plain calendar | Drives the date-range slicer on every page |
+| `AnonymizeMode` | Calculated, disconnected | Drives the anonymize toggle (see below) |
+
+Seven pages — Overview, Guest lifecycle, Dormant guests, Invitations, Sign-ins,
+Sharing, Access footprint — each carrying the same four slicers (date range, external
+domain, member department, guest) plus the anonymize toggle.
+
+**Dormant guests / the "never zero" rule:** when a guest's `LastSignInDateTime` (from
+`guests.csv`) is empty, `GuestsCurrent[EffectiveLastSignIn]` falls back to that guest's
+latest `CreatedDateTime` value in `guest-signins.csv` — i.e. the most recent recorded
+sign-in event, which the README for that file documents as "when the sign-in
+happened" — and `GuestsCurrent[LastSignInSource]` records which source the value came
+from. When neither source has a value, `[Days Since Last Sign-In (Display)]` and
+`[Dormant Guest Status]` read `"Unknown"` as text rather than showing a number, so a
+truly-unknown guest can never be misread as "0 days" or silently summed as zero.
+
+**Anonymize toggle:** `AnonymizeMode` is a two-row disconnected table ("Show names" /
+"Anonymize") with a slicer on every page. The measure
+`GuestsCurrent[Guest Display Name]` reads `SELECTEDVALUE(AnonymizeMode[Mode])` and
+returns either the guest's real `DisplayName` or `"Guest " & PseudonymNumber`, where
+`PseudonymNumber` is derived deterministically from the guest's `Id` (a simple
+character-code hash, mod 9000 + 1000) — the same guest gets the same pseudonym on every
+refresh. Wherever a guest's name appears in a table or matrix cell, it is this measure,
+not the raw column — but the guest slicer itself still filters on the real
+`DisplayName`, since a slicer needs a column, not a measure, to filter by. `report/`
+does not otherwise store real guest names anywhere the toggle can't reach.
 
 `users.csv` comes from `Invoke-EntraUserCollector` in the shared module, not from this
 folder, because every report needs it.

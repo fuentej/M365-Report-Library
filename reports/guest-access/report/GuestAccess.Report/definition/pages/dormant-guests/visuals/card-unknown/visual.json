@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-unknown",
+  "position": {
+    "x": 310,
+    "y": 100,
+    "z": 0,
+    "width": 300,
+    "height": 160,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Unknown Last Sign-In Guests"
+                }
+              },
+              "queryRef": "GuestsCurrent.Unknown Last Sign-In Guests"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Unknown last sign-in"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,88 @@
+table SharingEvents
+    lineageTag: 48ea221f-7ca0-5747-9ada-a83c9eed19b4
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7d2f59d8-06e3-5a42-94b8-667679a47193
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: 9fdedbc0-4911-5e8b-b299-cc1ff3ed5a6a
+        summarizeBy: none
+        sourceColumn: Id
+
+    column Operation
+        dataType: string
+        lineageTag: 9652a0b5-17ed-53c2-960f-c19283f99c3f
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: 9ccb8854-18bc-57b7-b998-6ba27b41e561
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Workload
+        dataType: string
+        lineageTag: a3f64816-9186-565e-8fba-4d84ebaf1372
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column SiteUrl
+        dataType: string
+        lineageTag: 848cba7a-fe57-50ab-8171-ce2caaeba428
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column ObjectId
+        dataType: string
+        lineageTag: 4c8c70e1-921f-54b6-875e-b41d1af46cba
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column SourceFileName
+        dataType: string
+        lineageTag: 0b05d069-4b42-503b-9865-54146a4cca77
+        summarizeBy: none
+        sourceColumn: SourceFileName
+
+    column TargetUserOrGroupName
+        dataType: string
+        lineageTag: cf962ff1-9dea-5687-af3b-8ba8baec344a
+        summarizeBy: none
+        sourceColumn: TargetUserOrGroupName
+
+    column TargetUserOrGroupType
+        dataType: string
+        lineageTag: 658462d0-f70c-54a1-909b-95e2c1883035
+        summarizeBy: none
+        sourceColumn: TargetUserOrGroupType
+
+    column ActivityDate = DATE(YEAR(SharingEvents[CreationTime]), MONTH(SharingEvents[CreationTime]), DAY(SharingEvents[CreationTime]))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 638a0930-5027-59c9-bc81-8e6608dc4f13
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Sharing Event Count' = COUNTROWS(SharingEvents)
+        formatString: #,0
+        lineageTag: 428be8ee-95f7-5018-ab00-b29f8feae689
+
+    partition SharingEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sharing-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"CreationTime", type datetime}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

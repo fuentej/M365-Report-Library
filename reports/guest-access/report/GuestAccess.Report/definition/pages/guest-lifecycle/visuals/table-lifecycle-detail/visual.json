@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-lifecycle-detail",
+  "position": {
+    "x": 0,
+    "y": 240,
+    "z": 0,
+    "width": 790,
+    "height": 340,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Guest Display Name"
+                }
+              },
+              "queryRef": "GuestsCurrent.Guest Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "ExternalDomain"
+                }
+              },
+              "queryRef": "GuestsCurrent.ExternalDomain"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "ExternalUserState"
+                }
+              },
+              "queryRef": "GuestsCurrent.ExternalUserState"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "DaysSinceCreated"
+                }
+              },
+              "queryRef": "GuestsCurrent.DaysSinceCreated"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "AccountEnabled"
+                }
+              },
+              "queryRef": "GuestsCurrent.AccountEnabled"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Every guest: state, domain, days since created"
+          }
+        }
+      ]
+    }
+  }
+}

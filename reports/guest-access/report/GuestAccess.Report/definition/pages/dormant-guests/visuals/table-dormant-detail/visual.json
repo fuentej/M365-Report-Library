@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-dormant-detail",
+  "position": {
+    "x": 0,
+    "y": 270,
+    "z": 0,
+    "width": 1280,
+    "height": 400,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Guest Display Name"
+                }
+              },
+              "queryRef": "GuestsCurrent.Guest Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "ExternalDomain"
+                }
+              },
+              "queryRef": "GuestsCurrent.ExternalDomain"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "LastSignInSource"
+                }
+              },
+              "queryRef": "GuestsCurrent.LastSignInSource"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Days Since Last Sign-In (Display)"
+                }
+              },
+              "queryRef": "GuestsCurrent.Days Since Last Sign-In (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GuestsCurrent"
+                    }
+                  },
+                  "Property": "Dormant Guest Status"
+                }
+              },
+              "queryRef": "GuestsCurrent.Dormant Guest Status"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Days since last sign-in, with the derived/unknown flag"
+          }
+        }
+      ]
+    }
+  }
+}
