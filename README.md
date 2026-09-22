@@ -90,7 +90,7 @@ on the service principal — see each report's README.
 ## Tests
 
 ```powershell
-pwsh -NoProfile -Command "Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests -CI"
+pwsh -NoProfile -Command "Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./.github/scripts/tests -CI"
 ```
 
 Every tenant call is mocked; the tests never reach a tenant. They also check that each
@@ -98,6 +98,21 @@ sample CSV has exactly the columns its collector produces, in the same order, so
 committed sample data cannot drift away from the collectors.
 
 The same command runs on every pull request — see `.github/workflows/tests.yml`.
+
+## Merging
+
+Cursor's review automation ends every run by pushing an empty commit to the pull request
+branch, with Joshua's GitHub account. `.github/workflows/auto-merge.yml` watches that
+commit: when its first line is exactly `Verdict: Ready to merge` and every other check
+run or commit status on it has passed, the workflow marks the pull request ready for
+review (if it was a draft), squash-merges it with the pull request title as the commit
+title, and deletes the branch. `Verdict: Not ready`, a failed check, a skipped or
+neutral check, or no other check at all leaves the pull request alone; a check that is
+still running makes it wait. GitHub does not deliver `check_suite` for a suite created
+by GitHub Actions, so the workflow runs again when the `tests` workflow finishes, and
+when any other check suite finishes. The decision itself lives in
+`.github/scripts/Get-MergeDecision.ps1`, which the workflow calls and which
+`.github/scripts/tests/` tests on its own.
 
 ## Adding a report
 
@@ -120,7 +135,7 @@ The same command runs on every pull request — see `.github/workflows/tests.yml
 8. The report's README lists prerequisites, per-cloud availability with a Learn link or
    `UNVERIFIED`, how to run it, and what every column means.
 9. Add the report to the table above and to the `Invoke-Pester -Path` list in
-   `.github/workflows/tests.yml`.
+   `.github/workflows/tests.yml` (and in this README's own copy of that command, above).
 
 ## Licence
 
