@@ -88,6 +88,30 @@ Describe 'Every script in the library parses' {
     }
 }
 
+Describe 'The shared module is never imported with -Force' {
+    It 'imports the shared module at least once, so the check below is not vacuous' {
+        $imports = @($script:Calls | Where-Object { $_.Name -eq 'Import-Module' })
+        $imports.Count | Should -BeGreaterThan 0
+    }
+
+    It 'passes no -Force switch to Import-Module' {
+        # -Force rebuilds the module's session state, discarding any Pester mock a caller
+        # installed against it (-ModuleName M365ReportLibrary) before the collector runs.
+        # See the "Adding a report" section of the root README.md.
+        $offenders = foreach ($call in $script:Calls) {
+            if ($call.Name -ne 'Import-Module') { continue }
+            $hasForce = $call.Ast.CommandElements | Where-Object {
+                $_ -is [System.Management.Automation.Language.CommandParameterAst] -and $_.ParameterName -eq 'Force'
+            }
+            if ($hasForce) {
+                '{0}:{1} Import-Module -Force' -f (Split-Path $call.Path -Leaf), $call.Ast.Extent.StartLineNumber
+            }
+        }
+
+        $offenders -join '; ' | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Only read-only tenant commands are called' {
     It 'calls no Graph, Exchange Online or Security & Compliance cmdlet outside <AllowedVerbs>' {
         $offenders = $script:TenantCalls | Where-Object {
