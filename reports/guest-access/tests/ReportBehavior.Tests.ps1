@@ -37,3 +37,24 @@ Describe 'Collector UTC timestamps are parsed with an explicit Z format' {
         $tmdl | Should -Match ([regex]::Escape('{"' + $Column + '", ParseUtc, type datetime}'))
     }
 }
+
+Describe 'The date slicer is a date range on DateDim[Date]' {
+    It 'formats YearMonth with the documented four-digit year token' {
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'DateDim.tmdl') -Raw
+        $tmdl | Should -Match 'FORMAT\(DateDim\[Date\], "yyyy-MM"\)'
+        $tmdl | Should -Not -Match 'FORMAT\(DateDim\[Date\], "YYYY-MM"\)'
+    }
+
+    It 'binds <Page> to DateDim[Date] in Between mode' -ForEach @(
+        Get-ChildItem -LiteralPath $script:PagesFolder -Directory | ForEach-Object {
+            @{ Page = $_.Name }
+        }
+    ) {
+        $path = Join-Path $script:PagesFolder "$Page/visuals/slicer-date-range/visual.json"
+        $visual = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        $projection = $visual.visual.query.queryState.Values.projections[0]
+        $projection.field.Column.Expression.SourceRef.Entity | Should -Be 'DateDim'
+        $projection.field.Column.Property | Should -Be 'Date'
+        $visual.visual.objects.data[0].properties.mode.expr.Literal.Value | Should -Be "'Between'"
+    }
+}

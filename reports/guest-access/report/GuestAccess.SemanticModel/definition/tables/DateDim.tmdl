@@ -28,7 +28,7 @@ table DateDim
         summarizeBy: none
         isDataTypeInferred: false
 
-    column YearMonth = FORMAT(DateDim[Date], "YYYY-MM")
+    column YearMonth = FORMAT(DateDim[Date], "yyyy-MM")
         dataType: string
         lineageTag: c0b06612-4ef5-5a36-a22f-ab3edaf69b3f
         summarizeBy: none

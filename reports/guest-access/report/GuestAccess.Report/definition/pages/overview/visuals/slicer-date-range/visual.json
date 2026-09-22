@@ -23,10 +23,10 @@
                       "Entity": "DateDim"
                     }
                   },
-                  "Property": "YearMonth"
+                  "Property": "Date"
                 }
               },
-              "queryRef": "DateDim.YearMonth"
+              "queryRef": "DateDim.Date"
             }
           ]
         }
@@ -37,7 +37,22 @@
         {
           "properties": {
             "show": true,
-            "text": "Date range (year-month)"
+            "text": "Date range"
+          }
+        }
+      ]
+    },
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Between'"
+                }
+              }
+            }
           }
         }
       ]
