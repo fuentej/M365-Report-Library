@@ -79,12 +79,39 @@ Describe 'Get-MergeDecision' {
         $result.Decision | Should -Be 'Wait'
     }
 
-    It 'treats a skipped check as passing' {
+    It 'does not merge when the only other check was skipped' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'optional-job'; State = 'skipped' }
         )
 
-        $result.Decision | Should -Be 'Merge'
+        $result.Decision | Should -Be 'Skip'
+    }
+
+    It 'does not merge when another check completed neutral' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Pester'; State = 'success' }
+            @{ Name = 'review'; State = 'neutral' }
+        )
+
+        $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'not success: review'
+    }
+
+    It 'waits when a check run is waiting rather than treating it as a failure' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'gate'; State = 'waiting' }
+            @{ Name = 'Pester'; State = 'success' }
+        )
+
+        $result.Decision | Should -Be 'Wait'
+    }
+
+    It 'waits when a check run has been requested but has not started' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Pester'; State = 'requested' }
+        )
+
+        $result.Decision | Should -Be 'Wait'
     }
 
     It 'requires the first line to match exactly, not just contain the verdict' {

@@ -22,11 +22,11 @@
 
     .PARAMETER Check
         Every check run and commit status reported on the head commit, as objects with a
-        Name and a State. State is normalised by the caller to one of:
-          success   - 'success', 'neutral', 'skipped'
-          pending   - 'pending', 'queued', 'in_progress'
-          failure   - anything else ('failure', 'error', 'timed_out', 'cancelled',
-                      'action_required', 'stale', ...)
+        Name and a State.         State is the check run's status while it is not completed, and its
+        conclusion once it is. Commit statuses pass their state through.
+        Only 'success' has passed. 'pending', 'queued', 'in_progress',
+        'waiting' and 'requested' are still running. Every other value,
+        including 'neutral' and 'skipped', has not passed.
 
     .PARAMETER SelfCheckName
         The name of this workflow's own check run, excluded from $Check before it is
@@ -39,8 +39,8 @@
 
 Set-StrictMode -Version Latest
 
-$script:PassingStates = @('success', 'neutral', 'skipped')
-$script:PendingStates = @('pending', 'queued', 'in_progress')
+$script:PassingStates = @('success')
+$script:PendingStates = @('pending', 'queued', 'in_progress', 'waiting', 'requested')
 
 function Get-MergeDecision {
     [CmdletBinding()]
@@ -83,7 +83,7 @@ function Get-MergeDecision {
         $names = ($failed | ForEach-Object { $_.Name }) -join ', '
         return [pscustomobject]@{
             Decision = 'Skip'
-            Reason   = "Ready to merge, but failed: $names."
+            Reason   = "Ready to merge, but not success: $names."
         }
     }
 
