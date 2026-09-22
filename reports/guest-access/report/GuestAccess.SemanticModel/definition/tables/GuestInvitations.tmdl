@@ -87,7 +87,9 @@ table GuestInvitations
                 Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
                 AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
                 Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
-                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"ActivityDateTime", type datetime}})
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumns(Cleaned, {{"ActivityDateTime", ParseUtc, type datetime}})
             in
                 #"Changed Type"
 
