@@ -29,6 +29,12 @@ reports/
     tests/
     New-SampleData.ps1
     README.md
+  purview-ip/
+    collectors/                 one script per CSV, plus Run-All.ps1
+    samples/                    generated fake data
+    tests/
+    New-SampleData.ps1
+    README.md
 ```
 
 ## Reports
@@ -36,6 +42,7 @@ reports/
 | Report | What it answers |
 | --- | --- |
 | [Guest and external access](reports/guest-access/README.md) | Who the guests are, who invited them, whether they ever signed in, what groups they are in, and what has been shared outside the organisation |
+| [Purview information protection](reports/purview-ip/README.md) | What sensitivity labels, DLP and retention policies are configured, how they're being used, what Content Explorer counts, and what Microsoft 365 Copilot has accessed |
 
 ## The shared layer
 
@@ -90,7 +97,7 @@ on the service principal — see each report's README.
 ## Tests
 
 ```powershell
-pwsh -NoProfile -Command "Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./.github/scripts/tests -CI"
+pwsh -NoProfile -Command "Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./reports/purview-ip/tests, ./.github/scripts/tests -CI"
 ```
 
 Every tenant call is mocked; the tests never reach a tenant. They also check that each

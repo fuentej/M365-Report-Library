@@ -20,10 +20,18 @@ BeforeAll {
         'MailboxFolderPermission', 'RecipientPermission', 'Recipient', 'OrganizationConfig'
         'SharingPolicy', 'AcceptedDomain', 'DistributionGroup', 'UnifiedGroup', 'TransportRule'
         'ComplianceSearch', 'ComplianceSearchAction', 'RetentionCompliancePolicy'
-        'DlpCompliancePolicy', 'Label', 'LabelPolicy', 'ProtectionAlert', 'AdminAuditLogConfig'
+        'DlpCompliancePolicy', 'DlpComplianceRule', 'Label', 'LabelPolicy', 'AutoSensitivityLabelPolicy'
+        'ComplianceTag', 'DlpSensitiveInformationType', 'ActivityExplorerData', 'ContentExplorerData'
+        'ProtectionAlert', 'AdminAuditLogConfig'
         'SPOSite', 'SPOUser', 'SPOTenant', 'SPOExternalUser'
     )
-    $script:AllowedVerbs = @('Get', 'Search', 'Connect', 'Disconnect')
+    # Export-ActivityExplorerData and Export-ContentExplorerData are read-only despite
+    # the verb: both only return activity/content records, documented at
+    # https://learn.microsoft.com/powershell/module/exchangepowershell/export-activityexplorerdata
+    # and https://learn.microsoft.com/powershell/module/exchangepowershell/export-contentexplorerdata.
+    # 'Export' is safe to allow globally here because a command only reaches this list
+    # at all when its noun is already one of the curated $script:TenantNouns above.
+    $script:AllowedVerbs = @('Get', 'Search', 'Connect', 'Disconnect', 'Export')
 
     function Get-LibraryScript {
         <#

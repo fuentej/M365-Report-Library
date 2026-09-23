@@ -28,7 +28,7 @@ jobs:
       - name: Run the tests
         shell: pwsh
         run: |
-          Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./.github/scripts/tests -CI
+          Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./reports/purview-ip/tests, ./.github/scripts/tests -CI
           # -CI sets Run.Exit, so a failed run already leaves the process with a
           # non-zero code. Pester also stores that count in $LASTEXITCODE; leave
           # through it so the step is red even if a later Pester stops calling exit.
