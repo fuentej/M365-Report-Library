@@ -167,13 +167,20 @@ try {
                 break
             }
 
+            # ResultCount is the hit count across every iteration of this session, not
+            # the size of this page.
+            # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
             $resultCountProperty = $records[0].PSObject.Properties['ResultCount']
+            $matched = 0
+            $hasResultCount = $false
             if ($resultCountProperty -and $null -ne $resultCountProperty.Value) {
-                $matched = 0
-                if ([int]::TryParse([string]$resultCountProperty.Value, [ref]$matched) -and $matched -gt $sessionCap) {
-                    $windowTruncated = $true
-                    break
+                if ([int]::TryParse([string]$resultCountProperty.Value, [ref]$matched)) {
+                    $hasResultCount = $true
                 }
+            }
+            if ($hasResultCount -and $matched -gt $sessionCap) {
+                $windowTruncated = $true
+                break
             }
 
             $collected += $records.Count
@@ -251,7 +258,13 @@ try {
                 break
             }
 
-            if ($records.Count -lt $pageSize) { break }
+            # A page shorter than -ResultSize is not the end of the session. The
+            # cmdlet is repeated until it returns nothing, or until ResultCount
+            # says every hit is already in hand. Stopping on the first short page
+            # drops every later hit in the same window.
+            $reportedTotalReached = $hasResultCount -and $matched -gt 0 -and $collected -ge $matched
+            $shortPageWithoutTotal = (-not $hasResultCount -or $matched -le 0) -and $records.Count -lt $pageSize
+            if ($reportedTotalReached -or $shortPageWithoutTotal) { break }
         }
 
         if ($windowTruncated) {

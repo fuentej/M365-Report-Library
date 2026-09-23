@@ -496,6 +496,26 @@ Describe 'Get-CopilotAccessedResources.ps1' {
         }
     }
 
+    It 'fetches the next page when ResultCount is larger than the page just returned' {
+        # A short first page used to end the session. ResultCount is the hit count
+        # across iterations, so one record with ResultCount 2 still has a second page.
+        $script:auditCalls = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $script:auditCalls++
+            $recordId = if ($script:auditCalls -eq 1) { 'audit-1' } else { 'audit-2' }
+            $record = New-MockCopilotAuditRecord -RecordId $recordId -AccessedResources @()
+            $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 2
+            $record
+        }
+
+        & (Join-Path $script:Collectors 'Get-CopilotAccessedResources.ps1') -OutputPath $script:folder -LookbackDays 1
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'copilot-accessed-resources.csv'))
+        $rows.Count | Should -Be 2
+        ($rows.RecordId | Sort-Object) | Should -Be @('audit-1', 'audit-2')
+        $script:auditCalls | Should -Be 2
+    }
+
     It 'does not write a window whose ResultCount exceeds the session cap' {
         Mock Search-UnifiedAuditLog -MockWith {
             $record = New-MockCopilotAuditRecord -AccessedResources @()
