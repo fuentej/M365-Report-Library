@@ -412,13 +412,17 @@ Describe 'Get-ContentExplorerSnapshot.ps1' {
     }
 
     It 'appends a new snapshot date rather than rewriting the file' {
+        $prior = [datetime]::UtcNow.AddDays(-1).ToString('yyyy-MM-dd')
+        Export-AppendCsv -Path (Join-Path $script:folder 'content-explorer-snapshot.csv') -Column $script:Schema.ContentExplorerSnapshot -Rows @(
+            [pscustomobject]@{ RunDate = $prior; TagType = 'Sensitivity'; TagName = 'General'; Workload = 'EXO'; TotalCount = 1 }
+        )
         Mock Export-ContentExplorerData -MockWith { [pscustomobject]@{ TotalCount = 12 } }
 
         & (Join-Path $script:Collectors 'Get-ContentExplorerSnapshot.ps1') -OutputPath $script:folder
 
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'content-explorer-snapshot.csv'))
-        $rows.Count | Should -BeGreaterThan 0
-        @($rows.RunDate | Sort-Object -Unique).Count | Should -Be 1
+        $rows.RunDate | Should -Contain $prior
+        @($rows.RunDate | Sort-Object -Unique).Count | Should -Be 2
     }
 }
 
