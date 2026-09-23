@@ -106,6 +106,24 @@ committed sample data cannot drift away from the collectors.
 
 The same command runs on every pull request — see `.github/workflows/tests.yml`.
 
+### Running tests in a cloud agent session
+
+CI installs Pester from the PowerShell Gallery as usual — that is unchanged. A scheduled
+or on-demand Claude Code cloud session cannot: its egress proxy denies
+`www.powershellgallery.com` and `codeload.github.com`, so `Install-Module Pester` fails
+there. `.claude/hooks/session-start.sh` is a `SessionStart` hook (registered in
+`.claude/settings.json`, [documented
+here](https://code.claude.com/docs/en/cloud-environments#install-dependencies-with-a-sessionstart-hook))
+that installs PowerShell 7 and Pester 5 from sources the proxy does allow — a GitHub
+release for `pwsh`, and the `api.nuget.org` flat-container feed for the `pester` NuGet
+package, whose `tools/` directory is the module — so `Invoke-Pester` works in that
+session too. It only runs when `CLAUDE_CODE_REMOTE` is `true`, skips anything already
+installed, and is safe to run more than once.
+
+To pin a different Pester version, edit `PESTER_VERSION` in the hook script. Check
+`https://api.nuget.org/v3-flatcontainer/pester/index.json` first — nuget.org does not
+mirror every version PSGallery has.
+
 ## Merging
 
 Cursor's review automation ends every run by pushing an empty commit to the pull request
