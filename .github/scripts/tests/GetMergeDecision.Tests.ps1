@@ -16,6 +16,7 @@ Describe 'Get-MergeDecision' {
         )
 
         $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge and every other check passed.'
     }
 
     It 'does not merge when the verdict is Not ready' {
@@ -199,6 +200,34 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
         @($checks).Count | Should -Be 2
         (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks).Decision | Should -Be 'Skip'
+    }
+
+    It 'merges a completed skipped check run beside a success and names the ignored check' {
+        # Shape from List check runs for a Git reference: status completed, conclusion skipped.
+        # https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+        $checkRuns = @'
+{"total_count":2,"check_runs":[{"id":1,"name":"Pester","status":"completed","conclusion":"success"},{"id":2,"name":"Graphite / AI Reviews","status":"completed","conclusion":"skipped"}]}
+'@
+        $statuses = '{"total_count":0,"statuses":[]}'
+
+        $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+
+        $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: Graphite / AI Reviews.'
+    }
+
+    It 'merges a completed neutral check run beside a success and names the ignored check' {
+        $checkRuns = @'
+{"total_count":2,"check_runs":[{"id":1,"name":"Pester","status":"completed","conclusion":"success"},{"id":3,"name":"review","status":"completed","conclusion":"neutral"}]}
+'@
+        $statuses = '{"total_count":0,"statuses":[]}'
+
+        $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+
+        $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: review.'
     }
 
     It 'maps an unfinished check run to its status and a commit status to its state' {

@@ -109,6 +109,17 @@ function Get-MergeDecision {
         }
     }
 
+    # skipped and neutral are ignored, so the all-clear reason is only true when
+    # every remaining check actually succeeded.
+    $ignored = @($others | Where-Object { $_.State -eq 'neutral' -or $_.State -eq 'skipped' })
+    if ($ignored.Count -gt 0) {
+        $names = ($ignored | ForEach-Object { $_.Name }) -join ', '
+        return [pscustomobject]@{
+            Decision = 'Merge'
+            Reason   = "Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: $names."
+        }
+    }
+
     return [pscustomobject]@{
         Decision = 'Merge'
         Reason   = 'Ready to merge and every other check passed.'
