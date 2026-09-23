@@ -27,7 +27,8 @@
 
         Configuration is a snapshot of current state, keyed on RunDate plus
         ObjectType and ObjectId, so running twice in one day does not
-        duplicate a snapshot.
+        duplicate a snapshot. One cmdlet failing does not drop the collections
+        that already succeeded; those rows are still written.
 
     .PARAMETER SkipConnect
         Use an existing Security & Compliance PowerShell session instead of
@@ -101,11 +102,29 @@ function New-PolicyRow {
 }
 
 $rows = [System.Collections.Generic.List[object]]::new()
+$sectionErrors = [System.Collections.Generic.List[string]]::new()
+$labelNameById = @{}
+$dlpPolicyNameById = @{}
+
+function Add-PolicySectionError {
+    <#
+        .SYNOPSIS
+            Records one policy cmdlet's failure without discarding the others.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Reason
+    )
+
+    $sectionErrors.Add("$Name : $Reason")
+    Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+        '{0} failed ({1}). The other policy collections are still written.' -f $Name, $Reason)
+}
 
 try {
     # --- Sensitivity labels -------------------------------------------------
+    try {
     $labels = @(Get-Label)
-    $labelNameById = @{}
     foreach ($label in $labels) {
         $guid = [string](Get-PurviewProperty $label 'Guid' '')
         if ($guid) { $labelNameById[$guid] = [string](Get-PurviewProperty $label 'Name' '') }
@@ -136,8 +155,13 @@ try {
                     WhenChangedUtc    = ConvertTo-CsvTimestamp (Get-PurviewProperty $label 'WhenChangedUTC' (Get-PurviewProperty $label 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-Label' -Reason $_.Exception.Message
+    }
 
     # --- Label policies -----------------------------------------------------
+    try {
     foreach ($policy in @(Get-LabelPolicy)) {
         $labelIds = @(Get-PurviewProperty $policy 'Labels' @())
         $rows.Add((New-PolicyRow -ObjectType 'LabelPolicy' -Values @{
@@ -167,8 +191,13 @@ try {
                     WhenChangedUtc = ConvertTo-CsvTimestamp (Get-PurviewProperty $policy 'WhenChangedUTC' (Get-PurviewProperty $policy 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-LabelPolicy' -Reason $_.Exception.Message
+    }
 
     # --- Auto-labeling policies ---------------------------------------------
+    try {
     foreach ($policy in @(Get-AutoSensitivityLabelPolicy)) {
         $labelId = [string](Get-PurviewProperty $policy 'ApplySensitivityLabel' '')
         $rows.Add((New-PolicyRow -ObjectType 'AutoLabelingPolicy' -Values @{
@@ -191,10 +220,14 @@ try {
                     WhenChangedUtc = ConvertTo-CsvTimestamp (Get-PurviewProperty $policy 'WhenChangedUTC' (Get-PurviewProperty $policy 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-AutoSensitivityLabelPolicy' -Reason $_.Exception.Message
+    }
 
     # --- DLP policies -------------------------------------------------------
+    try {
     $dlpPolicies = @(Get-DlpCompliancePolicy)
-    $dlpPolicyNameById = @{}
 
     foreach ($policy in $dlpPolicies) {
         $guid = [string](Get-PurviewProperty $policy 'Guid' '')
@@ -227,8 +260,13 @@ try {
                     WhenChangedUtc   = ConvertTo-CsvTimestamp (Get-PurviewProperty $policy 'WhenChangedUTC' (Get-PurviewProperty $policy 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-DlpCompliancePolicy' -Reason $_.Exception.Message
+    }
 
     # --- DLP rules ----------------------------------------------------------
+    try {
     foreach ($rule in @(Get-DlpComplianceRule)) {
         $parentId = [string](Get-PurviewProperty $rule 'ParentPolicyId' '')
         $parentName = [string](Get-PurviewProperty $rule 'Policy' '')
@@ -262,8 +300,13 @@ try {
                     WhenChangedUtc            = ConvertTo-CsvTimestamp (Get-PurviewProperty $rule 'WhenChangedUTC' (Get-PurviewProperty $rule 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-DlpComplianceRule' -Reason $_.Exception.Message
+    }
 
     # --- Retention policies -------------------------------------------------
+    try {
     foreach ($policy in @(Get-RetentionCompliancePolicy)) {
         $rows.Add((New-PolicyRow -ObjectType 'RetentionPolicy' -Values @{
                     ObjectId       = Get-PurviewProperty $policy 'Guid'
@@ -284,8 +327,13 @@ try {
                     WhenChangedUtc = ConvertTo-CsvTimestamp (Get-PurviewProperty $policy 'WhenChangedUTC' (Get-PurviewProperty $policy 'WhenChanged'))
                 }))
     }
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-RetentionCompliancePolicy' -Reason $_.Exception.Message
+    }
 
     # --- Retention labels ---------------------------------------------------
+    try {
     foreach ($tag in @(Get-ComplianceTag)) {
         $rows.Add((New-PolicyRow -ObjectType 'RetentionLabel' -Values @{
                     ObjectId          = Get-PurviewProperty $tag 'Guid'
@@ -301,12 +349,17 @@ try {
                     WhenChangedUtc    = ConvertTo-CsvTimestamp (Get-PurviewProperty $tag 'WhenChangedUTC' (Get-PurviewProperty $tag 'WhenChanged'))
                 }))
     }
-}
-catch {
-    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
-        "Security & Compliance PowerShell policy configuration is unavailable to this sign-in ({0}). Writing the header only." -f $_.Exception.Message)
-    Export-AppendCsv -Path $csvPath -Column $columns
-    return
+    }
+    catch {
+        Add-PolicySectionError -Name 'Get-ComplianceTag' -Reason $_.Exception.Message
+    }
+
+    if ($rows.Count -eq 0 -and $sectionErrors.Count -gt 0) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+            "Security & Compliance PowerShell policy configuration is unavailable to this sign-in ({0}). Writing the header only." -f ($sectionErrors -join '; '))
+        Export-AppendCsv -Path $csvPath -Column $columns
+        return
+    }
 }
 finally {
     if ($connectedHere) {

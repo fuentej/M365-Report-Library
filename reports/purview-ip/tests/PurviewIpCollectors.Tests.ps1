@@ -287,6 +287,18 @@ Describe 'Get-Policies.ps1' {
         $rows.Count | Should -Be 1
     }
 
+    It 'keeps the collections that succeeded when one policy cmdlet fails' {
+        Mock Get-Label -MockWith { New-MockLabel }
+        Mock Get-ComplianceTag -MockWith { throw 'Retention labels are unavailable.' }
+
+        & (Join-Path $script:Collectors 'Get-Policies.ps1') -OutputPath $script:folder -WarningAction SilentlyContinue
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'policies.csv'))
+        $rows.Count | Should -Be 1
+        $rows[0].ObjectType | Should -Be 'SensitivityLabel'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Get-ComplianceTag failed'
+    }
+
     It 'writes the header only when Security & Compliance PowerShell refuses the request' {
         Mock Get-Label -MockWith { throw 'Insufficient privileges to complete the operation.' }
 
