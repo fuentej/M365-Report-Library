@@ -138,6 +138,8 @@ jobs:
           draft=$(jq -r '.draft' <<<"$pr_json")
           base=$(jq -r '.base.ref' <<<"$pr_json")
           title=$(jq -r '.title' <<<"$pr_json")
+          head_repo=$(jq -r '.head.repo.full_name // empty' <<<"$pr_json")
+          base_repo=$(jq -r '.base.repo.full_name // empty' <<<"$pr_json")
           message=$(gh api "repos/$REPO/commits/$sha" --jq '.commit.message')
 
           {
@@ -145,6 +147,8 @@ jobs:
             echo "state=$state"
             echo "draft=$draft"
             echo "base=$base"
+            echo "head_repo=$head_repo"
+            echo "base_repo=$base_repo"
             echo 'title<<EOF_AUTO_MERGE_TITLE'
             echo "$title"
             echo 'EOF_AUTO_MERGE_TITLE'
@@ -243,13 +247,15 @@ jobs:
           COMMIT_MESSAGE: ${{ steps.head.outputs.message }}
           CHECK_RUNS_JSON: ${{ steps.checks.outputs.check_runs }}
           STATUS_JSON: ${{ steps.checks.outputs.statuses }}
+          HEAD_REPO: ${{ steps.head.outputs.head_repo }}
+          BASE_REPO: ${{ steps.head.outputs.base_repo }}
         run: |
           $ErrorActionPreference = 'Stop'
           . "${{ github.workspace }}/.github/scripts/Get-MergeDecision.ps1"
 
           $parsed = ConvertFrom-GitHubCheckPayload -CheckRunJson $env:CHECK_RUNS_JSON -StatusJson $env:STATUS_JSON
           $checks = @($parsed.Items)
-          $result = Get-MergeDecision -CommitMessage $env:COMMIT_MESSAGE -Check $checks -SelfCheckName 'auto-merge'
+          $result = Get-MergeDecision -CommitMessage $env:COMMIT_MESSAGE -Check $checks -SelfCheckName 'auto-merge' -HeadRepositoryFullName $env:HEAD_REPO -BaseRepositoryFullName $env:BASE_REPO
 
           Write-Host "Decision: $($result.Decision) - $($result.Reason)"
           "decision=$($result.Decision)" >> $env:GITHUB_OUTPUT

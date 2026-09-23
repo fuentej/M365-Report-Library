@@ -36,9 +36,21 @@
         The name of this workflow's own check run, excluded from $Check before it is
         evaluated so the workflow never waits on or counts itself.
 
+    .PARAMETER BaseRepositoryFullName
+        The full name (owner/repo) of the repository the pull request targets - the
+        workflow's own repository.
+
+    .PARAMETER HeadRepositoryFullName
+        The full name (owner/repo) of the pull request's head repository
+        (pull_request.head.repo.full_name). A pull request whose head repository differs
+        from $BaseRepositoryFullName is from a fork and is never merged, regardless of
+        verdict or checks. An empty string means the head repository is missing (a fork
+        that was since deleted) and is treated the same way.
+
     .EXAMPLE
         Get-MergeDecision -CommitMessage "Verdict: Ready to merge`n`nAll good." `
-            -Check @(@{ Name = 'Pester'; State = 'success' })
+            -Check @(@{ Name = 'Pester'; State = 'success' }) `
+            -BaseRepositoryFullName 'owner/repo' -HeadRepositoryFullName 'owner/repo'
 #>
 
 Set-StrictMode -Version Latest
@@ -60,8 +72,29 @@ function Get-MergeDecision {
         [AllowEmptyCollection()]
         [object[]]$Check,
 
+        [Parameter(Mandatory)]
+        [string]$BaseRepositoryFullName,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$HeadRepositoryFullName,
+
         [string]$SelfCheckName = 'auto-merge'
     )
+
+    if ([string]::IsNullOrEmpty($HeadRepositoryFullName)) {
+        return [pscustomobject]@{
+            Decision = 'Skip'
+            Reason   = 'The pull request has no head repository (a deleted fork); refusing to merge.'
+        }
+    }
+
+    if ($HeadRepositoryFullName -cne $BaseRepositoryFullName) {
+        return [pscustomobject]@{
+            Decision = 'Skip'
+            Reason   = "The pull request's head repository is '$HeadRepositoryFullName', not '$BaseRepositoryFullName'; refusing to merge a fork."
+        }
+    }
 
     $firstLine = ($CommitMessage -split "`r?`n", 2)[0]
 
