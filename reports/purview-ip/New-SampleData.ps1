@@ -503,7 +503,9 @@ foreach ($tag in $allRetentionLabels) {
 # Copilot / AI interactions and a file discovery scan.
 for ($i = 0; $i -lt 10; $i++) {
     $user = Get-RandomItem $members.ToArray()
-    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened (New-EventTime -From $eventStart) -Activity 'CopilotInteraction' -Workload 'Teams' -User $user -Extra @{
+    # Activity Explorer's workload filter lists Copilot for these events.
+    # https://learn.microsoft.com/powershell/module/exchangepowershell/export-activityexplorerdata
+    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened (New-EventTime -From $eventStart) -Activity 'CopilotInteraction' -Workload 'Copilot' -User $user -Extra @{
         Application = 'Microsoft 365 Copilot'
     }
 }
@@ -563,13 +565,22 @@ foreach ($runDate in $contentSnapshotDates) {
 #region Copilot accessed resources
 
 $copilotRows = [System.Collections.Generic.List[object]]::new()
+# Field values follow the Copilot audit record, not the portal's friendly names.
+# https://learn.microsoft.com/purview/audit-copilot
+# https://learn.microsoft.com/office/office-365-management-api/copilot-schema
 $agents = @(
-    @{ Id = New-DeterministicGuid; Name = 'Sales Q&A Agent' }
-    @{ Id = New-DeterministicGuid; Name = 'HR Policy Agent' }
-    @{ Id = New-DeterministicGuid; Name = 'Microsoft 365 Copilot Chat' }
+    @{ Id = 'CopilotStudio.Declarative.{0}' -f (New-DeterministicGuid); Name = 'Sales Q&A Agent' }
+    @{ Id = 'CopilotStudio.Declarative.{0}' -f (New-DeterministicGuid); Name = 'HR Policy Agent' }
+    @{ Id = 'CopilotStudio.Declarative.{0}' -f (New-DeterministicGuid); Name = 'Microsoft 365 Copilot Chat' }
 )
-$resourceTypes = @('File', 'ListItem', 'Message')
-$copilotWorkloads = @('Teams', 'SharePointOnline', 'Word', 'Outlook')
+$resourceTypes = @('docx', 'xlsx', 'pptx')
+$copilotExperiences = @(
+    @{ AppHost = 'BizChat'; AppIdentity = 'Copilot.MicrosoftCopilot.BizChat' }
+    @{ AppHost = 'Word'; AppIdentity = 'Copilot.MicrosoftCopilot.Microsoft365Copilot' }
+    @{ AppHost = 'Teams'; AppIdentity = 'Copilot.MicrosoftCopilot.Microsoft365Copilot' }
+    @{ AppHost = 'Outlook'; AppIdentity = 'Copilot.MicrosoftCopilot.Microsoft365Copilot' }
+    @{ AppHost = 'Excel'; AppIdentity = 'Copilot.MicrosoftCopilot.Microsoft365Copilot' }
+)
 
 for ($i = 0; $i -lt 40; $i++) {
     $user = Get-RandomItem $members.ToArray()
@@ -578,6 +589,7 @@ for ($i = 0; $i -lt 40; $i++) {
     $recordId = 'copilot-{0:D5}' -f $i
     $threadId = New-DeterministicGuid
 
+    $experience = Get-RandomItem $copilotExperiences
     $resourceCount = $random.Next(0, 3)
     if ($resourceCount -eq 0) {
         $copilotRows.Add([pscustomobject]@{
@@ -586,12 +598,12 @@ for ($i = 0; $i -lt 40; $i++) {
                 EventDate    = $happened.ToString('yyyy-MM-dd')
                 Operation    = 'CopilotInteraction'
                 RecordType   = 'CopilotInteraction'
-                Workload     = Get-RandomItem $copilotWorkloads
-                UserId       = $user.Id
-                UserKey      = $user.UserPrincipalName
-                UserType     = 'Regular'
-                AppHost      = 'Copilot'
-                AppIdentity  = 'Microsoft 365 Copilot'
+                Workload     = 'Copilot'
+                UserId       = $user.UserPrincipalName
+                UserKey      = $user.Id
+                UserType     = '0'
+                AppHost      = $experience.AppHost
+                AppIdentity  = $experience.AppIdentity
                 AgentId      = $agent.Id
                 AgentName    = $agent.Name
                 ThreadId     = $threadId
@@ -611,12 +623,12 @@ for ($i = 0; $i -lt 40; $i++) {
                 EventDate          = $happened.ToString('yyyy-MM-dd')
                 Operation          = 'CopilotInteraction'
                 RecordType         = 'CopilotInteraction'
-                Workload           = Get-RandomItem $copilotWorkloads
-                UserId             = $user.Id
-                UserKey            = $user.UserPrincipalName
-                UserType           = 'Regular'
-                AppHost            = 'Copilot'
-                AppIdentity        = 'Microsoft 365 Copilot'
+                Workload           = 'Copilot'
+                UserId             = $user.UserPrincipalName
+                UserKey            = $user.Id
+                UserType           = '0'
+                AppHost            = $experience.AppHost
+                AppIdentity        = $experience.AppIdentity
                 AgentId            = $agent.Id
                 AgentName          = $agent.Name
                 ThreadId           = $threadId

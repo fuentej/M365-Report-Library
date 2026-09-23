@@ -38,6 +38,7 @@ Describe 'The sample data is fake' {
             $script:Users.UserPrincipalName
             $script:Users.Mail
             $script:Events.User
+            $script:Copilot.UserId
             $script:Copilot.UserKey
         ) | Where-Object { $_ -and $_.Contains('@') }
 
@@ -165,6 +166,23 @@ Describe 'Copilot accessed resources include a mix of allowed and blocked access
 
     It 'includes at least one interaction that touched no resource' {
         @($script:Copilot | Where-Object { -not $_.ResourceId }).Count | Should -BeGreaterThan 0
+    }
+
+    It 'uses the documented Copilot audit field values' {
+        # https://learn.microsoft.com/purview/audit-copilot
+        # https://learn.microsoft.com/office/office-365-management-api/copilot-schema
+        $hosts = @('BizChat', 'Bing', 'Word', 'Excel', 'PowerPoint', 'Teams', 'Outlook', 'Office')
+        $types = @('docx', 'xlsx', 'pptx', 'TeamsChat', 'TeamsChannel', 'TeamsMeeting')
+        foreach ($row in $script:Copilot) {
+            $row.Workload | Should -BeIn @('Copilot', 'ConnectedAIApp', 'AIApp')
+            $hosts | Should -Contain $row.AppHost
+            $row.AppIdentity | Should -Match '^(Copilot|ConnectedAIApp|AIApp)\.'
+            $row.UserId | Should -Match '@example\.com$'
+            $row.UserKey | Should -Not -Match '@'
+            $row.UserType | Should -Be '0'
+            $row.AgentId | Should -Match '^CopilotStudio\.'
+            if ($row.ResourceType) { $types | Should -Contain $row.ResourceType }
+        }
     }
 
     It 'has no duplicate RecordId plus ResourceId combination' {

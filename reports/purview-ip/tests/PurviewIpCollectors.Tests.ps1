@@ -119,22 +119,22 @@ BeforeAll {
             [string]$RecordId = 'audit-1',
             [datetime]$CreationTime = [datetime]'2026-09-01T10:00:00Z',
             [object[]]$AccessedResources = @(
-                @{ Id = 'res-1'; Name = 'Doc1.docx'; Type = 'File'; Action = 'Read'; SiteUrl = 'https://example.sharepoint.com/sites/a'; SensitivityLabelId = 'lbl-1'; Status = 'success' }
+                @{ Id = 'res-1'; Name = 'Doc1.docx'; Type = 'docx'; Action = 'Read'; SiteUrl = 'https://example.sharepoint.com/sites/a'; SensitivityLabelId = 'lbl-1'; Status = 'success' }
             )
         )
         $auditData = @{
             CreationTime    = $CreationTime.ToString('o')
             Id              = $RecordId
             Operation       = 'CopilotInteraction'
-            Workload        = 'Teams'
+            Workload        = 'Copilot'
             UserId          = 'avery.abara@example.com'
-            UserKey         = 'avery.abara@example.com'
-            UserType        = 'Regular'
-            AppIdentity     = 'Microsoft 365 Copilot'
-            AgentId         = 'agent-1'
+            UserKey         = '12d24f71-64c7-49b3-821f-f8884f3f373e'
+            UserType        = 0
+            AppIdentity     = 'Copilot.MicrosoftCopilot.BizChat'
+            AgentId         = 'CopilotStudio.Declarative.8ad83f3e-b424-4d54-8ddb-15dc19247088'
             AgentName       = 'Sales Agent'
             CopilotEventData = @{
-                AppHost           = 'Teams'
+                AppHost           = 'BizChat'
                 ThreadId          = 'thread-1'
                 AccessedResources = $AccessedResources
             }
@@ -451,8 +451,8 @@ Describe 'Get-CopilotAccessedResources.ps1' {
     It 'flattens each accessed resource into its own row, sharing the interaction''s fields' {
         Mock Search-UnifiedAuditLog -MockWith {
             New-MockCopilotAuditRecord -AccessedResources @(
-                @{ Id = 'res-1'; Name = 'Doc1.docx'; Type = 'File'; Action = 'Read'; Status = 'success' }
-                @{ Id = 'res-2'; Name = 'Doc2.docx'; Type = 'File'; Action = 'Read'; Status = 'success' }
+                @{ Id = 'res-1'; Name = 'Doc1.docx'; Type = 'docx'; Action = 'Read'; Status = 'success' }
+                @{ Id = 'res-2'; Name = 'Doc2.docx'; Type = 'docx'; Action = 'Read'; Status = 'success' }
             )
         }
 
@@ -462,6 +462,12 @@ Describe 'Get-CopilotAccessedResources.ps1' {
         $rows.Count | Should -Be 2
         ($rows.RecordId | Sort-Object -Unique) | Should -Be @('audit-1')
         ($rows.ResourceId | Sort-Object) | Should -Be @('res-1', 'res-2')
+        $rows[0].Workload | Should -Be 'Copilot'
+        $rows[0].AppHost | Should -Be 'BizChat'
+        $rows[0].AppIdentity | Should -Be 'Copilot.MicrosoftCopilot.BizChat'
+        $rows[0].UserId | Should -Be 'avery.abara@example.com'
+        $rows[0].UserType | Should -Be '0'
+        $rows[0].ResourceType | Should -Be 'docx'
     }
 
     It 'keeps one row with empty resource columns for an interaction that touched nothing' {
@@ -511,21 +517,27 @@ Describe 'Get-CopilotAccessedResources.ps1' {
     It 'fetches the next page when ResultCount is larger than the page just returned' {
         # A short first page used to end the session. ResultCount is the hit count
         # across iterations, so one record with ResultCount 2 still has a second page.
-        $script:auditCalls = 0
+        # A watermark half an hour ago keeps the search to one window: a full day
+        # spans two windows because the end is read a moment after the start.
+        $watermark = [datetime]::UtcNow.AddMinutes(-30).ToString('yyyy-MM-ddTHH:mm:ssZ')
+        Export-AppendCsv -Path (Join-Path $script:folder 'copilot-accessed-resources.csv') -Column $script:Schema.CopilotAccessedResources -Rows @(
+            [pscustomobject]@{ RecordId = 'audit-0'; CreationTime = $watermark }
+        )
+        # The mock runs outside the test file's script scope, so the counter lives in global.
+        $global:PurviewAuditCalls = 0
         Mock Search-UnifiedAuditLog -MockWith {
-            $script:auditCalls++
-            $recordId = if ($script:auditCalls -eq 1) { 'audit-1' } else { 'audit-2' }
+            $global:PurviewAuditCalls++
+            $recordId = if ($global:PurviewAuditCalls -eq 1) { 'audit-1' } else { 'audit-2' }
             $record = New-MockCopilotAuditRecord -RecordId $recordId -AccessedResources @()
             $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 2
             $record
         }
 
-        & (Join-Path $script:Collectors 'Get-CopilotAccessedResources.ps1') -OutputPath $script:folder -LookbackDays 1
+        & (Join-Path $script:Collectors 'Get-CopilotAccessedResources.ps1') -OutputPath $script:folder
 
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'copilot-accessed-resources.csv'))
-        $rows.Count | Should -Be 2
-        ($rows.RecordId | Sort-Object) | Should -Be @('audit-1', 'audit-2')
-        $script:auditCalls | Should -Be 2
+        ($rows.RecordId | Sort-Object) | Should -Be @('audit-0', 'audit-1', 'audit-2')
+        $global:PurviewAuditCalls | Should -BeGreaterOrEqual 2
     }
 
     It 'does not write a window whose ResultCount exceeds the session cap' {
