@@ -293,7 +293,7 @@ Describe 'Get-Policies.ps1' {
         & (Join-Path $script:Collectors 'Get-Policies.ps1') -OutputPath $script:folder -WarningAction SilentlyContinue
 
         $csv = Join-Path $script:folder 'policies.csv'
-        (Get-Content -LiteralPath $csv).Count | Should -Be 1
+        @(Get-Content -LiteralPath $csv).Count | Should -Be 1
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'Writing the header only'
     }
 }
@@ -374,7 +374,7 @@ Describe 'Get-ActivityExplorerEvents.ps1' {
         & (Join-Path $script:Collectors 'Get-ActivityExplorerEvents.ps1') -OutputPath $script:folder -RetentionDays 1 -WarningAction SilentlyContinue
 
         $csv = Join-Path $script:folder 'activity-explorer-events.csv'
-        (Get-Content -LiteralPath $csv).Count | Should -Be 1
+        @(Get-Content -LiteralPath $csv).Count | Should -Be 1
         Get-HeaderText -Path $csv | Should -Be ($script:Schema.ActivityExplorerEvents -join ',')
     }
 }
@@ -418,7 +418,7 @@ Describe 'Get-ContentExplorerSnapshot.ps1' {
 
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'content-explorer-snapshot.csv'))
         $rows.Count | Should -BeGreaterThan 0
-        ($rows.RunDate | Sort-Object -Unique).Count | Should -Be 1
+        @($rows.RunDate | Sort-Object -Unique).Count | Should -Be 1
     }
 }
 
