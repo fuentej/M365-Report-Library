@@ -146,3 +146,74 @@ function global:Disconnect-ExchangeOnline {
     # No-op: tests that care assert via a Mock. An unmocked call must not fail a
     # collector that opened a session, and must not reach the real cmdlet.
 }
+
+function global:Get-Label {
+    [CmdletBinding()]
+    param()
+    throw 'Get-Label was called for real. Mock it in the test.'
+}
+
+function global:Get-LabelPolicy {
+    [CmdletBinding()]
+    param()
+    throw 'Get-LabelPolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-AutoSensitivityLabelPolicy {
+    [CmdletBinding()]
+    param()
+    throw 'Get-AutoSensitivityLabelPolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-DlpCompliancePolicy {
+    [CmdletBinding()]
+    param()
+    throw 'Get-DlpCompliancePolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-DlpComplianceRule {
+    [CmdletBinding()]
+    param()
+    throw 'Get-DlpComplianceRule was called for real. Mock it in the test.'
+}
+
+function global:Get-RetentionCompliancePolicy {
+    [CmdletBinding()]
+    param()
+    throw 'Get-RetentionCompliancePolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-ComplianceTag {
+    [CmdletBinding()]
+    param()
+    throw 'Get-ComplianceTag was called for real. Mock it in the test.'
+}
+
+function global:Get-DlpSensitiveInformationType {
+    [CmdletBinding()]
+    param()
+    throw 'Get-DlpSensitiveInformationType was called for real. Mock it in the test.'
+}
+
+function global:Export-ActivityExplorerData {
+    [CmdletBinding()]
+    param(
+        [datetime]$StartTime,
+        [datetime]$EndTime,
+        [string]$OutputFormat,
+        [int]$PageSize,
+        [string]$PageCookie
+    )
+    throw 'Export-ActivityExplorerData was called for real. Mock it in the test.'
+}
+
+function global:Export-ContentExplorerData {
+    [CmdletBinding()]
+    param(
+        [string]$TagType,
+        [string]$TagName,
+        [string]$Workload,
+        [int]$PageSize
+    )
+    throw 'Export-ContentExplorerData was called for real. Mock it in the test.'
+}
