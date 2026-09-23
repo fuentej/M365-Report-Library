@@ -16,6 +16,7 @@ Describe 'Get-MergeDecision' {
         )
 
         $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge and every other check passed.'
     }
 
     It 'does not merge when the verdict is Not ready' {
@@ -85,16 +86,45 @@ Describe 'Get-MergeDecision' {
         )
 
         $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'no check run or commit status'
     }
 
-    It 'does not merge when another check completed neutral' {
+    It 'does not merge when the only other checks are skipped and neutral' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'optional-job'; State = 'skipped' }
+            @{ Name = 'review'; State = 'neutral' }
+        )
+
+        $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'no check run or commit status'
+    }
+
+    It 'merges when a skipped check sits alongside a successful check' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Graphite / AI Reviews'; State = 'skipped' }
+            @{ Name = 'Pester'; State = 'success' }
+        )
+
+        $result.Decision | Should -Be 'Merge'
+    }
+
+    It 'merges when a check completed neutral alongside a successful check' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'success' }
             @{ Name = 'review'; State = 'neutral' }
         )
 
+        $result.Decision | Should -Be 'Merge'
+    }
+
+    It 'still blocks on a failed check even when another check was only skipped' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'optional-job'; State = 'skipped' }
+            @{ Name = 'Pester'; State = 'failure' }
+        )
+
         $result.Decision | Should -Be 'Skip'
-        $result.Reason | Should -Match 'not success: review'
+        $result.Reason | Should -Match 'not success: Pester'
     }
 
     It 'waits when a check run is waiting rather than treating it as a failure' {
@@ -170,6 +200,34 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
         @($checks).Count | Should -Be 2
         (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks).Decision | Should -Be 'Skip'
+    }
+
+    It 'merges a completed skipped check run beside a success and names the ignored check' {
+        # Shape from List check runs for a Git reference: status completed, conclusion skipped.
+        # https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+        $checkRuns = @'
+{"total_count":2,"check_runs":[{"id":1,"name":"Pester","status":"completed","conclusion":"success"},{"id":2,"name":"Graphite / AI Reviews","status":"completed","conclusion":"skipped"}]}
+'@
+        $statuses = '{"total_count":0,"statuses":[]}'
+
+        $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+
+        $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: Graphite / AI Reviews.'
+    }
+
+    It 'merges a completed neutral check run beside a success and names the ignored check' {
+        $checkRuns = @'
+{"total_count":2,"check_runs":[{"id":1,"name":"Pester","status":"completed","conclusion":"success"},{"id":3,"name":"review","status":"completed","conclusion":"neutral"}]}
+'@
+        $statuses = '{"total_count":0,"statuses":[]}'
+
+        $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+
+        $result.Decision | Should -Be 'Merge'
+        $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: review.'
     }
 
     It 'maps an unfinished check run to its status and a commit status to its state' {

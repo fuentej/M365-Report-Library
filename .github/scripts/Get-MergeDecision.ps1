@@ -24,9 +24,13 @@
         Every check run and commit status reported on the head commit, as objects with a
         Name and a State.         State is the check run's status while it is not completed, and its
         conclusion once it is. Commit statuses pass their state through.
-        Only 'success' has passed. 'pending', 'queued', 'in_progress',
-        'waiting' and 'requested' are still running. Every other value,
-        including 'neutral' and 'skipped', has not passed.
+        Only 'success' counts as the other check this decision requires. 'pending',
+        'queued', 'in_progress', 'waiting' and 'requested' are still running.
+        'neutral' and 'skipped' neither pass nor block — a check marked skipped or
+        neutral is ignored, the way BlogKB's and AzureFoundry's auto-merge rules
+        already treat them. Every other value blocks the merge. At least one check
+        must still report 'success': a head commit whose other checks are only
+        'neutral' and/or 'skipped' does not merge.
 
     .PARAMETER SelfCheckName
         The name of this workflow's own check run, excluded from $Check before it is
@@ -41,6 +45,7 @@ Set-StrictMode -Version Latest
 
 $script:PassingStates = @('success')
 $script:PendingStates = @('pending', 'queued', 'in_progress', 'waiting', 'requested')
+$script:NonBlockingStates = @('success', 'neutral', 'skipped')
 
 function Get-MergeDecision {
     [CmdletBinding()]
@@ -78,7 +83,7 @@ function Get-MergeDecision {
         }
     }
 
-    $failed = @($others | Where-Object { $script:PassingStates -notcontains $_.State -and $script:PendingStates -notcontains $_.State })
+    $failed = @($others | Where-Object { $script:NonBlockingStates -notcontains $_.State -and $script:PendingStates -notcontains $_.State })
     if ($failed.Count -gt 0) {
         $names = ($failed | ForEach-Object { $_.Name }) -join ', '
         return [pscustomobject]@{
@@ -93,6 +98,25 @@ function Get-MergeDecision {
         return [pscustomobject]@{
             Decision = 'Wait'
             Reason   = "Ready to merge, waiting on: $names."
+        }
+    }
+
+    $succeeded = @($others | Where-Object { $script:PassingStates -contains $_.State })
+    if ($succeeded.Count -eq 0) {
+        return [pscustomobject]@{
+            Decision = 'Skip'
+            Reason   = 'Ready to merge, but no check run or commit status other than this workflow''s own actually succeeded (neutral and skipped do not count).'
+        }
+    }
+
+    # skipped and neutral are ignored, so the all-clear reason is only true when
+    # every remaining check actually succeeded.
+    $ignored = @($others | Where-Object { $_.State -eq 'neutral' -or $_.State -eq 'skipped' })
+    if ($ignored.Count -gt 0) {
+        $names = ($ignored | ForEach-Object { $_.Name }) -join ', '
+        return [pscustomobject]@{
+            Decision = 'Merge'
+            Reason   = "Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: $names."
         }
     }
 
