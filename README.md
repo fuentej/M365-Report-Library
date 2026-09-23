@@ -126,23 +126,7 @@ mirror every version PSGallery has.
 
 ## Merging
 
-Cursor's review automation ends every run by pushing an empty commit to the pull request
-branch, with Joshua's GitHub account. `.github/workflows/auto-merge.yml` watches that
-commit: when its first line is exactly `Verdict: Ready to merge`, no other check run or
-commit status on it has failed, and at least one of them actually succeeded, the workflow
-marks the pull request ready for review (if it was a draft), squash-merges it with the
-pull request title as the commit title, and deletes the branch. A `skipped` or `neutral`
-conclusion (for example `Graphite / AI Reviews` skipping a PR that is too large to review)
-neither blocks the merge nor counts as the success the rule requires — the same treatment
-BlogKB's and AzureFoundry's auto-merge rules already give them. `Verdict: Not ready`, a
-failed check, no other check at all, or other checks that are only `skipped`/`neutral`
-leaves the pull request alone; a check that is still running makes it wait. GitHub does
-not deliver `check_suite` for a suite created
-by GitHub Actions, so the workflow runs again when the `tests` workflow finishes, and
-when any other check suite finishes. The decision itself lives in
-`.github/scripts/Get-MergeDecision.ps1`, which the workflow calls and which
-`.github/scripts/tests/` tests on its own.
-
+`.github/workflows/auto-merge.yml` squash-merges a pull request and deletes its branch when the first line of the head commit's message is exactly `Verdict: Ready to merge`, no check on that commit has failed, and at least one check succeeded. A `skipped` or `neutral` check neither blocks the merge nor counts as the success it requires. A check that is still running makes it wait. The decision is in `.github/scripts/Get-MergeDecision.ps1`, tested by `.github/scripts/tests/`.
 ## Adding a report
 
 1. `reports/<report-name>/` with `collectors/`, `samples/`, `tests/` and a `README.md`.
