@@ -6,6 +6,12 @@ BeforeAll {
 
     $script:ReadyMessage = "Verdict: Ready to merge`n`nEverything checked out."
     $script:NotReadyMessage = "Verdict: Not ready`n`nStill has open comments."
+
+    # A same-repository branch: head and base repositories match, as they do for
+    # every pull request that is not from a fork.
+    $script:BaseRepo = 'example-org/example-repo'
+    $script:HeadRepo = $script:BaseRepo
+    $script:ForkRepo = 'someone-else/example-repo'
 }
 
 Describe 'Get-MergeDecision' {
@@ -13,7 +19,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'success' }
             @{ Name = 'lint'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
         $result.Reason | Should -Be 'Ready to merge and every other check passed.'
@@ -22,7 +28,7 @@ Describe 'Get-MergeDecision' {
     It 'does not merge when the verdict is Not ready' {
         $result = Get-MergeDecision -CommitMessage $script:NotReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Not -Be 'Merge'
         $result.Decision | Should -Be 'Skip'
@@ -32,14 +38,15 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'failure' }
             @{ Name = 'lint'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Not -Be 'Merge'
         $result.Decision | Should -Be 'Skip'
     }
 
     It 'does not merge when the verdict is ready but there are no other checks' {
-        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @()
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @() `
+            -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Not -Be 'Merge'
         $result.Decision | Should -Be 'Skip'
@@ -49,7 +56,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'pending' }
             @{ Name = 'lint'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Wait'
     }
@@ -57,7 +64,7 @@ Describe 'Get-MergeDecision' {
     It 'ignores its own check when deciding there are no other checks' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'auto-merge'; State = 'in_progress' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
         $result.Reason | Should -Match 'no check run or commit status other than'
@@ -67,7 +74,8 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'my-auto-merge'; State = 'in_progress' }
             @{ Name = 'Pester'; State = 'success' }
-        ) -SelfCheckName 'my-auto-merge'
+        ) -SelfCheckName 'my-auto-merge' `
+            -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
     }
@@ -75,7 +83,7 @@ Describe 'Get-MergeDecision' {
     It 'treats a queued check as pending, not failed' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'queued' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Wait'
     }
@@ -83,7 +91,7 @@ Describe 'Get-MergeDecision' {
     It 'does not merge when the only other check was skipped' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'optional-job'; State = 'skipped' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
         $result.Reason | Should -Match 'no check run or commit status'
@@ -93,7 +101,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'optional-job'; State = 'skipped' }
             @{ Name = 'review'; State = 'neutral' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
         $result.Reason | Should -Match 'no check run or commit status'
@@ -103,7 +111,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Graphite / AI Reviews'; State = 'skipped' }
             @{ Name = 'Pester'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
     }
@@ -112,7 +120,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'success' }
             @{ Name = 'review'; State = 'neutral' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
     }
@@ -121,7 +129,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'optional-job'; State = 'skipped' }
             @{ Name = 'Pester'; State = 'failure' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
         $result.Reason | Should -Match 'not success: Pester'
@@ -131,7 +139,7 @@ Describe 'Get-MergeDecision' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'gate'; State = 'waiting' }
             @{ Name = 'Pester'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Wait'
     }
@@ -139,7 +147,7 @@ Describe 'Get-MergeDecision' {
     It 'waits when a check run has been requested but has not started' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'requested' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Wait'
     }
@@ -147,7 +155,7 @@ Describe 'Get-MergeDecision' {
     It 'requires the first line to match exactly, not just contain the verdict' {
         $result = Get-MergeDecision -CommitMessage "Some prefix. Verdict: Ready to merge" -Check @(
             @{ Name = 'Pester'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
     }
@@ -155,9 +163,35 @@ Describe 'Get-MergeDecision' {
     It 'is case-sensitive about the verdict line' {
         $result = Get-MergeDecision -CommitMessage "verdict: ready to merge" -Check @(
             @{ Name = 'Pester'; State = 'success' }
-        )
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
+    }
+
+    It 'merges a ready verdict with passing checks from a same-repository branch' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Pester'; State = 'success' }
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
+
+        $result.Decision | Should -Be 'Merge'
+    }
+
+    It 'does not merge a ready verdict with passing checks from a fork' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Pester'; State = 'success' }
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:ForkRepo
+
+        $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'refusing to merge a fork'
+    }
+
+    It 'does not merge when the head repository is missing (a deleted fork)' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Pester'; State = 'success' }
+        ) -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName ''
+
+        $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'no head repository'
     }
 }
 
@@ -169,7 +203,8 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         $statuses = '{"total_count":0,"statuses":[]}'
 
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
-        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks `
+            -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Skip'
         $result.Reason | Should -Match 'lint'
@@ -199,7 +234,9 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
 
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
         @($checks).Count | Should -Be 2
-        (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks).Decision | Should -Be 'Skip'
+        (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks `
+                -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo).Decision |
+            Should -Be 'Skip'
     }
 
     It 'merges a completed skipped check run beside a success and names the ignored check' {
@@ -211,7 +248,8 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         $statuses = '{"total_count":0,"statuses":[]}'
 
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
-        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks `
+            -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
         $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: Graphite / AI Reviews.'
@@ -224,7 +262,8 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         $statuses = '{"total_count":0,"statuses":[]}'
 
         $checks = @((ConvertFrom-GitHubCheckPayload -CheckRunJson $checkRuns -StatusJson $statuses).Items)
-        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks `
+            -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo
 
         $result.Decision | Should -Be 'Merge'
         $result.Reason | Should -Be 'Ready to merge: at least one other check succeeded. Ignored neutral or skipped checks: review.'
@@ -238,7 +277,9 @@ Describe 'ConvertFrom-GitHubCheckPayload' {
         ($checks | Where-Object { $_.Name -eq 'gate' }).State | Should -Be 'waiting'
         ($checks | Where-Object { $_.Name -eq 'ci/jenkins' }).State | Should -Be 'pending'
 
-        (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks).Decision | Should -Be 'Wait'
+        (Get-MergeDecision -CommitMessage $script:ReadyMessage -Check $checks `
+                -BaseRepositoryFullName $script:BaseRepo -HeadRepositoryFullName $script:HeadRepo).Decision |
+            Should -Be 'Wait'
     }
 }
 
