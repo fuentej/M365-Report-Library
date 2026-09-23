@@ -126,13 +126,7 @@ mirror every version PSGallery has.
 
 ## Merging
 
-`.github/workflows/auto-merge.yml` squash-merges a pull request and deletes its branch when
-the first line of the head commit's message is exactly `Verdict: Ready to merge`, no check
-on that commit has failed, and at least one check succeeded. A `skipped` or `neutral` check
-neither blocks the merge nor counts as the success it requires. A check that is still
-running makes it wait. The decision is in `.github/scripts/Get-MergeDecision.ps1`, tested by
-`.github/scripts/tests/`.
-
+`.github/workflows/auto-merge.yml` squash-merges a pull request and deletes its branch when the first line of the head commit's message is exactly `Verdict: Ready to merge`, no check on that commit has failed, and at least one check succeeded. A `skipped` or `neutral` check neither blocks the merge nor counts as the success it requires. A check that is still running makes it wait. The decision is in `.github/scripts/Get-MergeDecision.ps1`, tested by `.github/scripts/tests/`.
 ## Adding a report
 
 1. `reports/<report-name>/` with `collectors/`, `samples/`, `tests/` and a `README.md`.
