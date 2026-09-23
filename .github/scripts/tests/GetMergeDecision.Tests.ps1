@@ -85,16 +85,45 @@ Describe 'Get-MergeDecision' {
         )
 
         $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'no check run or commit status'
     }
 
-    It 'does not merge when another check completed neutral' {
+    It 'does not merge when the only other checks are skipped and neutral' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'optional-job'; State = 'skipped' }
+            @{ Name = 'review'; State = 'neutral' }
+        )
+
+        $result.Decision | Should -Be 'Skip'
+        $result.Reason | Should -Match 'no check run or commit status'
+    }
+
+    It 'merges when a skipped check sits alongside a successful check' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'Graphite / AI Reviews'; State = 'skipped' }
+            @{ Name = 'Pester'; State = 'success' }
+        )
+
+        $result.Decision | Should -Be 'Merge'
+    }
+
+    It 'merges when a check completed neutral alongside a successful check' {
         $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
             @{ Name = 'Pester'; State = 'success' }
             @{ Name = 'review'; State = 'neutral' }
         )
 
+        $result.Decision | Should -Be 'Merge'
+    }
+
+    It 'still blocks on a failed check even when another check was only skipped' {
+        $result = Get-MergeDecision -CommitMessage $script:ReadyMessage -Check @(
+            @{ Name = 'optional-job'; State = 'skipped' }
+            @{ Name = 'Pester'; State = 'failure' }
+        )
+
         $result.Decision | Should -Be 'Skip'
-        $result.Reason | Should -Match 'not success: review'
+        $result.Reason | Should -Match 'not success: Pester'
     }
 
     It 'waits when a check run is waiting rather than treating it as a failure' {
