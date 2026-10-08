@@ -43,4 +43,10 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'does not return the authoring operations'
         $script:Doc | Should -Match 'BotCreate'
     }
+
+    It 'names Audit Reader as the least privileged audit role group' {
+        $script:Doc | Should -Not -Match 'Purview Audit Reader'
+        $script:Doc | Should -Match 'Audit Reader role group, which grants View-Only Audit Logs'
+        $script:Doc | Should -Match 'Exchange admin center View-Only Audit Logs or Audit Logs role'
+    }
 }
