@@ -210,6 +210,18 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         $expressions | Should -Match 'expression KeepLatestRunDate'
         $expressions | Should -Match 'List\.IsEmpty'
     }
+
+    It 'maps content explorer workload codes onto the activity explorer names' {
+        # Export-ContentExplorerData accepts EXO/ODB/SPO; the collector writes those
+        # codes. Activity Explorer's Workload values for the same locations are
+        # Exchange, OneDrive and SharePoint. The shared slicer filters both facts.
+        $tmdl = Get-Content -LiteralPath $script:Model['ContentExplorerSnapshot'].Path -Raw
+        $tmdl | Should -Match 'MapContentExplorerWorkload\('
+        $expressions = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'PurviewIPReport.SemanticModel/definition/expressions.tmdl') -Raw
+        $expressions | Should -Match 'if _ = "EXO" then "Exchange"'
+        $expressions | Should -Match 'else if _ = "ODB" then "OneDrive"'
+        $expressions | Should -Match 'else if _ = "SPO" then "SharePoint"'
+    }
 }
 
 Describe 'The report keeps its eight pages and their filters' {

@@ -44,6 +44,7 @@ table ContentExplorerSnapshot
 				    }),
 				    ParsedDates = Table.TransformColumns(ChangedType, {
 				        {"RunDate", each ParseOptionalDate(_), type date}
-				    })
+				    }),
+				    MappedWorkloads = MapContentExplorerWorkload(ParsedDates)
 				in
-				    ParsedDates
+				    MappedWorkloads
