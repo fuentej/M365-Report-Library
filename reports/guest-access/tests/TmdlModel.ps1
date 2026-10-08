@@ -44,14 +44,14 @@ function Get-TmdlTable {
             continue
         }
 
-        if ($line -match '^    column\s+(.+?)(\s*=\s*(.*))?$') {
+        if ($line -match '^(?:    |\t)column\s+(.+?)(\s*=\s*(.*))?$') {
             $rawName = $Matches[1]
             $isCalculated = $Matches[2] -ne $null -and $Matches[2] -ne ''
             $name = ConvertFrom-TmdlName -Name $rawName
 
             $sourceColumn = $null
             for ($j = $i + 1; $j -lt $lines.Count; $j++) {
-                if ($lines[$j] -match '^    (column|measure|partition)\s') { break }
+                if ($lines[$j] -match '^(?:    |\t)(column|measure|partition)\s') { break }
                 if ($lines[$j] -match '^\s+sourceColumn:\s*(.+)$') {
                     $sourceColumn = ConvertFrom-TmdlName -Name $Matches[1]
                     break
@@ -66,7 +66,7 @@ function Get-TmdlTable {
             continue
         }
 
-        if ($line -match '^    measure\s+(.+?)\s*=') {
+        if ($line -match '^(?:    |\t)measure\s+(.+?)\s*=') {
             $measures.Add((ConvertFrom-TmdlName -Name $Matches[1]))
             continue
         }

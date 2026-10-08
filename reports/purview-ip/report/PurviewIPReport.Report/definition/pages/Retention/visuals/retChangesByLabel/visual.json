@@ -1,0 +1,55 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "retChangesByLabel",
+  "position": {
+    "x": 640.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RetentionLabels"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "RetentionLabels.DisplayName",
+              "nativeQueryRef": "RetentionLabels.DisplayName"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Retention Label Changes"
+                }
+              },
+              "queryRef": "Measures.[Retention Label Changes]",
+              "nativeQueryRef": "Measures.[Retention Label Changes]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,196 @@
+/// Report-wide DAX measures, collected in one unrelated table (the common
+/// "measures table" pattern) rather than scattered across the fact tables
+/// they read from, since several of them (downgrade detection, the
+/// anonymize switch) cross more than one table.
+table Measures
+
+	column 'Measures Key'
+		dataType: int64
+		isHidden
+		sourceColumn: 'Measures Key'
+		summarizeBy: none
+
+	measure 'Total Events' = COUNTROWS(ActivityExplorerEvents)
+		formatString: #,##0
+		displayFolder: Overview
+
+	measure 'Total Users' = COUNTROWS(Users)
+		formatString: #,##0
+		displayFolder: Overview
+
+	measure 'Total Copilot Interactions' = DISTINCTCOUNT(CopilotAccessedResources[RecordId])
+		formatString: #,##0
+		displayFolder: Overview
+
+	measure 'Total Copilot Resource Rows' = COUNTROWS(CopilotAccessedResources)
+		formatString: #,##0
+		displayFolder: Copilot and AI
+		isHidden
+
+	measure 'Items At Rest' = SUM(ContentExplorerSnapshot[TotalCount])
+		formatString: #,##0
+		displayFolder: Label coverage
+		isHidden
+
+	measure 'Sensitivity Items At Rest' = SUM(SensitivityAtRest[TotalCount])
+		formatString: #,##0
+		displayFolder: Label coverage
+
+	measure 'Latest Sensitivity Snapshot Date' = MAX(SensitivityAtRest[SnapshotDate])
+		formatString: Long Date
+		displayFolder: Label coverage
+		isHidden
+
+	measure 'Sensitivity Items At Rest (Latest)' =
+			VAR LatestDate = [Latest Sensitivity Snapshot Date]
+			RETURN
+			    CALCULATE([Sensitivity Items At Rest], SensitivityAtRest[SnapshotDate] = LatestDate)
+		formatString: #,##0
+		displayFolder: Label coverage
+
+	measure 'Retention Items At Rest' = SUM(RetentionAtRest[TotalCount])
+		formatString: #,##0
+		displayFolder: Retention
+
+	measure 'Latest Retention Snapshot Date' = MAX(RetentionAtRest[SnapshotDate])
+		formatString: Long Date
+		displayFolder: Retention
+		isHidden
+
+	measure 'Retention Items At Rest (Latest)' =
+			VAR LatestDate = [Latest Retention Snapshot Date]
+			RETURN
+			    CALCULATE([Retention Items At Rest], RetentionAtRest[SnapshotDate] = LatestDate)
+		formatString: #,##0
+		displayFolder: Retention
+
+	measure 'Label Applications' = CALCULATE([Total Events], ActivityExplorerEvents[LabelEventType] = "LabelApplied")
+		formatString: #,##0
+		displayFolder: Label activity
+
+	measure 'Label Removals' = CALCULATE([Total Events], ActivityExplorerEvents[LabelEventType] = "LabelRemoved")
+		formatString: #,##0
+		displayFolder: Label activity
+
+	measure 'Label Upgrades' = CALCULATE([Total Events], ActivityExplorerEvents[LabelEventType] = "LabelUpgraded")
+		formatString: #,##0
+		displayFolder: Label activity
+
+	/// The source's own LabelEventType already distinguishes "LabelDowngraded"
+	/// from "LabelUpgraded" (Get-ActivityExplorerEvents.ps1 sets
+	/// IsLabelDowngrade from the portal's LabelEventType). This measure does
+	/// not trust that pre-classification: it independently walks
+	/// Labels[Priority] - the label priority field from policies.csv - and
+	/// counts an event as a downgrade only when the new label's priority is
+	/// lower than the old label's, per Purview's convention that priority
+	/// increases with sensitivity (see samples/policies.csv: Public=0 ...
+	/// Restricted=6).
+	measure 'Label Downgrades' =
+			CALCULATE(
+			    [Total Events],
+			    FILTER(
+			        ActivityExplorerEvents,
+			        ActivityExplorerEvents[OldSensitivityLabel] <> ""
+			            && ActivityExplorerEvents[SensitivityLabel] <> ""
+			            && LOOKUPVALUE(Labels[Priority], Labels[ObjectId], ActivityExplorerEvents[SensitivityLabel])
+			                < LOOKUPVALUE(Labels[Priority], Labels[ObjectId], ActivityExplorerEvents[OldSensitivityLabel])
+			    )
+			)
+		formatString: #,##0
+		displayFolder: Label activity
+
+	measure 'Label Changes' = [Label Upgrades] + [Label Downgrades]
+		formatString: #,##0
+		displayFolder: Label activity
+
+	measure 'DLP Matches' = CALCULATE([Total Events], ActivityExplorerEvents[Activity] = "DLPRuleMatch")
+		formatString: #,##0
+		displayFolder: DLP
+
+	measure 'DLP Enforcements' = CALCULATE([Total Events], ActivityExplorerEvents[Activity] = "DLPRuleEnforce")
+		formatString: #,##0
+		displayFolder: DLP
+
+	measure 'DLP Overrides' = CALCULATE([Total Events], ActivityExplorerEvents[Activity] = "DLPRuleUndo")
+		formatString: #,##0
+		displayFolder: DLP
+
+	measure 'DLP Overrides With Justification' = CALCULATE([DLP Overrides], ActivityExplorerEvents[Justification] <> "")
+		formatString: #,##0
+		displayFolder: DLP
+
+	measure 'Retention Label Changes' = CALCULATE([Total Events], ActivityExplorerEvents[ActivityCategory] = "Retention")
+		formatString: #,##0
+		displayFolder: Retention
+
+	measure 'Copilot Resources Accessed' = CALCULATE([Total Copilot Resource Rows], CopilotAccessedResources[ResourceId] <> "")
+		formatString: #,##0
+		displayFolder: Copilot and AI
+
+	measure 'Copilot Access Blocked' = CALCULATE([Total Copilot Resource Rows], CopilotAccessedResources[AccessBlocked] = "True")
+		formatString: #,##0
+		displayFolder: Copilot and AI
+
+	measure 'Copilot Access Allowed' = CALCULATE([Total Copilot Resource Rows], CopilotAccessedResources[AccessBlocked] = "False")
+		formatString: #,##0
+		displayFolder: Copilot and AI
+
+	measure 'Copilot DLP Matches' = CALCULATE([Total Copilot Resource Rows], CopilotAccessedResources[PolicyId] <> "")
+		formatString: #,##0
+		displayFolder: Copilot and AI
+
+	measure 'Policy Object Count' = COUNTROWS(Policies)
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'Sensitivity Label Count' = COUNTROWS(Labels)
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'DLP Policy Count' = CALCULATE([Policy Object Count], Policies[ObjectType] = "DlpPolicy")
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'DLP Rule Count' = CALCULATE([Policy Object Count], Policies[ObjectType] = "DlpRule")
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'Auto-Labeling Policy Count' = CALCULATE([Policy Object Count], Policies[ObjectType] = "AutoLabelingPolicy")
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'Retention Policy Count' = CALCULATE([Policy Object Count], Policies[ObjectType] = "RetentionPolicy")
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'Retention Label Count' = COUNTROWS(RetentionLabels)
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	measure 'Copilot-Scoped DLP Policies' = CALCULATE([DLP Policy Count], Policies[AppliesToCopilot] = "True")
+		formatString: #,##0
+		displayFolder: Policy posture
+
+	/// The generated What-If parameter value (0 = off, 1 = on).
+	measure 'Anonymize Toggle Value' = SELECTEDVALUE('Anonymize Toggle'[Anonymize Toggle], 0)
+		formatString: 0
+		displayFolder: Anonymize
+		isHidden
+
+	/// The measure every page's user-level visuals show instead of
+	/// Users[DisplayName] directly, so the anonymize slicer can swap it for
+	/// the stable pseudonym in Users[Anonymous Display Name] without any
+	/// per-page bookmark.
+	measure 'Display Name' =
+			IF(
+			    [Anonymize Toggle Value] = 1,
+			    SELECTEDVALUE(Users[Anonymous Display Name]),
+			    SELECTEDVALUE(Users[DisplayName])
+			)
+		displayFolder: Anonymize
+
+	partition Measures = calculated
+		mode: import
+		source =
+				ROW("Measures Key", 1)
+

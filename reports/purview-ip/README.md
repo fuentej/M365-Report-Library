@@ -246,6 +246,38 @@ One line per event, in the shared module's format:
   review time a byte-for-byte-matched set would cost. The column shapes and per-source
   availability are ported exactly.
 
+## Report
+
+`report/` holds the Power BI Project (PBIP): a TMDL semantic model
+(`PurviewIPReport.SemanticModel/`) and a PBIR report (`PurviewIPReport.Report/`). It reads
+the CSVs the collectors write, so run the collectors first, or use `samples/` to explore
+with synthetic data.
+
+Pages:
+
+1. Overview
+2. Label coverage
+3. Label activity
+4. DLP
+5. Retention
+6. Policy posture
+7. Copilot and AI
+8. Org decomposition
+
+Every page has slicers for date range, workload, department and user, and an anonymize
+toggle that replaces user display names with stable pseudonyms (`User 00001`, ...).
+
+The model has one parameter, `CsvFolder`: the path of the folder that holds the CSVs. Each
+CSV-backed table reads `CsvFolder & "\<file>.csv"` (`users.csv`, `policies.csv`,
+`activity-explorer-events.csv`, `content-explorer-snapshot.csv`,
+`copilot-accessed-resources.csv`); nothing else in the model depends on where the folder is.
+
+To open it, use Power BI Desktop on Windows: open `report/PurviewIPReport.pbip`, or
+open `report/PurviewIPReport.Report/definition.pbir`. Then set `CsvFolder` under
+Transform data > Edit parameters, and refresh. The model imports the columns each CSV has, in the order the
+CSV has them. `Users[UserId]` reads `users.csv`'s `Id`, and
+`ContentExplorerSnapshot[SnapshotDate]` reads its `RunDate`.
+
 ## Tests
 
 ```powershell

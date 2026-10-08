@@ -1,0 +1,36 @@
+/// Content Explorer rows whose TagType is Sensitivity. Label coverage
+/// reads this table so retention and sensitive-info-type counts are not
+/// mixed into the sensitivity trend.
+table SensitivityAtRest
+
+	column SnapshotDate
+		dataType: dateTime
+		formatString: Long Date
+		sourceColumn: SnapshotDate
+		summarizeBy: none
+
+	column TagName
+		dataType: string
+		sourceColumn: TagName
+		summarizeBy: none
+
+	column Workload
+		dataType: string
+		sourceColumn: Workload
+		summarizeBy: none
+
+	column TotalCount
+		dataType: int64
+		sourceColumn: TotalCount
+		summarizeBy: sum
+
+	partition SensitivityAtRest = m
+		mode: import
+		source =
+				let
+				    Source = ContentExplorerSnapshot,
+				    Filtered = Table.SelectRows(Source, each [TagType] = "Sensitivity"),
+				    Kept = Table.SelectColumns(Filtered, {"RunDate", "TagName", "Workload", "TotalCount"}),
+				    Renamed = Table.RenameColumns(Kept, {{"RunDate", "SnapshotDate"}})
+				in
+				    Renamed

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "ppPolicyTable",
+  "position": {
+    "x": 0.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 520.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "ObjectType"
+                }
+              },
+              "queryRef": "Policies.ObjectType",
+              "nativeQueryRef": "Policies.ObjectType"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "Policies.DisplayName",
+              "nativeQueryRef": "Policies.DisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "Mode"
+                }
+              },
+              "queryRef": "Policies.Mode",
+              "nativeQueryRef": "Policies.Mode"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "Enabled"
+                }
+              },
+              "queryRef": "Policies.Enabled",
+              "nativeQueryRef": "Policies.Enabled"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "Workload"
+                }
+              },
+              "queryRef": "Policies.Workload",
+              "nativeQueryRef": "Policies.Workload"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Policies"
+                    }
+                  },
+                  "Property": "Locations"
+                }
+              },
+              "queryRef": "Policies.Locations",
+              "nativeQueryRef": "Policies.Locations"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

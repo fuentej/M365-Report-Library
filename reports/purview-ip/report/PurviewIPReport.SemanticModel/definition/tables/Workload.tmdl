@@ -1,0 +1,27 @@
+/// A shared Workload dimension so the one Workload slicer required on every
+/// page can filter all three Workload-bearing fact tables at once. Built in
+/// Power Query, not a DAX calculated table. A calculated table that reads
+/// the fact columns with a blank-row-sensitive function cannot also be the
+/// one-side of a relationship back to those facts.
+table Workload
+
+	column Workload
+		dataType: string
+		sourceColumn: Workload
+		isKey
+		summarizeBy: none
+
+	partition Workload = m
+		mode: import
+		source =
+				let
+				    Combined = Table.Combine({
+				        Table.SelectColumns(ActivityExplorerEvents, {"Workload"}),
+				        Table.SelectColumns(ContentExplorerSnapshot, {"Workload"}),
+				        Table.SelectColumns(CopilotAccessedResources, {"Workload"})
+				    }),
+				    Present = Table.SelectRows(Combined, each [Workload] <> null and [Workload] <> ""),
+				    Distinct = Table.Distinct(Present)
+				in
+				    Distinct
+

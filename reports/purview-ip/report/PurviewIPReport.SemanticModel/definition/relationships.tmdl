@@ -1,0 +1,69 @@
+relationship debc4455-46e3-4ed6-a8b5-6cff25c63ca1
+	fromColumn: ActivityExplorerEvents.User
+	toColumn: Users.UserPrincipalName
+
+relationship 7b0a0cd3-06f0-47be-ba3e-b300c5a126a1
+	fromColumn: CopilotAccessedResources.UserId
+	toColumn: Users.UserPrincipalName
+
+relationship 50d7cd82-f9f2-482b-80e1-04cbd89dcfb2
+	fromColumn: ActivityExplorerEvents.SensitivityLabel
+	toColumn: Labels.ObjectId
+
+relationship 57c743c2-b828-44d8-92e1-f2b1c989bf3e
+	fromColumn: CopilotAccessedResources.SensitivityLabelId
+	toColumn: Labels.ObjectId
+
+relationship c3c26f2d-5237-4fcf-9f5f-2881bd78acf5
+	fromColumn: ActivityExplorerEvents.'Retention Label Key'
+	toColumn: RetentionLabels.Name
+
+relationship a0518db9-efa3-41cd-b0b7-6b8705b8f1b5
+	fromColumn: ActivityExplorerEvents.EventDate
+	toColumn: Calendar.Date
+
+relationship 7148895c-8906-4cfc-9a1a-2268120c768f
+	fromColumn: ContentExplorerSnapshot.SnapshotDate
+	toColumn: Calendar.Date
+
+relationship f00b6483-3932-4493-bf9a-993162ff764b
+	fromColumn: CopilotAccessedResources.EventDate
+	toColumn: Calendar.Date
+
+relationship 7683c2cc-38dc-445b-a995-dc06dffd50a4
+	fromColumn: ActivityExplorerEvents.Workload
+	toColumn: Workload.Workload
+
+relationship bd8f8f64-2583-4ab9-a00d-87b950593bf9
+	fromColumn: ContentExplorerSnapshot.Workload
+	toColumn: Workload.Workload
+
+relationship d35f6882-c0fc-4459-9215-0e2e4d69237c
+	fromColumn: CopilotAccessedResources.Workload
+	toColumn: Workload.Workload
+
+relationship 1c6e0a4b-9d27-4f58-a6c1-3e8b7a2d4f10
+	fromColumn: SensitivityAtRest.SnapshotDate
+	toColumn: Calendar.Date
+
+relationship 2d7f1b5c-0e38-4069-b7d2-4f9c8b3e5011
+	fromColumn: RetentionAtRest.SnapshotDate
+	toColumn: Calendar.Date
+
+relationship 3e801c6d-1f49-4170-c8e3-50ad9c4f6122
+	fromColumn: SensitivityAtRest.Workload
+	toColumn: Workload.Workload
+
+relationship 4f912d7e-205a-4281-d9f4-61be0d507233
+	fromColumn: RetentionAtRest.Workload
+	toColumn: Workload.Workload
+
+relationship 50a23e8f-316b-4392-e005-72cf1e618344
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'User Display'.UserId
+	toColumn: Users.UserId
+
+relationship 61b34f90-427c-4403-f116-83d02f729455
+	fromColumn: 'User Display'.Mode
+	toColumn: 'Anonymize Toggle'.'Anonymize Toggle'
+

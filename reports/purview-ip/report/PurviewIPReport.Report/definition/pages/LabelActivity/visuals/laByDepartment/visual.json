@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "laByDepartment",
+  "position": {
+    "x": 640.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Users"
+                    }
+                  },
+                  "Property": "Department"
+                }
+              },
+              "queryRef": "Users.Department",
+              "nativeQueryRef": "Users.Department"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Applications"
+                }
+              },
+              "queryRef": "Measures.[Label Applications]",
+              "nativeQueryRef": "Measures.[Label Applications]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Upgrades"
+                }
+              },
+              "queryRef": "Measures.[Label Upgrades]",
+              "nativeQueryRef": "Measures.[Label Upgrades]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Downgrades"
+                }
+              },
+              "queryRef": "Measures.[Label Downgrades]",
+              "nativeQueryRef": "Measures.[Label Downgrades]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Removals"
+                }
+              },
+              "queryRef": "Measures.[Label Removals]",
+              "nativeQueryRef": "Measures.[Label Removals]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

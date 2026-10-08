@@ -1,0 +1,67 @@
+/// Sensitivity labels only, filtered from Policies (ObjectType =
+/// "SensitivityLabel"). Keyed on ObjectId so Activity Explorer and Copilot
+/// events can resolve a label GUID to a name and to its Priority, which the
+/// Label activity page's downgrade/upgrade measures compare directly
+/// against Policies' priority field.
+table Labels
+
+	column ObjectId
+		dataType: string
+		sourceColumn: ObjectId
+		summarizeBy: none
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+		summarizeBy: none
+
+	column DisplayName
+		dataType: string
+		sourceColumn: DisplayName
+		summarizeBy: none
+
+	column ParentId
+		dataType: string
+		sourceColumn: ParentId
+		summarizeBy: none
+
+	column ParentName
+		dataType: string
+		sourceColumn: ParentName
+		summarizeBy: none
+
+	column Priority
+		dataType: int64
+		sourceColumn: Priority
+		summarizeBy: none
+
+	column Enabled
+		dataType: string
+		sourceColumn: Enabled
+		summarizeBy: none
+
+	column IsDefaultLabel
+		dataType: string
+		sourceColumn: IsDefaultLabel
+		summarizeBy: none
+
+	column EncryptionEnabled
+		dataType: string
+		sourceColumn: EncryptionEnabled
+		summarizeBy: none
+
+	column Comment
+		dataType: string
+		sourceColumn: Comment
+		summarizeBy: none
+
+	partition Labels = m
+		mode: import
+		source =
+				let
+				    Source = Policies,
+				    FilteredRows = Table.SelectRows(Source, each [ObjectType] = "SensitivityLabel"),
+				    RemovedColumns = Table.SelectColumns(FilteredRows, {"ObjectId", "Name", "DisplayName", "ParentId", "ParentName", "Priority", "Enabled", "IsDefaultLabel", "EncryptionEnabled", "Comment"})
+				in
+				    RemovedColumns
+

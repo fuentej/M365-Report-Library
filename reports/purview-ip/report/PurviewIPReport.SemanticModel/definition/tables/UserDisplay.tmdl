@@ -1,0 +1,87 @@
+/// One row per user per anonymize mode (0 = real name, 1 = pseudonym).
+/// The anonymize slicer filters Mode, so the user slicer and the manager
+/// chain show the name that matches the toggle. Built with ALLNOBLANKROW
+/// so the relationship back to Users does not circular-depend on the blank row.
+table 'User Display'
+
+	column UserId
+		dataType: string
+		isHidden
+		sourceColumn: UserId
+		summarizeBy: none
+
+	column Mode
+		dataType: int64
+		isHidden
+		sourceColumn: Mode
+		summarizeBy: none
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+		summarizeBy: none
+
+	column 'Level 1'
+		dataType: string
+		sourceColumn: 'Level 1'
+		summarizeBy: none
+
+	column 'Level 2'
+		dataType: string
+		sourceColumn: 'Level 2'
+		summarizeBy: none
+
+	column 'Level 3'
+		dataType: string
+		sourceColumn: 'Level 3'
+		summarizeBy: none
+
+	column 'Level 4'
+		dataType: string
+		sourceColumn: 'Level 4'
+		summarizeBy: none
+
+	column 'Level 5'
+		dataType: string
+		sourceColumn: 'Level 5'
+		summarizeBy: none
+
+	hierarchy 'Manager Chain'
+		level 'Level 1'
+			column: 'Level 1'
+		level 'Level 2'
+			column: 'Level 2'
+		level 'Level 3'
+			column: 'Level 3'
+		level 'Level 4'
+			column: 'Level 4'
+		level 'Level 5'
+			column: 'Level 5'
+
+	partition 'User Display' = calculated
+		mode: import
+		source =
+				UNION(
+				    SELECTCOLUMNS(
+				        ALLNOBLANKROW(Users[UserId]),
+				        "UserId", Users[UserId],
+				        "Mode", 0,
+				        "Name", LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[UserId]),
+				        "Level 1", LOOKUPVALUE(Users[Level 1 Name], Users[UserId], Users[UserId]),
+				        "Level 2", LOOKUPVALUE(Users[Level 2 Name], Users[UserId], Users[UserId]),
+				        "Level 3", LOOKUPVALUE(Users[Level 3 Name], Users[UserId], Users[UserId]),
+				        "Level 4", LOOKUPVALUE(Users[Level 4 Name], Users[UserId], Users[UserId]),
+				        "Level 5", LOOKUPVALUE(Users[Level 5 Name], Users[UserId], Users[UserId])
+				    ),
+				    SELECTCOLUMNS(
+				        ALLNOBLANKROW(Users[UserId]),
+				        "UserId", Users[UserId],
+				        "Mode", 1,
+				        "Name", LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[UserId]),
+				        "Level 1", LOOKUPVALUE(Users[Level 1 Anonymous Name], Users[UserId], Users[UserId]),
+				        "Level 2", LOOKUPVALUE(Users[Level 2 Anonymous Name], Users[UserId], Users[UserId]),
+				        "Level 3", LOOKUPVALUE(Users[Level 3 Anonymous Name], Users[UserId], Users[UserId]),
+				        "Level 4", LOOKUPVALUE(Users[Level 4 Anonymous Name], Users[UserId], Users[UserId]),
+				        "Level 5", LOOKUPVALUE(Users[Level 5 Anonymous Name], Users[UserId], Users[UserId])
+				    )
+				)

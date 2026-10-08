@@ -1,0 +1,50 @@
+/// Item counts per tag per workload, stamped with the run date
+/// (Get-ContentExplorerSnapshot.ps1 / content-explorer-snapshot.csv). One
+/// row per (TagType, TagName, Workload, RunDate); the model calls RunDate
+/// SnapshotDate. Each run appends, so
+/// this is the source of the "items at rest" trend on the Label coverage
+/// and Retention pages.
+table ContentExplorerSnapshot
+
+	column SnapshotDate
+		dataType: dateTime
+		formatString: Long Date
+		sourceColumn: RunDate
+		summarizeBy: none
+
+	column TagType
+		dataType: string
+		sourceColumn: TagType
+		summarizeBy: none
+
+	column TagName
+		dataType: string
+		sourceColumn: TagName
+		summarizeBy: none
+
+	column Workload
+		dataType: string
+		sourceColumn: Workload
+		summarizeBy: none
+
+	column TotalCount
+		dataType: int64
+		sourceColumn: TotalCount
+		summarizeBy: sum
+
+	partition ContentExplorerSnapshot = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(CsvFolder & "\content-explorer-snapshot.csv"), [Delimiter=",", Columns=5, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    ChangedType = Table.TransformColumnTypes(PromotedHeaders, {
+				        {"TagType", type text}, {"TagName", type text}, {"Workload", type text},
+				        {"TotalCount", Int64.Type}
+				    }),
+				    ParsedDates = Table.TransformColumns(ChangedType, {
+				        {"RunDate", each ParseOptionalDate(_), type date}
+				    }),
+				    MappedWorkloads = MapContentExplorerWorkload(ParsedDates)
+				in
+				    MappedWorkloads

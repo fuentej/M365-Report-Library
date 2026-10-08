@@ -1,0 +1,63 @@
+/// Calculated date dimension spanning every EventDate/SnapshotDate value
+/// across the three date-stamped fact tables. Backs the date-range slicer
+/// required on every page and the snapshot-date trend on the Label coverage
+/// and Retention pages.
+table Calendar
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		sourceColumn: Date
+		isKey
+		summarizeBy: none
+
+	column Year = YEAR(Calendar[Date])
+		dataType: int64
+		type: calculated
+		summarizeBy: none
+
+	column Quarter = QUARTER(Calendar[Date])
+		dataType: int64
+		type: calculated
+		summarizeBy: none
+
+	column MonthNumber = MONTH(Calendar[Date])
+		dataType: int64
+		type: calculated
+		isHidden
+		summarizeBy: none
+
+	column MonthName = FORMAT(Calendar[Date], "MMMM")
+		dataType: string
+		type: calculated
+		summarizeBy: none
+
+	column 'Year-Month' = FORMAT(Calendar[Date], "YYYY-MM")
+		dataType: string
+		type: calculated
+		summarizeBy: none
+
+	hierarchy 'Calendar Hierarchy'
+		level Year
+			column: Year
+		level Quarter
+			column: Quarter
+		level Month
+			column: MonthName
+		level Date
+			column: Date
+
+	partition Calendar = calculated
+		mode: import
+		source =
+				CALENDAR(
+				    MIN(
+				        MIN(MIN(ActivityExplorerEvents[EventDate]), MIN(CopilotAccessedResources[EventDate])),
+				        MIN(ContentExplorerSnapshot[SnapshotDate])
+				    ),
+				    MAX(
+				        MAX(MAX(ActivityExplorerEvents[EventDate]), MAX(CopilotAccessedResources[EventDate])),
+				        MAX(ContentExplorerSnapshot[SnapshotDate])
+				    )
+				)
+

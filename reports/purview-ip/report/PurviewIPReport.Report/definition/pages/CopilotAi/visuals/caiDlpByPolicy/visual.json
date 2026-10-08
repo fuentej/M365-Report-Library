@@ -1,0 +1,51 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "caiDlpByPolicy",
+  "position": {
+    "x": 640.0,
+    "y": 460.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotAccessedResources"
+                    }
+                  },
+                  "Property": "PolicyName"
+                }
+              },
+              "queryRef": "CopilotAccessedResources.PolicyName",
+              "nativeQueryRef": "CopilotAccessedResources.PolicyName"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot DLP Matches"
+                }
+              },
+              "queryRef": "Measures.[Copilot DLP Matches]",
+              "nativeQueryRef": "Measures.[Copilot DLP Matches]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

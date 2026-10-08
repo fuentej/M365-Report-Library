@@ -1,0 +1,65 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "laByUser",
+  "position": {
+    "x": 0.0,
+    "y": 460.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Display"
+                    }
+                  },
+                  "Property": "Name"
+                }
+              },
+              "queryRef": "User Display.Name",
+              "nativeQueryRef": "User Display.Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Applications"
+                }
+              },
+              "queryRef": "Measures.[Label Applications]",
+              "nativeQueryRef": "Measures.[Label Applications]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Downgrades"
+                }
+              },
+              "queryRef": "Measures.[Label Downgrades]",
+              "nativeQueryRef": "Measures.[Label Downgrades]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

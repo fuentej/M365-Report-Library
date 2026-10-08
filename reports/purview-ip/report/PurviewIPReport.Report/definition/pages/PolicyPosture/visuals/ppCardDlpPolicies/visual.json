@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "ppCardDlpPolicies",
+  "position": {
+    "x": 213.33333333333334,
+    "y": 80,
+    "z": 2,
+    "width": 213.33333333333334,
+    "height": 110,
+    "tabOrder": 2
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "DLP Policy Count"
+                }
+              },
+              "queryRef": "Measures.[DLP Policy Count]",
+              "nativeQueryRef": "Measures.[DLP Policy Count]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

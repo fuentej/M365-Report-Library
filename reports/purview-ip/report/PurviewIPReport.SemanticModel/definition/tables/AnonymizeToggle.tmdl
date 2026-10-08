@@ -1,0 +1,24 @@
+/// The report-wide anonymize toggle, built as a Power BI What-If parameter
+/// (a 2-row calculated table plus a SELECTEDVALUE-driven measure) rather
+/// than a bookmark. A single slicer on this table then controls every
+/// page's [Display Name] measure at once, without needing a duplicate
+/// bookmark per page. See Measures['Anonymize Toggle Value'] and
+/// Users['Anonymous Display Name'].
+table 'Anonymize Toggle'
+
+	column 'Anonymize Toggle'
+		dataType: int64
+		isHidden
+		sourceColumn: Value
+		summarizeBy: none
+
+	column 'Anonymize Toggle Label' = IF('Anonymize Toggle'[Anonymize Toggle] = 1, "On (pseudonyms)", "Off (real names)")
+		dataType: string
+		type: calculated
+		summarizeBy: none
+
+	partition 'Anonymize Toggle' = calculated
+		mode: import
+		source =
+				GENERATESERIES(0, 1, 1)
+

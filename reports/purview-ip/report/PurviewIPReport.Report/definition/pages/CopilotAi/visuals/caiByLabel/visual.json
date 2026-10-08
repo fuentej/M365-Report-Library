@@ -1,0 +1,65 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "caiByLabel",
+  "position": {
+    "x": 0.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Labels"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "Labels.DisplayName",
+              "nativeQueryRef": "Labels.DisplayName"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Resources Accessed"
+                }
+              },
+              "queryRef": "Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Access Blocked"
+                }
+              },
+              "queryRef": "Measures.[Copilot Access Blocked]",
+              "nativeQueryRef": "Measures.[Copilot Access Blocked]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

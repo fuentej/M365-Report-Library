@@ -1,0 +1,65 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "caiByUser",
+  "position": {
+    "x": 640.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Display"
+                    }
+                  },
+                  "Property": "Name"
+                }
+              },
+              "queryRef": "User Display.Name",
+              "nativeQueryRef": "User Display.Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Users"
+                    }
+                  },
+                  "Property": "Department"
+                }
+              },
+              "queryRef": "Users.Department",
+              "nativeQueryRef": "Users.Department"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Resources Accessed"
+                }
+              },
+              "queryRef": "Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
