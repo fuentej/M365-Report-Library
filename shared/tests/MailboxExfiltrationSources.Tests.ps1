@@ -28,6 +28,16 @@ Describe 'Mailbox exfiltration source list' {
         $script:Doc | Should -Not -Match 'must hold the Audit \(Premium\) license for the record to be generated'
     }
 
+    It 'follows Graph nextLink and does not grant app role reads to Global Reader' {
+        # appRoleAssignedTo does not list Global Reader. Both list calls page.
+        $script:Doc | Should -Match '@odata.nextLink'
+        $appRoleRow = ($script:Doc -split "`n" | Where-Object { $_ -match '^\| 5b \|' })
+        $appRoleRow | Should -Match 'Directory Readers'
+        $appRoleRow | Should -Match 'Application.Read.All'
+        $appRoleRow | Should -Match 'Global Reader is not in that role list'
+        $script:Doc | Should -Not -Match 'Global Reader per the same page family'
+    }
+
     It 'drops self and inherited Full Access rows that are not delegates' {
         # FullAccess on NT AUTHORITY\SELF and inherited Deny entries are not delegates.
         $script:Doc | Should -Match 'NT AUTHORITY\\SELF'
