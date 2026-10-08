@@ -192,8 +192,8 @@
         }
         CopilotAuditRecords   = @{
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/purview/audit-copilot' }
-            GCC        = @{ Status = 'Unverified'; Reference = $null }
-            GCCHigh    = @{ Status = 'Unverified'; Reference = $null }
+            GCC        = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability' }
+            GCCHigh    = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability' }
         }
         Policies              = @{
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/powershell/exchange/connect-to-scc-powershell' }
