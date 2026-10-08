@@ -62,4 +62,12 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'pay-as-you-go does not apply to them'
         $script:Doc | Should -Match 'Whether pay-as-you-go is required: UNVERIFIED'
     }
+
+    It 'pages the inventory query until resultTruncated clears' {
+        $script:Doc | Should -Match 'TableName` `PowerPlatformResources'
+        $script:Doc | Should -Match 'Options\.SkipToken'
+        $script:Doc | Should -Match 'resultTruncated'
+        $script:Doc | Should -Match 'One response is not the full set'
+        $script:Doc | Should -Match 'including `SkipToken` paging'
+    }
 }
