@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "lcByWorkload",
+  "position": {
+    "x": 0.0,
+    "y": 400.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 320.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SensitivityAtRest"
+                    }
+                  },
+                  "Property": "TagName"
+                }
+              },
+              "queryRef": "SensitivityAtRest.TagName",
+              "nativeQueryRef": "SensitivityAtRest.TagName"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SensitivityAtRest"
+                    }
+                  },
+                  "Property": "Workload"
+                }
+              },
+              "queryRef": "SensitivityAtRest.Workload",
+              "nativeQueryRef": "SensitivityAtRest.Workload"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Sensitivity Items At Rest"
+                }
+              },
+              "queryRef": "Measures.[Sensitivity Items At Rest]",
+              "nativeQueryRef": "Measures.[Sensitivity Items At Rest]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

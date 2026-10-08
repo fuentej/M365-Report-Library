@@ -1,0 +1,65 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "retAtRestTable",
+  "position": {
+    "x": 0.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RetentionAtRest"
+                    }
+                  },
+                  "Property": "TagName"
+                }
+              },
+              "queryRef": "RetentionAtRest.TagName",
+              "nativeQueryRef": "RetentionAtRest.TagName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RetentionAtRest"
+                    }
+                  },
+                  "Property": "Workload"
+                }
+              },
+              "queryRef": "RetentionAtRest.Workload",
+              "nativeQueryRef": "RetentionAtRest.Workload"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Retention Items At Rest"
+                }
+              },
+              "queryRef": "Measures.[Retention Items At Rest]",
+              "nativeQueryRef": "Measures.[Retention Items At Rest]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

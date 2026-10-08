@@ -1,0 +1,55 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "caiByApp",
+  "position": {
+    "x": 0.0,
+    "y": 460.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotAccessedResources"
+                    }
+                  },
+                  "Property": "AppHost"
+                }
+              },
+              "queryRef": "CopilotAccessedResources.AppHost",
+              "nativeQueryRef": "CopilotAccessedResources.AppHost"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Resources Accessed"
+                }
+              },
+              "queryRef": "Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

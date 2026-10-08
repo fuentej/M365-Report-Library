@@ -1,0 +1,193 @@
+/// The current information protection configuration (Get-Policies.ps1 /
+/// policies.csv): sensitivity labels, label policies, auto-labeling
+/// policies, DLP policies and rules, and retention policies and labels, all
+/// in one table discriminated by ObjectType. Drives the Policy posture page
+/// directly; Labels and RetentionLabels below are filtered views of it.
+table Policies
+
+	column RunDate
+		dataType: dateTime
+		formatString: Long Date
+		sourceColumn: RunDate
+		summarizeBy: none
+
+	column ObjectType
+		dataType: string
+		sourceColumn: ObjectType
+		summarizeBy: none
+
+	column ObjectId
+		dataType: string
+		sourceColumn: ObjectId
+		summarizeBy: none
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+		summarizeBy: none
+
+	column DisplayName
+		dataType: string
+		sourceColumn: DisplayName
+		summarizeBy: none
+
+	column ParentId
+		dataType: string
+		sourceColumn: ParentId
+		summarizeBy: none
+
+	column ParentName
+		dataType: string
+		sourceColumn: ParentName
+		summarizeBy: none
+
+	column Priority
+		dataType: int64
+		sourceColumn: Priority
+		summarizeBy: none
+
+	column Mode
+		dataType: string
+		sourceColumn: Mode
+		summarizeBy: none
+
+	column Enabled
+		dataType: string
+		sourceColumn: Enabled
+		summarizeBy: none
+
+	column Workload
+		dataType: string
+		sourceColumn: Workload
+		summarizeBy: none
+
+	column Locations
+		dataType: string
+		sourceColumn: Locations
+		summarizeBy: none
+
+	column AppliesToCopilot
+		dataType: string
+		sourceColumn: AppliesToCopilot
+		summarizeBy: none
+
+	column LabelIds
+		dataType: string
+		sourceColumn: LabelIds
+		summarizeBy: none
+
+	column LabelNames
+		dataType: string
+		sourceColumn: LabelNames
+		summarizeBy: none
+
+	column RetentionAction
+		dataType: string
+		sourceColumn: RetentionAction
+		summarizeBy: none
+
+	column RetentionDuration
+		dataType: string
+		sourceColumn: RetentionDuration
+		summarizeBy: none
+
+	column RetentionType
+		dataType: string
+		sourceColumn: RetentionType
+		summarizeBy: none
+
+	column IsRecordLabel
+		dataType: string
+		sourceColumn: IsRecordLabel
+		summarizeBy: none
+
+	column SensitiveInformationTypes
+		dataType: string
+		sourceColumn: SensitiveInformationTypes
+		summarizeBy: none
+
+	column BlockAccess
+		dataType: string
+		sourceColumn: BlockAccess
+		summarizeBy: none
+
+	column BlockAccessScope
+		dataType: string
+		sourceColumn: BlockAccessScope
+		summarizeBy: none
+
+	column NotifyUser
+		dataType: string
+		sourceColumn: NotifyUser
+		summarizeBy: none
+
+	column AllowOverride
+		dataType: string
+		sourceColumn: AllowOverride
+		summarizeBy: none
+
+	column RequireJustification
+		dataType: string
+		sourceColumn: RequireJustification
+		summarizeBy: none
+
+	column GenerateIncidentReport
+		dataType: string
+		sourceColumn: GenerateIncidentReport
+		summarizeBy: none
+
+	column IsDefaultLabel
+		dataType: string
+		sourceColumn: IsDefaultLabel
+		summarizeBy: none
+
+	column EncryptionEnabled
+		dataType: string
+		sourceColumn: EncryptionEnabled
+		summarizeBy: none
+
+	column Comment
+		dataType: string
+		sourceColumn: Comment
+		summarizeBy: none
+
+	column WhenCreatedUtc
+		dataType: dateTime
+		formatString: General Date
+		sourceColumn: WhenCreatedUtc
+		summarizeBy: none
+
+	column WhenChangedUtc
+		dataType: dateTime
+		formatString: General Date
+		sourceColumn: WhenChangedUtc
+		summarizeBy: none
+
+	partition Policies = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(CsvFolder & "\policies.csv"), [Delimiter=",", Columns=31, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    ChangedType = Table.TransformColumnTypes(PromotedHeaders, {
+				        {"ObjectType", type text}, {"ObjectId", type text}, {"Name", type text}, {"DisplayName", type text},
+				        {"ParentId", type text}, {"ParentName", type text}, {"Mode", type text},
+				        {"Enabled", type text}, {"Workload", type text}, {"Locations", type text}, {"AppliesToCopilot", type text},
+				        {"LabelIds", type text}, {"LabelNames", type text}, {"RetentionAction", type text}, {"RetentionDuration", type text},
+				        {"RetentionType", type text}, {"IsRecordLabel", type text}, {"SensitiveInformationTypes", type text},
+				        {"BlockAccess", type text}, {"BlockAccessScope", type text}, {"NotifyUser", type text}, {"AllowOverride", type text},
+				        {"RequireJustification", type text}, {"GenerateIncidentReport", type text}, {"IsDefaultLabel", type text},
+				        {"EncryptionEnabled", type text}, {"Comment", type text}
+				    }),
+				    ParsedRun = Table.TransformColumns(ChangedType, {
+				        {"RunDate", each ParseOptionalDate(_), type date}
+				    }),
+				    ParsedInts = Table.TransformColumns(ParsedRun, {
+				        {"Priority", each ParseOptionalInt64(_), Int64.Type}
+				    }),
+				    ParsedUtc = Table.TransformColumns(ParsedInts, {
+				        {"WhenCreatedUtc", each ParseUtcDateTime(_), type datetime},
+				        {"WhenChangedUtc", each ParseUtcDateTime(_), type datetime}
+				    })
+				in
+				    ParsedUtc

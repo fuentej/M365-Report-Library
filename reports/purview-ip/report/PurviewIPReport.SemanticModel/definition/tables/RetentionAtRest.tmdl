@@ -1,0 +1,35 @@
+/// Content Explorer rows whose TagType is Retention. The Retention page
+/// reads this table so sensitivity and sensitive-info-type counts stay off it.
+table RetentionAtRest
+
+	column SnapshotDate
+		dataType: dateTime
+		formatString: Long Date
+		sourceColumn: SnapshotDate
+		summarizeBy: none
+
+	column TagName
+		dataType: string
+		sourceColumn: TagName
+		summarizeBy: none
+
+	column Workload
+		dataType: string
+		sourceColumn: Workload
+		summarizeBy: none
+
+	column TotalCount
+		dataType: int64
+		sourceColumn: TotalCount
+		summarizeBy: sum
+
+	partition RetentionAtRest = m
+		mode: import
+		source =
+				let
+				    Source = ContentExplorerSnapshot,
+				    Filtered = Table.SelectRows(Source, each [TagType] = "Retention"),
+				    Kept = Table.SelectColumns(Filtered, {"RunDate", "TagName", "Workload", "TotalCount"}),
+				    Renamed = Table.RenameColumns(Kept, {{"RunDate", "SnapshotDate"}})
+				in
+				    Renamed

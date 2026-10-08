@@ -1,0 +1,42 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "laDepartmentSlicer",
+  "position": {
+    "x": 512.0,
+    "y": 0,
+    "z": 1,
+    "width": 256.0,
+    "height": 70,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Users"
+                    }
+                  },
+                  "Property": "Department"
+                }
+              },
+              "queryRef": "Users.Department",
+              "nativeQueryRef": "Users.Department"
+            }
+          ]
+        }
+      }
+    },
+    "syncGroup": {
+      "groupName": "Department",
+      "filterChanges": true,
+      "fieldChanges": false
+    }
+  }
+}

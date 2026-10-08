@@ -1,0 +1,100 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "caiAnonymizeSlicer",
+  "position": {
+    "x": 1024.0,
+    "y": 0,
+    "z": 1,
+    "width": 256.0,
+    "height": 70,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Anonymize Toggle"
+                    }
+                  },
+                  "Property": "Anonymize Toggle Label"
+                }
+              },
+              "queryRef": "AnonymizeToggle.Label",
+              "nativeQueryRef": "AnonymizeToggle.Label"
+            }
+          ]
+        }
+      }
+    },
+    "syncGroup": {
+      "groupName": "Anonymize",
+      "filterChanges": true,
+      "fieldChanges": false
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "default-caiAnonymizeSlicer",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Anonymize Toggle"
+              }
+            },
+            "Property": "Anonymize Toggle"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "a",
+              "Entity": "Anonymize Toggle",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "a"
+                          }
+                        },
+                        "Property": "Anonymize Toggle"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "0L"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

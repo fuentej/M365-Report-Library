@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "lcTrend",
+  "position": {
+    "x": 640.0,
+    "y": 80.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 320.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Calendar"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "Calendar.Date",
+              "nativeQueryRef": "Calendar.Date"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SensitivityAtRest"
+                    }
+                  },
+                  "Property": "TagName"
+                }
+              },
+              "queryRef": "SensitivityAtRest.TagName",
+              "nativeQueryRef": "SensitivityAtRest.TagName"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Sensitivity Items At Rest"
+                }
+              },
+              "queryRef": "Measures.[Sensitivity Items At Rest]",
+              "nativeQueryRef": "Measures.[Sensitivity Items At Rest]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+/// Retention labels only, filtered from Policies (ObjectType =
+/// "RetentionLabel"). Keyed on ObjectId so Activity Explorer's
+/// RetentionLabel column can resolve to a name on the Retention page.
+table RetentionLabels
+
+	column ObjectId
+		dataType: string
+		sourceColumn: ObjectId
+		summarizeBy: none
+
+	column Name
+		dataType: string
+		sourceColumn: Name
+		summarizeBy: none
+
+	column DisplayName
+		dataType: string
+		sourceColumn: DisplayName
+		summarizeBy: none
+
+	column RetentionAction
+		dataType: string
+		sourceColumn: RetentionAction
+		summarizeBy: none
+
+	column RetentionDuration
+		dataType: string
+		sourceColumn: RetentionDuration
+		summarizeBy: none
+
+	column RetentionType
+		dataType: string
+		sourceColumn: RetentionType
+		summarizeBy: none
+
+	column IsRecordLabel
+		dataType: string
+		sourceColumn: IsRecordLabel
+		summarizeBy: none
+
+	column Comment
+		dataType: string
+		sourceColumn: Comment
+		summarizeBy: none
+
+	partition RetentionLabels = m
+		mode: import
+		source =
+				let
+				    Source = Policies,
+				    FilteredRows = Table.SelectRows(Source, each [ObjectType] = "RetentionLabel"),
+				    RemovedColumns = Table.SelectColumns(FilteredRows, {"ObjectId", "Name", "DisplayName", "RetentionAction", "RetentionDuration", "RetentionType", "IsRecordLabel", "Comment"})
+				in
+				    RemovedColumns
+

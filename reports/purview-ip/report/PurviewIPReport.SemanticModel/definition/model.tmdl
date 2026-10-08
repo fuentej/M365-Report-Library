@@ -1,0 +1,29 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["CsvFolder","ParseUtcDateTime","ParseOptionalDate","ParseOptionalInt64","Users","Policies","Labels","RetentionLabels","ActivityExplorerEvents","ContentExplorerSnapshot","SensitivityAtRest","RetentionAtRest","CopilotAccessedResources","Workload"]
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBIDesktopVersion = 2.145.900.0 (25.09)
+
+ref table Users
+ref table Policies
+ref table Labels
+ref table RetentionLabels
+ref table ActivityExplorerEvents
+ref table ContentExplorerSnapshot
+ref table SensitivityAtRest
+ref table RetentionAtRest
+ref table CopilotAccessedResources
+ref table Calendar
+ref table Workload
+ref table 'Anonymize Toggle'
+ref table 'User Display'
+ref table Measures
+

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "orgByDepartment",
+  "position": {
+    "x": 640.0,
+    "y": 80.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 640.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Users"
+                    }
+                  },
+                  "Property": "Department"
+                }
+              },
+              "queryRef": "Users.Department",
+              "nativeQueryRef": "Users.Department"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Total Events"
+                }
+              },
+              "queryRef": "Measures.[Total Events]",
+              "nativeQueryRef": "Measures.[Total Events]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Applications"
+                }
+              },
+              "queryRef": "Measures.[Label Applications]",
+              "nativeQueryRef": "Measures.[Label Applications]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Label Downgrades"
+                }
+              },
+              "queryRef": "Measures.[Label Downgrades]",
+              "nativeQueryRef": "Measures.[Label Downgrades]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "DLP Matches"
+                }
+              },
+              "queryRef": "Measures.[DLP Matches]",
+              "nativeQueryRef": "Measures.[DLP Matches]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Retention Label Changes"
+                }
+              },
+              "queryRef": "Measures.[Retention Label Changes]",
+              "nativeQueryRef": "Measures.[Retention Label Changes]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Resources Accessed"
+                }
+              },
+              "queryRef": "Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "Copilot Access Blocked"
+                }
+              },
+              "queryRef": "Measures.[Copilot Access Blocked]",
+              "nativeQueryRef": "Measures.[Copilot Access Blocked]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

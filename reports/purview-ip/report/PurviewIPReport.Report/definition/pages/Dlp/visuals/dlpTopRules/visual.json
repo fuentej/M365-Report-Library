@@ -1,0 +1,73 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "dlpTopRules",
+  "position": {
+    "x": 0.0,
+    "y": 200.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActivityExplorerEvents"
+                    }
+                  },
+                  "Property": "RuleName"
+                }
+              },
+              "queryRef": "ActivityExplorerEvents.RuleName",
+              "nativeQueryRef": "ActivityExplorerEvents.RuleName"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "DLP Matches"
+                }
+              },
+              "queryRef": "Measures.[DLP Matches]",
+              "nativeQueryRef": "Measures.[DLP Matches]"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Measures"
+                  }
+                },
+                "Property": "DLP Matches"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": false
+      }
+    }
+  }
+}

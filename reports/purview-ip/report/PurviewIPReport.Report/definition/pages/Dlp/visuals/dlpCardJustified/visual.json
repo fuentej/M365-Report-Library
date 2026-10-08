@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "dlpCardJustified",
+  "position": {
+    "x": 960.0,
+    "y": 80,
+    "z": 2,
+    "width": 320.0,
+    "height": 110,
+    "tabOrder": 2
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Measures"
+                    }
+                  },
+                  "Property": "DLP Overrides With Justification"
+                }
+              },
+              "queryRef": "Measures.[DLP Overrides With Justification]",
+              "nativeQueryRef": "Measures.[DLP Overrides With Justification]"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

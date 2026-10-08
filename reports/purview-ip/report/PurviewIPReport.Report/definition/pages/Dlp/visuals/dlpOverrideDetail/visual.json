@@ -1,0 +1,79 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "dlpOverrideDetail",
+  "position": {
+    "x": 640.0,
+    "y": 460.0,
+    "z": 3,
+    "width": 640.0,
+    "height": 260.0,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActivityExplorerEvents"
+                    }
+                  },
+                  "Property": "RuleName"
+                }
+              },
+              "queryRef": "ActivityExplorerEvents.RuleName",
+              "nativeQueryRef": "ActivityExplorerEvents.RuleName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "User Display"
+                    }
+                  },
+                  "Property": "Name"
+                }
+              },
+              "queryRef": "User Display.Name",
+              "nativeQueryRef": "User Display.Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActivityExplorerEvents"
+                    }
+                  },
+                  "Property": "Justification"
+                }
+              },
+              "queryRef": "ActivityExplorerEvents.Justification",
+              "nativeQueryRef": "ActivityExplorerEvents.Justification"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActivityExplorerEvents"
+                    }
+                  },
+                  "Property": "Happened"
+                }
+              },
+              "queryRef": "ActivityExplorerEvents.Happened",
+              "nativeQueryRef": "ActivityExplorerEvents.Happened"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
