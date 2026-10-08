@@ -121,3 +121,14 @@ if ($failed -gt 0 -and $rows.Count -eq 0) {
 $result = Export-AppendCsv -Path $csvPath -Rows $rows.ToArray() -Column $columns -KeyColumn @('RunDate', 'TeamId') -PassThru
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'team-archive-status.csv: {0} rows written, {1} skipped.' -f $result.Written, $result.Skipped)
+
+if ($failed -gt 0) {
+    # A 404 means the group is not a team and is omitted on purpose. Any other
+    # failure leaves that team out of this snapshot. Exit so the run is not
+    # mistaken for a complete read. The rows already written stay, so a re-run
+    # only has to fill the gaps.
+    # https://learn.microsoft.com/graph/api/team-get
+    $message = 'Team archive status could not be read for {0} group(s). The teams that were read were kept. See run.log.' -f $failed
+    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message $message
+    throw $message
+}
