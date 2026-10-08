@@ -29,6 +29,18 @@ Describe 'Copilot Studio agents source list' {
         $cells[10].Trim() | Should -Match '^UNVERIFIED'
         $cells[9] | Should -Not -Match '\[Available\]'
         $cells[10] | Should -Not -Match '\[Available\]'
-        $script:Doc | Should -Not -Match 'for the Dataverse API\. That the ``bot`` tables'
+        $script:Doc | Should -Not -Match 'for the Dataverse API\. That the `bot` tables'
+    }
+
+    It 'records the Search-UnifiedAuditLog page cap and the usage record shape' {
+        $script:Doc | Should -Match 'returns at most 100 records'
+        $script:Doc | Should -Match 'SessionCommand ReturnLargeSet'
+        $script:Doc | Should -Match 'session cap 50,000'
+        $script:Doc | Should -Match 'ResultSize` maximum 5,000'
+        $script:Doc | Should -Match 'StartDate` and `EndDate` are UTC'
+        $script:Doc | Should -Match 'RecordType CopilotInteraction'
+        $script:Doc | Should -Match 'Copilot\.Studio\.'
+        $script:Doc | Should -Match 'does not return the authoring operations'
+        $script:Doc | Should -Match 'BotCreate'
     }
 }
