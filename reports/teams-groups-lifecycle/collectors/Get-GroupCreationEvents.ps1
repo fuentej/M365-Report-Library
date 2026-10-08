@@ -141,6 +141,40 @@ try {
     $rows = [System.Collections.Generic.List[object]]::new()
     $truncatedWindow = $null
 
+    function Test-AuditSearchHasMoreRecords {
+        <#
+            .SYNOPSIS
+                True when a Search-UnifiedAuditLog record says another page is expected.
+        #>
+        param($Record)
+
+        if ($null -eq $Record) { return $false }
+
+        $metaProperty = $Record.PSObject.Properties['AuditSearchRequestMetadata']
+        if (-not $metaProperty -or $null -eq $metaProperty.Value) { return $false }
+
+        $meta = $metaProperty.Value
+        $flag = $null
+        if ($meta -is [System.Collections.IDictionary]) {
+            foreach ($key in @('moreRecordsAvailable', 'MoreRecordsAvailable')) {
+                if ($meta.Contains($key)) { $flag = $meta[$key]; break }
+            }
+        }
+        else {
+            foreach ($name in @('moreRecordsAvailable', 'MoreRecordsAvailable')) {
+                $property = $meta.PSObject.Properties[$name]
+                if ($property) { $flag = $property.Value; break }
+            }
+        }
+
+        if ($null -eq $flag) { return $false }
+        if ($flag -is [bool]) { return $flag }
+
+        $parsed = $false
+        if ([bool]::TryParse([string]$flag, [ref]$parsed)) { return $parsed }
+        return $false
+    }
+
     foreach ($window in Split-DateRange -Start $start -End $end -WindowMinutes ($WindowHours * 60)) {
         if ($null -ne $truncatedWindow) { break }
 
@@ -178,13 +212,20 @@ try {
                 break
             }
 
+            # ResultCount is the hit count across every iteration of this session, not
+            # the size of this page.
+            # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
             $resultCountProperty = $records[0].PSObject.Properties['ResultCount']
+            $matched = 0
+            $hasResultCount = $false
             if ($resultCountProperty -and $null -ne $resultCountProperty.Value) {
-                $matched = 0
-                if ([int]::TryParse([string]$resultCountProperty.Value, [ref]$matched) -and $matched -gt $sessionCap) {
-                    $windowTruncated = $true
-                    break
+                if ([int]::TryParse([string]$resultCountProperty.Value, [ref]$matched)) {
+                    $hasResultCount = $true
                 }
+            }
+            if ($hasResultCount -and $matched -gt $sessionCap) {
+                $windowTruncated = $true
+                break
             }
 
             $collected += $records.Count
@@ -221,7 +262,23 @@ try {
                 break
             }
 
-            if ($records.Count -lt $pageSize) { break }
+            # Repeat until the cmdlet returns nothing or the session cap is hit.
+            # A page shorter than -ResultSize is not the end: ResultCount is the
+            # hit count across iterations, and moreRecordsAvailable says another
+            # iteration is still expected.
+            # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+            $moreRecords = $false
+            foreach ($record in $records) {
+                if (Test-AuditSearchHasMoreRecords -Record $record) {
+                    $moreRecords = $true
+                    break
+                }
+            }
+            if ($moreRecords) { continue }
+
+            $reportedTotalReached = $hasResultCount -and $matched -gt 0 -and $collected -ge $matched
+            $shortPageWithoutTotal = (-not $hasResultCount -or $matched -le 0) -and $records.Count -lt $pageSize
+            if ($reportedTotalReached -or $shortPageWithoutTotal) { break }
         }
 
         if ($windowTruncated) {
