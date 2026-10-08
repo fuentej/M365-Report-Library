@@ -28,6 +28,16 @@ Describe 'Mailbox exfiltration source list' {
         $script:Doc | Should -Not -Match 'must hold the Audit \(Premium\) license for the record to be generated'
     }
 
+    It 'requests the Delivery property set and lifts the 1000-row Exchange cap' {
+        # Get-EXOMailbox Minimum omits forwarding properties. ResultSize defaults to 1000.
+        $script:Doc | Should -Match 'PropertySets Delivery'
+        $script:Doc | Should -Match 'Get-EXOMailbox -ResultSize Unlimited'
+        $script:Doc | Should -Match 'Get-InboxRule -Mailbox <id> -IncludeHidden -ResultSize Unlimited'
+        $script:Doc | Should -Match 'Get-TransportRule -ResultSize Unlimited'
+        $script:Doc | Should -Match 'Get-RecipientPermission -ResultSize Unlimited'
+        $script:Doc | Should -Match 'ExcludeConditionActionDetails'
+    }
+
     It 'requires the 10-year audit add-on and does not treat AuditEnabled as a per-mailbox switch' {
         $script:Doc | Should -Match '10-year audit log retention add-on'
         $script:Doc | Should -Match 'Audit \(Premium\) alone does not retain for 10 years'
