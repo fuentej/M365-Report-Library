@@ -19,4 +19,16 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'capabilitiesCounts'
         $script:Doc | Should -Match 'complete count for each type'
     }
+
+    It 'does not mark bot and botcomponent Available in GCC or GCC High' {
+        $source4 = ($script:Doc -split "`n" | Where-Object { $_ -match '^\| 4 \|' })
+        $source4 | Should -Not -BeNullOrEmpty
+        $cells = $source4 -split '\|'
+        # Columns: empty, #, Source, Endpoint, Role, License, Event, Retention, Commercial, GCC, GCC High, empty
+        $cells[9].Trim() | Should -Match '^UNVERIFIED'
+        $cells[10].Trim() | Should -Match '^UNVERIFIED'
+        $cells[9] | Should -Not -Match '\[Available\]'
+        $cells[10] | Should -Not -Match '\[Available\]'
+        $script:Doc | Should -Not -Match 'for the Dataverse API\. That the ``bot`` tables'
+    }
 }
