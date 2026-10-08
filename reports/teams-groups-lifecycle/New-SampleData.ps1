@@ -245,6 +245,26 @@ foreach ($snapshot in $snapshotDates | Select-Object -Last 2) {
             IsTeam                      = $group.IsTeam
         }
     }
+
+    # Soft-deleted security groups come back with securityEnabled false and an
+    # empty groupTypes array. Microsoft 365 groups are groupTypes Unified.
+    # https://learn.microsoft.com/graph/api/directory-deleteditems-list
+    $securityDeletedAt = $EndDate.AddDays(-40)
+    if ($securityDeletedAt -le $snapshot) {
+        $rows = @($rows) + [pscustomobject]@{
+            RunDate                     = $snapshot.ToString('yyyy-MM-dd')
+            Id                          = 'c31799b8-0683-4d70-9e91-e032c89d3035'
+            DisplayName                 = 'Contoso Role Assignable'
+            GroupTypes                  = ''
+            SecurityEnabled             = $false
+            MailEnabled                 = $false
+            CreatedDateTime             = Format-Stamp ($EndDate.AddDays(-400))
+            DeletedDateTime             = Format-Stamp $securityDeletedAt
+            PurgeDateTime               = Format-Stamp $securityDeletedAt.AddDays(30)
+            ResourceProvisioningOptions = ''
+            IsTeam                      = $false
+        }
+    }
     Export-AppendCsv -Path (Join-Path $OutputPath 'deleted-groups.csv') -Rows @($rows) -Column $schema.DeletedGroups -KeyColumn @('RunDate', 'Id')
 }
 

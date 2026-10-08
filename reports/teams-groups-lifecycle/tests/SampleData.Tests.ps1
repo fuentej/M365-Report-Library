@@ -98,6 +98,19 @@ Describe 'The sample data covers the cases the report pages ask about' {
         @($script:Archive | Where-Object IsArchived -EQ 'False').Count | Should -BeGreaterThan 0
     }
 
+    It 'includes a soft-deleted security group with securityEnabled false and no groupTypes' {
+        # https://learn.microsoft.com/graph/api/directory-deleteditems-list
+        $security = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'deleted-groups.csv') | Where-Object {
+                [string]::IsNullOrWhiteSpace($_.GroupTypes)
+            })
+        $security.Count | Should -BeGreaterThan 0
+        $security | ForEach-Object {
+            $_.SecurityEnabled | Should -Be 'False'
+            $_.MailEnabled | Should -Be 'False'
+            $_.IsTeam | Should -Be 'False'
+        }
+    }
+
     It 'purges soft-deleted groups 30 days after deletion' {
         foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples 'deleted-groups.csv')) {
             ([datetime]$row.PurgeDateTime - [datetime]$row.DeletedDateTime).TotalDays | Should -Be 30
