@@ -28,6 +28,15 @@ Describe 'Mailbox exfiltration source list' {
         $script:Doc | Should -Not -Match 'must hold the Audit \(Premium\) license for the record to be generated'
     }
 
+    It 'names the inbox-rule and transport-rule action properties' {
+        # ForwardAsAttachmentTo is a separate property from ForwardTo.
+        # RedirectMessageTo is the transport-rule action, not the word Redirect.
+        $script:Doc | Should -Match 'ForwardAsAttachmentTo'
+        $script:Doc | Should -Match 'RedirectMessageTo'
+        $script:Doc | Should -Match 'BlindCopyTo'
+        $script:Doc | Should -Match 'DeleteMessage'
+    }
+
     It 'names Get-AcceptedDomain for the external-forward check' {
         # Question 1 includes external addresses. That comparison needs the accepted-domain list.
         $script:Doc | Should -Match 'Get-AcceptedDomain -ResultSize Unlimited'
