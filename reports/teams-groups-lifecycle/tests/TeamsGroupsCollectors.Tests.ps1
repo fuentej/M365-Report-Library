@@ -302,9 +302,14 @@ Describe 'Get-Groups.ps1' {
     }
 
     It 'keeps every object when the service returns more than one page of them' {
-        # 1,250 objects is more than the 999-per-page ceiling, so a collector that
-        # stopped at the first page would not write them all.
-        Mock Get-MgGroup -MockWith { 1..1250 | ForEach-Object { New-MockGroup -Id "group-$_" } }
+        # 1,250 objects is more than the 999-per-page ceiling. Without -All the
+        # mock returns one page of 100, which is what list groups does by default.
+        # https://learn.microsoft.com/graph/api/group-list
+        # https://learn.microsoft.com/graph/paging
+        Mock Get-MgGroup -MockWith {
+            $limit = if ($All) { 1250 } else { 100 }
+            1..$limit | ForEach-Object { New-MockGroup -Id "group-$_" }
+        }
 
         Invoke-CollectorScript 'Get-Groups.ps1' @{ OutputPath = $script:folder }
 
@@ -451,6 +456,32 @@ Describe 'Get-DeletedGroups.ps1' {
         $row.PurgeDateTime | Should -Be '2026-09-19T10:00:00Z'
         $row.GroupTypes | Should -Be 'Unified'
         $row.IsTeam | Should -Be 'True'
+    }
+
+    It 'keeps a soft-deleted security group that reports securityEnabled false and an empty groupTypes list' {
+        # https://learn.microsoft.com/graph/api/directory-deleteditems-list
+        Mock Get-MgDirectoryDeletedItemAsGroup -MockWith {
+            [pscustomobject]@{
+                Id                   = 'security-1'
+                DisplayName          = 'Role assignable group'
+                GroupTypes           = @()
+                SecurityEnabled      = $false
+                MailEnabled          = $false
+                CreatedDateTime      = [datetime]'2025-01-02T03:04:05Z'
+                DeletedDateTime      = [datetime]'2026-08-20T10:00:00Z'
+                AdditionalProperties = @{ resourceProvisioningOptions = @() }
+            }
+        }
+
+        Invoke-CollectorScript 'Get-DeletedGroups.ps1' @{ OutputPath = $script:folder }
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'deleted-groups.csv')
+        $row.Id | Should -Be 'security-1'
+        $row.GroupTypes | Should -BeNullOrEmpty
+        $row.SecurityEnabled | Should -Be 'False'
+        $row.MailEnabled | Should -Be 'False'
+        $row.IsTeam | Should -Be 'False'
+        $row.PurgeDateTime | Should -Be '2026-09-19T10:00:00Z'
     }
 
     It 'writes the header only when the container cannot be read' {
@@ -680,6 +711,21 @@ Describe 'Get-ArchivedTeams.ps1' {
         $rows[0].IsArchived | Should -Be 'True'
     }
 
+    It 'keeps the teams it could read and fails when another team read errors' {
+        Set-TestGroupsCsv -OutputPath $script:folder -Id @('team-1', 'team-2')
+        Mock Get-MgTeam -MockWith { New-MockTeam -Id 'team-1' -Archived $true } -ParameterFilter { $TeamId -eq 'team-1' }
+        Mock Get-MgTeam -MockWith { throw 'Forbidden: insufficient privileges.' } -ParameterFilter { $TeamId -eq 'team-2' }
+
+        {
+            Invoke-CollectorScript 'Get-ArchivedTeams.ps1' @{ OutputPath = $script:folder; WarningAction = 'SilentlyContinue' }
+        } | Should -Throw '*could not be read*'
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'team-archive-status.csv'))
+        $rows.Count | Should -Be 1
+        $rows[0].TeamId | Should -Be 'team-1'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'team-2'
+    }
+
     It 'writes the header only when no team can be read' {
         Set-TestGroupsCsv -OutputPath $script:folder
         Mock Get-MgTeam -MockWith { throw 'Forbidden: insufficient privileges.' }
@@ -779,6 +825,60 @@ Describe 'Get-GroupCreationEvents.ps1' {
 
         Should -Invoke Search-UnifiedAuditLog -Times 1 -Exactly
         Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'UNVERIFIED'
+    }
+
+    It 'fetches the next page when ResultCount is larger than the page just returned' {
+        # A short first page used to end the session. ResultCount is the hit count
+        # across iterations, so one record with ResultCount 2 still has a second page.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+        $global:TeamsGroupsAuditCalls = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $global:TeamsGroupsAuditCalls++
+            if ($global:TeamsGroupsAuditCalls -gt 2) { return @() }
+            $recordId = if ($global:TeamsGroupsAuditCalls -eq 1) { 'event-1' } else { 'event-2' }
+            $record = New-MockAuditRecord -Id $recordId
+            $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 2
+            return $record
+        }
+
+        Invoke-CollectorScript 'Get-GroupCreationEvents.ps1' @{
+            OutputPath = $script:folder
+            StartDate  = [datetime]'2026-08-10T00:00:00Z'
+            EndDate    = [datetime]'2026-08-11T00:00:00Z'
+        }
+
+        $ids = @(Import-Csv -LiteralPath (Join-Path $script:folder 'group-creation-events.csv') | Select-Object -ExpandProperty Id | Sort-Object)
+        $ids | Should -Be @('event-1', 'event-2')
+        $global:TeamsGroupsAuditCalls | Should -BeGreaterOrEqual 2
+    }
+
+    It 'fetches the next page when moreRecordsAvailable is true even if ResultCount looks complete' {
+        $global:TeamsGroupsAuditCalls = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $global:TeamsGroupsAuditCalls++
+            if ($global:TeamsGroupsAuditCalls -eq 1) {
+                $record = New-MockAuditRecord -Id 'event-1'
+                $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 1
+                $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $true })
+                return $record
+            }
+            if ($global:TeamsGroupsAuditCalls -eq 2) {
+                $record = New-MockAuditRecord -Id 'event-2'
+                $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 2
+                $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $false })
+                return $record
+            }
+            return @()
+        }
+
+        Invoke-CollectorScript 'Get-GroupCreationEvents.ps1' @{
+            OutputPath = $script:folder
+            StartDate  = [datetime]'2026-08-10T00:00:00Z'
+            EndDate    = [datetime]'2026-08-11T00:00:00Z'
+        }
+
+        $ids = @(Import-Csv -LiteralPath (Join-Path $script:folder 'group-creation-events.csv') | Select-Object -ExpandProperty Id | Sort-Object)
+        $ids | Should -Be @('event-1', 'event-2')
     }
 
     It 'writes the header only when the audit log cannot be searched' {
