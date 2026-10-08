@@ -217,3 +217,80 @@ function global:Export-ContentExplorerData {
     )
     throw 'Export-ContentExplorerData was called for real. Mock it in the test.'
 }
+
+function global:Get-MgGroup {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property,
+        [string]$GroupId
+    )
+    throw 'Get-MgGroup was called for real. Mock it in the test.'
+}
+
+function global:Get-MgGroupOwner {
+    [CmdletBinding()]
+    param(
+        [string]$GroupId,
+        [switch]$All,
+        [string[]]$Property
+    )
+    throw 'Get-MgGroupOwner was called for real. Mock it in the test.'
+}
+
+function global:Get-MgDirectoryDeletedItemAsGroup {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgDirectoryDeletedItemAsGroup was called for real. Mock it in the test.'
+}
+
+function global:Get-MgGroupLifecyclePolicy {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string[]]$Property
+    )
+    throw 'Get-MgGroupLifecyclePolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-MgGroupLifecyclePolicyByGroup {
+    [CmdletBinding()]
+    param(
+        [string]$GroupId,
+        [switch]$All,
+        [string[]]$Property
+    )
+    throw 'Get-MgGroupLifecyclePolicyByGroup was called for real. Mock it in the test.'
+}
+
+function global:Get-MgTeam {
+    [CmdletBinding()]
+    param(
+        [string]$TeamId,
+        [string[]]$Property
+    )
+    throw 'Get-MgTeam was called for real. Mock it in the test.'
+}
+
+function global:Get-MgReportTeamActivityDetail {
+    [CmdletBinding()]
+    param(
+        [string]$Period,
+        [string]$OutFile
+    )
+    throw 'Get-MgReportTeamActivityDetail was called for real. Mock it in the test.'
+}
+
+function global:Get-MgReportOffice365GroupActivityDetail {
+    [CmdletBinding()]
+    param(
+        [string]$Period,
+        [string]$OutFile
+    )
+    throw 'Get-MgReportOffice365GroupActivityDetail was called for real. Mock it in the test.'
+}
