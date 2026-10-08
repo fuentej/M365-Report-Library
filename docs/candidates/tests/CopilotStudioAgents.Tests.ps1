@@ -56,4 +56,10 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'stay at 180 days unless a custom retention policy applies'
         $script:Doc | Should -Match 'CreationTime` on the Copilot Studio schema is UTC'
     }
+
+    It 'leaves pay-as-you-go billing unverified when Learn disagrees' {
+        $script:Doc | Should -Not -Match 'prerequisites\)\); Audit \(Standard\)'
+        $script:Doc | Should -Match 'pay-as-you-go does not apply to them'
+        $script:Doc | Should -Match 'Whether pay-as-you-go is required: UNVERIFIED'
+    }
 }
