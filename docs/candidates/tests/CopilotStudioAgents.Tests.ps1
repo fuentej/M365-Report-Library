@@ -70,4 +70,10 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'One response is not the full set'
         $script:Doc | Should -Match 'including `SkipToken` paging'
     }
+
+    It 'names AI Reader as the least privileged inventory role' {
+        $script:Doc | Should -Not -Match 'environment groups only'
+        $script:Doc | Should -Match 'AI Reader, the least privileged role for this report'
+        $script:Doc | Should -Match 'agentic apps, agent flows, environments and environment groups'
+    }
 }
