@@ -270,9 +270,9 @@ CSV-backed table reads `CsvFolder & "\<file>.csv"` (`users.csv`, `policies.csv`,
 `activity-explorer-events.csv`, `content-explorer-snapshot.csv`,
 `copilot-accessed-resources.csv`); nothing else in the model depends on where the folder is.
 
-To open it, use Power BI Desktop on Windows with the Power BI Project (PBIP) preview
-feature on: open `report/PurviewIPReport.pbip`, then set `CsvFolder` under Transform data >
-Edit parameters, and refresh. The model imports the columns each CSV has, in the order the
+To open it, use Power BI Desktop on Windows: open `report/PurviewIPReport.pbip`, or
+open `report/PurviewIPReport.Report/definition.pbir`. Then set `CsvFolder` under
+Transform data > Edit parameters, and refresh. The model imports the columns each CSV has, in the order the
 CSV has them. `Users[UserId]` reads `users.csv`'s `Id`, and
 `ContentExplorerSnapshot[SnapshotDate]` reads its `RunDate`.
 
