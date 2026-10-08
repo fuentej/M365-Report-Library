@@ -41,6 +41,7 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'RecordType CopilotInteraction'
         $script:Doc | Should -Match 'Copilot\.Studio\.'
         $script:Doc | Should -Match 'does not return the authoring operations'
+        $script:Doc | Should -Match 'Search-UnifiedAuditLog -Operations'
         $script:Doc | Should -Match 'BotCreate'
     }
 
@@ -88,6 +89,6 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'Azure AI Search as a knowledge source'
         $script:Doc | Should -Match 'Prompt Action'
         $script:Doc | Should -Match 'Generative Orchestration is available in both clouds'
-        $script:Doc | Should -Match 'this list does not name is still a finding'
+        $script:Doc | Should -Match 'this\s+list does not name is still a finding'
     }
 }
