@@ -52,11 +52,15 @@ before:
 
 Consolidated notes:
 
-* Copilot Studio itself is available in GCC and GCC High, but several features differ
+* Copilot Studio itself is available in GCC and GCC High. A report should not treat these documented
+  gaps as findings
   ([Copilot Studio for US Government](https://learn.microsoft.com/microsoft-copilot-studio/requirements-licensing-gcc#copilot-studio-us-government-feature-limitations)):
-  triggers and autonomous agents are not available in either cloud, and the Teams and Microsoft Copilot
-  channel is not available in GCC High. A report should not treat an absent channel or capability in a
-  government tenant as a finding.
+  Triggers / Autonomous Agents, Preview Models and Azure AI Search as a knowledge source are not
+  available in GCC or GCC High. Generative Answers Enhanced Search is not available in GCC. In GCC High
+  only, these are not available: the Copilot Studio Microsoft Teams app, the Teams channel in the web
+  app, Transfer to agents, the Teams and Microsoft Copilot channel, Copilot Agents extend M365, and
+  Prompt Action. Generative Orchestration is available in both clouds. An absent capability that this
+  list does not name is still a finding.
 * Admin center and Power Platform API hosts differ in government clouds. The admin center hosts are
   `gcc.admin.powerplatform.microsoft.us` (GCC) and `high.admin.powerplatform.microsoft.us` (GCC High)
   ([Power Apps US Government](https://learn.microsoft.com/power-platform/admin/powerapps-us-government#power-apps-us-government-service-urls)).

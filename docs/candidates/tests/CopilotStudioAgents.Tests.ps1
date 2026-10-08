@@ -82,4 +82,12 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'usedAs` is `Tool`, `Topic Tool` or `Knowledge'
         $script:Doc | Should -Match 'usedAs` is `Knowledge'
     }
+
+    It 'limits government gaps to the capabilities Learn lists as unavailable' {
+        $script:Doc | Should -Not -Match 'government tenant as a finding'
+        $script:Doc | Should -Match 'Azure AI Search as a knowledge source'
+        $script:Doc | Should -Match 'Prompt Action'
+        $script:Doc | Should -Match 'Generative Orchestration is available in both clouds'
+        $script:Doc | Should -Match 'this list does not name is still a finding'
+    }
 }
