@@ -97,3 +97,6 @@ Consolidated notes:
   clouds in favour of Dataverse.
 * Confirm in a test tenant the least privileged Dataverse role that can read `bot` and `botcomponent`.
 * Confirm whether Copilot Studio audit events (source 6) are recorded in GCC and GCC High.
+* Confirm whether pay-as-you-go billing is required for Copilot Studio audit events. The Copilot audit
+  page includes those applications in Audit (Standard); the auditing get-started page lists them under
+  pay-as-you-go.
