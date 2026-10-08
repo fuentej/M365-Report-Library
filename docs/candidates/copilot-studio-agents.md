@@ -29,8 +29,10 @@ before:
 * `Available` / `NotAvailable` appear only where a Microsoft page says so; the link is in the cell.
 * `UNVERIFIED` means no Microsoft page found says either way. The collector should ask for the data and
   record a refusal in `run.log`, as the existing reports do.
-* The inventory is the published version of each agent; unpublished drafts are not reflected until
-  published ([agent fields](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#agent-properties)).
+* The inventory includes unpublished draft agents and published agents. `lastPublishedAt` is empty when
+  the agent has never been published. For an agent that has been published, the inventory shows the
+  published version: newer unpublished changes are omitted until that agent is published again
+  ([agent fields](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#agent-properties)).
   It excludes V1 agents (Power Virtual Agents classic bots) and lists at most 200 resources of each type per
   agent ([known limitations](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#known-limitations)).
 
