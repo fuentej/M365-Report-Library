@@ -28,6 +28,14 @@ Describe 'Mailbox exfiltration source list' {
         $script:Doc | Should -Not -Match 'must hold the Audit \(Premium\) license for the record to be generated'
     }
 
+    It 'drops self and inherited Full Access rows that are not delegates' {
+        # FullAccess on NT AUTHORITY\SELF and inherited Deny entries are not delegates.
+        $script:Doc | Should -Match 'NT AUTHORITY\\SELF'
+        $script:Doc | Should -Match 'IsInherited -eq \$false'
+        $script:Doc | Should -Match 'Deny -eq \$false'
+        $script:Doc | Should -Match 'Identity` is mandatory'
+    }
+
     It 'requests the Delivery property set and lifts the 1000-row Exchange cap' {
         # Get-EXOMailbox Minimum omits forwarding properties. ResultSize defaults to 1000.
         $script:Doc | Should -Match 'PropertySets Delivery'
