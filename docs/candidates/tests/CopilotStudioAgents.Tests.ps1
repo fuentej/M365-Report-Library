@@ -76,4 +76,10 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'AI Reader, the least privileged role for this report'
         $script:Doc | Should -Match 'agentic apps, agent flows, environments and environment groups'
     }
+
+    It 'lists every connector usedAs value, including knowledge connectors' {
+        $script:Doc | Should -Not -Match 'exposes only the web search flag'
+        $script:Doc | Should -Match 'usedAs` is `Tool`, `Topic Tool` or `Knowledge'
+        $script:Doc | Should -Match 'usedAs` is `Knowledge'
+    }
 }
