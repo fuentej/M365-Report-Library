@@ -43,8 +43,8 @@ Consolidated notes:
 * Directory audit logs (`GET /auditLogs/directoryAudits`) are an event source for changes to roles and
   policies ([audit logs overview](https://learn.microsoft.com/graph/api/resources/azure-ad-auditlog-overview));
   they were not in the starting questions and were not researched further.
-* Conditional Access policy changes after a Conditional Access baseline cannot be diffed from source 3
-  alone; each run is a snapshot.
+* Source 3 is a snapshot, so a Conditional Access change shows up as a difference between two runs, with no
+  record of who made it.
 
 ## Proposed report pages
 
