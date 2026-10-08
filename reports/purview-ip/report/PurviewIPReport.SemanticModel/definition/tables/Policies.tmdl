@@ -188,6 +188,7 @@ table Policies
 				    ParsedUtc = Table.TransformColumns(ParsedInts, {
 				        {"WhenCreatedUtc", each ParseUtcDateTime(_), type datetime},
 				        {"WhenChangedUtc", each ParseUtcDateTime(_), type datetime}
-				    })
+				    }),
+				    Current = KeepLatestRunDate(ParsedUtc)
 				in
-				    ParsedUtc
+				    Current

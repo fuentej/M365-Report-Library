@@ -221,6 +221,7 @@ table Users
 				    }),
 				    ParsedUtc = Table.TransformColumns(ParsedRun, {
 				        {"CreatedDateTime", each ParseUtcDateTime(_), type datetime}
-				    })
+				    }),
+				    Current = KeepLatestRunDate(ParsedUtc)
 				in
-				    ParsedUtc
+				    Current

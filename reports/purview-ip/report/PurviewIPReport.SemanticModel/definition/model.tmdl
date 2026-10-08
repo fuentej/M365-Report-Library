@@ -6,7 +6,7 @@ model Model
 		legacyRedirects
 		returnErrorValuesAsNull
 
-annotation PBI_QueryOrder = ["CsvFolder","ParseUtcDateTime","ParseOptionalDate","ParseOptionalInt64","Users","Policies","Labels","RetentionLabels","ActivityExplorerEvents","ContentExplorerSnapshot","SensitivityAtRest","RetentionAtRest","CopilotAccessedResources","Workload"]
+annotation PBI_QueryOrder = ["CsvFolder","ParseUtcDateTime","ParseOptionalDate","ParseOptionalInt64","KeepLatestRunDate","Users","Policies","Labels","RetentionLabels","ActivityExplorerEvents","ContentExplorerSnapshot","SensitivityAtRest","RetentionAtRest","CopilotAccessedResources","Workload"]
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 

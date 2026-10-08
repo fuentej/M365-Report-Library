@@ -196,6 +196,20 @@ Describe 'Every CSV-backed table matches its sample CSV' {
             })
         $stillThere -join '; ' | Should -BeNullOrEmpty
     }
+
+    It 'keeps the latest <Table> snapshot so relationship keys stay unique' -ForEach @(
+        @{ Table = 'Users' }
+        @{ Table = 'Policies' }
+    ) {
+        # users.csv and policies.csv append one block of rows per RunDate. UserId,
+        # UserPrincipalName, and the label ObjectId derived from Policies are the
+        # one-side of relationships, which Power BI requires to be unique.
+        $tmdl = Get-Content -LiteralPath $script:Model[$Table].Path -Raw
+        $tmdl | Should -Match 'KeepLatestRunDate\('
+        $expressions = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'PurviewIPReport.SemanticModel/definition/expressions.tmdl') -Raw
+        $expressions | Should -Match 'expression KeepLatestRunDate'
+        $expressions | Should -Match 'List\.IsEmpty'
+    }
 }
 
 Describe 'The report keeps its eight pages and their filters' {
