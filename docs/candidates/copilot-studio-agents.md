@@ -20,7 +20,8 @@ before:
    The existing collectors support app-only certificate sign-in; this one cannot. A scheduled unattended run
    would need a different source (Dataverse, below) or an operator signing in.
 2. **Most agent properties are Preview.** `channels`, `authentication`, `sharedWithViewers`,
-   `sharedWithEditors`, `orchestration`, `model` and the connector detail are marked Preview in the schema
+   `sharedWithEditors`, `orchestration`, `model`, `capabilitiesCounts` and the connector detail are marked
+   Preview in the schema
    ([agent fields](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#configuration-properties)).
    The page itself says preview features are not meant for production use.
 
@@ -33,8 +34,10 @@ before:
   the agent has never been published. For an agent that has been published, the inventory shows the
   published version: newer unpublished changes are omitted until that agent is published again
   ([agent fields](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#agent-properties)).
-  It excludes V1 agents (Power Virtual Agents classic bots) and lists at most 200 resources of each type per
-  agent ([known limitations](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#known-limitations)).
+* It excludes V1 agents (Power Virtual Agents classic bots). When an agent has more than 200 configured
+  resources of one type, the inventory returns a random 200 of that type, not the first 200 and not the
+  full set. `capabilitiesCounts` (Preview) is the complete count for each type
+  ([known limitations](https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#known-limitations)).
 
 ## Sources
 

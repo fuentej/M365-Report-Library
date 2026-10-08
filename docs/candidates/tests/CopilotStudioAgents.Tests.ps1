@@ -12,4 +12,11 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'lastPublishedAt'
         $script:Doc | Should -Match 'newer unpublished changes are omitted until that agent is published again'
     }
+
+    It 'records that the 200-resource cap is a random subset' {
+        $script:Doc | Should -Not -Match 'lists at most 200 resources'
+        $script:Doc | Should -Match 'returns a random 200 of that type'
+        $script:Doc | Should -Match 'capabilitiesCounts'
+        $script:Doc | Should -Match 'complete count for each type'
+    }
 }
