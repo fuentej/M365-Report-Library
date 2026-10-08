@@ -28,6 +28,12 @@ Describe 'Mailbox exfiltration source list' {
         $script:Doc | Should -Not -Match 'must hold the Audit \(Premium\) license for the record to be generated'
     }
 
+    It 'names Get-AcceptedDomain for the external-forward check' {
+        # Question 1 includes external addresses. That comparison needs the accepted-domain list.
+        $script:Doc | Should -Match 'Get-AcceptedDomain -ResultSize Unlimited'
+        $script:Doc | Should -Match 'Covered by sources 1 and 1b'
+    }
+
     It 'follows Graph nextLink and does not grant app role reads to Global Reader' {
         # appRoleAssignedTo does not list Global Reader. Both list calls page.
         $script:Doc | Should -Match '@odata.nextLink'
