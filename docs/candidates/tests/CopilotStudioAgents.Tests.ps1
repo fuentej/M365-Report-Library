@@ -49,4 +49,11 @@ Describe 'Copilot Studio agents source list' {
         $script:Doc | Should -Match 'Audit Reader role group, which grants View-Only Audit Logs'
         $script:Doc | Should -Match 'Exchange admin center View-Only Audit Logs or Audit Logs role'
     }
+
+    It 'does not treat Audit Premium as a one-year window for Copilot Studio' {
+        $script:Doc | Should -Not -Match 'longer retention needs Audit \(Premium\)'
+        $script:Doc | Should -Match 'default one-year policy covers only Exchange, SharePoint, OneDrive and Microsoft Entra'
+        $script:Doc | Should -Match 'stay at 180 days unless a custom retention policy applies'
+        $script:Doc | Should -Match 'CreationTime` on the Copilot Studio schema is UTC'
+    }
 }
