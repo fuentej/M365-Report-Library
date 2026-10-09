@@ -60,8 +60,8 @@
         'HasExternalTarget'
     )
 
-    # Source 3. Only rules with a redirect or blind-copy action are written; CopyTo and
-    # AddToRecipients add visible recipients and are carried for context.
+    # Source 3. Rules with a redirect, blind-copy, or visible-copy action are written.
+    # CopyTo and AddToRecipients add visible recipients and are kept on those rows.
     TransportRules = @(
         'RunDate'
         'Name'
