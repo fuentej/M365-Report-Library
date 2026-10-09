@@ -72,13 +72,13 @@ an interactive sign-in; app-only sign-in uses the permissions granted to the app
 | CSV | Permission | Least privileged signed-in role |
 | --- | --- | --- |
 | `authentication-methods.csv` | `AuditLog.Read.All` (plus `Directory.Read.All` to read the tenant licence) | Reports Reader |
-| `conditional-access-policies.csv` | `Policy.Read.All` | Security Reader (or Global Reader, Conditional Access Administrator) |
-| `role-assignments-active.csv` | `RoleAssignmentSchedule.Read.Directory` | Global Reader (or Security Reader, Privileged Role Administrator) |
+| `conditional-access-policies.csv` | `Policy.Read.All` | Global Secure Access Administrator, Security Reader, Security Administrator, Global Reader or Conditional Access Administrator |
+| `role-assignments-active.csv` | `RoleAssignmentSchedule.Read.Directory` | Global Reader, Security Operator, Security Reader, Security Administrator or Privileged Role Administrator |
 | `role-assignments-eligible.csv` | `RoleEligibilitySchedule.Read.Directory` | Same as above |
-| `role-assignments.csv` | `RoleManagement.Read.Directory` | Directory Readers (or Global Reader, Privileged Role Administrator) |
+| `role-assignments.csv` | `RoleManagement.Read.Directory` | Directory Readers, Global Reader or Privileged Role Administrator |
 | `user-signin-activity.csv` | `User.Read.All` and `AuditLog.Read.All` | Reports Reader |
-| `risky-users.csv` | `IdentityRiskyUser.Read.All` | Security Reader (or Global Reader, Security Operator) |
-| `signins.csv` | `AuditLog.Read.All`, and `Policy.Read.All` to read the Conditional Access result | Reports Reader |
+| `risky-users.csv` | `IdentityRiskyUser.Read.All` | Global Reader, Security Operator, Security Reader or Security Administrator |
+| `signins.csv` | `AuditLog.Read.All`, and `Policy.Read.All` to read the Conditional Access result | Reports Reader (also Global Reader, Security Reader, Security Operator or Security Administrator) |
 
 A token that has only `AuditLog.Read.All` can intermittently fail with
 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`, because reading the tenant licence
