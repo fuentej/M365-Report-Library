@@ -314,6 +314,17 @@ Describe 'Each connection targets the endpoints of its -Environment' {
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains $wanted -and $Scopes -contains 'Directory.Read.All' }
     }
 
+    It 'reads sign-ins with AuditLog.Read.All and does not request Policy.Read.All' {
+        # conditionalAccessStatus is on the sign-in. Policy.Read.All is only for
+        # appliedConditionalAccessPolicies, which this collector does not read.
+        # https://learn.microsoft.com/graph/api/resources/signin
+        Invoke-CollectorScript 'Get-LegacySignIns.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 }
+
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter {
+            $Scopes -contains 'AuditLog.Read.All' -and $Scopes -contains 'Directory.Read.All' -and $Scopes -notcontains 'Policy.Read.All'
+        }
+    }
+
     It 'signs in app-only without scopes when given a certificate' {
         Invoke-CollectorScript 'Get-RiskyUsers.ps1' @{
             OutputPath = $script:folder; AppId = 'app-1'; CertificateThumbprint = 'AB12'; TenantId = 'tenant-1'

@@ -24,8 +24,8 @@
         Id, so the overlap at the watermark is not repeated.
 
         Needs Microsoft Entra ID P1 or P2, AuditLog.Read.All and the Reports Reader role.
-        Reading the Conditional Access result needs Policy.Read.All and a role that can
-        read policies; this collector requests that scope.
+        conditionalAccessStatus is a property of the sign-in. Policy.Read.All is required
+        only to read appliedConditionalAccessPolicies, which this collector does not.
 
     .EXAMPLE
         ./Get-LegacySignIns.ps1 -OutputPath ./out -LookbackDays 7

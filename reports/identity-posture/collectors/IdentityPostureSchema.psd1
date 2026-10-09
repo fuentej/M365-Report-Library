@@ -167,7 +167,10 @@
         EligibleRoleAssignments   = @('RoleEligibilitySchedule.Read.Directory')
         RoleAssignments           = @('RoleManagement.Read.Directory')
         UserSignInActivity        = @()
-        SignIns                   = @('Policy.Read.All')
+        # conditionalAccessStatus is on the sign-in. Policy.Read.All is only for
+        # appliedConditionalAccessPolicies, which this collector does not read.
+        # https://learn.microsoft.com/graph/api/resources/signin
+        SignIns                   = @()
         RiskyUsers                = @('IdentityRiskyUser.Read.All')
     }
 

@@ -78,7 +78,7 @@ an interactive sign-in; app-only sign-in uses the permissions granted to the app
 | `role-assignments.csv` | `RoleManagement.Read.Directory` | Directory Readers, Global Reader or Privileged Role Administrator |
 | `user-signin-activity.csv` | `User.Read.All` and `AuditLog.Read.All` | Reports Reader |
 | `risky-users.csv` | `IdentityRiskyUser.Read.All` | Global Reader, Security Operator, Security Reader or Security Administrator |
-| `signins.csv` | `AuditLog.Read.All`, and `Policy.Read.All` to read the Conditional Access result | Reports Reader (also Global Reader, Security Reader, Security Operator or Security Administrator) |
+| `signins.csv` | `AuditLog.Read.All` | Reports Reader (also Global Reader, Security Reader, Security Operator or Security Administrator) |
 
 A token that has only `AuditLog.Read.All` can intermittently fail with
 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`, because reading the tenant licence
