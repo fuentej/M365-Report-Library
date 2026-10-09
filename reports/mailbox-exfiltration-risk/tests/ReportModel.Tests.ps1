@@ -481,6 +481,29 @@ Describe 'The pages say what the data cannot show' {
         $text | Should -Match 'TransportRules.TargetDomainsLabel'
     }
 
+    It 'counts only explicit Allow Send As rows, not inherited defaults' {
+        # Get-RecipientPermission returns IsInherited. BLANK() = FALSE() in DAX, so an empty
+        # flag has to be excluded or it is counted as an explicit grant.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/get-recipientpermission
+        $sendAs = Get-TableText -Name 'SendAsPermissions'
+        $trustee = @($sendAs -split "`n" | Where-Object { $_ -match 'DISTINCTCOUNT\(SendAsPermissions\[TrusteeKey\]\)' })
+        $trustee.Count | Should -Be 1
+        $trustee[0] | Should -Match 'IsInherited\] = FALSE\(\)'
+        $trustee[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
+        $trend = @($sendAs -split "`n" | Where-Object { $_ -match "Send As Grants \(All Snapshots\)" })
+        $trend.Count | Should -Be 1
+        $trend[0] | Should -Match 'IsInherited\] = FALSE\(\)'
+        $trend[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
+        $allThree = Get-TableText -Name 'MailboxFullAccess'
+        $keys = @($allThree -split "`n" | Where-Object { $_ -match 'SendAsPermissions\[TrusteeKey\]' })
+        $keys.Count | Should -Be 1
+        $keys[0] | Should -Match 'IsInherited\] = FALSE\(\)'
+        $keys[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
+        $table = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'delegation/visuals/table-send-as/visual.json') -Raw
+        $table | Should -Match 'explicit-send-as-grants'
+        $table | Should -Match '"ComparisonKind": 1'
+    }
+
     It 'reads the earliest audit record across both event files' {
         $text = Get-TableText -Name 'MailboxChangeEvents'
         $text | Should -Match ([regex]::Escape('MIN(MailAccessEvents[CreationTime])'))

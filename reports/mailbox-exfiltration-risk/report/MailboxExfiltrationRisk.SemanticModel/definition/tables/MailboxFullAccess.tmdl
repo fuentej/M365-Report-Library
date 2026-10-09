@@ -88,7 +88,7 @@ table MailboxFullAccess
             VAR SaSnap = [SendAsPermissions Snapshot Date]
             VAR SobSnap = [SendOnBehalf Snapshot Date]
             VAR FaKeys = CALCULATETABLE(VALUES(MailboxFullAccess[DelegateKey]), MailboxFullAccess[RunDate] = FaSnap)
-            VAR SaKeys = CALCULATETABLE(VALUES(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = SaSnap, SendAsPermissions[AccessControlType] = "Allow")
+            VAR SaKeys = CALCULATETABLE(VALUES(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = SaSnap, SendAsPermissions[AccessControlType] = "Allow", SendAsPermissions[IsInherited] = FALSE(), NOT ISBLANK(SendAsPermissions[IsInherited]))
             VAR SobKeys = CALCULATETABLE(VALUES(SendOnBehalf[DelegateKey]), SendOnBehalf[RunDate] = SobSnap)
             RETURN IF(ISBLANK(FaSnap) || ISBLANK(SaSnap) || ISBLANK(SobSnap), BLANK(), COUNTROWS(INTERSECT(INTERSECT(FaKeys, SaKeys), SobKeys)) + 0)
         formatString: #,0

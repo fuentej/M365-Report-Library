@@ -85,13 +85,15 @@ table SendAsPermissions
         formatString: #,0
         lineageTag: 32d7c69e-39d0-5e7b-aca4-15ea75df256e
 
+    /// Distinct trustees on explicit Allow rows. Inherited rows are the defaults the collector keeps so they can be filtered out.
     measure 'Send As Trustees' = 
             VAR Snap = [SendAsPermissions Snapshot Date]
-            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = Snap, SendAsPermissions[AccessControlType] = "Allow") + 0)
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = Snap, SendAsPermissions[AccessControlType] = "Allow", SendAsPermissions[IsInherited] = FALSE(), NOT ISBLANK(SendAsPermissions[IsInherited])) + 0)
         formatString: #,0
         lineageTag: e95e5102-b613-5854-bc34-c353023ed686
 
-    measure 'Send As Grants (All Snapshots)' = IF(COUNTROWS(SendAsPermissions) = 0, BLANK(), COUNTROWS(FILTER(SendAsPermissions, SendAsPermissions[AccessControlType] = "Allow")) + 0)
+    /// Explicit Allow rows in the date filter. An empty IsInherited is not an explicit grant: in DAX, BLANK() = FALSE().
+    measure 'Send As Grants (All Snapshots)' = IF(COUNTROWS(SendAsPermissions) = 0, BLANK(), COUNTROWS(FILTER(SendAsPermissions, SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited]))) + 0)
         formatString: #,0
         lineageTag: 502b4f2a-9dda-5e13-9366-1bf679cebbd4
 
