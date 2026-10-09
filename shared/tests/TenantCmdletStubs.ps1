@@ -294,3 +294,63 @@ function global:Get-MgReportOffice365GroupActivityDetail {
     )
     throw 'Get-MgReportOffice365GroupActivityDetail was called for real. Mock it in the test.'
 }
+
+function global:Get-MgReportAuthenticationMethodUserRegistrationDetail {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgReportAuthenticationMethodUserRegistrationDetail was called for real. Mock it in the test.'
+}
+
+function global:Get-MgIdentityConditionalAccessPolicy {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgIdentityConditionalAccessPolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance was called for real. Mock it in the test.'
+}
+
+function global:Get-MgRoleManagementDirectoryRoleEligibilityScheduleInstance {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgRoleManagementDirectoryRoleEligibilityScheduleInstance was called for real. Mock it in the test.'
+}
+
+function global:Get-MgRoleManagementDirectoryRoleAssignment {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgRoleManagementDirectoryRoleAssignment was called for real. Mock it in the test.'
+}
+
+function global:Get-MgRiskyUser {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgRiskyUser was called for real. Mock it in the test.'
+}
