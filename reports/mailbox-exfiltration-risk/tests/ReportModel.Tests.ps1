@@ -513,6 +513,18 @@ Describe 'The pages say what the data cannot show' {
         $text | Should -Match 'InboxRules.Forward Or Redirect Rules \(All Snapshots\)'
     }
 
+    It 'plots mail access events on the days they occurred' {
+        # MailItemsAccessed, Send, SendAs and SendOnBehalf are dated audit records.
+        # https://learn.microsoft.com/purview/audit-log-activities#exchange-mailbox-activities
+        $path = Join-Path $script:PagesFolder 'change-history/visuals/line-access/visual.json'
+        $path | Should -Exist
+        $text = Get-Content -LiteralPath $path -Raw
+        $text | Should -Match 'MailAccessEvents.ActivityDate'
+        $text | Should -Match 'MailAccessEvents.Operation'
+        $text | Should -Match 'Mail Access Events'
+        $text | Should -Not -Match 'DateDim.Date'
+    }
+
     It 'reads the earliest audit record across both event files' {
         $text = Get-TableText -Name 'MailboxChangeEvents'
         $text | Should -Match ([regex]::Escape('MIN(MailAccessEvents[CreationTime])'))

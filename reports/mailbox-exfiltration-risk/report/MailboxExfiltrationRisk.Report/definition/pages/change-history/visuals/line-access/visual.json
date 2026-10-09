@@ -1,6 +1,6 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
-  "name": "column-access-by-operation",
+  "name": "line-access",
   "position": {
     "x": 860,
     "y": 260,
@@ -10,10 +10,27 @@
     "tabOrder": 14
   },
   "visual": {
-    "visualType": "clusteredColumnChart",
+    "visualType": "lineChart",
     "query": {
       "queryState": {
         "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailAccessEvents"
+                    }
+                  },
+                  "Property": "ActivityDate"
+                }
+              },
+              "queryRef": "MailAccessEvents.ActivityDate"
+            }
+          ]
+        },
+        "Series": {
           "projections": [
             {
               "field": {
@@ -54,7 +71,7 @@
         {
           "properties": {
             "show": true,
-            "text": "Mail access and send events by operation"
+            "text": "Mail access and send events on the days they occurred"
           }
         }
       ]
