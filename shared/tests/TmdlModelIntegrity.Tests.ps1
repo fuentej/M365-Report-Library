@@ -174,11 +174,12 @@ Describe 'TMDL model integrity' {
         $faults -join '; ' | Should -BeNullOrEmpty
     }
 
-    It 'finds FILTER-based calculated tables in guest-access, so the inheritance rule is exercised' {
+    It 'finds calculated tables in guest-access, so the inheritance rule is exercised' {
+        # BRO-347 moved these from FILTER to SELECTCOLUMNS, so they are read through Projected.
         $path = (Resolve-Path (Join-Path $PSScriptRoot '../../reports/guest-access/report/GuestAccess.SemanticModel/definition')).Path
-        $filtered = @(Read-TmdlModelFolder -Path $path | Where-Object FilterBase)
-        $filtered.Name | Should -Contain 'GuestsCurrent'
-        $filtered.Name | Should -Contain 'GuestMembershipsCurrent'
+        $calculated = @(Read-TmdlModelFolder -Path $path | Where-Object { $_.FilterBase -or $null -ne $_.Projected })
+        $calculated.Name | Should -Contain 'GuestsCurrent'
+        $calculated.Name | Should -Contain 'GuestMembershipsCurrent'
     }
 
     Context 'detection' {
