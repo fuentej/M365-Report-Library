@@ -278,6 +278,13 @@ Describe 'Empty values are Unknown, never zero' {
         $tmdl | Should -Match 'IF\(ISBLANK\(d\), "Unknown"'
     }
 
+    It 'reads 0001-01-01 sign-in timestamps as empty, not as a date' {
+        # List users returns 0001-01-01T00:00:00Z when lastNonInteractiveSignInDateTime has no value.
+        # https://learn.microsoft.com/graph/api/user-list#example-11-get-users-including-their-last-sign-in-time
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UserSignInActivity.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('Text.StartsWith(value, "0001-01-01")'))
+    }
+
     It 'counts unknown last sign-ins separately from stale ones' {
         $model = $script:Model['UserSignInActivity']
         $model.Measures | Should -Contain 'Unknown Last Sign-In'
@@ -377,6 +384,14 @@ Describe 'Relationships and the anonymize toggle' {
         $tmdl | Should -Match ([regex]::Escape('SELECTEDVALUE(AnonymizeMode[Mode], "Show names")'))
         $tmdl | Should -Match ([regex]::Escape('IF(Mode = "Anonymize", Pseudo, RealName)'))
         $tmdl | Should -Match ([regex]::Escape('VAR IdText = UsersCurrent[Id]'))
+    }
+
+    It 'keeps each user at that user''s own latest snapshot, not only the newest file date' {
+        # A global MAX(RunDate) drops anyone who left before the newest snapshot,
+        # and the one-side relationship then removes their historical rows.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('ALLEXCEPT(Users, Users[Id])'))
+        $tmdl | Should -Not -Match ([regex]::Escape('Users[RunDate] = MAX(Users[RunDate])'))
     }
 }
 

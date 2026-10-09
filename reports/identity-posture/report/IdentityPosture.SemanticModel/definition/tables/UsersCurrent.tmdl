@@ -121,6 +121,13 @@ table UsersCurrent
     partition UsersCurrent = calculated
         mode: import
         source =
-            FILTER(Users, Users[RunDate] = MAX(Users[RunDate]))
+            FILTER(
+                Users,
+                Users[RunDate] =
+                    CALCULATE(
+                        MAX(Users[RunDate]),
+                        ALLEXCEPT(Users, Users[Id])
+                    )
+            )
 
     annotation PBI_ResultType = Table
