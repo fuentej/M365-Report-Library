@@ -1,0 +1,7 @@
+"RunDate","Id","UserPrincipalName","UserDisplayName","RiskLevel","RiskState","RiskDetail","RiskLastUpdatedDateTime","IsDeleted","IsProcessing"
+"2026-09-01","aaaaaaaa-0000-4000-8000-000000000003","casey.chaudhry@example.com","Casey Chaudhry","high","atRisk","none","2026-08-28T14:00:00Z","False","False"
+"2026-09-01","aaaaaaaa-0000-4000-8000-000000000004","devon.dlamini@example.com","Devon Dlamini","medium","atRisk","none","2026-08-30T09:00:00Z","False","False"
+"2026-09-01","aaaaaaaa-0000-4000-8000-000000000009","indigo.moreau_fabrikam.example.com#EXT#@example.onmicrosoft.com","Indigo Moreau","low","confirmedSafe","adminConfirmedSigninSafe","2026-08-15T16:30:00Z","False","False"
+"2026-10-01","aaaaaaaa-0000-4000-8000-000000000003","casey.chaudhry@example.com","Casey Chaudhry","high","atRisk","none","2026-08-28T14:00:00Z","False","False"
+"2026-10-01","aaaaaaaa-0000-4000-8000-000000000004","devon.dlamini@example.com","Devon Dlamini","none","remediated","userPerformedSecuredPasswordChange","2026-08-30T09:00:00Z","False","False"
+"2026-10-01","aaaaaaaa-0000-4000-8000-000000000009","indigo.moreau_fabrikam.example.com#EXT#@example.onmicrosoft.com","Indigo Moreau","low","confirmedSafe","adminConfirmedSigninSafe","2026-08-15T16:30:00Z","False","False"
