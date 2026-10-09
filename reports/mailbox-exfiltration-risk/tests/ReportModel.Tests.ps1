@@ -504,6 +504,15 @@ Describe 'The pages say what the data cannot show' {
         $table | Should -Match '"ComparisonKind": 1'
     }
 
+    It 'keeps organization-wide mail flow rules off the mailbox trend' {
+        # Get-TransportRule is organization-wide. The other series follow the mailbox slicer.
+        # https://learn.microsoft.com/exchange/security-and-compliance/mail-flow-rules/mail-flow-rules
+        $text = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'overview/visuals/line-trend/visual.json') -Raw
+        $text | Should -Not -Match 'TransportRules'
+        $text | Should -Match 'MailboxForwarding.Forwarding Mailboxes \(All Snapshots\)'
+        $text | Should -Match 'InboxRules.Forward Or Redirect Rules \(All Snapshots\)'
+    }
+
     It 'reads the earliest audit record across both event files' {
         $text = Get-TableText -Name 'MailboxChangeEvents'
         $text | Should -Match ([regex]::Escape('MIN(MailAccessEvents[CreationTime])'))

@@ -83,19 +83,6 @@
                 }
               },
               "queryRef": "InboxRules.Inbox Rules With External Target (All Snapshots)"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "TransportRules"
-                    }
-                  },
-                  "Property": "Redirect Or Blind Copy Rules (All Snapshots)"
-                }
-              },
-              "queryRef": "TransportRules.Redirect Or Blind Copy Rules (All Snapshots)"
             }
           ]
         }
@@ -106,7 +93,7 @@
         {
           "properties": {
             "show": true,
-            "text": "Forwarding mailboxes and rules by snapshot date"
+            "text": "Forwarding mailboxes and inbox rules by snapshot date"
           }
         }
       ]
