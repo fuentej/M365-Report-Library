@@ -114,59 +114,59 @@ table DeletedGroups
 
     /// Zero means no deleted-groups.csv row on the snapshot; the collector cannot tell none from a refused call.
     measure 'Soft-Deleted Groups' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
         formatString: #,0
         lineageTag: d0a8a321-ad08-5ba7-bf83-d41f593a7a92
 
     measure 'Soft-Deleted Microsoft 365 Groups' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, CONTAINSSTRING(DeletedGroups[GroupTypes], "Unified"))
         formatString: #,0
         lineageTag: f8e2d0da-fdb6-5544-98cd-a0067677784f
 
     measure 'Soft-Deleted Security Groups' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified"))
         formatString: #,0
         lineageTag: 03281b9b-6b41-5855-8fa4-aeae6044fafd
 
     measure 'Purging Within 7 Days' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT ISBLANK(DeletedGroups[DaysToPurge]), DeletedGroups[DaysToPurge] >= 0, DeletedGroups[DaysToPurge] <= 7)
         formatString: #,0
         lineageTag: f80927b6-fb49-5d45-a905-c3acdf59cc84
 
     measure 'Deleted Group Display Name' = 
             VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate)
             VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate)
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: 3ed9fae1-b5a5-54cb-9007-bbb17e0b243e
 
     measure 'Deleted Date (Display)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
             VAR Value = CALCULATE(MAX(DeletedGroups[DeletedDateTime]), DeletedGroups[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
         lineageTag: 169d5910-b6d5-591f-ae9c-ded01b03ecd7
 
     measure 'Purge Date (Display)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
             VAR Value = CALCULATE(MAX(DeletedGroups[PurgeDateTime]), DeletedGroups[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
         lineageTag: ada530ec-e856-5eff-86bd-552c13b86eaf
 
     measure 'Days To Purge (Display)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR Days = CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate)
             RETURN IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days")
         lineageTag: 7b4da39f-dd53-5c3c-a13f-b0b56179de30
 
     measure 'Deleted Kind (Display)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
             VAR Value = CALCULATE(MAX(DeletedGroups[DeletedKind]), DeletedGroups[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", Value)

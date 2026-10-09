@@ -417,6 +417,17 @@ Describe 'Empty values are Unknown, never zero' {
         $tmdl | Should -Match 'IF\(ISBLANK\(Enabled\), "Unknown"'
     }
 
+    It 'reads deletions and the expiration policy from their own snapshot date' {
+        # These files have their own RunDate. Borrowing the groups snapshot shows
+        # zero when that date has no row, even if an earlier snapshot in the
+        # date range has the data.
+        foreach ($table in 'DeletedGroups', 'GroupLifecyclePolicies') {
+            $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$table.tmdl") -Raw
+            $tmdl | Should -Not -Match '\[Selected Snapshot Date\]' -Because $table
+            $tmdl | Should -Match ([regex]::Escape("CALCULATE(MAX($table[RunDate]), ALLSELECTED($table))")) -Because $table
+        }
+    }
+
     It 'counts snapshot metrics on the snapshot inside the selected date range' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Groups.tmdl') -Raw
         $tmdl | Should -Match "measure 'Selected Snapshot Date'"

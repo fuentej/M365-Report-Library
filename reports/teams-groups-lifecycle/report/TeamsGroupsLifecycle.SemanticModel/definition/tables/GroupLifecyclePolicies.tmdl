@@ -34,7 +34,7 @@ table GroupLifecyclePolicies
 
     /// A tenant with no policy writes the header only. Covered members need Entra ID P1 or P2.
     measure 'Expiration Policy Lifetime' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupLifecyclePolicies[RunDate]), ALLSELECTED(GroupLifecyclePolicies))
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecyclePolicies), GroupLifecyclePolicies[RunDate] = SnapshotDate)
             VAR Days = CALCULATE(MAX(GroupLifecyclePolicies[GroupLifetimeInDays]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days"))
@@ -42,7 +42,7 @@ table GroupLifecyclePolicies
 
     /// All, Selected or None.
     measure 'Policy Scope' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupLifecyclePolicies[RunDate]), ALLSELECTED(GroupLifecyclePolicies))
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecyclePolicies), GroupLifecyclePolicies[RunDate] = SnapshotDate)
             VAR Value = CALCULATE(MAX(GroupLifecyclePolicies[ManagedGroupTypes]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(Value), "Unknown", Value))
