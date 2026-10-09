@@ -166,8 +166,9 @@ From the shared collector; see `shared/M365ReportLibrary.psm1`. It does not hold
 | `IsPasswordlessCapable` | The user can sign in without a password |
 | `IsSsprEnabled`, `IsSsprRegistered`, `IsSsprCapable` | Self-service password reset state |
 | `IsSystemPreferredAuthenticationMethodEnabled` | System-preferred MFA is on for the user |
-| `DefaultMfaMethod`, `UserPreferredMethodForSecondaryAuthentication` | As returned by Graph |
-| `MethodsRegistered`, `SystemPreferredAuthenticationMethods` | Lists of method names |
+| `UserPreferredMethodForSecondaryAuthentication` | `push`, `oath`, `voiceMobile`, `voiceAlternateMobile`, `voiceOffice`, `sms`, `none` or `unknownFutureValue`. `defaultMfaMethod` is beta only and is not collected |
+| `MethodsRegistered` | Registered methods, such as `mobilePhone`, `email`, `microsoftAuthenticatorPush`, `softwareOneTimePasscode`, `passKeyDeviceBound` |
+| `SystemPreferredAuthenticationMethods` | The same values as the preferred secondary method (`push`, `oath`, `sms`, `none`, ...) |
 | `LastUpdatedDateTime` | When the registration last changed |
 
 Disabled users are not returned by the API, so a "no MFA" count covers enabled users only.

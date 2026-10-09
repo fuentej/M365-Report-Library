@@ -102,6 +102,24 @@ Describe 'The sample data uses the values the Learn pages document' {
         }
     }
 
+    It 'uses only the v1.0 registration method values' {
+        # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
+        # https://learn.microsoft.com/graph/api/authenticationmethodsroot-list-userregistrationdetails
+        $preferred = 'push', 'oath', 'voiceMobile', 'voiceAlternateMobile', 'voiceOffice', 'sms', 'none', 'unknownFutureValue'
+        $registered = 'mobilePhone', 'email', 'passKeyDeviceBound', 'microsoftAuthenticatorPush', 'softwareOneTimePasscode'
+        $header = Get-CsvHeaderColumn -Path (Join-Path $script:Samples 'authentication-methods.csv')
+        $header | Should -Not -Contain 'DefaultMfaMethod'
+        foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples 'authentication-methods.csv')) {
+            $preferred | Should -Contain $row.UserPreferredMethodForSecondaryAuthentication
+            foreach ($method in ($row.SystemPreferredAuthenticationMethods -split ';' | Where-Object { $_ })) {
+                $preferred | Should -Contain $method
+            }
+            foreach ($method in ($row.MethodsRegistered -split ';' | Where-Object { $_ })) {
+                $registered | Should -Contain $method
+            }
+        }
+    }
+
     It 'uses only the legacy clientAppUsed values' {
         foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples 'signins.csv')) {
             $script:Schema.LegacyClientAppValues | Should -Contain $row.ClientAppUsed

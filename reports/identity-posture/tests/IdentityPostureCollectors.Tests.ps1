@@ -51,10 +51,9 @@ BeforeAll {
             IsSsprRegistered                              = $true
             IsSsprCapable                                 = $true
             IsSystemPreferredAuthenticationMethodEnabled  = $true
-            DefaultMfaMethod                              = 'mobilePhone'
             UserPreferredMethodForSecondaryAuthentication = 'push'
             MethodsRegistered                             = @('microsoftAuthenticatorPush', 'mobilePhone')
-            SystemPreferredAuthenticationMethods          = @('microsoftAuthenticatorPush')
+            SystemPreferredAuthenticationMethods          = @('push')
             LastUpdatedDateTime                           = [datetime]'2026-08-11T10:15:00Z'
         }
     }
@@ -406,13 +405,27 @@ Describe 'Empty signInActivity values stay empty' {
                         LastSuccessfulSignInDateTime     = $null
                     })
                 New-MockUser -Id 'real'
+                # Example 11 returns signInActivity as a nested object with camelCase
+                # names, including 0001-01-01T00:00:00Z and "".
+                # https://learn.microsoft.com/graph/api/user-list#example-11-get-users-including-their-last-sign-in-time
+                [pscustomobject]@{
+                    Id                   = 'example-11'
+                    UserPrincipalName    = 'adele.vance@example.com'
+                    AdditionalProperties = @{
+                        signInActivity = @{
+                            lastSignInDateTime               = '2021-06-17T16:41:33Z'
+                            lastNonInteractiveSignInDateTime = '0001-01-01T00:00:00Z'
+                            lastSuccessfulSignInDateTime     = ''
+                        }
+                    }
+                }
             )
         }
 
         Invoke-CollectorScript 'Get-UserSignInActivity.ps1' @{ OutputPath = $script:folder }
 
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'user-signin-activity.csv'))
-        $rows.Count | Should -Be 4
+        $rows.Count | Should -Be 5
         foreach ($id in 'never', 'no-property') {
             $row = $rows | Where-Object UserId -EQ $id
             $row.LastSignInDateTime | Should -BeNullOrEmpty
@@ -428,6 +441,11 @@ Describe 'Empty signInActivity values stay empty' {
         $real.LastSignInDateTime | Should -Be '2026-09-21T07:45:00Z'
         $real.LastNonInteractiveSignInDateTime | Should -Be '2026-09-21T22:10:00Z'
         $real.LastSuccessfulSignInDateTime | Should -Be '2026-09-21T07:45:00Z'
+
+        $example = $rows | Where-Object UserId -EQ 'example-11'
+        $example.LastSignInDateTime | Should -Be '2021-06-17T16:41:33Z'
+        $example.LastNonInteractiveSignInDateTime | Should -BeNullOrEmpty
+        $example.LastSuccessfulSignInDateTime | Should -BeNullOrEmpty
         (Get-Content -LiteralPath (Join-Path $script:folder 'user-signin-activity.csv') -Raw) | Should -Not -Match '0001-01-01'
     }
 
@@ -450,6 +468,15 @@ Describe 'What each collector keeps' {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
+    It 'does not read the beta-only defaultMfaMethod property' {
+        # v1.0 userRegistrationDetails has no defaultMfaMethod. That property is beta only:
+        # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
+        # https://learn.microsoft.com/graph/api/resources/userregistrationdetails?view=graph-rest-beta
+        $collector = Get-Content -LiteralPath (Join-Path $script:Collectors 'Get-AuthenticationMethods.ps1') -Raw
+        $collector | Should -Not -Match 'DefaultMfaMethod'
+        $script:Schema.AuthenticationMethods | Should -Not -Contain 'DefaultMfaMethod'
+    }
+
     It 'flattens authentication methods and keeps the booleans' {
         Mock Get-MgReportAuthenticationMethodUserRegistrationDetail -MockWith { New-MockRegistration }
 
@@ -460,6 +487,9 @@ Describe 'What each collector keeps' {
         $row.IsAdmin | Should -Be 'True'
         $row.IsPasswordlessCapable | Should -Be 'False'
         $row.MethodsRegistered | Should -Be 'microsoftAuthenticatorPush;mobilePhone'
+        $row.UserPreferredMethodForSecondaryAuthentication | Should -Be 'push'
+        $row.SystemPreferredAuthenticationMethods | Should -Be 'push'
+        $row.PSObject.Properties.Name | Should -Not -Contain 'DefaultMfaMethod'
         $row.LastUpdatedDateTime | Should -Be '2026-08-11T10:15:00Z'
     }
 

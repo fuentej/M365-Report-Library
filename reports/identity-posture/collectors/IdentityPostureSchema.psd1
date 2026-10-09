@@ -4,9 +4,11 @@
     # can never drift from its collector's output.
     # Contract: docs/candidates/identity-posture.md
 
-    # Source 2. Properties of userRegistrationDetails:
+    # Source 2. Properties of userRegistrationDetails (v1.0):
     # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
-    # The API does not return disabled users.
+    # The API does not return disabled users. defaultMfaMethod exists only on the beta
+    # resource and is not collected.
+    # https://learn.microsoft.com/graph/api/resources/userregistrationdetails?view=graph-rest-beta
     AuthenticationMethods = @(
         'RunDate'
         'UserId'
@@ -21,7 +23,6 @@
         'IsSsprRegistered'
         'IsSsprCapable'
         'IsSystemPreferredAuthenticationMethodEnabled'
-        'DefaultMfaMethod'
         'UserPreferredMethodForSecondaryAuthentication'
         'MethodsRegistered'
         'SystemPreferredAuthenticationMethods'

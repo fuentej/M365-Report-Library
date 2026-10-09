@@ -75,7 +75,6 @@ Invoke-IdentityPostureSnapshot -Source 'AuthenticationMethods' -CsvName 'authent
             IsSsprRegistered                              = $detail.IsSsprRegistered
             IsSsprCapable                                 = $detail.IsSsprCapable
             IsSystemPreferredAuthenticationMethodEnabled  = $detail.IsSystemPreferredAuthenticationMethodEnabled
-            DefaultMfaMethod                              = [string]$detail.DefaultMfaMethod
             UserPreferredMethodForSecondaryAuthentication = [string]$detail.UserPreferredMethodForSecondaryAuthentication
             MethodsRegistered                             = Join-ListValue $detail.MethodsRegistered
             SystemPreferredAuthenticationMethods          = Join-ListValue $detail.SystemPreferredAuthenticationMethods
