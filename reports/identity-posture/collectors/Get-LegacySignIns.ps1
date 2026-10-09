@@ -181,6 +181,7 @@ $result = Export-AppendCsv -Path $csvPath -Rows $rows.ToArray() -Column $columns
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'signins.csv: {0} rows written, {1} skipped as already collected.' -f $result.Written, $result.Skipped)
 
+
 if ($null -ne $failure) {
     if ($result.Written -eq 0 -and (Test-LicenseError -Message $failure)) {
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
@@ -188,9 +189,12 @@ if ($null -ne $failure) {
         return
     }
 
+    $keptNote = if ($result.Written -gt 0) { " The windows read before the failure were kept." } else { "" }
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
-        "The Entra ID sign-in log is unavailable to this sign-in ($failure). It needs Microsoft Entra ID P1 or P2, the AuditLog.Read.All permission and the Reports Reader role. The windows read before the failure were kept.")
+        "The Entra ID sign-in log is unavailable to this sign-in ($failure). It needs Microsoft Entra ID P1 or P2, the AuditLog.Read.All permission and the Reports Reader role.$keptNote")
     if ($result.Written -gt 0) {
         throw "Reading the sign-in log stopped part-way ($failure). The complete windows were kept; re-run to resume."
     }
+    throw "Reading the sign-in log failed ($failure)."
 }
+
