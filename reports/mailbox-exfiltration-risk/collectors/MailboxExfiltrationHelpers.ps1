@@ -101,24 +101,56 @@ function Get-AddressDomain {
     return $Address.Substring($Address.LastIndexOf('@') + 1).ToLowerInvariant()
 }
 
+function Get-AcceptedDomainMatchSubdomains {
+    <#
+        .SYNOPSIS
+            Whether an accepted domain also accepts its subdomains.
+
+        .DESCRIPTION
+            Set-AcceptedDomain -MatchSubdomains
+            (https://learn.microsoft.com/exchange/mail-flow-best-practices/manage-accepted-domains/enable-mail-flow-for-subdomains).
+            The property is absent when the cmdlet output does not carry it.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)]$Domain)
+
+    foreach ($propertyName in 'MatchSubdomains', 'MatchSubDomains') {
+        $property = $Domain.PSObject.Properties[$propertyName]
+        if (-not $property -or $null -eq $property.Value) { continue }
+        if ($property.Value -is [bool]) { return [bool]$property.Value }
+        $parsed = $false
+        if ([bool]::TryParse([string]$property.Value, [ref]$parsed)) { return $parsed }
+    }
+    return $false
+}
+
 function Get-AcceptedDomainName {
     <#
         .SYNOPSIS
-            The accepted domain names of the organization, or $null when they cannot be
-            read.
+            The accepted domains of the organization, or $null when they cannot be read.
 
         .DESCRIPTION
             Get-AcceptedDomain -ResultSize Unlimited
             (https://learn.microsoft.com/powershell/module/exchangepowershell/get-accepteddomain).
-            ResultSize defaults to 1000, so Unlimited is required. A refusal returns $null
-            and the caller leaves the external decision empty rather than guessing.
+            ResultSize defaults to 1000, so Unlimited is required. Each entry has Name and
+            MatchSubdomains. A refusal returns $null and the caller leaves the external
+            decision empty rather than guessing.
     #>
     [CmdletBinding()]
     param([string]$OutputPath, [string]$Source)
 
     try {
         $domains = @(Get-AcceptedDomain -ResultSize Unlimited -ErrorAction Stop)
-        return , [string[]]@($domains | ForEach-Object { ([string]$_.DomainName).ToLowerInvariant() } | Where-Object { $_ })
+        $entries = foreach ($domain in $domains) {
+            $name = ([string]$domain.DomainName).ToLowerInvariant()
+            if (-not $name) { continue }
+            [pscustomobject]@{
+                Name            = $name
+                MatchSubdomains = Get-AcceptedDomainMatchSubdomains -Domain $domain
+            }
+        }
+        return , @($entries)
     }
     catch {
         if ($OutputPath) {
@@ -137,21 +169,33 @@ function Test-ExternalDomain {
 
         .DESCRIPTION
             A name matches an accepted domain exactly, or a wildcard accepted domain such
-            as *.contoso.com. A subdomain of an accepted domain is external unless a
-            wildcard covers it, because Exchange accepts only the domains it lists.
+            as *.contoso.com. A subdomain is also internal when the parent accepted domain
+            has MatchSubdomains set
+            (https://learn.microsoft.com/exchange/mail-flow-best-practices/manage-accepted-domains/enable-mail-flow-for-subdomains).
+            Entries may be those objects or plain domain-name strings.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Domain,
-        [AllowNull()][string[]]$AcceptedDomain
+        [AllowNull()]$AcceptedDomain
     )
 
     if ($null -eq $AcceptedDomain) { return $null }
 
     $name = $Domain.ToLowerInvariant()
-    foreach ($accepted in $AcceptedDomain) {
-        if ($name -eq $accepted) { return $false }
-        if ($accepted.StartsWith('*.') -and ($name -eq $accepted.Substring(2) -or $name.EndsWith($accepted.Substring(1)))) { return $false }
+    foreach ($accepted in @($AcceptedDomain)) {
+        $matchSubdomains = $false
+        $acceptedName = $accepted
+        if ($accepted -isnot [string]) {
+            $acceptedName = [string]$accepted.Name
+            $matchProperty = $accepted.PSObject.Properties['MatchSubdomains']
+            if ($matchProperty -and $matchProperty.Value -is [bool]) { $matchSubdomains = [bool]$matchProperty.Value }
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$acceptedName)) { continue }
+        $acceptedName = $acceptedName.ToLowerInvariant()
+        if ($name -eq $acceptedName) { return $false }
+        if ($acceptedName.StartsWith('*.') -and ($name -eq $acceptedName.Substring(2) -or $name.EndsWith($acceptedName.Substring(1)))) { return $false }
+        if ($matchSubdomains -and $name.EndsWith(".$acceptedName")) { return $false }
     }
     return $true
 }
@@ -168,7 +212,7 @@ function Get-RecipientTargetSummary {
     [CmdletBinding()]
     param(
         [AllowNull()]$Recipient,
-        [AllowNull()][string[]]$AcceptedDomain
+        [AllowNull()]$AcceptedDomain
     )
 
     $domains = @(Get-SmtpAddress $Recipient | ForEach-Object { Get-AddressDomain $_ } | Select-Object -Unique)

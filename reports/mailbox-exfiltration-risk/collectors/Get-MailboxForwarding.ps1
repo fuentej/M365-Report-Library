@@ -16,8 +16,9 @@
 
         ForwardingAddress is an internal recipient, not an SMTP forward. External means
         the domain of ForwardingSmtpAddress is not an accepted domain
-        (Get-AcceptedDomain). If the accepted domains cannot be read, IsExternal is
-        empty rather than guessed.
+        (Get-AcceptedDomain). A subdomain of a domain with MatchSubdomains is internal
+        (https://learn.microsoft.com/exchange/mail-flow-best-practices/manage-accepted-domains/enable-mail-flow-for-subdomains).
+        If the accepted domains cannot be read, IsExternal is empty rather than guessed.
 
         The cmdlet page defers to the permissions page for the role; the matching role,
         View-Only Recipients, is an inference and is UNVERIFIED.

@@ -413,6 +413,18 @@ Describe 'Mailbox forwarding' {
         (Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-forwarding.csv')).IsExternal | Should -Be 'False'
     }
 
+    It 'treats a subdomain as internal when the accepted domain matches subdomains' {
+        # https://learn.microsoft.com/exchange/mail-flow-best-practices/manage-accepted-domains/enable-mail-flow-for-subdomains
+        Mock Get-AcceptedDomain -MockWith {
+            [pscustomobject]@{ Name = 'example.com'; DomainName = 'example.com'; DomainType = 'InternalRelay'; Default = $true; MatchSubdomains = $true }
+        }
+        Mock Get-EXOMailbox -MockWith { New-MockMailbox -ForwardingSmtpAddress 'smtp:x@sub.example.com' }
+
+        Invoke-CollectorScript 'Get-MailboxForwarding.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        (Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-forwarding.csv')).IsExternal | Should -Be 'False'
+    }
+
     It 'leaves IsExternal empty and warns when the accepted domains cannot be read' {
         Mock Get-AcceptedDomain -MockWith { throw 'The term is not recognized' }
         Mock Get-EXOMailbox -MockWith { New-MockMailbox -ForwardingSmtpAddress 'smtp:x@fabrikam.example.net' }

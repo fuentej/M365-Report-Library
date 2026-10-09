@@ -170,7 +170,7 @@ rows per run, tagged `RunDate`.
 | `ForwardingSmtpAddress` | An SMTP forward, as `smtp:user@domain` |
 | `ForwardingSmtpDomain` | The domain of `ForwardingSmtpAddress` |
 | `DeliverToMailboxAndForward` | `True` when a copy stays in the mailbox |
-| `IsExternal` | `True` when `ForwardingSmtpDomain` is not an accepted domain; `False` when it is, or when only `ForwardingAddress` is set; empty when the accepted domains could not be read |
+| `IsExternal` | `True` when `ForwardingSmtpDomain` is not an accepted domain; `False` when it is, when it is a subdomain of an accepted domain with `MatchSubdomains`, or when only `ForwardingAddress` is set; empty when the accepted domains could not be read |
 
 ### `send-on-behalf.csv` — snapshot, one row per delegate
 
