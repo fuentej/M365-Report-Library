@@ -83,23 +83,24 @@ table SignIns
         isDataTypeInferred: false
 
     /// At least: signins.csv holds interactive and successful federated sign-ins only; legacy protocols often authenticate non-interactively.
-    measure 'Legacy Sign-Ins' = COUNTROWS(SignIns) + 0
+    /// Header-only file (not collected): blank, never zero. BLANK() + 0 equals 0, so the empty-table check comes first.
+    measure 'Legacy Sign-Ins' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), COUNTROWS(SignIns) + 0)
         formatString: #,0
         lineageTag: b2a48984-ae39-5b18-80ad-d30aaa86692b
 
-    measure 'Legacy Sign-Ins Succeeded' = CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Succeeded") + 0
+    measure 'Legacy Sign-Ins Succeeded' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Succeeded") + 0)
         formatString: #,0
         lineageTag: fa3e9867-c1c7-519d-9791-b1f38f3c63ea
 
-    measure 'Legacy Sign-Ins Failed or Blocked' = CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Failed or blocked") + 0
+    measure 'Legacy Sign-Ins Failed or Blocked' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Failed or blocked") + 0)
         formatString: #,0
         lineageTag: 71d8f145-7147-5387-ac73-701e55a94d08
 
-    measure 'Legacy Sign-Ins Outcome Unknown' = CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Unknown") + 0
+    measure 'Legacy Sign-Ins Outcome Unknown' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Unknown") + 0)
         formatString: #,0
         lineageTag: 9a61911c-3433-56bf-a99a-7e63b692d3e0
 
-    measure 'Legacy Sign-In Users' = DISTINCTCOUNT(SignIns[UserId]) + 0
+    measure 'Legacy Sign-In Users' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), DISTINCTCOUNT(SignIns[UserId]) + 0)
         formatString: #,0
         lineageTag: 8692a341-3d1c-540c-994b-309b51fd8c20
 

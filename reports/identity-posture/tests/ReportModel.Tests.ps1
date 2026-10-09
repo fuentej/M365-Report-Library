@@ -250,6 +250,16 @@ Describe 'The header-only files of an unlicensed tenant still fit the model' {
         }
     }
 
+    It 'leaves legacy sign-in counts blank when signins.csv has no rows' {
+        # COUNTROWS of an empty table is BLANK, and BLANK() + 0 is 0
+        # (https://learn.microsoft.com/dax/dax-operator-reference). A header-only
+        # signins.csv is not collected, so the empty check has to win.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'SignIns.tmdl') -Raw
+        foreach ($measure in 'Legacy Sign-Ins', 'Legacy Sign-Ins Succeeded', 'Legacy Sign-Ins Failed or Blocked', 'Legacy Sign-Ins Outcome Unknown', 'Legacy Sign-In Users') {
+            $tmdl | Should -Match ([regex]::Escape("measure '$measure' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(),")) -Because "$measure must be blank when the file has no rows"
+        }
+    }
+
     It 'falls back to role-assignments.csv for active holders when PIM data is absent' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'ActiveRoleAssignments.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape("IF(NOT ISBLANK([Active Assignments]), [Active Assignments], [Active Assignments (No PIM)])"))
