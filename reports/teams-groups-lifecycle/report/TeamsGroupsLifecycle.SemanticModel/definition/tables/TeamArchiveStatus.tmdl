@@ -32,7 +32,8 @@ table TeamArchiveStatus
         summarizeBy: none
         isDataTypeInferred: false
 
-    column ArchiveLabel = IF(TeamArchiveStatus[IsArchived] = TRUE(), "Archived", "Active")
+    /// A blank isArchived is omitted by the read, not proof the team is active.
+    column ArchiveLabel = IF(ISBLANK(TeamArchiveStatus[IsArchived]), "Unknown", IF(TeamArchiveStatus[IsArchived] = TRUE(), "Archived", "Active"))
         dataType: string
         lineageTag: 6166e62b-c341-5552-beac-b27a25113663
         summarizeBy: none

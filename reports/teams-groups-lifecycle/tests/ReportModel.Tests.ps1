@@ -391,6 +391,13 @@ Describe 'Empty values are Unknown, never zero' {
         $tmdl | Should -Not -Match 'ISBLANK\(DeletedGroups\[GroupTypes\]\)'
     }
 
+    It 'reports a blank isArchived as Unknown, not Active' {
+        # GET /teams can omit isArchived when the token is only Team.ReadBasic.All.
+        # https://learn.microsoft.com/graph/api/team-get
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'TeamArchiveStatus.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('IF(ISBLANK(TeamArchiveStatus[IsArchived]), "Unknown", IF(TeamArchiveStatus[IsArchived] = TRUE(), "Archived", "Active"))'))
+    }
+
     It 'treats an owner missing from users.csv as unknown, not enabled' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GroupOwners.tmdl') -Raw
         $tmdl | Should -Match 'IF\(ISBLANK\(Enabled\), "Unknown"'
