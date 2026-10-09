@@ -38,14 +38,14 @@ table GuestMembershipsCurrent
         summarizeBy: none
         sourceColumn: Visibility
 
-    column IsTeamLabel = IF(GuestMembershipsCurrent[IsTeam] = TRUE(), "Team", "Group")
+    column IsTeamLabel
         dataType: string
         lineageTag: d1aa69dd-e3d9-57a5-939a-93ef4c621b9e
         summarizeBy: none
-        isDataTypeInferred: false
+        sourceColumn: IsTeamLabel
 
     /// Group/Team memberships in the latest guest-memberships.csv snapshot.
-    measure 'Membership Count' = COUNTROWS(GuestMembershipsCurrent)
+    measure 'Current Membership Count' = COUNTROWS(GuestMembershipsCurrent)
         formatString: #,0
         lineageTag: 3020530a-b787-5943-9376-8a9f166ee69b
 
