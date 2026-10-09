@@ -62,4 +62,34 @@ Describe 'Oversharing source list' {
         $script:Doc | Should -Match 'InProgress'
         $script:Doc | Should -Match 'Paused'
     }
+
+    It 'includes OneDrive sites and names the sharing setting values' {
+        # IncludePersonalSite defaults to false. Limit defaults to 200.
+        # None is the widest link, not an absent link.
+        $script:Doc | Should -Match 'IncludePersonalSite \$true'
+        $script:Doc | Should -Match 'defaults to 200'
+        $script:Doc | Should -Match 'defaults to `\$false`'
+        $script:Doc | Should -Match 'ExternalUserAndGuestSharing'
+        $script:Doc | Should -Match 'ExistingExternalUserSharingOnly'
+        $script:Doc | Should -Match 'AnonymousAccess'
+        $script:Doc | Should -Match 'not "no link"'
+        $script:Doc | Should -Match 'do not call `Set-SPOTenant`'
+        $script:Doc | Should -Match 'oneDrive.getAllSites'
+    }
+
+    It 'puts a Learn link on every Available or NotAvailable cell in the source table' {
+        $sources = $script:Doc -split '## Sources', 2
+        $sourceSection = ($sources[1] -split 'Consolidated notes:', 2)[0]
+        $rows = @($sourceSection -split '\r?\n' | Where-Object { $_ -match '^\| \d' })
+        $rows.Count | Should -BeGreaterThan 0
+        foreach ($row in $rows) {
+            $cells = $row -split '\|' | Select-Object -Skip 1
+            foreach ($cell in $cells) {
+                # Match the status token, not the word "available" inside an UNVERIFIED note.
+                if ($cell -match '\[(?:Not)?Available\]') {
+                    $cell | Should -Match 'https://learn\.microsoft\.com/'
+                }
+            }
+        }
+    }
 }
