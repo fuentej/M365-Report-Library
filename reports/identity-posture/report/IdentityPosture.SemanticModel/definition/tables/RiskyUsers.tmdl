@@ -117,22 +117,35 @@ table RiskyUsers
         formatString: #,0
         lineageTag: 0b22cb8d-68ba-5558-a7f4-480d1784178e
 
+    /// 1 when this user is in risky-users.csv on the snapshot date. Blank otherwise: the list API returns only users Entra has evaluated, so absence is not riskLevel unknownFutureValue.
+    measure 'Listed On Snapshot' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            VAR N = CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap)
+            RETURN IF(N > 0, 1)
+        formatString: 0
+        lineageTag: 4c0e8a17-6b2d-5e91-9c44-7a1d0e5b3f28
+
+    /// Unknown only when the listed row's riskLevel is empty. A user the API did not return is blank, not Unknown.
     measure 'Risk Level' = 
             VAR Snap = [Risky Users Snapshot Date]
+            VAR Listed = CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap)
             VAR V = CALCULATE(MAX(RiskyUsers[RiskLevel]), RiskyUsers[RunDate] = Snap)
-            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+            RETURN IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))
         lineageTag: d2535350-765a-52aa-8206-148200569f0c
 
+    /// Unknown only when the listed row's riskState is empty. A user the API did not return is blank, not Unknown.
     measure 'Risk State' = 
             VAR Snap = [Risky Users Snapshot Date]
+            VAR Listed = CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap)
             VAR V = CALCULATE(MAX(RiskyUsers[RiskState]), RiskyUsers[RunDate] = Snap)
-            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+            RETURN IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))
         lineageTag: ca5518c9-36a6-5709-b73c-cbeb86af6f50
 
     measure 'Role Overlap' = 
             VAR Snap = [Risky Users Snapshot Date]
+            VAR Listed = CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap)
             VAR V = CALCULATE(MAX(RiskyUsers[RoleOverlap]), RiskyUsers[RunDate] = Snap)
-            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+            RETURN IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))
         lineageTag: 8c31806a-a3e9-5495-bc10-49b8005fbc8d
 
     measure 'Risk Last Updated' = 

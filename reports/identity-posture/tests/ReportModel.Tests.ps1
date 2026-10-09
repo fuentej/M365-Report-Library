@@ -296,6 +296,18 @@ Describe 'Empty values are Unknown, never zero' {
         $offenders -join '; ' | Should -BeNullOrEmpty
     }
 
+    It 'labels risk Unknown only for a user the riskyUsers list actually returned' {
+        # List riskyUsers returns users Entra has evaluated, not the directory.
+        # unknownFutureValue is a real riskLevel; a missing row is not that value.
+        # https://learn.microsoft.com/graph/api/resources/riskyuser
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'RiskyUsers.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape("measure 'Listed On Snapshot' ="))
+        ([regex]::Matches($tmdl, [regex]::Escape('IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))'))).Count | Should -Be 3 -Because 'Risk Level, Risk State and Role Overlap must stay blank for a user the list did not return'
+        $visual = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'risky-users/visuals/table-users/visual.json') -Raw
+        $visual | Should -Match ([regex]::Escape('"Property": "Listed On Snapshot"'))
+        $visual | Should -Match '"ComparisonKind": 0'
+    }
+
     It 'treats a blank MethodsRegistered as unknown, not zero methods' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AuthenticationMethods.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape('IF(ISBLANK(AuthenticationMethods[MethodsRegistered]), BLANK()'))
