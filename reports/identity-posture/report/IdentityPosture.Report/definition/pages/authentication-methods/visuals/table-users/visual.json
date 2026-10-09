@@ -43,16 +43,16 @@
             },
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "UsersCurrent"
+                      "Entity": "AuthenticationMethods"
                     }
                   },
-                  "Property": "UserType"
+                  "Property": "User Type (Display)"
                 }
               },
-              "queryRef": "UsersCurrent.UserType"
+              "queryRef": "AuthenticationMethods.User Type (Display)"
             },
             {
               "field": {

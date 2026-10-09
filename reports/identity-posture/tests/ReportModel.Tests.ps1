@@ -313,6 +313,18 @@ Describe 'Empty values are Unknown, never zero' {
         $visual | Should -Match '"ComparisonKind": 0'
     }
 
+    It 'shows the registration userType on the authentication methods table' {
+        # userRegistrationDetails.userType is member, guest, or unknownFutureValue.
+        # The directory user resource uses Member and Guest.
+        # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AuthenticationMethods.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape("measure 'User Type (Display)' ="))
+        $tmdl | Should -Match ([regex]::Escape('IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))'))
+        $visual = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'authentication-methods/visuals/table-users/visual.json') -Raw
+        $visual | Should -Match ([regex]::Escape('"Property": "User Type (Display)"'))
+        $visual | Should -Not -Match 'UsersCurrent.UserType'
+    }
+
     It 'treats a blank MethodsRegistered as unknown, not zero methods' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AuthenticationMethods.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape('IF(ISBLANK(AuthenticationMethods[MethodsRegistered]), BLANK()'))

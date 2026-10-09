@@ -198,6 +198,14 @@ table AuthenticationMethods
         formatString: #,0
         lineageTag: 06a7d5b5-2859-56e9-94ee-aa45807fc8be
 
+    /// userRegistrationDetails userType is member, guest, or unknownFutureValue. Blank when this user has no registration row. Directory userType (Member, Guest) is a different property.
+    measure 'User Type (Display)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            VAR Listed = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap)
+            VAR V = CALCULATE(MAX(AuthenticationMethods[UserType]), AuthenticationMethods[RunDate] = Snap)
+            RETURN IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 9b7e2c14-0a58-5d33-b6e1-4f8c0d2a71e5
+
     /// Yes, No, or Unknown when the column is empty. An empty value is never read as No.
     measure 'MFA Registered (Display)' = 
             VAR Snap = [Authentication Methods Snapshot Date]
