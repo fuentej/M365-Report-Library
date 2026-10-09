@@ -628,10 +628,11 @@ Describe 'An UNVERIFIED source is attempted with a warning' {
         Get-LogText -Folder $script:folder | Should -Match 'UNVERIFIED'
     }
 
-    It 'records a refusal and writes the header only' {
+    It 'records a refusal, writes the header only and does not report success' {
         Mock Get-MgUser -MockWith { throw 'Property signInActivity is not supported in this cloud.' }
 
-        Invoke-CollectorScript 'Get-UserSignInActivity.ps1' @{ OutputPath = $script:folder; Environment = 'GCCHigh' } 3>$null
+        { Invoke-CollectorScript 'Get-UserSignInActivity.ps1' @{ OutputPath = $script:folder; Environment = 'GCCHigh' } 3>$null } |
+            Should -Throw '*not supported in this cloud*'
 
         (Get-Content -LiteralPath (Join-Path $script:folder 'user-signin-activity.csv')).Count | Should -Be 1
         Get-LogText -Folder $script:folder | Should -Match 'not supported in this cloud'
@@ -672,11 +673,13 @@ Describe 'A missing licence is a logged skip, not a failure' {
         $log | Should -Not -Match '\[Error\]'
     }
 
-    It 'logs a permission failure as an error, not as a licence skip' {
+    It 'throws a permission failure instead of reporting success' {
         Mock Get-MgRiskyUser -MockWith { throw 'Insufficient privileges to complete the operation.' }
 
-        Invoke-CollectorScript 'Get-RiskyUsers.ps1' @{ OutputPath = $script:folder } 3>$null
+        { Invoke-CollectorScript 'Get-RiskyUsers.ps1' @{ OutputPath = $script:folder } 3>$null } |
+            Should -Throw '*Insufficient privileges*'
 
+        (Get-Content -LiteralPath (Join-Path $script:folder 'risky-users.csv')).Count | Should -Be 1
         $log = Get-LogText -Folder $script:folder
         $log | Should -Match '\[Error\]'
         $log | Should -Not -Match 'not licensed'
@@ -689,6 +692,19 @@ Describe 'A missing licence is a logged skip, not a failure' {
 
         (Get-Content -LiteralPath (Join-Path $script:folder 'signins.csv')).Count | Should -Be 1
         Get-LogText -Folder $script:folder | Should -Match 'not licensed'
+    }
+
+    It 'throws when the first sign-in window fails and nothing was written' {
+        Mock Get-MgAuditLogSignIn -MockWith { throw 'Request timed out.' }
+
+        { Invoke-CollectorScript 'Get-LegacySignIns.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 } 3>$null } |
+            Should -Throw '*Reading the sign-in log failed*'
+
+        (Get-Content -LiteralPath (Join-Path $script:folder 'signins.csv')).Count | Should -Be 1
+        $log = Get-LogText -Folder $script:folder
+        $log | Should -Match '\[Error\]'
+        $log | Should -Match 'Request timed out'
+        $log | Should -Not -Match 'windows read before the failure were kept'
     }
 }
 
@@ -706,13 +722,15 @@ Describe 'Run-All.ps1' {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'writes every CSV and carries on past a failing collector' {
+    It 'writes every CSV, carries on past a failing collector and exits with an error' {
         Mock Get-MgRiskyUser -MockWith { throw 'boom' }
 
-        Invoke-CollectorScript 'Run-All.ps1' @{ OutputPath = $script:folder; StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-10T06:00:00Z' } 3>$null
+        { Invoke-CollectorScript 'Run-All.ps1' @{ OutputPath = $script:folder; StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-10T06:00:00Z' } 3>$null } |
+            Should -Throw '*1 collector(s) stopped with an error*'
 
         foreach ($name in 'users', 'authentication-methods', 'conditional-access-policies', 'role-assignments-active', 'role-assignments-eligible', 'role-assignments', 'user-signin-activity', 'risky-users', 'signins') {
             Test-Path -LiteralPath (Join-Path $script:folder "$name.csv") | Should -BeTrue -Because $name
         }
+        Get-LogText -Folder $script:folder | Should -Match 'risky-users collector stopped'
     }
 }

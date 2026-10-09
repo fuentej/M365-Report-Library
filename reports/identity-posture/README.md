@@ -49,7 +49,9 @@ PowerShell 7 and `Microsoft.Graph.Authentication`, `Microsoft.Graph.Users`,
 
 A source whose licence is missing is a logged skip: the collector writes the header only,
 puts a warning in `run.log` and carries on. A header-only file means "not collected", never
-"zero". See [`samples/unlicensed/`](samples/unlicensed).
+"zero". See [`samples/unlicensed/`](samples/unlicensed). Any other failure (permission,
+timeout, throttling) is logged as an error and the collector stops, so `Run-All.ps1`
+counts it and exits with an error after the other collectors have run.
 
 | CSV | Licence |
 | --- | --- |

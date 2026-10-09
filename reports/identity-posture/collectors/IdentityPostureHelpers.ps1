@@ -113,7 +113,8 @@ function Invoke-IdentityPostureSnapshot {
               * A source the schema marks NotAvailable in this cloud writes the header only.
               * An Unverified source is attempted and logs a warning.
               * A missing licence is a logged skip: header only, no error and no exception.
-              * Any other failure is logged as an error with a header-only file.
+              * Any other failure is logged as an error, leaves a header-only file when
+                nothing was collected, and throws so the run does not report success.
 
         .PARAMETER Source
             The schema key, which names the column list, the availability entry and the
@@ -190,6 +191,8 @@ function Invoke-IdentityPostureSnapshot {
         else {
             Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $log -Message (
                 "$Description is unavailable to this sign-in ($message). It needs $License. Writing the header only.")
+            Export-AppendCsv -Path $csvPath -Column $columns
+            throw "$Description is unavailable ($message)."
         }
         Export-AppendCsv -Path $csvPath -Column $columns
         return
