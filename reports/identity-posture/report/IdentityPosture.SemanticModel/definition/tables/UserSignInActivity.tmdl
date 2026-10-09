@@ -1,0 +1,128 @@
+table UserSignInActivity
+    lineageTag: 1fce13ef-8979-59be-8319-71bd6472f6a3
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 80864aac-a8f4-5c5a-aabf-d72452928c8e
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UserId
+        dataType: string
+        lineageTag: 135d15d4-1b45-58d5-9980-4f2b99125dcb
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 61935e79-4092-5ad3-bbf8-a329d9bd384d
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column LastSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 87483592-8f37-5b38-bdbf-0dc611465e0f
+        summarizeBy: none
+        sourceColumn: LastSignInDateTime
+
+    column LastNonInteractiveSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 184eb4a9-091a-576d-b27a-308742c166e6
+        summarizeBy: none
+        sourceColumn: LastNonInteractiveSignInDateTime
+
+    column LastSuccessfulSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 5217d84d-a230-51ed-9d08-573d3cd83622
+        summarizeBy: none
+        sourceColumn: LastSuccessfulSignInDateTime
+
+    /// Days from the last successful sign-in to this snapshot RunDate. Blank when LastSuccessfulSignInDateTime is empty: the property is not backfilled, so empty is not proof the account never signed in.
+    column DaysSinceLastSuccessfulSignIn = IF(ISBLANK(UserSignInActivity[LastSuccessfulSignInDateTime]), BLANK(), DATEDIFF(UserSignInActivity[LastSuccessfulSignInDateTime], UserSignInActivity[RunDate], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: 7f728c42-c27f-56d3-8284-1d45cdd87edb
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column SignInAgeBucketOrder = 
+            VAR d = UserSignInActivity[DaysSinceLastSuccessfulSignIn]
+            RETURN IF(ISBLANK(d), 5, IF(d <= 30, 1, IF(d <= 90, 2, IF(d <= 180, 3, 4))))
+        dataType: int64
+        formatString: 0
+        lineageTag: d15986b9-14cd-5076-8076-61d1156047fa
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column SignInAgeBucket = 
+            VAR d = UserSignInActivity[DaysSinceLastSuccessfulSignIn]
+            RETURN IF(ISBLANK(d), "Unknown", IF(d <= 30, "0-30 days", IF(d <= 90, "31-90 days", IF(d <= 180, "91-180 days", "181+ days"))))
+        dataType: string
+        lineageTag: e95119ae-4416-5e0f-845a-8506d1e61514
+        summarizeBy: none
+        sortByColumn: SignInAgeBucketOrder
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'User Sign-In Activity Snapshot Date' = CALCULATE(MAX(UserSignInActivity[RunDate]), ALLSELECTED(UserSignInActivity), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 94c5cb1b-1984-5815-af0d-803464696332
+
+    measure 'Users With Sign-In Data' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 7cb0ae8e-e515-5287-964e-4bd0170dfb05
+
+    /// Stale by LastSuccessfulSignInDateTime only when it is a real timestamp. Empty values are in Unknown Last Sign-In.
+    measure 'Stale Accounts (90+ days)' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap, UserSignInActivity[DaysSinceLastSuccessfulSignIn] >= 90) + 0)
+        formatString: #,0
+        lineageTag: dba664cd-249b-5a2c-a65d-dc662251dc46
+
+    /// Empty or 0001-01-01 values the collector wrote as empty. Never read as stale and never as zero days.
+    measure 'Unknown Last Sign-In' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap, ISBLANK(UserSignInActivity[LastSuccessfulSignInDateTime])) + 0)
+        formatString: #,0
+        lineageTag: 9971b6ec-9d71-5443-a441-74c71167dfe5
+
+    measure 'Last Successful Sign-In (Display)' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            VAR V = CALCULATE(MAX(UserSignInActivity[LastSuccessfulSignInDateTime]), UserSignInActivity[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap)), BLANK(), IF(ISBLANK(V), "Unknown", FORMAT(V, "yyyy-MM-dd")))
+        lineageTag: 6386cf10-6fb1-5326-b32a-ffd28af39d18
+
+    measure 'Days Since Last Sign-In (Display)' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            VAR D = CALCULATE(MAX(UserSignInActivity[DaysSinceLastSuccessfulSignIn]), UserSignInActivity[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap)), BLANK(), IF(ISBLANK(D), "Unknown", FORMAT(D, "#,0") & " days"))
+        lineageTag: 5781006c-9d59-5f2f-9cd5-7d593f52c497
+
+    measure 'Sign-In Status' = 
+            VAR Snap = [User Sign-In Activity Snapshot Date]
+            VAR D = CALCULATE(MAX(UserSignInActivity[DaysSinceLastSuccessfulSignIn]), UserSignInActivity[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(UserSignInActivity), UserSignInActivity[RunDate] = Snap)), BLANK(), IF(ISBLANK(D), "Unknown", IF(D >= 90, "Stale (90+ days)", "Recent")))
+        lineageTag: 01518781-1dda-5e0d-9ba9-755fa7300d37
+
+    partition UserSignInActivity = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\user-signin-activity.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"LastSignInDateTime", ParseUtc, type datetime}, {"LastNonInteractiveSignInDateTime", ParseUtc, type datetime}, {"LastSuccessfulSignInDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

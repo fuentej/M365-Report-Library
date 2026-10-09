@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-role-source",
+  "position": {
+    "x": 810,
+    "y": 560,
+    "z": 0,
+    "width": 470,
+    "height": 140,
+    "tabOrder": 12
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActiveRoleAssignments"
+                    }
+                  },
+                  "Property": "Active Assignment Source"
+                }
+              },
+              "queryRef": "ActiveRoleAssignments.Active Assignment Source"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Source of the active role counts"
+          }
+        }
+      ]
+    }
+  }
+}

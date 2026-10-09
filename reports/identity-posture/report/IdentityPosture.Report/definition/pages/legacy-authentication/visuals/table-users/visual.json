@@ -1,0 +1,111 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-users",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "User Display Name"
+                }
+              },
+              "queryRef": "UsersCurrent.User Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins Succeeded"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins Succeeded"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins Failed or Blocked"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Last Legacy Sign-In"
+                }
+              },
+              "queryRef": "SignIns.Last Legacy Sign-In"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Legacy sign-ins per user (interactive sign-ins only; non-interactive are not collected)"
+          }
+        }
+      ]
+    }
+  }
+}

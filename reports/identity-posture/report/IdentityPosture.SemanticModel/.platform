@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "IdentityPosture"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "f5c6b1d6-f49c-54e0-8c4a-5456eda5a9e2"
+  }
+}

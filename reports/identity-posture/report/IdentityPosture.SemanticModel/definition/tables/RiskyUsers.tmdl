@@ -1,0 +1,159 @@
+table RiskyUsers
+    lineageTag: cfc7eeea-e879-5aec-840c-26df39b7d1e1
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: c8e7c791-c986-57dd-987e-2bcd7a7b7c11
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: c378f3a0-5280-551f-8fba-9d404ed0b7c9
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 4420c418-9cfa-5a0a-9eab-d744511e3215
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column UserDisplayName
+        dataType: string
+        lineageTag: 64366c1d-8940-518f-83b1-2f94b7b35066
+        summarizeBy: none
+        sourceColumn: UserDisplayName
+
+    column RiskLevel
+        dataType: string
+        lineageTag: c50c96c1-0335-532d-9c2d-c27a30b36af2
+        summarizeBy: none
+        sourceColumn: RiskLevel
+
+    column RiskState
+        dataType: string
+        lineageTag: ea304b2f-e0a0-5b2e-8986-488d82e621c4
+        summarizeBy: none
+        sourceColumn: RiskState
+
+    column RiskDetail
+        dataType: string
+        lineageTag: 431224d0-a3fc-5911-90b4-ee68b00f0a8e
+        summarizeBy: none
+        sourceColumn: RiskDetail
+
+    column RiskLastUpdatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 795aea4d-ec36-585b-acd8-e2cca9326e12
+        summarizeBy: none
+        sourceColumn: RiskLastUpdatedDateTime
+
+    column IsDeleted
+        dataType: boolean
+        lineageTag: 8b9c6166-8295-58a6-804c-f3de2bccc9d8
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column IsProcessing
+        dataType: boolean
+        lineageTag: 33721267-b425-591d-8fc4-bb2850c404c3
+        summarizeBy: none
+        sourceColumn: IsProcessing
+
+    /// Whether the risky user holds an active directory role on the same RunDate. Unknown when neither role file was collected.
+    column RoleOverlap = 
+            VAR IdValue = RiskyUsers[Id]
+            VAR RunOn = RiskyUsers[RunDate]
+            VAR HasData = COUNTROWS(ActiveRoleAssignments) + COUNTROWS(RoleAssignments)
+            VAR Holds =
+                COUNTROWS(FILTER(ActiveRoleAssignments, ActiveRoleAssignments[PrincipalId] = IdValue && ActiveRoleAssignments[RunDate] = RunOn))
+                    + COUNTROWS(FILTER(RoleAssignments, RoleAssignments[PrincipalId] = IdValue && RoleAssignments[RunDate] = RunOn))
+            RETURN IF(HasData = 0, "Unknown (role data not collected)", IF(Holds > 0, "Holds an active role", "No active role"))
+        dataType: string
+        lineageTag: 8f11b6c6-54db-5806-ba87-8ff820a764a8
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Risky Users Snapshot Date' = CALCULATE(MAX(RiskyUsers[RunDate]), ALLSELECTED(RiskyUsers), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: a0fb01be-50b6-597d-983a-7d6d270030d5
+
+    measure 'Risky Users Listed' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: cd6db0b5-a99b-5c15-be0c-e49a631d0b22
+
+    measure 'Users At Risk' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap, RiskyUsers[RiskState] = "atRisk") + 0)
+        formatString: #,0
+        lineageTag: e54ddf27-6194-5891-81dc-81bb3c921f9a
+
+    measure 'High Risk Users' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap, RiskyUsers[RiskLevel] = "high") + 0)
+        formatString: #,0
+        lineageTag: 0704fc84-a158-5da3-90f9-684b8213a264
+
+    measure 'Confirmed Compromised Users' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap, RiskyUsers[RiskState] = "confirmedCompromised") + 0)
+        formatString: #,0
+        lineageTag: 7ffd286d-15ee-538f-bf16-bac2d079b03f
+
+    measure 'At-Risk Users Holding a Role' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap, RiskyUsers[RiskState] = "atRisk", RiskyUsers[RoleOverlap] = "Holds an active role") + 0)
+        formatString: #,0
+        lineageTag: eebf4bee-2da9-5183-a77f-54157e928252
+
+    /// Per RunDate, for the trend line.
+    measure 'Users At Risk (All Snapshots)' = IF(COUNTROWS(RiskyUsers) = 0, BLANK(), COUNTROWS(FILTER(RiskyUsers, RiskyUsers[RiskState] = "atRisk")) + 0)
+        formatString: #,0
+        lineageTag: 0b22cb8d-68ba-5558-a7f4-480d1784178e
+
+    measure 'Risk Level' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            VAR V = CALCULATE(MAX(RiskyUsers[RiskLevel]), RiskyUsers[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: d2535350-765a-52aa-8206-148200569f0c
+
+    measure 'Risk State' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            VAR V = CALCULATE(MAX(RiskyUsers[RiskState]), RiskyUsers[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: ca5518c9-36a6-5709-b73c-cbeb86af6f50
+
+    measure 'Role Overlap' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            VAR V = CALCULATE(MAX(RiskyUsers[RoleOverlap]), RiskyUsers[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 8c31806a-a3e9-5495-bc10-49b8005fbc8d
+
+    measure 'Risk Last Updated' = 
+            VAR Snap = [Risky Users Snapshot Date]
+            VAR V = CALCULATE(MAX(RiskyUsers[RiskLastUpdatedDateTime]), RiskyUsers[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(RiskyUsers), RiskyUsers[RunDate] = Snap)), BLANK(), IF(ISBLANK(V), "Unknown", FORMAT(V, "yyyy-MM-dd HH:mm")))
+        lineageTag: 11310429-9006-59c6-bb3a-13418341ba12
+
+    partition RiskyUsers = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\risky-users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"RiskLastUpdatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsDeleted", type logical}, {"IsProcessing", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

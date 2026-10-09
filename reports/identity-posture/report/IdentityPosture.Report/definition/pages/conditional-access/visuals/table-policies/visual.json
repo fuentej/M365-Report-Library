@@ -1,0 +1,163 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-policies",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 12
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.DisplayName"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Policy State"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Policy State"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Included Users"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Included Users"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Excluded Users"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Excluded Users"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Included Groups"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Included Groups"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Included Roles"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Included Roles"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Included Applications"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Included Applications"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Grant Controls"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Grant Controls"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Authentication Strength"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Authentication Strength"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Policy Modified"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Policy Modified"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Policies, targets and grant controls (latest snapshot in the date range)"
+          }
+        }
+      ]
+    }
+  }
+}

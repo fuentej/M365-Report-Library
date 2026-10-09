@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-methods-count",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 620,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "MethodsRegisteredLabel"
+                }
+              },
+              "queryRef": "AuthenticationMethods.MethodsRegisteredLabel"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "Registered Users"
+                }
+              },
+              "queryRef": "AuthenticationMethods.Registered Users"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Users by number of methods registered (Unknown = no value returned)"
+          }
+        }
+      ]
+    }
+  }
+}

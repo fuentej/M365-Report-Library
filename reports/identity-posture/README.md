@@ -12,7 +12,8 @@ folder is a history you can chart over time. Every collector is read-only.
 
 The sources were verified against Microsoft Learn in
 [`docs/candidates/identity-posture.md`](../../docs/candidates/identity-posture.md), which is
-the contract for this folder. The Power BI project is a separate, later piece of work.
+the contract for this folder. The Power BI project is in `report/`; saving it as a `.pbit` needs
+Power BI Desktop and is a separate, manual step.
 Nothing here was run against a tenant: the tests mock every Graph call and the sample files
 are fake.
 
@@ -31,6 +32,7 @@ are fake.
 | `collectors/Run-All.ps1` | Runs the shared users collector and all eight above |
 | `collectors/IdentityPostureSchema.psd1` | The column order of every CSV, the per-cloud availability and the extra Graph scopes |
 | `collectors/IdentityPostureHelpers.ps1` | Code the collectors share |
+| `report/` | The Power BI project (PBIP): `IdentityPosture.SemanticModel` (TMDL) and `IdentityPosture.Report` (PBIR, seven pages). One parameter, `CsvFolder`, holds the folder the collectors wrote; it is built against `samples/` |
 | `samples/` | Fake data in the exact shape the collectors write |
 | `tests/` | Pester 5 tests; every tenant call is mocked |
 
@@ -249,3 +251,23 @@ Every tenant call is mocked from the stubs in `shared/tests/TenantCmdletStubs.ps
 check that each sample's columns match its collector's output, each connection targets the right
 endpoints per `-Environment`, paging is followed, empty `signInActivity` values stay empty, and
 a `NotAvailable` source writes a header only.
+
+## The Power BI report
+
+Open `report/IdentityPosture.pbip` in Power BI Desktop and set the `CsvFolder` parameter to the folder
+the collectors wrote (or to `samples/`). Seven pages follow the contract: Overview, Authentication
+methods, Conditional Access, Privileged roles, Account hygiene, Legacy authentication and Risky users.
+Every page has a date-range slicer, a slicer for its main entity (a user pseudonym, or the policy name
+on the Conditional Access page) and the Anonymize toggle, which swaps display names for a stable
+pseudonym derived from the user `Id`.
+
+* An empty value is **Unknown**, never zero. A header-only file (see `samples/unlicensed/`) is
+  **not collected**: its measures are blank, and the Overview shows how many of the nine files hold data.
+* Snapshot measures read the latest `RunDate` inside the date slicer.
+* Active role counts fall back to `role-assignments.csv` when `role-assignments-active.csv` is
+  header-only.
+* The privileged flag (source 4d) and non-interactive sign-ins (source 6b) are not collected, so roles
+  are grouped by `RoleDefinitionId` with no names, and the legacy-authentication counts are a lower bound.
+
+The report tests (`ReportSchema`, `ReportModel`, `TmdlDataType`, `TmdlExpressionIndent`) reuse the
+schema validator, vendored schemas and TMDL reader under `reports/guest-access/tests/`.

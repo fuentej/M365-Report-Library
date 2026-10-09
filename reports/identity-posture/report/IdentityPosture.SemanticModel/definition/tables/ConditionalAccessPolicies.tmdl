@@ -1,0 +1,247 @@
+table ConditionalAccessPolicies
+    lineageTag: ca3a6584-c738-5689-a188-92722870d92f
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: aedaa051-b94f-573d-917d-dd277d21fe92
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 1e65c06d-3c77-55c4-87c1-653927e01188
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 66aca99f-bb89-556d-8136-2725f8e592a2
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column State
+        dataType: string
+        lineageTag: bd729fb5-f63e-5fb6-821c-b52168d29b5a
+        summarizeBy: none
+        sourceColumn: State
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 4bf252c1-c1ad-5cfc-b3fb-6829e13128c1
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column ModifiedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: c7519556-5a79-57a0-b6a7-731db761b84a
+        summarizeBy: none
+        sourceColumn: ModifiedDateTime
+
+    column IncludeUsers
+        dataType: string
+        lineageTag: 881ba638-6849-55fd-8c18-10004532c1cb
+        summarizeBy: none
+        sourceColumn: IncludeUsers
+
+    column ExcludeUsers
+        dataType: string
+        lineageTag: c9b3898a-93c9-578a-b6b2-cfe9a2b884d3
+        summarizeBy: none
+        sourceColumn: ExcludeUsers
+
+    column IncludeGroups
+        dataType: string
+        lineageTag: 713f0557-2c9c-59b8-8794-9145172409f7
+        summarizeBy: none
+        sourceColumn: IncludeGroups
+
+    column ExcludeGroups
+        dataType: string
+        lineageTag: 50066105-bebb-5da1-bb55-6d7c729fe07b
+        summarizeBy: none
+        sourceColumn: ExcludeGroups
+
+    column IncludeRoles
+        dataType: string
+        lineageTag: dbf7fc48-3c65-59e4-aad2-6d2a304bcea2
+        summarizeBy: none
+        sourceColumn: IncludeRoles
+
+    column ExcludeRoles
+        dataType: string
+        lineageTag: c98fa5da-e329-5a7c-ac61-2e2fb5d2d151
+        summarizeBy: none
+        sourceColumn: ExcludeRoles
+
+    column IncludeApplications
+        dataType: string
+        lineageTag: da7cad40-7561-5756-a17d-f99403b948d9
+        summarizeBy: none
+        sourceColumn: IncludeApplications
+
+    column ExcludeApplications
+        dataType: string
+        lineageTag: 80149578-5b7e-5e8f-ba6a-d457dc7de9ae
+        summarizeBy: none
+        sourceColumn: ExcludeApplications
+
+    column ClientAppTypes
+        dataType: string
+        lineageTag: 663f64bd-3214-5dcd-a2e5-4c3730a3756a
+        summarizeBy: none
+        sourceColumn: ClientAppTypes
+
+    column SignInRiskLevels
+        dataType: string
+        lineageTag: 9e8f8bef-af4f-5095-b2f9-edc6623474f2
+        summarizeBy: none
+        sourceColumn: SignInRiskLevels
+
+    column UserRiskLevels
+        dataType: string
+        lineageTag: 00d96062-2fce-5d68-b311-528b946d8ff2
+        summarizeBy: none
+        sourceColumn: UserRiskLevels
+
+    column GrantOperator
+        dataType: string
+        lineageTag: 61b7a44d-cb34-5e55-ae79-988a158fcaeb
+        summarizeBy: none
+        sourceColumn: GrantOperator
+
+    column BuiltInControls
+        dataType: string
+        lineageTag: f8f60f24-1af0-5167-ba38-c39a490c4ed3
+        summarizeBy: none
+        sourceColumn: BuiltInControls
+
+    column CustomAuthenticationFactors
+        dataType: string
+        lineageTag: 57a2c025-4bc7-5d62-a3c9-28c5c030d44a
+        summarizeBy: none
+        sourceColumn: CustomAuthenticationFactors
+
+    column TermsOfUse
+        dataType: string
+        lineageTag: df901fa8-626a-58ef-a114-62cb7bb7ae52
+        summarizeBy: none
+        sourceColumn: TermsOfUse
+
+    column AuthenticationStrength
+        dataType: string
+        lineageTag: 5f111922-daf8-5376-bf41-8da6d7d7bf38
+        summarizeBy: none
+        sourceColumn: AuthenticationStrength
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Conditional Access Snapshot Date' = CALCULATE(MAX(ConditionalAccessPolicies[RunDate]), ALLSELECTED(ConditionalAccessPolicies))
+        formatString: Short Date
+        lineageTag: 8ff54f2a-34db-5ea7-9907-451f7e9aebc7
+
+    measure 'Policy Count' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 4a12483e-e1a2-50ba-8283-5e655cc24f32
+
+    measure 'Enabled Policies' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, ConditionalAccessPolicies[State] = "enabled") + 0)
+        formatString: #,0
+        lineageTag: 7b650451-cc31-5516-aa5d-a0d951f54245
+
+    /// State enabledForReportingButNotEnforced: report-only in the portal.
+    measure 'Report-Only Policies' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, ConditionalAccessPolicies[State] = "enabledForReportingButNotEnforced") + 0)
+        formatString: #,0
+        lineageTag: 3bee6875-a8c3-5dcb-b006-acd25f3c94cd
+
+    measure 'Disabled Policies' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, ConditionalAccessPolicies[State] = "disabled") + 0)
+        formatString: #,0
+        lineageTag: 6490a266-3c11-5428-9216-bde58384c876
+
+    measure 'Policies Requiring MFA' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, SEARCH("mfa", ConditionalAccessPolicies[BuiltInControls], 1, 0) > 0) + 0)
+        formatString: #,0
+        lineageTag: ef3a3db3-0ba4-578d-a48f-aa4d7183041d
+
+    measure 'Policies Requiring Authentication Strength' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, NOT ISBLANK(ConditionalAccessPolicies[AuthenticationStrength])) + 0)
+        formatString: #,0
+        lineageTag: 4f97217e-1029-5512-a281-9dee4c1242cd
+
+    measure 'Policies Targeting All Users' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, ConditionalAccessPolicies[IncludeUsers] = "All") + 0)
+        formatString: #,0
+        lineageTag: dca00afd-1d75-56cc-ae07-baa7d68c9fcb
+
+    measure 'Policies Targeting Roles' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, NOT ISBLANK(ConditionalAccessPolicies[IncludeRoles])) + 0)
+        formatString: #,0
+        lineageTag: b90d00ab-c5d0-50fb-a16a-19e25eabfd69
+
+    measure 'Policies Targeting Groups' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ConditionalAccessPolicies), ConditionalAccessPolicies[RunDate] = Snap, NOT ISBLANK(ConditionalAccessPolicies[IncludeGroups])) + 0)
+        formatString: #,0
+        lineageTag: 90eef45c-2a64-56a8-aec9-5e469d90cf23
+
+    /// Per RunDate, for the trend line.
+    measure 'Enabled Policies (All Snapshots)' = IF(COUNTROWS(ConditionalAccessPolicies) = 0, BLANK(), COUNTROWS(FILTER(ConditionalAccessPolicies, ConditionalAccessPolicies[State] = "enabled")) + 0)
+        formatString: #,0
+        lineageTag: 12e30919-5136-5974-baba-f797402dbd52
+
+    measure 'Policy State' = CALCULATE(MAX(ConditionalAccessPolicies[State]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: f601ced5-1ac6-5126-815a-073ff2cf8c71
+
+    measure 'Included Users' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeUsers]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: b3d23de8-3e35-54d3-9d78-9ef3b959a04b
+
+    measure 'Excluded Users' = CALCULATE(MAX(ConditionalAccessPolicies[ExcludeUsers]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: 858c5640-7b52-585b-acf1-cb582be80afa
+
+    measure 'Included Groups' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeGroups]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: bb7876aa-651b-5f0c-a660-7f0bdf07fdc8
+
+    measure 'Included Roles' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeRoles]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: bcb2f6d6-81e0-5dcf-9fcb-4af516de9e2a
+
+    measure 'Included Applications' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeApplications]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: 479f24e6-d0c5-5f87-84b4-cb9f4ddf9a78
+
+    measure 'Grant Controls' = CALCULATE(MAX(ConditionalAccessPolicies[BuiltInControls]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: 49e5ddbe-7ac5-5558-b495-318ae6237983
+
+    measure 'Authentication Strength' = CALCULATE(MAX(ConditionalAccessPolicies[AuthenticationStrength]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        lineageTag: cc940e45-b676-5a31-81db-4547f41030ba
+
+    measure 'Policy Modified' = CALCULATE(MAX(ConditionalAccessPolicies[ModifiedDateTime]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+        formatString: General Date
+        lineageTag: 6bda181b-5563-5c8d-8cac-3ad6d774aebd
+
+    partition ConditionalAccessPolicies = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\conditional-access-policies.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}, {"ModifiedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

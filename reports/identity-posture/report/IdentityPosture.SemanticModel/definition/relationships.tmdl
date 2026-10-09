@@ -1,0 +1,79 @@
+relationship 2744ba43-5540-5ed4-a625-586a4153c60b
+    fromColumn: Users.RunDate
+    toColumn: DateDim.Date
+
+relationship 85b166b7-3f6b-536f-9bf2-f04c2f60f4dc
+    fromColumn: AuthenticationMethods.RunDate
+    toColumn: DateDim.Date
+
+relationship 6f111ec0-7520-50a5-b161-9f83afda386f
+    fromColumn: ConditionalAccessPolicies.RunDate
+    toColumn: DateDim.Date
+
+relationship e787a8fd-cb9d-562f-883e-9d0d888ce182
+    fromColumn: ActiveRoleAssignments.RunDate
+    toColumn: DateDim.Date
+
+relationship 0a947506-3919-526b-859e-ddcfc24e428e
+    fromColumn: EligibleRoleAssignments.RunDate
+    toColumn: DateDim.Date
+
+relationship 6dacf305-71d6-5729-a72e-7b0bd22e110e
+    fromColumn: RoleAssignments.RunDate
+    toColumn: DateDim.Date
+
+relationship b6710774-2739-54b9-bb37-c4efccdd4fbf
+    fromColumn: UserSignInActivity.RunDate
+    toColumn: DateDim.Date
+
+relationship 096be68e-0960-5efe-8a3d-48ff30a3ed1c
+    fromColumn: RiskyUsers.RunDate
+    toColumn: DateDim.Date
+
+relationship 3e7660e5-0d79-5b2b-a6f6-d71e6d18cfa7
+    fromColumn: SignIns.ActivityDate
+    toColumn: DateDim.Date
+
+relationship 1a16a17c-7d44-5012-b2b8-8c83fed4e899
+    fromColumn: Users.Id
+    toColumn: UsersCurrent.Id
+
+relationship 2c3c7b93-3b70-53df-b132-5baed4c4a167
+    fromColumn: AuthenticationMethods.UserId
+    toColumn: UsersCurrent.Id
+
+relationship bfb1dbb9-a80c-56ac-b496-3297ad35139b
+    fromColumn: UserSignInActivity.UserId
+    toColumn: UsersCurrent.Id
+
+relationship 523e9153-d950-5367-be5b-5c8ff2965fd5
+    fromColumn: RiskyUsers.Id
+    toColumn: UsersCurrent.Id
+
+relationship 68e2c6a0-04fa-58b5-b104-c922066aeedd
+    fromColumn: SignIns.UserId
+    toColumn: UsersCurrent.Id
+
+relationship 60d8476a-8ab1-5836-af39-e08cc3f9131b
+    fromColumn: ActiveRoleAssignments.PrincipalId
+    toColumn: UsersCurrent.Id
+
+relationship 7e54312a-e0bb-58c4-a5ee-85c64a76c3fa
+    fromColumn: EligibleRoleAssignments.PrincipalId
+    toColumn: UsersCurrent.Id
+
+relationship 9566e11f-498e-54d4-b8ea-4773ba2457da
+    fromColumn: RoleAssignments.PrincipalId
+    toColumn: UsersCurrent.Id
+
+relationship 8c82318a-7187-57e4-ab2a-4de1c71075f0
+    fromColumn: ActiveRoleAssignments.RoleDefinitionId
+    toColumn: RoleDefinitions.RoleDefinitionId
+
+relationship 1b73ddf3-5d6e-5e95-80bc-92fd0169a907
+    fromColumn: EligibleRoleAssignments.RoleDefinitionId
+    toColumn: RoleDefinitions.RoleDefinitionId
+
+relationship ba49274a-b6ac-51b0-8d3f-a1e0b2438cd9
+    fromColumn: RoleAssignments.RoleDefinitionId
+    toColumn: RoleDefinitions.RoleDefinitionId

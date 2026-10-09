@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-by-state",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 400,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "State"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.State"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Policy Count"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Policy Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Policies by state"
+          }
+        }
+      ]
+    }
+  }
+}

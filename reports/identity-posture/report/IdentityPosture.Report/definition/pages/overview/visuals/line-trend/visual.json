@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "line-trend",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 800,
+    "height": 440,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DateDim"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "DateDim.Date"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "No MFA Method (All Snapshots)"
+                }
+              },
+              "queryRef": "AuthenticationMethods.No MFA Method (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Enabled Policies (All Snapshots)"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Enabled Policies (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RiskyUsers"
+                    }
+                  },
+                  "Property": "Users At Risk (All Snapshots)"
+                }
+              },
+              "queryRef": "RiskyUsers.Users At Risk (All Snapshots)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Trend by snapshot date"
+          }
+        }
+      ]
+    }
+  }
+}
