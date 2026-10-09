@@ -6,70 +6,62 @@ table GuestMembershipsCurrent
         formatString: Short Date
         lineageTag: 3d03e7b9-1d15-5b30-821a-5f07c3f305f8
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [RunDate]
+        sourceColumn: RunDate
 
     column GuestId
         dataType: string
         lineageTag: 7fedc43f-af6f-5120-8878-59a0ea43a6de
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [GuestId]
+        sourceColumn: GuestId
 
     column GroupId
         dataType: string
         lineageTag: c30a4eb0-d104-553a-b320-df4834d240ef
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [GroupId]
+        sourceColumn: GroupId
 
     column GroupDisplayName
         dataType: string
         lineageTag: 53b6d3c5-d2c7-596b-9e96-2b17ab2d7809
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [GroupDisplayName]
+        sourceColumn: GroupDisplayName
 
     column IsTeam
         dataType: boolean
         lineageTag: 17096ec5-e652-53c8-8b47-93dbbff108bc
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [IsTeam]
+        sourceColumn: IsTeam
 
     column Visibility
         dataType: string
         lineageTag: f08d8d7d-b333-5e93-b1f6-a3afbbcc85e5
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Visibility]
+        sourceColumn: Visibility
 
-    column IsTeamLabel
+    column IsTeamLabel = IF(GuestMembershipsCurrent[IsTeam] = TRUE(), "Team", "Group")
         dataType: string
         lineageTag: d1aa69dd-e3d9-57a5-939a-93ef4c621b9e
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [IsTeamLabel]
+        isDataTypeInferred: false
 
     /// Group/Team memberships in the latest guest-memberships.csv snapshot.
     measure 'Current Membership Count' = COUNTROWS(GuestMembershipsCurrent)
         formatString: #,0
         lineageTag: 3020530a-b787-5943-9376-8a9f166ee69b
 
-    partition GuestMembershipsCurrent = calculated
+    partition GuestMembershipsCurrent = m
         mode: import
         source =
-            VAR LatestRun = MAX(GuestMemberships[RunDate])
-            RETURN
-                SELECTCOLUMNS(
-                    FILTER(GuestMemberships, GuestMemberships[RunDate] = LatestRun),
-                    "RunDate", GuestMemberships[RunDate],
-                    "GuestId", GuestMemberships[GuestId],
-                    "GroupId", GuestMemberships[GroupId],
-                    "GroupDisplayName", GuestMemberships[GroupDisplayName],
-                    "IsTeam", GuestMemberships[IsTeam],
-                    "Visibility", GuestMemberships[Visibility],
-                    "IsTeamLabel", GuestMemberships[IsTeamLabel]
-                )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-memberships.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsTeam", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "GuestId", "GroupId", "GroupDisplayName", "IsTeam", "Visibility"}),
+                LatestRunDate = List.Max(Selected[RunDate]),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table
