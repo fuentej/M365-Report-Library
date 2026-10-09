@@ -52,6 +52,17 @@ table GuestMembershipsCurrent
     partition GuestMembershipsCurrent = calculated
         mode: import
         source =
-            FILTER(GuestMemberships, GuestMemberships[RunDate] = MAX(GuestMemberships[RunDate]))
+            VAR LatestRun = MAX(GuestMemberships[RunDate])
+            RETURN
+                SELECTCOLUMNS(
+                    FILTER(GuestMemberships, GuestMemberships[RunDate] = LatestRun),
+                    "RunDate", GuestMemberships[RunDate],
+                    "GuestId", GuestMemberships[GuestId],
+                    "GroupId", GuestMemberships[GroupId],
+                    "GroupDisplayName", GuestMemberships[GroupDisplayName],
+                    "IsTeam", GuestMemberships[IsTeam],
+                    "Visibility", GuestMemberships[Visibility],
+                    "IsTeamLabel", GuestMemberships[IsTeamLabel]
+                )
 
     annotation PBI_ResultType = Table
