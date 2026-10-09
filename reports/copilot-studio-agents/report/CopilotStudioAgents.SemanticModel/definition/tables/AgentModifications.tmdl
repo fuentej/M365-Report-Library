@@ -1,0 +1,132 @@
+table AgentModifications
+    lineageTag: 744e7411-cc63-5e45-8b14-81ec4e9b067a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 9799407b-4d8f-58c7-b61b-9850316feed7
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column DataverseUrl
+        dataType: string
+        lineageTag: ab973200-1c50-5dd0-acc8-e351feb0fa27
+        summarizeBy: none
+        sourceColumn: DataverseUrl
+
+    column AgentId
+        dataType: string
+        lineageTag: 630c8461-764d-5114-b7b1-ae793da66d2e
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column Name
+        dataType: string
+        lineageTag: 50687531-f16f-5b9f-962c-96cb377ea5ff
+        summarizeBy: none
+        sourceColumn: Name
+
+    column CreatedOn
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 852dc761-b584-5226-8c5c-7e9727ce429c
+        summarizeBy: none
+        sourceColumn: CreatedOn
+
+    column ModifiedOn
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 4989329b-5b5e-5606-b9c0-c553c0d3530a
+        summarizeBy: none
+        sourceColumn: ModifiedOn
+
+    column ModifiedBy
+        dataType: string
+        lineageTag: fc01e843-7b1e-5c92-b5dd-d00a546003d1
+        summarizeBy: none
+        sourceColumn: ModifiedBy
+
+    column PublishedOn
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: c402dfea-5c00-5279-802d-5f7a4c34efe8
+        summarizeBy: none
+        sourceColumn: PublishedOn
+
+    /// Blank when ModifiedOn is empty: unknown, never zero days.
+    column DaysSinceModified = IF(ISBLANK(AgentModifications[ModifiedOn]), BLANK(), DATEDIFF(AgentModifications[ModifiedOn], AgentModifications[RunDate], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: c8679d77-85b6-552b-8963-9fd7412d430e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ModifierPseudonym = 
+            VAR IdText = AgentModifications[ModifiedBy]
+            RETURN IF(ISBLANK(IdText), BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 8ad18804-8ec0-5abc-ac00-47e49641a21b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Agent Modifications Snapshot Date' = CALCULATE(MAX(AgentModifications[RunDate]), ALLSELECTED(AgentModifications), ALLSELECTED(AgentsCurrent))
+        formatString: Short Date
+        lineageTag: 48bc5a8e-2ab0-51dd-b74f-bbe4f8941a1b
+
+    measure 'Agents With Modification Data' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: bc918bc6-050a-541f-aa0b-2ca40337685d
+
+    /// Last modified 180 or more days before the snapshot, from the Dataverse bot row. Empty ModifiedOn is in Unknown Last Modified.
+    measure 'Inactive Agents (180+ days)' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap, AgentModifications[DaysSinceModified] >= 180) + 0)
+        formatString: #,0
+        lineageTag: 9670ce68-a0dd-5fde-8765-dc8dfdb5c231
+
+    measure 'Unknown Last Modified' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap, ISBLANK(AgentModifications[ModifiedOn])) + 0)
+        formatString: #,0
+        lineageTag: 7435e09e-3e2e-5f7a-870c-862f43f42168
+
+    measure 'Last Modified (Display)' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            VAR V = CALCULATE(MAX(AgentModifications[ModifiedOn]), AgentModifications[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap)), BLANK(), IF(ISBLANK(V), "Unknown", FORMAT(V, "yyyy-MM-dd")))
+        lineageTag: 139f5e26-9b1d-510e-aabe-4a65821ae2e9
+
+    measure 'Days Since Modified (Display)' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            VAR D = CALCULATE(MAX(AgentModifications[DaysSinceModified]), AgentModifications[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap)), BLANK(), IF(ISBLANK(D), "Unknown", FORMAT(D, "#,0") & " days"))
+        lineageTag: 7d779e7d-98f9-5955-81e2-7939b8704192
+
+    /// The modifier's Dataverse system user id; no name source exists in this report.
+    measure 'Modified By (Display)' = 
+            VAR Snap = [Agent Modifications Snapshot Date]
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Key = CALCULATE(MAX(AgentModifications[ModifiedBy]), AgentModifications[RunDate] = Snap)
+            VAR Pseudo = CALCULATE(MAX(AgentModifications[ModifierPseudonym]), AgentModifications[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap)), BLANK(), IF(ISBLANK(Key), "Unknown", IF(Mode = "Anonymize", Pseudo, Key)))
+        lineageTag: 1c6e736d-35e9-523e-9e44-8321168557a8
+
+    partition AgentModifications = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agent-modifications.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedOn", ParseUtc, type datetime}, {"ModifiedOn", ParseUtc, type datetime}, {"PublishedOn", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

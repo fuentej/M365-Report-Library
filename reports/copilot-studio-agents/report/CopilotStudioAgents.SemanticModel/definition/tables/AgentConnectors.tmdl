@@ -1,0 +1,134 @@
+table AgentConnectors
+    lineageTag: 5fd27681-1eca-5abd-bdc6-9ced2e03d366
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: cd1bacbf-6c0d-5fcd-9f72-bf33b558787b
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column EnvironmentId
+        dataType: string
+        lineageTag: a2c0c7b4-e4b6-5450-9960-09a32253c249
+        summarizeBy: none
+        sourceColumn: EnvironmentId
+
+    column AgentId
+        dataType: string
+        lineageTag: 3ed91e23-1bf2-50e6-b375-152687a711d5
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column ConnectorId
+        dataType: string
+        lineageTag: 7d74d85e-2e45-5f74-a87d-83d9b3bb8a6c
+        summarizeBy: none
+        sourceColumn: ConnectorId
+
+    column OperationId
+        dataType: string
+        lineageTag: e9253e63-3e44-5ea5-a12b-c49d43f95fe6
+        summarizeBy: none
+        sourceColumn: OperationId
+
+    column UsedAs
+        dataType: string
+        lineageTag: 5102a2f7-0eb3-5626-8537-4242a759e552
+        summarizeBy: none
+        sourceColumn: UsedAs
+
+    column IsEnabled
+        dataType: boolean
+        lineageTag: 2a3e1652-8fe6-5e77-8761-591efb41343e
+        summarizeBy: none
+        sourceColumn: IsEnabled
+
+    column RequiresEndUserConsent
+        dataType: boolean
+        lineageTag: 224d708d-f84c-54bb-b207-fdffa0b9becd
+        summarizeBy: none
+        sourceColumn: RequiresEndUserConsent
+
+    column WhenCanBeUsed
+        dataType: string
+        lineageTag: 9e36dcc2-5041-5752-89e6-6e98b01c1233
+        summarizeBy: none
+        sourceColumn: WhenCanBeUsed
+
+    column ConnectionProvider
+        dataType: string
+        lineageTag: 370e2945-ec90-536b-a57b-6f3bd86f1983
+        summarizeBy: none
+        sourceColumn: ConnectionProvider
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Agent Connectors Snapshot Date' = CALCULATE(MAX(AgentConnectors[RunDate]), ALLSELECTED(AgentConnectors), ALLSELECTED(AgentsCurrent))
+        formatString: Short Date
+        lineageTag: e175324d-47f5-56f0-83cb-aaf498c29b69
+
+    /// A connector returned with no operations (tabular connectors such as SharePoint) is still one row.
+    measure 'Connector Operation Rows' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 2421d7da-c868-5f31-89e9-023421367ebc
+
+    measure 'Distinct Connectors' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(AgentConnectors[ConnectorId]), AgentConnectors[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: f5170365-9d71-5b33-b95d-d72e740dc2fa
+
+    measure 'Agents Using Connectors' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(AgentConnectors[AgentId]), AgentConnectors[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 49f1a3be-ffd4-53f1-843f-09749861f7e0
+
+    measure 'Knowledge Connector Operations' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap, AgentConnectors[UsedAs] = "Knowledge") + 0)
+        formatString: #,0
+        lineageTag: 859459cb-8847-55cc-b51b-daf92040c9b3
+
+    measure 'Tool Connector Operations' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap, AgentConnectors[UsedAs] = "Tool") + 0)
+        formatString: #,0
+        lineageTag: d85635b8-e5cf-5ef7-9472-5403c711bc46
+
+    measure 'Topic Tool Connector Operations' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap, AgentConnectors[UsedAs] = "Topic Tool") + 0)
+        formatString: #,0
+        lineageTag: 100d8a97-586e-5ba3-b229-962c9d27db37
+
+    measure 'Operations Requiring Consent' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap, AgentConnectors[RequiresEndUserConsent] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: f618051b-0563-5b0d-bf75-d9d5f42258e1
+
+    measure 'Disabled Operations' = 
+            VAR Snap = [Agent Connectors Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentConnectors), AgentConnectors[RunDate] = Snap, AgentConnectors[IsEnabled] = FALSE(), NOT ISBLANK(AgentConnectors[IsEnabled])) + 0)
+        formatString: #,0
+        lineageTag: dd92a912-a08f-55c3-be1a-b724a6da6119
+
+    partition AgentConnectors = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agent-connectors.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Cleaned,
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsEnabled", type logical}, {"RequiresEndUserConsent", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

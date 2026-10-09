@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-agents",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "AgentsCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Agent Display Name"
+                }
+              },
+              "queryRef": "AgentsCurrent.Agent Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentComponents"
+                    }
+                  },
+                  "Property": "Knowledge Source Components"
+                }
+              },
+              "queryRef": "AgentComponents.Knowledge Source Components"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "Knowledge Connector Operations"
+                }
+              },
+              "queryRef": "AgentConnectors.Knowledge Connector Operations"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Web Search Knowledge (Display)"
+                }
+              },
+              "queryRef": "Agents.Web Search Knowledge (Display)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Knowledge per agent"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,519 @@
+table Agents
+    lineageTag: 036d3435-35a9-5f5d-a3ec-19dba8bd8bb1
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 379e61b6-bcad-5dd4-8890-278e65f2ba1f
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column EnvironmentId
+        dataType: string
+        lineageTag: 1748e30f-29db-565e-9e3b-bca25c5fc32f
+        summarizeBy: none
+        sourceColumn: EnvironmentId
+
+    column AgentId
+        dataType: string
+        lineageTag: ae9766b9-e80c-511b-b3f7-9edf52518ff5
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column DisplayName
+        dataType: string
+        lineageTag: 1b59320f-a9cf-577c-a4fd-c281de03ade2
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Harness
+        dataType: string
+        lineageTag: 83895d96-8c66-59f6-8e77-c316d504cbea
+        summarizeBy: none
+        sourceColumn: Harness
+
+    column CreatedIn
+        dataType: string
+        lineageTag: dc1ee6d3-db46-5e49-a427-a8752a58b3a1
+        summarizeBy: none
+        sourceColumn: CreatedIn
+
+    column CreatedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 6c34e8a4-c911-5877-8309-1b99792d22b9
+        summarizeBy: none
+        sourceColumn: CreatedAt
+
+    column CreatedBy
+        dataType: string
+        lineageTag: ea788b91-da2b-5d09-add1-ff2853042081
+        summarizeBy: none
+        sourceColumn: CreatedBy
+
+    column OwnerId
+        dataType: string
+        lineageTag: 74448462-6485-5b76-8869-86107df0dcdf
+        summarizeBy: none
+        sourceColumn: OwnerId
+
+    column LastPublishedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 1c95405e-0a86-57ae-8e09-aa8beb8b6da6
+        summarizeBy: none
+        sourceColumn: LastPublishedAt
+
+    column IsPublished
+        dataType: boolean
+        lineageTag: 177a891b-3f6b-5f6e-a520-a1df372dfd7c
+        summarizeBy: none
+        sourceColumn: IsPublished
+
+    column IsQuarantined
+        dataType: boolean
+        lineageTag: f0cab109-93d5-526a-a294-8983fddbdd71
+        summarizeBy: none
+        sourceColumn: IsQuarantined
+
+    column IsManaged
+        dataType: boolean
+        lineageTag: 2ea6c862-06fd-59ac-bb4b-4f9938f1c2f3
+        summarizeBy: none
+        sourceColumn: IsManaged
+
+    column Orchestration
+        dataType: string
+        lineageTag: c7eeb5a9-130d-5436-8579-c8862aea0dcc
+        summarizeBy: none
+        sourceColumn: Orchestration
+
+    column Model
+        dataType: string
+        lineageTag: 05e8a196-a70d-5a16-8527-a3908b6fd69d
+        summarizeBy: none
+        sourceColumn: Model
+
+    column Authentication
+        dataType: string
+        lineageTag: 6c957fc6-550f-5926-9208-7923c20365f1
+        summarizeBy: none
+        sourceColumn: Authentication
+
+    column Channels
+        dataType: string
+        lineageTag: 46609a80-a25d-5009-b81b-19365a0ce86f
+        summarizeBy: none
+        sourceColumn: Channels
+
+    column ViewerUserCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: c66954e8-d851-5678-b87b-b66a88c82690
+        summarizeBy: none
+        sourceColumn: ViewerUserCount
+
+    column ViewerGroupCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 7b567d95-e065-5c95-a8b8-dd5b0fea2a61
+        summarizeBy: none
+        sourceColumn: ViewerGroupCount
+
+    column ViewerEntireTenant
+        dataType: boolean
+        lineageTag: 817497e0-4228-56a6-a096-8e26a05476a5
+        summarizeBy: none
+        sourceColumn: ViewerEntireTenant
+
+    column EditorUserCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: e973307b-8189-51bb-abd0-e4b9a95dfa50
+        summarizeBy: none
+        sourceColumn: EditorUserCount
+
+    column EditorGroupCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: f7b83507-d1aa-5f91-92a0-0d0f8dc5ad17
+        summarizeBy: none
+        sourceColumn: EditorGroupCount
+
+    column ListedConnectorCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 309f93ff-f75c-5dfd-84c7-ed3ae61848f4
+        summarizeBy: none
+        sourceColumn: ListedConnectorCount
+
+    column ListedConnectorOperationCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: e1053def-fa12-57bb-bb66-8bad51afaf45
+        summarizeBy: none
+        sourceColumn: ListedConnectorOperationCount
+
+    column CapabilitiesDistinctConnectors
+        dataType: int64
+        formatString: #,0
+        lineageTag: f04036d6-4c69-595a-91bc-17e6049d4943
+        summarizeBy: none
+        sourceColumn: CapabilitiesDistinctConnectors
+
+    column CapabilitiesDistinctConnectorOperations
+        dataType: int64
+        formatString: #,0
+        lineageTag: 1aaceae3-1ffc-5c89-af22-4d5a07745340
+        summarizeBy: none
+        sourceColumn: CapabilitiesDistinctConnectorOperations
+
+    column IsWebSearchEnabledForKnowledge
+        dataType: boolean
+        lineageTag: 35ac5df1-b6b9-540d-9fa5-d0902851c477
+        summarizeBy: none
+        sourceColumn: IsWebSearchEnabledForKnowledge
+
+    column PublishState = IF(ISBLANK(Agents[IsPublished]), "Unknown", IF(Agents[IsPublished], "Published", "Draft"))
+        dataType: string
+        lineageTag: cbc3fbf2-0e56-5702-adcb-09a5df0f15b3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Authentication is Preview; an empty value is Unknown.
+    column AuthenticationLabel = IF(ISBLANK(Agents[Authentication]), "Unknown", Agents[Authentication])
+        dataType: string
+        lineageTag: c2a2e9d3-0034-503f-8801-b86f6485b3d9
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Channels is Preview; an empty value is Unknown, not "no channels".
+    column ChannelsLabel = IF(ISBLANK(Agents[Channels]), "Unknown", SUBSTITUTE(Agents[Channels], ";", ", "))
+        dataType: string
+        lineageTag: bd61a8f4-87f3-5831-8e5a-0cdce487ef60
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ChannelCount = IF(ISBLANK(Agents[Channels]), BLANK(), LEN(Agents[Channels]) - LEN(SUBSTITUTE(Agents[Channels], ";", "")) + 1)
+        dataType: int64
+        formatString: 0
+        lineageTag: f0fde20c-132d-565a-9ab3-3197b935c012
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column SharingScope = IF(ISBLANK(Agents[ViewerEntireTenant]), "Unknown", IF(Agents[ViewerEntireTenant], "Entire tenant", "Not entire tenant"))
+        dataType: string
+        lineageTag: c6384d0b-7cc7-5dee-aec8-720909558589
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Listed below the capabilitiesCounts total: the inventory returned a random 200 of one resource type, so connector rows for this agent are partial.
+    column ConnectorRowsPartial = IF(ISBLANK(Agents[ListedConnectorOperationCount]) || ISBLANK(Agents[CapabilitiesDistinctConnectorOperations]), BLANK(), Agents[ListedConnectorOperationCount] < Agents[CapabilitiesDistinctConnectorOperations])
+        dataType: boolean
+        lineageTag: 7cd91788-719c-5904-a413-b54b3f8140a8
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column OwnerPseudonym = 
+            VAR IdText = Agents[OwnerId]
+            RETURN IF(ISBLANK(IdText), BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 72bf9f4e-263a-5552-b9d1-67a1ee1a2015
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column CreatorPseudonym = 
+            VAR IdText = Agents[CreatedBy]
+            RETURN IF(ISBLANK(IdText), BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: f764bd46-5dea-5f05-99ce-909295e6487a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Agents Snapshot Date' = CALCULATE(MAX(Agents[RunDate]), ALLSELECTED(Agents), ALLSELECTED(AgentsCurrent))
+        formatString: Short Date
+        lineageTag: b6c8c93f-8557-55c3-bf6e-e00a2ba3a000
+
+    /// Agents the inventory returned. Drafts are included; V1 (classic Power Virtual Agents) agents are not in the inventory.
+    measure 'Agent Count' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 327e8ac4-f692-5b76-894e-729ba1729b86
+
+    measure 'Published Agents' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsPublished] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: fe4e0ebd-3cf1-55da-b98f-35396842161d
+
+    measure 'Draft Agents' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsPublished] = FALSE(), NOT ISBLANK(Agents[IsPublished])) + 0)
+        formatString: #,0
+        lineageTag: f8664862-77b0-5925-b4fd-a264e69f157d
+
+    measure 'Unknown Publish State' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[IsPublished])) + 0)
+        formatString: #,0
+        lineageTag: a8f511f3-6820-5e1e-b89b-9e1a18986035
+
+    measure 'Quarantined Agents' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsQuarantined] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 5c491940-074d-5863-b8ed-c7946e3aad17
+
+    measure 'Distinct Owners' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(Agents[OwnerId]), Agents[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 5895b99d-0283-568b-b04d-4b3a17a79a13
+
+    measure 'Owner Differs From Creator' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(FILTER(Agents, NOT ISBLANK(Agents[OwnerId]) && NOT ISBLANK(Agents[CreatedBy]) && Agents[OwnerId] <> Agents[CreatedBy])), Agents[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 257f2812-f4d5-5a60-96ed-511acbf34f40
+
+    measure 'Agents Shared With Entire Tenant' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[ViewerEntireTenant] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 3b42ddc2-f6e9-5acd-b4e1-90f43e950376
+
+    measure 'Unknown Sharing Scope' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[ViewerEntireTenant])) + 0)
+        formatString: #,0
+        lineageTag: 31965e7b-6638-5cb8-86e7-19f6ee41d6fa
+
+    measure 'Published With No Authentication' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsPublished] = TRUE(), Agents[Authentication] = "None") + 0)
+        formatString: #,0
+        lineageTag: d55311b8-687b-5d49-95ec-ea073ff67a99
+
+    measure 'Unknown Authentication' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[Authentication])) + 0)
+        formatString: #,0
+        lineageTag: 4bd0e246-ea01-5b63-a17a-06b04b9a5398
+
+    measure 'Unknown Channels' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[Channels])) + 0)
+        formatString: #,0
+        lineageTag: caa9d00b-ddf2-59b5-a35b-9ef14f9155c4
+
+    measure 'Agents With Web Search Knowledge' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsWebSearchEnabledForKnowledge] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: ec293232-0370-572f-b2ca-fb0732502d86
+
+    measure 'Unknown Web Search Setting' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[IsWebSearchEnabledForKnowledge])) + 0)
+        formatString: #,0
+        lineageTag: 25c3f6eb-0e2b-5ea4-b7c9-007cf8d42324
+
+    /// LastPublishedAt is empty for an agent never published (README). Counted only when IsPublished is False.
+    measure 'Never Published' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, ISBLANK(Agents[LastPublishedAt]), Agents[IsPublished] = FALSE(), NOT ISBLANK(Agents[IsPublished])) + 0)
+        formatString: #,0
+        lineageTag: 8820b691-b605-52e8-b155-5d3ea83bde44
+
+    measure 'Agents With Partial Connector Rows' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[ConnectorRowsPartial] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: a6071cb8-1cb9-58d6-8fc8-1635a63a94a6
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Viewer Users' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[ViewerUserCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[ViewerUserCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: cf6946c5-426e-5f7e-89c1-0488bab5db6f
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Viewer Groups' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[ViewerGroupCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[ViewerGroupCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 709b3410-9f5a-5937-8f81-9869c0617cce
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Editor Users' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[EditorUserCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[EditorUserCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 0adfb6b6-aaea-57c5-993f-a18bccdf702d
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Editor Groups' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[EditorGroupCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[EditorGroupCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 4fed0e0f-1428-50ac-bb88-90acd8040f16
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Connectors Listed' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[ListedConnectorCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[ListedConnectorCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 3b72c17e-ae1f-5e5e-b6c7-a77a93880374
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Connector Operations Listed' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[ListedConnectorOperationCount]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[ListedConnectorOperationCount]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: d973345f-67b8-5e73-b6f4-99159a7747de
+
+    /// The complete count from capabilitiesCounts. Compare with Connectors Listed: the inventory lists a random 200 of one resource type when there are more.
+    measure 'Connectors Total (capabilitiesCounts)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[CapabilitiesDistinctConnectors]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[CapabilitiesDistinctConnectors]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 9655d6d8-d763-5fa4-a40d-4acd36ca3ad2
+
+    /// Sum over the agents that returned a value. Blank when none did: unknown, never zero.
+    measure 'Connector Operations Total (capabilitiesCounts)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Known = CALCULATE(COUNT(Agents[CapabilitiesDistinctConnectorOperations]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(SUM(Agents[CapabilitiesDistinctConnectorOperations]), Agents[RunDate] = Snap))
+        formatString: #,0
+        lineageTag: 81a4c129-0b5f-5aee-9563-7fe866d59061
+
+    /// Per RunDate, for the trend line.
+    measure 'Agent Count (All Snapshots)' = IF(COUNTROWS(Agents) = 0, BLANK(), COUNTROWS(Agents) + 0)
+        formatString: #,0
+        lineageTag: a9974aae-b5d2-52ba-9e76-1506c9b576f4
+
+    measure 'Published Agents (All Snapshots)' = IF(COUNTROWS(Agents) = 0, BLANK(), COUNTROWS(FILTER(Agents, Agents[IsPublished] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: 6413f946-a736-5eb2-9823-5a3abdf644d7
+
+    measure 'Orchestration (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[Orchestration]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 681ae28f-5b42-5dab-8783-39db9955d73f
+
+    measure 'Model (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[Model]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 0f96f7cc-65f7-54f3-b635-c32dcf4dc4a8
+
+    measure 'Harness (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[Harness]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 576e0e95-fed4-5817-9d73-5b47833d77bc
+
+    measure 'Created In (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[CreatedIn]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 5e6a474f-c58e-53d7-8ac3-99dbd6ac924b
+
+    measure 'Authentication (Display)' = CALCULATE(MAX(Agents[AuthenticationLabel]), Agents[RunDate] = [Agents Snapshot Date])
+        lineageTag: 3abaccb0-4f6b-53b0-a6fe-09c11dfaf205
+
+    measure 'Channels (Display)' = CALCULATE(MAX(Agents[ChannelsLabel]), Agents[RunDate] = [Agents Snapshot Date])
+        lineageTag: 565b21c4-08dc-5040-b77a-1215b9cdd95e
+
+    measure 'Publish State (Display)' = CALCULATE(MAX(Agents[PublishState]), Agents[RunDate] = [Agents Snapshot Date])
+        lineageTag: 9630e654-12c9-58fc-9d56-ebdaf1fe2a3c
+
+    measure 'Sharing Scope (Display)' = CALCULATE(MAX(Agents[SharingScope]), Agents[RunDate] = [Agents Snapshot Date])
+        lineageTag: 3e3753cf-99f5-5bd3-bb68-84e514224956
+
+    measure 'Created (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[CreatedAt]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)), BLANK(), IF(ISBLANK(V), "Unknown", FORMAT(V, "yyyy-MM-dd")))
+        lineageTag: 7e337c55-8a06-5ed5-bc48-48ec60df3f35
+
+    measure 'Last Published (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR V = CALCULATE(MAX(Agents[LastPublishedAt]), Agents[RunDate] = Snap)
+            VAR Published = CALCULATE(MAX(Agents[PublishState]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)), BLANK(), IF(NOT ISBLANK(V), FORMAT(V, "yyyy-MM-dd"), IF(Published = "Draft", "Never published", "Unknown")))
+        lineageTag: 66124d14-a9cd-516e-bd92-0c5ea88619ea
+
+    /// Entra object id of the owner; the library has no directory file for this report, so there is no name to show.
+    measure 'Owner (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR OwnerKey = CALCULATE(MAX(Agents[OwnerId]), Agents[RunDate] = Snap)
+            VAR OwnerPseudo = CALCULATE(MAX(Agents[OwnerPseudonym]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(OwnerKey), IF(ISBLANK(CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)), BLANK(), "Unknown"), IF(Mode = "Anonymize", OwnerPseudo, OwnerKey))
+        lineageTag: 6c3ee6e2-7465-5421-a130-1043965850b7
+
+    measure 'Creator (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR CreatorKey = CALCULATE(MAX(Agents[CreatedBy]), Agents[RunDate] = Snap)
+            VAR CreatorPseudo = CALCULATE(MAX(Agents[CreatorPseudonym]), Agents[RunDate] = Snap)
+            RETURN IF(ISBLANK(CreatorKey), IF(ISBLANK(CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)), BLANK(), "Unknown"), IF(Mode = "Anonymize", CreatorPseudo, CreatorKey))
+        lineageTag: 1ffa6195-c06d-5eac-8ed9-3e1df352bcd9
+
+    /// Yes, No, or Unknown when the column is empty. An empty value is never read as No.
+    measure 'Web Search Knowledge (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR OnSnap = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)
+            VAR Yes = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsWebSearchEnabledForKnowledge] = TRUE())
+            VAR No = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsWebSearchEnabledForKnowledge] = FALSE(), NOT ISBLANK(Agents[IsWebSearchEnabledForKnowledge]))
+            RETURN IF(ISBLANK(OnSnap), BLANK(), IF(Yes > 0, "Yes", IF(No > 0, "No", "Unknown")))
+        lineageTag: 5e3b9513-40c5-5fb5-9095-790de252c02e
+
+    /// Yes, No, or Unknown when the column is empty. An empty value is never read as No.
+    measure 'Quarantined (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            VAR OnSnap = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap)
+            VAR Yes = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsQuarantined] = TRUE())
+            VAR No = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[IsQuarantined] = FALSE(), NOT ISBLANK(Agents[IsQuarantined]))
+            RETURN IF(ISBLANK(OnSnap), BLANK(), IF(Yes > 0, "Yes", IF(No > 0, "No", "Unknown")))
+        lineageTag: 99a2bf32-7301-58c5-973c-44b7f6282c9a
+
+    /// CSV files that hold at least one row. A header-only file (the connector file in GCC and GCC High) means the source was not collected.
+    measure 'Sources With Data (of 6)' = 
+            IF(COUNTROWS(ALL(Environments)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(Agents)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(AgentConnectors)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(AgentComponents)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(AgentModifications)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(AgentAuditEvents)) > 0, 1, 0)
+        formatString: 0
+        lineageTag: 315e3280-5e9a-5bc0-bcbd-22a8cdd871a7
+
+    partition Agents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agents.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedAt", ParseUtc, type datetime}, {"LastPublishedAt", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"ViewerUserCount", Int64.Type}, {"ViewerGroupCount", Int64.Type}, {"EditorUserCount", Int64.Type}, {"EditorGroupCount", Int64.Type}, {"ListedConnectorCount", Int64.Type}, {"ListedConnectorOperationCount", Int64.Type}, {"CapabilitiesDistinctConnectors", Int64.Type}, {"CapabilitiesDistinctConnectorOperations", Int64.Type}, {"IsPublished", type logical}, {"IsQuarantined", type logical}, {"IsManaged", type logical}, {"ViewerEntireTenant", type logical}, {"IsWebSearchEnabledForKnowledge", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

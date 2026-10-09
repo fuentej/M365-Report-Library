@@ -12,7 +12,8 @@ history you can chart over time.
 
 The sources were verified against Microsoft Learn in
 [`docs/candidates/copilot-studio-agents.md`](../../docs/candidates/copilot-studio-agents.md),
-which is the contract for this folder. The Power BI project is a separate, later piece of work.
+which is the contract for this folder. The Power BI project is in `report/`; saving it as a `.pbit` needs
+Power BI Desktop and is a separate, manual step.
 
 ## Sign-in: four of the six collectors are delegated and interactive
 
@@ -40,6 +41,7 @@ with `-AppId`, `-CertificateThumbprint`, `-TenantId` and `-Organization`).
 | `collectors/Run-All.ps1` | Runs all six |
 | `collectors/CopilotStudioSchema.psd1` | The column order of every CSV and the per-cloud availability of every source |
 | `collectors/CopilotStudioHelpers.ps1` | Helpers the collectors dot-source: the delegated token, inventory paging and Dataverse paging |
+| `report/` | The Power BI project (PBIP): `CopilotStudioAgents.SemanticModel` (TMDL) and `CopilotStudioAgents.Report` (PBIR, seven pages). One parameter, `CsvFolder`, holds the folder the collectors wrote; it is built against `samples/` |
 | `New-SampleData.ps1` | Regenerates `samples/` |
 | `samples/` | Generated fake data; `samples/gcc/` and `samples/gcchigh/` hold the header-only `agent-connectors.csv` |
 | `tests/` | Pester tests; every tenant call, including the sign-in, is mocked |
@@ -213,3 +215,22 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `ResultStatus` | Status of the logged row |
 | `BotId`, `BotSchemaName` | The agent |
 | `BotComponentId`, `BotComponentType` | The component, for component events |
+
+## The Power BI report
+
+Open `report/CopilotStudioAgents.pbip` in Power BI Desktop and set the `CsvFolder` parameter to the folder
+the collectors wrote (or to `samples/`). Seven pages follow the contract: Overview, Ownership, Sharing and
+authentication, Channels, Connectors and actions, Knowledge and Lifecycle. Every page has a date-range
+slicer, an agent slicer and the Anonymize toggle, which swaps agent names, environment names and the
+owner, creator and modifier ids for stable pseudonyms.
+
+* An empty value is **Unknown**, never zero. A header-only file (the connector file in GCC and GCC High)
+  is **not collected**: its measures are blank, and the Overview shows how many of the six files hold data.
+* The inventory returns a random 200 of one resource type when an agent has more. The report shows the
+  listed count next to the `capabilitiesCounts` total and counts the agents whose rows are partial.
+* Owners, creators and modifiers are ids; no directory file exists in this folder, so owners are not
+  named and an owner who is gone from the directory cannot be detected here.
+* Sharing is counts only; users and groups are not named.
+
+The report tests (`ReportSchema`, `ReportModel`, `TmdlDataType`, `TmdlExpressionIndent`) reuse the
+schema validator, vendored schemas and TMDL reader under `reports/guest-access/tests/`.
