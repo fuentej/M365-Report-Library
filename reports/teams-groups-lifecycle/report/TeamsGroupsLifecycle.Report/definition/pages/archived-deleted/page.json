@@ -1,0 +1,8 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.0.0/schema.json",
+  "name": "archived-deleted",
+  "displayName": "Archived and deleted",
+  "displayOption": "FitToPage",
+  "height": 720,
+  "width": 1280
+}

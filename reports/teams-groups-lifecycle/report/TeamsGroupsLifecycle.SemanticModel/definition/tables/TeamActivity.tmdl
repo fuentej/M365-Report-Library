@@ -1,0 +1,213 @@
+table TeamActivity
+    lineageTag: 943f1b2d-dba6-5475-bfe6-dc3096e14e21
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 065b783c-dc14-501a-a7ad-cbbbe8b6d977
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: c17516b5-6a42-52f7-a412-df70e4864c0a
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column ReportPeriod
+        dataType: int64
+        lineageTag: 287cea25-42cd-5eea-b88f-5f48355c21ef
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column TeamId
+        dataType: string
+        lineageTag: bc9967a8-6015-5753-bb88-34007a5fe117
+        summarizeBy: none
+        sourceColumn: TeamId
+
+    column TeamName
+        dataType: string
+        lineageTag: 94654a8a-656e-590a-a8ae-914d9042ac77
+        summarizeBy: none
+        sourceColumn: TeamName
+
+    column TeamType
+        dataType: string
+        lineageTag: b44990d6-426c-5c1c-8e59-d177caf2e28e
+        summarizeBy: none
+        sourceColumn: TeamType
+
+    column LastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 2b01a058-e60d-5368-970c-451d429fabb7
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column ActiveUsers
+        dataType: int64
+        lineageTag: 1c37c7ef-1773-5553-bb43-87574a2f4f23
+        summarizeBy: none
+        sourceColumn: ActiveUsers
+
+    column ActiveChannels
+        dataType: int64
+        lineageTag: 3f1cc6af-ea78-5c65-ba85-5a756524eb0e
+        summarizeBy: none
+        sourceColumn: ActiveChannels
+
+    column Guests
+        dataType: int64
+        lineageTag: f5027a7a-c759-5081-8fa9-a07bda0a147b
+        summarizeBy: none
+        sourceColumn: Guests
+
+    column Reactions
+        dataType: int64
+        lineageTag: 9ed58e10-6f70-58f9-8363-829e6224a312
+        summarizeBy: none
+        sourceColumn: Reactions
+
+    column MeetingsOrganized
+        dataType: int64
+        lineageTag: fb416c1c-2dde-59bf-9e1b-38f52ff33696
+        summarizeBy: none
+        sourceColumn: MeetingsOrganized
+
+    column PostMessages
+        dataType: int64
+        lineageTag: 358cd34b-c901-5763-bebd-19c492eb4d4c
+        summarizeBy: none
+        sourceColumn: PostMessages
+
+    column ReplyMessages
+        dataType: int64
+        lineageTag: d073f2b1-750b-535e-be9a-fa82671393aa
+        summarizeBy: none
+        sourceColumn: ReplyMessages
+
+    column ChannelMessages
+        dataType: int64
+        lineageTag: c01b7d46-2fe1-52fc-987d-be32991b7482
+        summarizeBy: none
+        sourceColumn: ChannelMessages
+
+    column UrgentMessages
+        dataType: int64
+        lineageTag: 8877cf03-51aa-5ac9-aaf9-f857705a5e8c
+        summarizeBy: none
+        sourceColumn: UrgentMessages
+
+    column Mentions
+        dataType: int64
+        lineageTag: 12382995-cfa7-51e8-b8ca-86c2c1c62309
+        summarizeBy: none
+        sourceColumn: Mentions
+
+    column ActiveSharedChannels
+        dataType: int64
+        lineageTag: 2213d313-4908-5e35-9ffd-0707e796aab8
+        summarizeBy: none
+        sourceColumn: ActiveSharedChannels
+
+    column ActiveExternalUsers
+        dataType: int64
+        lineageTag: 2f763caa-8348-5d99-813b-85abe90baa54
+        summarizeBy: none
+        sourceColumn: ActiveExternalUsers
+
+    column SnapshotKey = FORMAT(TeamActivity[RunDate], "yyyy-MM-dd") & "|" & TeamActivity[TeamId]
+        dataType: string
+        lineageTag: 3026645f-1c3b-5dfb-8be4-9cb7a417735e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Blank when the report has no last activity date. Never coerced to 0.
+    column DaysSinceLastActivity = IF(ISBLANK(TeamActivity[LastActivityDate]), BLANK(), DATEDIFF(TeamActivity[LastActivityDate], TeamActivity[RunDate], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: ee61de70-3c28-5b5e-8277-6fe80c6d6be5
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActivityBucket = 
+            VAR d = TeamActivity[DaysSinceLastActivity]
+            RETURN IF(ISBLANK(d), "Unknown (no last activity date)", IF(d < 30, "0-29 days", IF(d < 90, "30-89 days", IF(d < 180, "90-179 days", "180+ days"))))
+        dataType: string
+        lineageTag: c3732823-ad25-54b9-9300-d8a9f762f2e5
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Teams (Activity Snapshot)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 9aaaea4d-c6b8-58e3-928e-a6c7d2a9e853
+
+    /// Blank when the snapshot has no team-activity.csv rows (the usage report is not available in GCC High).
+    measure 'Teams Reported (Activity)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR Reported = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: 6321c052-df95-5c03-b828-08363f72a83b
+
+    measure 'Inactive Teams (90+ Days)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR Reported = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate, NOT ISBLANK(TeamActivity[DaysSinceLastActivity]), TeamActivity[DaysSinceLastActivity] >= 90)
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: 0041bb2d-8c8e-5122-8370-0730c65d39a7
+
+    /// Empty LastActivityDate is Unknown, not zero days.
+    measure 'Teams With Unknown Last Activity' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR Reported = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate, ISBLANK(TeamActivity[LastActivityDate]))
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: 5e3cae7a-3e9c-5f79-a29c-5e51f13c2bcf
+
+    measure 'Team Last Activity' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR Last = CALCULATE(MAX(TeamActivity[LastActivityDate]), TeamActivity[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Last), "Unknown", FORMAT(Last, "yyyy-MM-dd")))
+        lineageTag: a1db0f71-4e0b-5089-9b47-30d71c573881
+
+    measure 'Team Days Inactive (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR Days = CALCULATE(MAX(TeamActivity[DaysSinceLastActivity]), TeamActivity[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days"))
+        lineageTag: 9c5c2b4b-29bc-545d-9467-20da65f956ff
+
+    measure 'Activity Source Status' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR TeamRows = CALCULATE(COUNTROWS(TeamActivity), TeamActivity[RunDate] = SnapshotDate)
+            VAR GroupRows = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            RETURN IF(TeamRows = 0 && GroupRows = 0, "No usage-report rows on this snapshot. The reports are not available in GCC High and GCC is unverified, so inactivity is unknown here.", IF(TeamRows = 0, "No team usage-report rows on this snapshot: team inactivity is unknown.", IF(GroupRows = 0, "No group usage-report rows on this snapshot: group inactivity is unknown.", "Usage-report rows present on this snapshot.")))
+        lineageTag: 44b99fd4-30b5-5936-a529-14cc11c414da
+
+    partition TeamActivity = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\team-activity.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"ReportRefreshDate", type date}, {"ReportPeriod", Int64.Type}, {"LastActivityDate", type date}, {"ActiveUsers", Int64.Type}, {"ActiveChannels", Int64.Type}, {"Guests", Int64.Type}, {"Reactions", Int64.Type}, {"MeetingsOrganized", Int64.Type}, {"PostMessages", Int64.Type}, {"ReplyMessages", Int64.Type}, {"ChannelMessages", Int64.Type}, {"UrgentMessages", Int64.Type}, {"Mentions", Int64.Type}, {"ActiveSharedChannels", Int64.Type}, {"ActiveExternalUsers", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-owner-account-state",
+  "position": {
+    "x": 640,
+    "y": 230,
+    "z": 0,
+    "width": 640,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupOwners"
+                    }
+                  },
+                  "Property": "OwnerAccountState"
+                }
+              },
+              "queryRef": "GroupOwners.OwnerAccountState"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupOwners"
+                    }
+                  },
+                  "Property": "Owner Assignments"
+                }
+              },
+              "queryRef": "GroupOwners.Owner Assignments"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Owner assignments by account state (joined to users.csv)"
+          }
+        }
+      ]
+    }
+  }
+}

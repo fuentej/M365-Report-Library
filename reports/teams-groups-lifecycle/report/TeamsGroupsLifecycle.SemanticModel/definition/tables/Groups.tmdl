@@ -1,0 +1,315 @@
+table Groups
+    lineageTag: 5f78fade-f5b6-5859-a51b-76d6bac2b816
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 67875f75-4eca-58ba-b9aa-a999ca9aeec7
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 83413afc-c7a4-5d3e-a586-c64919572f05
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: ca308568-cf42-55c1-9cdb-17d43cce5585
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Mail
+        dataType: string
+        lineageTag: a39c42ea-23d0-50d3-a491-15517a4e1738
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column GroupTypes
+        dataType: string
+        lineageTag: 70b4b73a-09a9-5429-a466-93f707fa3089
+        summarizeBy: none
+        sourceColumn: GroupTypes
+
+    column SecurityEnabled
+        dataType: boolean
+        lineageTag: 6903b394-3c14-5836-a03a-04fccc0eeb60
+        summarizeBy: none
+        sourceColumn: SecurityEnabled
+
+    column MailEnabled
+        dataType: boolean
+        lineageTag: 011ac7af-f93f-5d2d-b657-afc75c98c502
+        summarizeBy: none
+        sourceColumn: MailEnabled
+
+    column Visibility
+        dataType: string
+        lineageTag: ffb98d93-f0e4-5c93-8835-daca6bffd62b
+        summarizeBy: none
+        sourceColumn: Visibility
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: b4e702a6-2893-537a-8274-7d328a0ff22f
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column RenewedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: c069abcf-c94d-54da-b88a-44d377b98a1e
+        summarizeBy: none
+        sourceColumn: RenewedDateTime
+
+    column ExpirationDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: d0e0815c-2070-5b10-921d-a8a762095ac7
+        summarizeBy: none
+        sourceColumn: ExpirationDateTime
+
+    column DeletedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 771d5c85-8d01-5862-9f47-9b4500fc300b
+        summarizeBy: none
+        sourceColumn: DeletedDateTime
+
+    column OnPremisesSyncEnabled
+        dataType: boolean
+        lineageTag: 3339a9d9-9516-5d8c-9091-4694701148a6
+        summarizeBy: none
+        sourceColumn: OnPremisesSyncEnabled
+
+    column ResourceProvisioningOptions
+        dataType: string
+        lineageTag: e0ca5a6f-4466-565b-b785-527e89f5a3fb
+        summarizeBy: none
+        sourceColumn: ResourceProvisioningOptions
+
+    column IsTeam
+        dataType: boolean
+        lineageTag: b6bd9786-810c-59f1-82ac-658bd8b857b0
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    column SnapshotKey = FORMAT(Groups[RunDate], "yyyy-MM-dd") & "|" & Groups[Id]
+        dataType: string
+        lineageTag: 9d32df54-a96d-5ed3-ba01-8411d5cd3f58
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Days from creation to this snapshot's UTC RunDate.
+    column DaysSinceCreated = DATEDIFF(Groups[CreatedDateTime], Groups[RunDate], DAY)
+        dataType: int64
+        formatString: #,0
+        lineageTag: 9030b5a9-c0e3-5117-8370-769799b73ace
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column CreatedYearMonth = FORMAT(Groups[CreatedDateTime], "yyyy-MM")
+        dataType: string
+        lineageTag: 3859aa87-7545-5af5-83ca-34d5d2b32e60
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Blank when no expiration policy applies to the group (ExpirationDateTime is empty). Never coerced to 0.
+    column DaysToExpiry = IF(ISBLANK(Groups[ExpirationDateTime]), BLANK(), DATEDIFF(Groups[RunDate], Groups[ExpirationDateTime], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: 80b417c9-35c1-54dd-b041-83ce65789b20
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ExpiryBucket = 
+            VAR d = Groups[DaysToExpiry]
+            RETURN IF(ISBLANK(d), "No expiration date", IF(d < 0, "Past expiration date", IF(d <= 30, "0-30 days", IF(d <= 60, "31-60 days", IF(d <= 90, "61-90 days", "More than 90 days")))))
+        dataType: string
+        lineageTag: c24305fc-3c8d-5b84-8619-ce4b6db9636e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Owners Graph returned for this group on this snapshot. Meaningful only when OwnerStatus is not "Owner unknown".
+    column OwnerListedCount = COUNTROWS(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerListStatus] = "Listed"))
+        dataType: int64
+        formatString: #,0
+        lineageTag: d4f62fbb-8720-585a-8881-c68386d0bbc5
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Graph cannot list owners for some groups (Exchange-created, distribution, on-premises synced): those are "Owner unknown", not "No owner". A group with no group-owners.csv row on the snapshot is also unknown.
+    column OwnerStatus = 
+            VAR OwnerRows = RELATEDTABLE(GroupOwners)
+            VAR RowCount = COUNTROWS(OwnerRows)
+            VAR UnknownRows = COUNTROWS(FILTER(OwnerRows, GroupOwners[OwnerListStatus] = "Unknown"))
+            VAR NoneRows = COUNTROWS(FILTER(OwnerRows, GroupOwners[OwnerListStatus] = "None"))
+            VAR Listed = Groups[OwnerListedCount]
+            RETURN IF(RowCount = 0 || UnknownRows > 0, "Owner unknown", IF(Listed = 0 && NoneRows > 0, "No owner", IF(Listed = 1, "One owner", "Two or more owners")))
+        dataType: string
+        lineageTag: 4ddcbfe7-2062-554a-bc7f-941a2ad796d4
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DisabledOwnerCount = COUNTROWS(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Disabled"))
+        dataType: int64
+        formatString: #,0
+        lineageTag: 6d173d6c-97e4-5833-8a04-c9552bcee1a7
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest snapshot RunDate inside the current date slicer, ignoring the visual's own group axis.
+    measure 'Selected Snapshot Date' = CALCULATE(MAX(Groups[RunDate]), ALLSELECTED(Groups), ALLSELECTED(GroupsCurrent))
+        formatString: Short Date
+        lineageTag: 082eb9d4-bfa0-5137-8628-acd2b3e4306e
+
+    /// Every snapshot row. The Overview trend plots this by RunDate.
+    measure 'Group Count (All Snapshots)' = COUNTROWS(Groups)
+        formatString: #,0
+        lineageTag: b443ac94-6fdd-5cd9-b79e-18ac0bfc2c00
+
+    measure 'Team Count (All Snapshots)' = CALCULATE(COUNTROWS(Groups), Groups[IsTeam] = TRUE())
+        formatString: #,0
+        lineageTag: c0b95a6a-9b01-58c2-bce2-43ea4477d665
+
+    /// Microsoft 365 groups on the selected snapshot, Teams included.
+    measure 'Group Count' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 4e921db8-0f12-520f-9666-a22e789b6924
+
+    /// IsTeam is ResourceProvisioningOptions containing Team; some old unused teams do not carry it.
+    measure 'Team Count' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[IsTeam] = TRUE())
+        formatString: #,0
+        lineageTag: 428f47d3-b21c-58bc-bbe0-19f3a93bf68b
+
+    measure 'Groups Without Owner' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[OwnerStatus] = "No owner")
+        formatString: #,0
+        lineageTag: 4f5a1796-eeb2-57f0-8550-d67d4d43b8be
+
+    measure 'Single-Owner Groups' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[OwnerStatus] = "One owner")
+        formatString: #,0
+        lineageTag: f32134c0-ccaa-52bf-80fe-27af89e79e1f
+
+    /// Graph could not return owners, or no owner row exists. Reported as unknown, never as no owner.
+    measure 'Owner Unknown Groups' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[OwnerStatus] = "Owner unknown")
+        formatString: #,0
+        lineageTag: 614986ce-4c30-587e-a017-5e4244a2cead
+
+    measure 'Groups With Disabled Owners' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[DisabledOwnerCount] > 0)
+        formatString: #,0
+        lineageTag: 492d91a5-758f-5e1c-834b-a80bbd68448b
+
+    measure 'Expiring Within 30 Days' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] >= 0, Groups[DaysToExpiry] <= 30)
+        formatString: #,0
+        lineageTag: 46c1c96f-8f9a-5a64-b410-176afbb1011b
+
+    measure 'Expiring Within 60 Days' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] >= 0, Groups[DaysToExpiry] <= 60)
+        formatString: #,0
+        lineageTag: ccb47445-19a0-5134-a34f-fa3156680b47
+
+    measure 'Expiring Within 90 Days' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] >= 0, Groups[DaysToExpiry] <= 90)
+        formatString: #,0
+        lineageTag: 31788b3c-0318-5cec-8328-892e6f5e8dee
+
+    measure 'Past Expiration Date' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] < 0)
+        formatString: #,0
+        lineageTag: 7ee7183a-bde3-5ff5-a072-478c554a737b
+
+    /// ExpirationDateTime is empty when no expiration policy applies to the group.
+    measure 'Groups Without Expiration Date' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, ISBLANK(Groups[ExpirationDateTime]))
+        formatString: #,0
+        lineageTag: 0f3c2cf0-7e84-54d2-bf07-7d60ef0ad185
+
+    /// Plotted by Groups[CreatedYearMonth]. Needs no audit record.
+    measure 'Groups Created' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: df7cae80-4699-544a-b119-94bb542cfb4d
+
+    measure 'Teams Created' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[IsTeam] = TRUE())
+        formatString: #,0
+        lineageTag: 1d3afc70-67e0-55d2-b984-5455ed201428
+
+    measure 'Owner Status (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Owner unknown", Value)
+        lineageTag: 4fc5568b-a890-5ead-a113-d89a9eeb3fa2
+
+    measure 'Owner Count (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+            VAR Status = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            VAR Listed = CALCULATE(MAX(Groups[OwnerListedCount]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || Status = "Owner unknown", "Unknown", FORMAT(Listed, "#,0"))
+        lineageTag: 7e02658d-dc70-55d1-9824-fe55b43bdc20
+
+    measure 'Disabled Owners (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+            VAR Status = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            VAR Disabled = CALCULATE(MAX(Groups[DisabledOwnerCount]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || Status = "Owner unknown", "Unknown", FORMAT(Disabled, "#,0"))
+        lineageTag: 2aadda22-41d3-56c2-aa5b-c6deb763ddf9
+
+    measure 'Expiration Date (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+            VAR Expires = CALCULATE(MAX(Groups[ExpirationDateTime]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "Unknown", IF(ISBLANK(Expires), "No expiration date", FORMAT(Expires, "yyyy-MM-dd")))
+        lineageTag: f3320e1b-a948-5b7f-9685-7ef32988b164
+
+    measure 'Days To Expiry (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+            VAR Days = CALCULATE(MAX(Groups[DaysToExpiry]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "Unknown", IF(ISBLANK(Days), "No expiration date", FORMAT(Days, "#,0") & " days"))
+        lineageTag: 60df43d9-6552-5129-a797-5fd95944f5dd
+
+    partition Groups = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\groups.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}, {"RenewedDateTime", ParseUtc, type datetime}, {"ExpirationDateTime", ParseUtc, type datetime}, {"DeletedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"SecurityEnabled", type logical}, {"MailEnabled", type logical}, {"OnPremisesSyncEnabled", type logical}, {"IsTeam", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,68 @@
+table GroupLifecyclePolicies
+    lineageTag: 9c40121d-3e75-5561-bc5c-12ec891534aa
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 2af19edc-268f-587b-9292-cf777da0a3b4
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: f147da2d-bf8e-5cff-83b2-61964dc66dd0
+        summarizeBy: none
+        sourceColumn: Id
+
+    column GroupLifetimeInDays
+        dataType: int64
+        lineageTag: 5a0ba52a-7339-5e12-9fcf-c7072df16980
+        summarizeBy: none
+        sourceColumn: GroupLifetimeInDays
+
+    column ManagedGroupTypes
+        dataType: string
+        lineageTag: 4626e164-a8be-5107-9914-af128a43140d
+        summarizeBy: none
+        sourceColumn: ManagedGroupTypes
+
+    column AlternateNotificationEmails
+        dataType: string
+        lineageTag: 1ddfaa08-2e40-5aec-bf8a-b5555580e7a0
+        summarizeBy: none
+        sourceColumn: AlternateNotificationEmails
+
+    /// A tenant with no policy writes the header only. Covered members need Entra ID P1 or P2.
+    measure 'Expiration Policy Lifetime' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecyclePolicies), GroupLifecyclePolicies[RunDate] = SnapshotDate)
+            VAR Days = CALCULATE(MAX(GroupLifecyclePolicies[GroupLifetimeInDays]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days"))
+        lineageTag: c20b85c3-f38a-5d99-be19-70984884b610
+
+    /// All, Selected or None.
+    measure 'Policy Scope' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecyclePolicies), GroupLifecyclePolicies[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(GroupLifecyclePolicies[ManagedGroupTypes]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(Value), "Unknown", Value))
+        lineageTag: f73c39f3-6b33-54eb-aec3-1c7be2f5ce04
+
+    partition GroupLifecyclePolicies = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\group-lifecycle-policies.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"GroupLifetimeInDays", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

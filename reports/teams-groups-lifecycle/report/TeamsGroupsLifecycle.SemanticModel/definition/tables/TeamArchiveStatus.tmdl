@@ -1,0 +1,78 @@
+table TeamArchiveStatus
+    lineageTag: 965692a2-65cc-50f7-8c41-b66f5960ec3b
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 5225bb37-3bb7-5977-a592-d98e0ebac4b3
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column TeamId
+        dataType: string
+        lineageTag: 03b22596-7def-50cc-ac5e-656e5a9a44ef
+        summarizeBy: none
+        sourceColumn: TeamId
+
+    column DisplayName
+        dataType: string
+        lineageTag: 7aa8bc12-1f05-5d70-ae69-9a02171a5f9e
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column IsArchived
+        dataType: boolean
+        lineageTag: 937b5256-244d-57c0-83cd-7a650282c76d
+        summarizeBy: none
+        sourceColumn: IsArchived
+
+    column SnapshotKey = FORMAT(TeamArchiveStatus[RunDate], "yyyy-MM-dd") & "|" & TeamArchiveStatus[TeamId]
+        dataType: string
+        lineageTag: d53a7f0d-2479-54a9-9f56-ac5521c8b19b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ArchiveLabel = IF(TeamArchiveStatus[IsArchived] = TRUE(), "Archived", "Active")
+        dataType: string
+        lineageTag: 6166e62b-c341-5552-beac-b27a25113663
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Archived Teams' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(TeamArchiveStatus), TeamArchiveStatus[RunDate] = SnapshotDate, TeamArchiveStatus[IsArchived] = TRUE())
+        formatString: #,0
+        lineageTag: 59f86fdf-5d28-5e99-905b-7eb186fbec85
+
+    /// Teams with a team-archive-status.csv row; a group that is not a team has none.
+    measure 'Teams Checked For Archive' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(TeamArchiveStatus), TeamArchiveStatus[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: d8dad31c-30d1-5465-9e3f-6d71cfde2aac
+
+    measure 'Archive Status' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(TeamArchiveStatus), TeamArchiveStatus[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(TeamArchiveStatus[ArchiveLabel]), TeamArchiveStatus[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "No archive record", Value)
+        lineageTag: 3a6852b0-7c7c-5021-8fa7-0aa0c47df2cc
+
+    partition TeamArchiveStatus = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\team-archive-status.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsArchived", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

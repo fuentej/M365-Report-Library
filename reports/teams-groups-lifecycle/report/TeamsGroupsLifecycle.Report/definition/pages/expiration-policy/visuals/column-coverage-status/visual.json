@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-coverage-status",
+  "position": {
+    "x": 0,
+    "y": 320,
+    "z": 0,
+    "width": 420,
+    "height": 400,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupLifecycleCoverage"
+                    }
+                  },
+                  "Property": "CoverageStatus"
+                }
+              },
+              "queryRef": "GroupLifecycleCoverage.CoverageStatus"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupLifecycleCoverage"
+                    }
+                  },
+                  "Property": "Groups (Coverage Snapshot)"
+                }
+              },
+              "queryRef": "GroupLifecycleCoverage.Groups (Coverage Snapshot)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Groups by coverage (members need Entra ID P1 or P2)"
+          }
+        }
+      ]
+    }
+  }
+}
