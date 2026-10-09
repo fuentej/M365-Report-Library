@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-inactive-teams",
+  "position": {
+    "x": 0,
+    "y": 100,
+    "z": 0,
+    "width": 200,
+    "height": 100,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamActivity"
+                    }
+                  },
+                  "Property": "Inactive Teams (90+ Days)"
+                }
+              },
+              "queryRef": "TeamActivity.Inactive Teams (90+ Days)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Teams inactive 90+ days"
+          }
+        }
+      ]
+    }
+  }
+}

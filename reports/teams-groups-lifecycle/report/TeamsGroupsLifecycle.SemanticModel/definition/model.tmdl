@@ -1,0 +1,20 @@
+model Model
+    culture: en-US
+    defaultPowerBIDataSourceVersion: powerBI_V3
+    sourceQueryCulture: en-US
+
+ref table GroupsCurrent
+ref table UsersCurrent
+ref table DateDim
+ref table AnonymizeMode
+ref table GroupKind
+ref table Users
+ref table Groups
+ref table GroupOwners
+ref table DeletedGroups
+ref table GroupLifecyclePolicies
+ref table GroupLifecycleCoverage
+ref table TeamActivity
+ref table GroupActivity
+ref table TeamArchiveStatus
+ref table GroupCreationEvents

@@ -1,0 +1,117 @@
+table GroupOwners
+    lineageTag: d5a21291-3b1a-5782-b04f-76d2f6daa514
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 7bef5b89-21c8-5fa1-a0d6-41b86cf5fcaf
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column GroupId
+        dataType: string
+        lineageTag: ddcc4b0f-e9d5-51eb-8248-87e43782f2d9
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column OwnerListStatus
+        dataType: string
+        lineageTag: 0dfb460d-2047-5078-88cb-9c9bfaef58a2
+        summarizeBy: none
+        sourceColumn: OwnerListStatus
+
+    column OwnerId
+        dataType: string
+        lineageTag: 31016375-40e1-523d-9257-b4b9f6539be9
+        summarizeBy: none
+        sourceColumn: OwnerId
+
+    column OwnerType
+        dataType: string
+        lineageTag: b49a55b3-6f0e-517f-a13d-4110310e7454
+        summarizeBy: none
+        sourceColumn: OwnerType
+
+    column OwnerDisplayName
+        dataType: string
+        lineageTag: 0a2436ee-d18a-57b2-8c95-a78c8db8ab52
+        summarizeBy: none
+        sourceColumn: OwnerDisplayName
+
+    column OwnerUserPrincipalName
+        dataType: string
+        lineageTag: daa4752b-e7f1-5a21-aa72-d7483a92a820
+        summarizeBy: none
+        sourceColumn: OwnerUserPrincipalName
+
+    column SnapshotKey = FORMAT(GroupOwners[RunDate], "yyyy-MM-dd") & "|" & GroupOwners[GroupId]
+        dataType: string
+        lineageTag: e100f3de-e848-5034-83ec-ba44099f8177
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Joined to the latest users.csv snapshot. An owner missing from users.csv is Unknown, not Enabled.
+    column OwnerAccountState = 
+            VAR Listed = GroupOwners[OwnerListStatus] = "Listed"
+            VAR Enabled = RELATED(UsersCurrent[AccountEnabled])
+            RETURN IF(NOT Listed, "Not listed", IF(ISBLANK(Enabled), "Unknown", IF(Enabled, "Enabled", "Disabled")))
+        dataType: string
+        lineageTag: 946339de-111e-5948-b176-2e7f9a276062
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column PseudonymNumber = 
+            VAR IdText = GroupOwners[OwnerId]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973))
+            RETURN IF(ISBLANK(IdText), BLANK(), MOD(HashSeed, 90000) + 10000)
+        dataType: int64
+        formatString: 00000
+        lineageTag: a0b962f8-5f3d-5acd-8b1f-24fc7e913b09
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = IF(ISBLANK(GroupOwners[PseudonymNumber]), BLANK(), "User " & FORMAT(GroupOwners[PseudonymNumber], "00000"))
+        dataType: string
+        lineageTag: 2d846515-c2d8-5d6d-85c2-cdf3977fc176
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Listed owner rows on the selected snapshot.
+    measure 'Owner Assignments' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupOwners), GroupOwners[RunDate] = SnapshotDate, GroupOwners[OwnerListStatus] = "Listed")
+        formatString: #,0
+        lineageTag: 2752eb89-79d8-5d06-aaf0-b19febd7eb47
+
+    measure 'Disabled Owners' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupOwners), GroupOwners[RunDate] = SnapshotDate, GroupOwners[OwnerAccountState] = "Disabled")
+        formatString: #,0
+        lineageTag: 725d59c7-3f2a-504f-9fe1-455c77220e6c
+
+    /// Blank when no owner is listed; read it with Owner Status (Display).
+    measure 'Owner Names' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            RETURN CONCATENATEX(FILTER(GroupOwners, GroupOwners[RunDate] = SnapshotDate && GroupOwners[OwnerListStatus] = "Listed"), IF(Mode = "Anonymize", GroupOwners[Pseudonym], GroupOwners[OwnerDisplayName]), "; ", IF(Mode = "Anonymize", GroupOwners[Pseudonym], GroupOwners[OwnerDisplayName]))
+        lineageTag: 07ef68b9-5db5-502f-8317-ca9f21409024
+
+    partition GroupOwners = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\group-owners.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

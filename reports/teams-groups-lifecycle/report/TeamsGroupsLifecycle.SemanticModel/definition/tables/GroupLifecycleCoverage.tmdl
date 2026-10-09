@@ -1,0 +1,84 @@
+table GroupLifecycleCoverage
+    lineageTag: f9855afa-6001-5b1c-a0b7-e059c1cebec6
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 73f05d7e-db85-502a-9756-20b5af98c2ac
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column GroupId
+        dataType: string
+        lineageTag: ca4877a3-628e-5011-8e26-02fbafe62c77
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column PolicyId
+        dataType: string
+        lineageTag: 3e076b79-c3da-5650-afa2-31dfe8076e94
+        summarizeBy: none
+        sourceColumn: PolicyId
+
+    column CoverageStatus
+        dataType: string
+        lineageTag: 92a3b9b0-c03f-530f-8352-c5e8de8ab07d
+        summarizeBy: none
+        sourceColumn: CoverageStatus
+
+    column SnapshotKey = FORMAT(GroupLifecycleCoverage[RunDate], "yyyy-MM-dd") & "|" & GroupLifecycleCoverage[GroupId]
+        dataType: string
+        lineageTag: 1db5a227-861a-558a-bdd5-ac3fc25ad54d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Groups (Coverage Snapshot)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 54dfd2b8-f0f9-5b86-956d-b4787d18b426
+
+    measure 'Covered Groups' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate, GroupLifecycleCoverage[CoverageStatus] = "Covered")
+        formatString: #,0
+        lineageTag: 8a0ca190-f385-52d4-8f34-c2ce81ff54c1
+
+    measure 'Not Covered Groups' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate, GroupLifecycleCoverage[CoverageStatus] = "NotCovered")
+        formatString: #,0
+        lineageTag: 58a4eb8b-98bf-5418-ac9c-3fbd6bef13c6
+
+    /// The per-group call failed. Not counted as covered or not covered.
+    measure 'Coverage Unknown Groups' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate, GroupLifecycleCoverage[CoverageStatus] = "Unknown")
+        formatString: #,0
+        lineageTag: 69b1d0c6-c658-5b8e-9f99-c89a9a0d95dc
+
+    measure 'Coverage Status (Display)' = 
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(GroupLifecycleCoverage[CoverageStatus]), GroupLifecycleCoverage[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "No coverage record", Value)
+        lineageTag: 94d5a8dc-0b0d-53f2-b3cb-d7ac4ef82833
+
+    partition GroupLifecycleCoverage = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\group-lifecycle-coverage.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

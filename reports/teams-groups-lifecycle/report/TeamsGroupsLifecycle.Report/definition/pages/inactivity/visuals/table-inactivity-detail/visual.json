@@ -1,0 +1,111 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-inactivity-detail",
+  "position": {
+    "x": 0,
+    "y": 520,
+    "z": 0,
+    "width": 1280,
+    "height": 200,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "GroupsCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupsCurrent"
+                    }
+                  },
+                  "Property": "Group Display Name"
+                }
+              },
+              "queryRef": "GroupsCurrent.Group Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamActivity"
+                    }
+                  },
+                  "Property": "Team Last Activity"
+                }
+              },
+              "queryRef": "TeamActivity.Team Last Activity"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamActivity"
+                    }
+                  },
+                  "Property": "Team Days Inactive (Display)"
+                }
+              },
+              "queryRef": "TeamActivity.Team Days Inactive (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupActivity"
+                    }
+                  },
+                  "Property": "Group Last Activity"
+                }
+              },
+              "queryRef": "GroupActivity.Group Last Activity"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupActivity"
+                    }
+                  },
+                  "Property": "Group Days Inactive (Display)"
+                }
+              },
+              "queryRef": "GroupActivity.Group Days Inactive (Display)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Last activity by group; empty means unknown"
+          }
+        }
+      ]
+    }
+  }
+}

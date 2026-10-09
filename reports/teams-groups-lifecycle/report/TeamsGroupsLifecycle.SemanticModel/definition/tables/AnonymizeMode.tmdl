@@ -1,0 +1,15 @@
+table AnonymizeMode
+    lineageTag: dc70e531-0742-5d5d-8714-0ef36048efa2
+
+    column Mode
+        dataType: string
+        lineageTag: 48ad3601-155e-53fb-951d-b776e50edd35
+        summarizeBy: none
+        sourceColumn: Mode
+
+    partition AnonymizeMode = calculated
+        mode: import
+        source =
+            DATATABLE("Mode", STRING, {{"Show names"}, {"Anonymize"}})
+
+    annotation PBI_ResultType = Table

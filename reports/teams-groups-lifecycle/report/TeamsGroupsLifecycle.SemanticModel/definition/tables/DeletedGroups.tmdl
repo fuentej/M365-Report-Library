@@ -1,0 +1,193 @@
+table DeletedGroups
+    lineageTag: c81f4542-1780-5f89-bfff-4acd84168318
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6437679f-af3b-589e-803d-0d574943889a
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 73987b65-bdaa-5484-8e50-cf6357a89cf3
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 05978b29-4698-5c51-8bac-d2258303c251
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column GroupTypes
+        dataType: string
+        lineageTag: fe623304-d660-57d0-931a-9fbe2334c1e6
+        summarizeBy: none
+        sourceColumn: GroupTypes
+
+    column SecurityEnabled
+        dataType: boolean
+        lineageTag: 0be703e9-ab1a-50b4-83be-31bfd3b26aad
+        summarizeBy: none
+        sourceColumn: SecurityEnabled
+
+    column MailEnabled
+        dataType: boolean
+        lineageTag: 01528e60-3627-530e-a972-b6e75b512f20
+        summarizeBy: none
+        sourceColumn: MailEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 22002e0b-9185-510e-9e4f-068e542643ae
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column DeletedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 4d89bc62-695c-5f89-92f2-15bb2aee0c66
+        summarizeBy: none
+        sourceColumn: DeletedDateTime
+
+    column PurgeDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: dcd17c56-2603-5101-95a7-ff6a1b8a3739
+        summarizeBy: none
+        sourceColumn: PurgeDateTime
+
+    column ResourceProvisioningOptions
+        dataType: string
+        lineageTag: 3ec68cc1-00df-5ab4-af3d-8ff6d0823711
+        summarizeBy: none
+        sourceColumn: ResourceProvisioningOptions
+
+    column IsTeam
+        dataType: boolean
+        lineageTag: 554c022b-53a8-548d-911b-da7ce01801d5
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    /// Same labels as GroupsCurrent[IsTeamLabel], so one Group or Team slicer filters both.
+    column IsTeamLabel = IF(DeletedGroups[IsTeam] = TRUE(), "Team", "Group")
+        dataType: string
+        lineageTag: b723cdac-b470-47e8-bfa2-094b29239373
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Microsoft 365 when groupTypes contains Unified. A dynamic Microsoft 365 group is
+    /// "Unified;DynamicMembership", not the single token Unified. Anything without Unified
+    /// is a security group, including an empty list and DynamicMembership alone.
+    column DeletedKind = IF(CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified"), "Microsoft 365 group", "Security group")
+        dataType: string
+        lineageTag: 7cd46b18-6719-5148-a986-7b5b650a883d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Blank when there is no purge date. Never coerced to 0.
+    column DaysToPurge = IF(ISBLANK(DeletedGroups[PurgeDateTime]), BLANK(), DATEDIFF(DeletedGroups[RunDate], DeletedGroups[PurgeDateTime], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: b256e91a-fa2a-5efa-ac4d-2304221fb211
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column PseudonymNumber = 
+            VAR IdText = DeletedGroups[Id]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973))
+            RETURN MOD(HashSeed, 90000) + 10000
+        dataType: int64
+        formatString: 00000
+        lineageTag: 6be93cc9-e199-5598-aa90-9f9c16149fbf
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "Group " & FORMAT(DeletedGroups[PseudonymNumber], "00000")
+        dataType: string
+        lineageTag: b9bfa61b-6a4a-5387-9c31-04694d342465
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Zero means no deleted-groups.csv row on the snapshot; the collector cannot tell none from a refused call.
+    measure 'Soft-Deleted Groups' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: d0a8a321-ad08-5ba7-bf83-d41f593a7a92
+
+    measure 'Soft-Deleted Microsoft 365 Groups' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, CONTAINSSTRING(DeletedGroups[GroupTypes], "Unified"))
+        formatString: #,0
+        lineageTag: f8e2d0da-fdb6-5544-98cd-a0067677784f
+
+    measure 'Soft-Deleted Security Groups' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified"))
+        formatString: #,0
+        lineageTag: 03281b9b-6b41-5855-8fa4-aeae6044fafd
+
+    measure 'Purging Within 7 Days' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT ISBLANK(DeletedGroups[DaysToPurge]), DeletedGroups[DaysToPurge] >= 0, DeletedGroups[DaysToPurge] <= 7)
+        formatString: #,0
+        lineageTag: f80927b6-fb49-5d45-a905-c3acdf59cc84
+
+    measure 'Deleted Group Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 3ed9fae1-b5a5-54cb-9007-bbb17e0b243e
+
+    measure 'Deleted Date (Display)' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(DeletedGroups[DeletedDateTime]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
+        lineageTag: 169d5910-b6d5-591f-ae9c-ded01b03ecd7
+
+    measure 'Purge Date (Display)' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(DeletedGroups[PurgeDateTime]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
+        lineageTag: ada530ec-e856-5eff-86bd-552c13b86eaf
+
+    measure 'Days To Purge (Display)' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Days = CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days")
+        lineageTag: 7b4da39f-dd53-5c3c-a13f-b0b56179de30
+
+    measure 'Deleted Kind (Display)' = 
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
+            VAR Value = CALCULATE(MAX(DeletedGroups[DeletedKind]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", Value)
+        lineageTag: ebc1eb7b-c6b9-5685-978b-8ef95d940977
+
+    partition DeletedGroups = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\deleted-groups.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}, {"DeletedDateTime", ParseUtc, type datetime}, {"PurgeDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"SecurityEnabled", type logical}, {"MailEnabled", type logical}, {"IsTeam", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

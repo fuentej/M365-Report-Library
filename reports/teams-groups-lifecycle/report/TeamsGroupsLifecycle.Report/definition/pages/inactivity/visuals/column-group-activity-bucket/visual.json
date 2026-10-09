@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-group-activity-bucket",
+  "position": {
+    "x": 650,
+    "y": 290,
+    "z": 0,
+    "width": 630,
+    "height": 220,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupActivity"
+                    }
+                  },
+                  "Property": "ActivityBucket"
+                }
+              },
+              "queryRef": "GroupActivity.ActivityBucket"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupActivity"
+                    }
+                  },
+                  "Property": "Groups (Activity Snapshot)"
+                }
+              },
+              "queryRef": "GroupActivity.Groups (Activity Snapshot)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Groups by days since last activity"
+          }
+        }
+      ]
+    }
+  }
+}

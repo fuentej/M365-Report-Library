@@ -1,0 +1,212 @@
+table GroupActivity
+    lineageTag: be5a621d-5ebf-5c8b-9192-b14c9d9bb1da
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1265f542-083f-5d22-80ea-b637056c2b2f
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 9dcd0636-c355-5884-b4ea-1e0ad8cd3032
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column ReportPeriod
+        dataType: int64
+        lineageTag: cd2791b4-e1af-5fbe-9f9d-cf9d3ad29b21
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column GroupId
+        dataType: string
+        lineageTag: dabe0243-bd4f-5dd8-95e4-601e610d8f68
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column GroupDisplayName
+        dataType: string
+        lineageTag: 236b3318-5fa6-5f94-8f47-aaaa4ced9526
+        summarizeBy: none
+        sourceColumn: GroupDisplayName
+
+    column IsDeleted
+        dataType: boolean
+        lineageTag: 952ed4d6-65be-54b7-b760-955c15d742e9
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column OwnerPrincipalName
+        dataType: string
+        lineageTag: 00f509a2-53ba-553e-a033-e7391a792834
+        summarizeBy: none
+        sourceColumn: OwnerPrincipalName
+
+    column LastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: c2b025b3-356d-59be-81ac-a0f849640c4d
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column GroupType
+        dataType: string
+        lineageTag: 99055fdc-d0eb-5f77-8941-0ac21e94e0b5
+        summarizeBy: none
+        sourceColumn: GroupType
+
+    column MemberCount
+        dataType: int64
+        lineageTag: 62574b05-343b-57ea-b634-b0254f193c6d
+        summarizeBy: none
+        sourceColumn: MemberCount
+
+    column ExternalMemberCount
+        dataType: int64
+        lineageTag: 8852ce20-7458-5251-8550-be1fc941d904
+        summarizeBy: none
+        sourceColumn: ExternalMemberCount
+
+    column ExchangeReceivedEmailCount
+        dataType: int64
+        lineageTag: b9831a31-5662-5896-b5c1-32785e13fd09
+        summarizeBy: none
+        sourceColumn: ExchangeReceivedEmailCount
+
+    column SharePointActiveFileCount
+        dataType: int64
+        lineageTag: 795934f3-4bf9-5a64-b419-2253a4ed9e9e
+        summarizeBy: none
+        sourceColumn: SharePointActiveFileCount
+
+    column YammerPostedMessageCount
+        dataType: int64
+        lineageTag: 27ad28df-069c-5bd9-844a-8e5cc893a4a6
+        summarizeBy: none
+        sourceColumn: YammerPostedMessageCount
+
+    column YammerReadMessageCount
+        dataType: int64
+        lineageTag: 76b99d78-5e28-5cdf-88f2-01acc32228eb
+        summarizeBy: none
+        sourceColumn: YammerReadMessageCount
+
+    column YammerLikedMessageCount
+        dataType: int64
+        lineageTag: d57bf68d-ec61-5601-9c32-c0cfa7ead984
+        summarizeBy: none
+        sourceColumn: YammerLikedMessageCount
+
+    column ExchangeMailboxTotalItemCount
+        dataType: int64
+        lineageTag: 35aab88b-3631-5849-820d-4f12e9974beb
+        summarizeBy: none
+        sourceColumn: ExchangeMailboxTotalItemCount
+
+    column ExchangeMailboxStorageUsedByte
+        dataType: int64
+        lineageTag: 2a85c0b6-cb9b-565f-846c-692318394b7f
+        summarizeBy: none
+        sourceColumn: ExchangeMailboxStorageUsedByte
+
+    column SharePointTotalFileCount
+        dataType: int64
+        lineageTag: acb8e822-0ac6-5fea-a3c2-566b9336c597
+        summarizeBy: none
+        sourceColumn: SharePointTotalFileCount
+
+    column SharePointSiteStorageUsedByte
+        dataType: int64
+        lineageTag: 4d7a7759-5fec-5f77-9e2d-0465f2beaecd
+        summarizeBy: none
+        sourceColumn: SharePointSiteStorageUsedByte
+
+    column SnapshotKey = FORMAT(GroupActivity[RunDate], "yyyy-MM-dd") & "|" & GroupActivity[GroupId]
+        dataType: string
+        lineageTag: 660ad9d5-069a-51b0-ab8a-20425f74ac61
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Blank when the report has no last activity date. Never coerced to 0.
+    column DaysSinceLastActivity = IF(ISBLANK(GroupActivity[LastActivityDate]), BLANK(), DATEDIFF(GroupActivity[LastActivityDate], GroupActivity[RunDate], DAY))
+        dataType: int64
+        formatString: #,0
+        lineageTag: 9f141cd5-41dd-5184-a738-b0e6a722cd9f
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActivityBucket = 
+            VAR d = GroupActivity[DaysSinceLastActivity]
+            RETURN IF(ISBLANK(d), "Unknown (no last activity date)", IF(d < 30, "0-29 days", IF(d < 90, "30-89 days", IF(d < 180, "90-179 days", "180+ days"))))
+        dataType: string
+        lineageTag: e6e778d1-808a-57a3-adcb-41895ef47cab
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    measure 'Groups (Activity Snapshot)' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            RETURN CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: ebcd22d2-1d16-5faf-baf2-6d3ce78ffb46
+
+    /// Blank when the snapshot has no group-activity.csv rows (the usage report is not available in GCC High).
+    measure 'Groups Reported (Activity)' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: 58f46dde-1abf-5391-b972-c3e70d3675e3
+
+    measure 'Inactive Groups (90+ Days)' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate, NOT ISBLANK(GroupActivity[DaysSinceLastActivity]), GroupActivity[DaysSinceLastActivity] >= 90)
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: 794ae928-a5aa-58ee-8e17-5dad779d0c52
+
+    /// Empty LastActivityDate is Unknown, not zero days.
+    measure 'Groups With Unknown Last Activity' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate, ISBLANK(GroupActivity[LastActivityDate]))
+            RETURN IF(Reported = 0, BLANK(), Matching)
+        formatString: #,0
+        lineageTag: c1ed92b5-8537-5087-b9c9-84fb3c6da63c
+
+    measure 'Group Last Activity' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            VAR OnSnapshot = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            VAR Last = CALCULATE(MAX(GroupActivity[LastActivityDate]), GroupActivity[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Last), "Unknown", FORMAT(Last, "yyyy-MM-dd")))
+        lineageTag: f2f91e7b-ee3d-585e-b082-17f1367ae20d
+
+    measure 'Group Days Inactive (Display)' = 
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
+            VAR OnSnapshot = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
+            VAR Days = CALCULATE(MAX(GroupActivity[DaysSinceLastActivity]), GroupActivity[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days"))
+        lineageTag: b9cf81e7-e8e5-51ae-9e7a-73395daf0e9b
+
+    partition GroupActivity = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\group-activity.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"ReportRefreshDate", type date}, {"ReportPeriod", Int64.Type}, {"IsDeleted", type logical}, {"LastActivityDate", type date}, {"MemberCount", Int64.Type}, {"ExternalMemberCount", Int64.Type}, {"ExchangeReceivedEmailCount", Int64.Type}, {"SharePointActiveFileCount", Int64.Type}, {"YammerPostedMessageCount", Int64.Type}, {"YammerReadMessageCount", Int64.Type}, {"YammerLikedMessageCount", Int64.Type}, {"ExchangeMailboxTotalItemCount", Int64.Type}, {"ExchangeMailboxStorageUsedByte", Int64.Type}, {"SharePointTotalFileCount", Int64.Type}, {"SharePointSiteStorageUsedByte", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

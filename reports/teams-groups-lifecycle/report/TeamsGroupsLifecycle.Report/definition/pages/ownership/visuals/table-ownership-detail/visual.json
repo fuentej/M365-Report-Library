@@ -1,0 +1,111 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-ownership-detail",
+  "position": {
+    "x": 0,
+    "y": 480,
+    "z": 0,
+    "width": 1280,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "GroupsCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupsCurrent"
+                    }
+                  },
+                  "Property": "Group Display Name"
+                }
+              },
+              "queryRef": "GroupsCurrent.Group Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Owner Status (Display)"
+                }
+              },
+              "queryRef": "Groups.Owner Status (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Owner Count (Display)"
+                }
+              },
+              "queryRef": "Groups.Owner Count (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupOwners"
+                    }
+                  },
+                  "Property": "Owner Names"
+                }
+              },
+              "queryRef": "GroupOwners.Owner Names"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Disabled Owners (Display)"
+                }
+              },
+              "queryRef": "Groups.Disabled Owners (Display)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Ownership by group; owner unknown stays unknown"
+          }
+        }
+      ]
+    }
+  }
+}

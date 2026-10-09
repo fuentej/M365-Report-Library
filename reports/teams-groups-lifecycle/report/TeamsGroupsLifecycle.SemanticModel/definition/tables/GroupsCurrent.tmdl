@@ -1,0 +1,136 @@
+table GroupsCurrent
+    lineageTag: 254d0621-fe7d-5aaa-860d-f0e7c927b78a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: be048250-e353-5040-8f96-f0e13ddb1aa0
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 04beee01-eabe-5d30-88ec-5883b1f7f83e
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: d4c6b2bf-29fa-5b36-a7c3-7504434be011
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Mail
+        dataType: string
+        lineageTag: 577745ed-05c3-5482-a5ba-8345def3abf9
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column GroupTypes
+        dataType: string
+        lineageTag: 65808a68-4d08-5b28-bc38-92788562c464
+        summarizeBy: none
+        sourceColumn: GroupTypes
+
+    column SecurityEnabled
+        dataType: boolean
+        lineageTag: a49d10c8-ff19-5d5b-a88a-a398c9bbcc13
+        summarizeBy: none
+        sourceColumn: SecurityEnabled
+
+    column MailEnabled
+        dataType: boolean
+        lineageTag: edbfe346-dc52-5358-9e30-0903d5141a22
+        summarizeBy: none
+        sourceColumn: MailEnabled
+
+    column Visibility
+        dataType: string
+        lineageTag: 4b787bff-7aae-5607-adc8-27c0eacc69d1
+        summarizeBy: none
+        sourceColumn: Visibility
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 8eb53763-c214-546e-8676-d093dfd39ded
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column RenewedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 4c08341f-017a-56f2-af67-1be2ae2c1051
+        summarizeBy: none
+        sourceColumn: RenewedDateTime
+
+    column ExpirationDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: f33df285-2ccd-5a2a-85bb-123e70ac0aaf
+        summarizeBy: none
+        sourceColumn: ExpirationDateTime
+
+    column DeletedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 9e383734-ba81-55cf-9b2e-fda0d969f12f
+        summarizeBy: none
+        sourceColumn: DeletedDateTime
+
+    column OnPremisesSyncEnabled
+        dataType: boolean
+        lineageTag: a4742c53-621e-5b8f-8e62-5276cf3dc1b5
+        summarizeBy: none
+        sourceColumn: OnPremisesSyncEnabled
+
+    column ResourceProvisioningOptions
+        dataType: string
+        lineageTag: e6a5b474-2abb-5d41-befd-49ca97d4ba2c
+        summarizeBy: none
+        sourceColumn: ResourceProvisioningOptions
+
+    column IsTeam
+        dataType: boolean
+        lineageTag: 5ee409e6-8b83-53a8-a7ac-71545dcbf6a2
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    /// Team when ResourceProvisioningOptions contains Team. Some old unused teams do not carry it.
+    column IsTeamLabel = IF(GroupsCurrent[IsTeam] = TRUE(), "Team", "Group")
+        dataType: string
+        lineageTag: db7b1829-41b5-58ee-9f3f-edf3937dec44
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column PseudonymNumber = 
+            VAR IdText = GroupsCurrent[Id]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973))
+            RETURN MOD(HashSeed, 90000) + 10000
+        dataType: int64
+        formatString: 00000
+        lineageTag: fea0c3ae-accd-5686-a738-447f069826d1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "Group " & FORMAT(GroupsCurrent[PseudonymNumber], "00000")
+        dataType: string
+        lineageTag: ba1a1c9a-b1c4-50f4-94cd-ebf0ff40553a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Real name, or the stable pseudonym when the Anonymize toggle is on.
+    measure 'Group Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = MAX(GroupsCurrent[DisplayName])
+            VAR Pseudo = MAX(GroupsCurrent[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 09479ad2-dc96-59f0-9df8-0f97c586c1c7
+
+    partition GroupsCurrent = calculated
+        mode: import
+        source =
+            FILTER(Groups, Groups[RunDate] = MAX(Groups[RunDate]))
+
+    annotation PBI_ResultType = Table

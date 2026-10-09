@@ -1,0 +1,67 @@
+relationship b897b873-616e-567d-a734-e58132bb9b16
+    fromColumn: Groups.RunDate
+    toColumn: DateDim.Date
+
+relationship 2aaf09cd-a6ae-54d5-88d1-4729b0189421
+    fromColumn: Groups.Id
+    toColumn: GroupsCurrent.Id
+
+relationship 6b4e50ce-bf50-5b4a-a9b2-9785b4fb41ee
+    fromColumn: GroupOwners.SnapshotKey
+    toColumn: Groups.SnapshotKey
+
+relationship 75a449fb-e191-5642-b087-ebc004c01d76
+    fromColumn: GroupOwners.OwnerId
+    toColumn: UsersCurrent.Id
+
+relationship 48d1c5f4-93eb-54c4-9a9a-7064a1eec9d8
+    fromColumn: GroupLifecycleCoverage.SnapshotKey
+    toColumn: Groups.SnapshotKey
+
+relationship 60009933-ed2e-49e5-b0ea-5ef9ef47328a
+    fromColumn: TeamActivity.RunDate
+    toColumn: DateDim.Date
+
+relationship a980ae21-82a3-42d8-a271-697b850108b6
+    fromColumn: GroupActivity.RunDate
+    toColumn: DateDim.Date
+
+relationship 1dc219c4-5197-4a69-929c-452056f7ed03
+    fromColumn: TeamActivity.TeamId
+    toColumn: GroupsCurrent.Id
+
+relationship 7fd2ae10-94ca-4b90-9046-64b21493219f
+    fromColumn: GroupActivity.GroupId
+    toColumn: GroupsCurrent.Id
+
+relationship 18fd1ffe-73d2-5adc-88e4-6db80c5d5848
+    fromColumn: TeamArchiveStatus.SnapshotKey
+    toColumn: Groups.SnapshotKey
+
+relationship 5b7b5d87-5188-5b6e-9e4a-8fac3f91629e
+    fromColumn: DeletedGroups.RunDate
+    toColumn: DateDim.Date
+
+relationship 203c44eb-51da-548e-a556-1f0a791da3b8
+    fromColumn: GroupLifecyclePolicies.RunDate
+    toColumn: DateDim.Date
+
+relationship 79f30983-5492-5884-b511-9769d0782ac4
+    fromColumn: GroupCreationEvents.ActivityDate
+    toColumn: DateDim.Date
+
+relationship 6d6867af-2ef9-581b-82aa-7906b84e63b7
+    fromColumn: GroupCreationEvents.ObjectId
+    toColumn: GroupsCurrent.Id
+
+relationship 256cdbf3-5af0-587d-80a0-983bc54e4432
+    fromColumn: GroupCreationEvents.UserId
+    toColumn: UsersCurrent.UserPrincipalName
+
+relationship e2808b95-d51a-42a6-8087-269a7dfcdddd
+    fromColumn: GroupsCurrent.IsTeamLabel
+    toColumn: GroupKind.Label
+
+relationship 4c0e1a27-6b58-4d3a-9f11-7a6d2e8c91b4
+    fromColumn: DeletedGroups.IsTeamLabel
+    toColumn: GroupKind.Label
