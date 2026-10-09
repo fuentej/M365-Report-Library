@@ -298,6 +298,15 @@ Describe 'Empty values are Unknown, never zero' {
         $script:Model['AgentModifications'].Measures | Should -Contain 'Unknown Last Modified'
     }
 
+    It 'counts days since modified from the UTC date, not the clock time' {
+        # DateTime.FromText with a literal Z keeps the UTC clock time, and RunDate is midnight.
+        # DATEDIFF on the raw datetime is negative when the modification is later that same day.
+        # https://learn.microsoft.com/powerquery-m/datetime-fromtext
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentModifications.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('DATEDIFF(DATE(YEAR(AgentModifications[ModifiedOn]), MONTH(AgentModifications[ModifiedOn]), DAY(AgentModifications[ModifiedOn])), AgentModifications[RunDate], DAY)'))
+        $tmdl | Should -Not -Match ([regex]::Escape('DATEDIFF(AgentModifications[ModifiedOn], AgentModifications[RunDate], DAY)'))
+    }
+
     It 'never compares a nullable boolean to FALSE without excluding blanks' {
         # In DAX, BLANK() = FALSE() is true, so an empty flag would be counted as No.
         $offenders = [System.Collections.Generic.List[string]]::new()

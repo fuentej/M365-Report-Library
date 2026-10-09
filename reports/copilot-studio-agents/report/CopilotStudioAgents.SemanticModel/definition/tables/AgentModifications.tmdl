@@ -53,8 +53,9 @@ table AgentModifications
         summarizeBy: none
         sourceColumn: PublishedOn
 
-    /// Blank when ModifiedOn is empty: unknown, never zero days.
-    column DaysSinceModified = IF(ISBLANK(AgentModifications[ModifiedOn]), BLANK(), DATEDIFF(AgentModifications[ModifiedOn], AgentModifications[RunDate], DAY))
+    /// Blank when ModifiedOn is empty: unknown, never zero days. Compare the UTC date only. ModifiedOn keeps its clock time and RunDate is midnight, so a same-day time makes DATEDIFF negative.
+    column DaysSinceModified = 
+            IF(ISBLANK(AgentModifications[ModifiedOn]), BLANK(), DATEDIFF(DATE(YEAR(AgentModifications[ModifiedOn]), MONTH(AgentModifications[ModifiedOn]), DAY(AgentModifications[ModifiedOn])), AgentModifications[RunDate], DAY))
         dataType: int64
         formatString: #,0
         lineageTag: c8679d77-85b6-552b-8963-9fd7412d430e
