@@ -158,7 +158,7 @@ rows per run, tagged `RunDate`.
 | Column | Meaning |
 | --- | --- |
 | `RunDate` | Date of the run |
-| `Name`, `DomainName` | The accepted domain; a wildcard such as `*.example.com` covers its subdomains |
+| `Name`, `DomainName` | The accepted domain. A wildcard such as `*.example.com` covers subdomains only, not `example.com` |
 | `DomainType` | Authoritative, InternalRelay or ExternalRelay |
 | `IsDefault` | Whether it is the default domain |
 
@@ -250,11 +250,13 @@ rows per run, tagged `RunDate`.
 | --- | --- |
 | `CreationTime` | When the event happened (UTC). The next run starts here |
 | `Id` | Unique id of the audit record |
-| `RecordType` | For example `ExchangeAdmin` |
+| `RecordType` | `ExchangeAdmin` for admin cmdlets, `ExchangeItem` for `Send`, `SendAs` and `SendOnBehalf`, `ExchangeItemAggregated` for `MailItemsAccessed` |
 | `Operation` | `New-InboxRule`, `Set-InboxRule`, `UpdateInboxRules`, `Set-Mailbox`, `Add-MailboxPermission`, `Remove-MailboxPermission` and mail flow rule cmdlets in the change file; `MailItemsAccessed`, `Send`, `SendAs`, `SendOnBehalf` in the access file |
 | `UserId` | Who did it |
 | `Workload`, `ObjectId` | As recorded |
-| `MailboxOwnerUPN`, `ClientIP`, `ResultStatus` | As recorded |
+| `MailboxOwnerUPN` | As recorded |
+| `ClientIP` | `ClientIP` from the record, or `ClientIPAddress` when the mailbox record leaves `ClientIP` empty |
+| `ResultStatus` | `Succeeded`, `PartiallySucceeded`, or `Failed` on mailbox records; `True` or `False` on Exchange admin records |
 | `Parameters` | `Name=Value` pairs of an Exchange admin record, such as `ForwardingSmtpAddress=smtp:user@example.net` |
 
 Mail flow rule changes are `-RecordType ExchangeAdmin` records. The activities page publishes no fixed

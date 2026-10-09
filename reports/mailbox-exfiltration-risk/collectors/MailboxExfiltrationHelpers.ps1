@@ -168,9 +168,10 @@ function Test-ExternalDomain {
             domains are unknown.
 
         .DESCRIPTION
-            A name matches an accepted domain exactly, or a wildcard accepted domain such
-            as *.contoso.com. A subdomain is also internal when the parent accepted domain
-            has MatchSubdomains set
+            A name matches an accepted domain exactly. A wildcard such as *.contoso.com
+            covers subdomains only; the parent contoso.com is not included
+            (https://learn.microsoft.com/powershell/module/exchangepowershell/new-accepteddomain).
+            A subdomain is also internal when the parent accepted domain has MatchSubdomains set
             (https://learn.microsoft.com/exchange/mail-flow-best-practices/manage-accepted-domains/enable-mail-flow-for-subdomains).
             Entries may be those objects or plain domain-name strings.
     #>
@@ -194,7 +195,8 @@ function Test-ExternalDomain {
         if ([string]::IsNullOrWhiteSpace([string]$acceptedName)) { continue }
         $acceptedName = $acceptedName.ToLowerInvariant()
         if ($name -eq $acceptedName) { return $false }
-        if ($acceptedName.StartsWith('*.') -and ($name -eq $acceptedName.Substring(2) -or $name.EndsWith($acceptedName.Substring(1)))) { return $false }
+        # *.contoso.com names subdomains. The parent is a different accepted domain.
+        if ($acceptedName.StartsWith('*.') -and $name.EndsWith($acceptedName.Substring(1))) { return $false }
         if ($matchSubdomains -and $name.EndsWith(".$acceptedName")) { return $false }
     }
     return $true
@@ -456,6 +458,15 @@ function ConvertTo-AuditRow {
     $recordType = $Item.RecordType
     if (-not $recordType) { $recordType = [string](Get-GraphAdditionalProperty -Object $audit -Name 'RecordType') }
 
+    # Mailbox audit records put the client address in ClientIPAddress. The common
+    # schema's ClientIP is empty on those records.
+    # https://learn.microsoft.com/purview/audit-log-investigate-accounts
+    # https://learn.microsoft.com/office/office-365-management-api/office-365-management-activity-api-schema
+    $clientIp = [string](Get-GraphAdditionalProperty -Object $audit -Name 'ClientIP')
+    if (-not $clientIp) {
+        $clientIp = [string](Get-GraphAdditionalProperty -Object $audit -Name 'ClientIPAddress')
+    }
+
     [pscustomobject]@{
         CreationTime    = ConvertTo-CsvTimestamp (Get-GraphAdditionalProperty -Object $audit -Name 'CreationTime')
         Id              = [string](Get-GraphAdditionalProperty -Object $audit -Name 'Id')
@@ -465,7 +476,7 @@ function ConvertTo-AuditRow {
         Workload        = [string](Get-GraphAdditionalProperty -Object $audit -Name 'Workload')
         ObjectId        = [string](Get-GraphAdditionalProperty -Object $audit -Name 'ObjectId')
         MailboxOwnerUPN = [string](Get-GraphAdditionalProperty -Object $audit -Name 'MailboxOwnerUPN')
-        ClientIP        = [string](Get-GraphAdditionalProperty -Object $audit -Name 'ClientIP')
+        ClientIP        = $clientIp
         ResultStatus    = [string](Get-GraphAdditionalProperty -Object $audit -Name 'ResultStatus')
         Parameters      = ($pairs -join ';')
     }

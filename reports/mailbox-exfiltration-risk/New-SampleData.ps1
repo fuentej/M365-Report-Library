@@ -278,7 +278,9 @@ function New-SampleEvent {
         ObjectId        = $user.Upn
         MailboxOwnerUPN = $user.Upn
         ClientIP        = "203.0.113.$(10 + $Index)"
-        ResultStatus    = 'Succeeded'
+        # Exchange admin records use True or False. Mailbox records use Succeeded.
+        # https://learn.microsoft.com/office/office-365-management-api/office-365-management-activity-api-schema
+        ResultStatus    = $(if ($RecordType -eq 'ExchangeAdmin') { 'True' } else { 'Succeeded' })
         Parameters      = $Parameters
     }
 }
@@ -297,7 +299,12 @@ $changeEvents = @($changeEvents | Sort-Object CreationTime)
 Export-AppendCsv -Path (Join-Path $OutputPath 'mailbox-change-events.csv') -Rows $changeEvents -Column $schema.AuditEvents -KeyColumn 'Id'
 
 $accessEvents = foreach ($i in 0..15) {
-    New-SampleEvent @('MailItemsAccessed', 'Send', 'SendAs', 'SendOnBehalf')[$i % 4] 'ExchangeItemAggregated' $i
+    $operation = @('MailItemsAccessed', 'Send', 'SendAs', 'SendOnBehalf')[$i % 4]
+    # ExchangeItemAggregated is the MailItemsAccessed record type. Send, SendAs and
+    # SendOnBehalf are single-item mailbox actions (ExchangeItem).
+    # https://learn.microsoft.com/office/office-365-management-api/office-365-management-activity-api-schema
+    $recordType = if ($operation -eq 'MailItemsAccessed') { 'ExchangeItemAggregated' } else { 'ExchangeItem' }
+    New-SampleEvent $operation $recordType $i
 }
 $accessEvents = @($accessEvents | Sort-Object CreationTime)
 Export-AppendCsv -Path (Join-Path $OutputPath 'mail-access-events.csv') -Rows $accessEvents -Column $schema.AuditEvents -KeyColumn 'Id'

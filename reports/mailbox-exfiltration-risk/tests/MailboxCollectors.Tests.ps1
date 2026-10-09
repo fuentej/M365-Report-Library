@@ -189,7 +189,10 @@ BeforeAll {
             [string]$Operation = 'New-InboxRule',
             [object]$ResultCount = $null,
             [string]$RecordType = 'ExchangeAdmin',
-            [string]$CreationTime = '2026-08-10T12:00:00'
+            [string]$CreationTime = '2026-08-10T12:00:00',
+            [string]$ClientIP = '203.0.113.5',
+            [string]$ClientIPAddress = '',
+            [switch]$OmitClientIP
         )
 
         $auditData = [ordered]@{
@@ -200,13 +203,15 @@ BeforeAll {
             Workload        = 'Exchange'
             ObjectId        = 'avery.abara@example.com'
             MailboxOwnerUPN = 'avery.abara@example.com'
-            ClientIP        = '203.0.113.5'
             ResultStatus    = 'True'
             Parameters      = @(
                 [ordered]@{ Name = 'Name'; Value = 'Forward invoices' }
                 [ordered]@{ Name = 'ForwardTo'; Value = 'inbox@fabrikam.example.net' }
             )
-        } | ConvertTo-Json -Compress -Depth 5
+        }
+        if (-not $OmitClientIP) { $auditData['ClientIP'] = $ClientIP }
+        if ($ClientIPAddress) { $auditData['ClientIPAddress'] = $ClientIPAddress }
+        $auditData = $auditData | ConvertTo-Json -Compress -Depth 5
 
         $record = [ordered]@{ RecordType = $RecordType; AuditData = $auditData }
         if ($null -ne $ResultCount) { $record['ResultCount'] = $ResultCount }
@@ -293,6 +298,17 @@ Describe 'Collector output matches the committed sample files' {
         ($forwarding | Where-Object IsExternal -eq 'False') | Should -Not -BeNullOrEmpty
         ($forwarding | Where-Object { $_.ForwardingAddress }) | Should -Not -BeNullOrEmpty
         ($forwarding | Where-Object { $_.ForwardingSmtpAddress }) | Should -Not -BeNullOrEmpty
+
+        # https://learn.microsoft.com/office/office-365-management-api/office-365-management-activity-api-schema
+        $access = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'mail-access-events.csv'))
+        @($access | Where-Object Operation -eq 'MailItemsAccessed' | ForEach-Object RecordType | Select-Object -Unique) | Should -Be 'ExchangeItemAggregated'
+        foreach ($row in @($access | Where-Object { $_.Operation -in @('Send', 'SendAs', 'SendOnBehalf') })) {
+            $row.RecordType | Should -Be 'ExchangeItem'
+            $row.ResultStatus | Should -Be 'Succeeded'
+        }
+        foreach ($row in @(Import-Csv -LiteralPath (Join-Path $script:Samples 'mailbox-change-events.csv') | Where-Object RecordType -eq 'ExchangeAdmin')) {
+            $row.ResultStatus | Should -BeIn @('True', 'False')
+        }
     }
 }
 
@@ -411,6 +427,24 @@ Describe 'Mailbox forwarding' {
         Invoke-CollectorScript 'Get-MailboxForwarding.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
 
         (Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-forwarding.csv')).IsExternal | Should -Be 'False'
+    }
+
+    It 'does not treat the parent of a wildcard accepted domain as internal' {
+        # *.example.com names subdomains. example.com itself is a different domain.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/new-accepteddomain
+        Mock Get-AcceptedDomain -MockWith { New-MockAcceptedDomain -Name '*.example.com' }
+        Mock Get-EXOMailbox -MockWith {
+            @(
+                (New-MockMailbox -Id 'parent' -Upn 'parent@example.com' -ForwardingSmtpAddress 'smtp:x@example.com')
+                (New-MockMailbox -Id 'child' -Upn 'child@example.com' -ForwardingSmtpAddress 'smtp:x@sub.example.com')
+            )
+        }
+
+        Invoke-CollectorScript 'Get-MailboxForwarding.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-forwarding.csv'))
+        ($rows | Where-Object ExternalDirectoryObjectId -eq 'parent').IsExternal | Should -Be 'True'
+        ($rows | Where-Object ExternalDirectoryObjectId -eq 'child').IsExternal | Should -Be 'False'
     }
 
     It 'treats a subdomain as internal when the accepted domain matches subdomains' {
@@ -725,6 +759,18 @@ Describe 'Audit events' {
         $row.MailboxOwnerUPN | Should -Be 'avery.abara@example.com'
         $row.Parameters | Should -Be 'Name=Forward invoices;ForwardTo=inbox@fabrikam.example.net'
         $row.CreationTime | Should -Be '2026-08-10T12:00:00Z'
+    }
+
+    It 'copies ClientIPAddress when a mailbox record has no ClientIP' {
+        # MailItemsAccessed stores the client address in ClientIPAddress.
+        # https://learn.microsoft.com/purview/audit-log-investigate-accounts
+        Mock Search-UnifiedAuditLog -MockWith {
+            New-MockAuditRecord -Operation 'MailItemsAccessed' -RecordType 'ExchangeItemAggregated' -OmitClientIP -ClientIPAddress '198.51.100.20'
+        }
+
+        Invoke-CollectorScript 'Get-MailAccessEvents.ps1' (@{ OutputPath = $script:folder; SkipConnect = $true } + $script:range)
+
+        (Import-Csv -LiteralPath (Join-Path $script:folder 'mail-access-events.csv')).ClientIP | Should -Be '198.51.100.20'
     }
 
     It 'pages past 100 records by repeating the same session until a page comes back empty' {
