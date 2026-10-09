@@ -91,22 +91,18 @@ table GuestsCurrent
         summarizeBy: none
         sourceColumn: LastSuccessfulSignInDateTime
 
-    column PseudonymNumber = 
-            VAR IdText = GuestsCurrent[Id]
-            VAR CharCount = LEN(IdText)
-            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
-            RETURN MOD(HashSeed, 9000) + 1000
+    column PseudonymNumber
         dataType: int64
         formatString: 0000
         lineageTag: d6efc5c7-8af8-5cb6-8131-4dd9e6c2759d
         summarizeBy: none
-        isDataTypeInferred: false
+        sourceColumn: PseudonymNumber
 
-    column Pseudonym = "Guest " & FORMAT(GuestsCurrent[PseudonymNumber], "0000")
+    column Pseudonym
         dataType: string
         lineageTag: 1c8a0d4e-6b27-5f31-9a44-0e5d7c2b8f10
         summarizeBy: none
-        isDataTypeInferred: false
+        sourceColumn: Pseudonym
 
     partition GuestsCurrent = calculated
         mode: import
