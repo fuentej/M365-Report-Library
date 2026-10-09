@@ -16,10 +16,11 @@
     resolve against columns declared in the table's own file). A `column X = <DAX>`
     with the same name as a column of <Base> adds a second column called X.
 
-    Microsoft.AnalysisServices.Tabular's TmdlSerializer was tried first: it
+    Microsoft.AnalysisServices.NetCore.retail.amd64 19.84.1 (TmdlSerializer)
     deserializes the broken guest-access model without error, because the duplicate
     check happens when the engine loads the model, not when the folder is read. So
-    these rules are written against the TMDL text instead.
+    these rules are written against the TMDL text instead. TMDL indent is either
+    four spaces or a tab; both are one object level.
 
     https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview
 #>
@@ -47,6 +48,14 @@ BeforeAll {
                 A column counts as calculated when its declaration carries `=`.
         #>
         param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Line)
+
+        # One leading tab and four leading spaces are the same object level.
+        # Purview IP uses tabs; the other models use spaces.
+        $Line = foreach ($raw in @($Line)) {
+            $lead = [regex]::Match([string]$raw, '^[\t ]*').Value
+            $width = ($lead -replace "`t", '    ').Length
+            (' ' * $width) + ([string]$raw).Substring($lead.Length)
+        }
 
         $name = $null
         $measures = [System.Collections.Generic.List[string]]::new()
@@ -112,8 +121,12 @@ BeforeAll {
 }
 
 Describe 'TMDL model integrity' {
-    It 'reads tables from <Name>, so the scan is not vacuous' -ForEach $script:Models {
-        @(Read-TmdlModelFolder -Path $Path).Count | Should -BeGreaterThan 3
+    It 'reads tables and columns from <Name>, so a tab-indented model is not a vacuous pass' -ForEach $script:Models {
+        $tables = @(Read-TmdlModelFolder -Path $Path)
+        $tables.Count | Should -BeGreaterThan 3
+        $columnCount = 0
+        foreach ($t in $tables) { $columnCount += @($t.Columns).Count }
+        $columnCount | Should -BeGreaterThan 0
     }
 
     It '<Name> has no measure name used twice' -ForEach $script:Models {
@@ -134,6 +147,13 @@ Describe 'TMDL model integrity' {
     }
 
     Context 'detection' {
+        It 'flags a duplicate measure when the table is indented with a tab' {
+            $a = Read-TmdlTableText -Line @('table A', "`tmeasure 'Membership Count' = COUNTROWS(A)")
+            $b = Read-TmdlTableText -Line @('table B', "`tmeasure 'Membership Count' = COUNTROWS(B)")
+            @($a.Measures).Count | Should -Be 1
+            @(Get-DuplicateMeasure -Table @($a, $b)).Count | Should -Be 1
+        }
+
         It 'flags a measure name defined on two tables' {
             $a = Read-TmdlTableText -Line @('table A', "    measure 'Membership Count' = COUNTROWS(A)")
             $b = Read-TmdlTableText -Line @('table B', "    measure 'Membership Count' = COUNTROWS(B)")
