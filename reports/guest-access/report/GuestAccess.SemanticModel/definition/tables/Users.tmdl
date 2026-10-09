@@ -39,7 +39,7 @@ table Users
         sourceColumn: UserType
 
     column AccountEnabled
-        dataType: logical
+        dataType: boolean
         lineageTag: 205c5756-7800-56b1-83b8-c0b21170545a
         summarizeBy: none
         sourceColumn: AccountEnabled

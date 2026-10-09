@@ -27,7 +27,7 @@ table GuestMemberships
         sourceColumn: GroupDisplayName
 
     column IsTeam
-        dataType: logical
+        dataType: boolean
         lineageTag: cbde16df-6315-53d5-bd09-2d05803ee8d5
         summarizeBy: none
         sourceColumn: IsTeam

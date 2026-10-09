@@ -65,7 +65,7 @@ table Guests
         sourceColumn: ExternalUserStateChangeDateTime
 
     column AccountEnabled
-        dataType: logical
+        dataType: boolean
         lineageTag: 4af54e6c-7077-577e-ba99-d70ec66db935
         summarizeBy: none
         sourceColumn: AccountEnabled
