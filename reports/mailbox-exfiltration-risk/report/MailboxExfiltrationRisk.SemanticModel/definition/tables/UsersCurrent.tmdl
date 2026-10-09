@@ -1,0 +1,91 @@
+table UsersCurrent
+    lineageTag: 748d8b70-4c91-5089-b186-25faa873657d
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6680e138-a9c7-580f-800f-f3cc7a7e770e
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: a49a2e3a-17ce-513e-967f-4d9411ddd5af
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 189101c1-95c8-534f-8ab4-d4e2c1f2997c
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: a0f965db-01fb-59bb-a638-eaac631eb1b3
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: a65a7984-431d-5492-9410-607bf809b064
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 63159a48-c8c5-5fd2-853a-5d40245e841e
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: e2723046-c78f-5e77-9c64-eed9ccea4935
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column Department
+        dataType: string
+        lineageTag: ad2fe0d4-2397-502d-afa3-78ee16f9f4a3
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: c0db8c9e-2c38-5945-b922-cd530df14bd0
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column Pseudonym = 
+            VAR K = LOWER(UsersCurrent[UserPrincipalName])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 5b7f195b-5d4a-5934-a414-7dc0e47b483b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym derived from the user principal name when Anonymize is selected.
+    measure 'Mailbox Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(UsersCurrent[DisplayName])
+            VAR Pseudo = SELECTEDVALUE(UsersCurrent[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: f7a3ad14-7044-567c-ac3f-31e2d977056e
+
+    partition UsersCurrent = calculated
+        mode: import
+        source =
+            SELECTCOLUMNS(
+                FILTER(Users, Users[RunDate] = MAX(Users[RunDate])),
+                "RunDate", Users[RunDate],
+                "Id", Users[Id],
+                "DisplayName", Users[DisplayName],
+                "UserPrincipalName", Users[UserPrincipalName],
+                "Mail", Users[Mail],
+                "UserType", Users[UserType],
+                "AccountEnabled", Users[AccountEnabled],
+                "Department", Users[Department],
+                "JobTitle", Users[JobTitle]
+            )
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "line-trend",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 12
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DateDim"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "DateDim.Date"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "Forwarding Mailboxes (All Snapshots)"
+                }
+              },
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "External Forwarding Mailboxes (All Snapshots)"
+                }
+              },
+              "queryRef": "MailboxForwarding.External Forwarding Mailboxes (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "Forward Or Redirect Rules (All Snapshots)"
+                }
+              },
+              "queryRef": "InboxRules.Forward Or Redirect Rules (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "Inbox Rules With External Target (All Snapshots)"
+                }
+              },
+              "queryRef": "InboxRules.Inbox Rules With External Target (All Snapshots)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Forwarding mailboxes and inbox rules by snapshot date"
+          }
+        }
+      ]
+    }
+  }
+}

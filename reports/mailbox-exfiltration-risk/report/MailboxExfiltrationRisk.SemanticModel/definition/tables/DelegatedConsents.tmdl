@@ -1,0 +1,118 @@
+table DelegatedConsents
+    lineageTag: 2c083bc5-6b84-5f18-b80b-ac242aa2f363
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: d0b67b2c-dbce-5913-83f8-4578509382fd
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: e4469f6a-b5e7-59a8-9e29-608f1a98cf65
+        summarizeBy: none
+        sourceColumn: Id
+
+    column ClientId
+        dataType: string
+        lineageTag: 02ac4777-1565-56bc-9b3f-650a4b40ca52
+        summarizeBy: none
+        sourceColumn: ClientId
+
+    column ConsentType
+        dataType: string
+        lineageTag: ff8e9636-ea42-58da-b203-da370f9fcb7b
+        summarizeBy: none
+        sourceColumn: ConsentType
+
+    column PrincipalId
+        dataType: string
+        lineageTag: ba9bb1ee-ba42-50f3-8f92-b0f9023e19eb
+        summarizeBy: none
+        sourceColumn: PrincipalId
+
+    column ResourceId
+        dataType: string
+        lineageTag: b9c76f2f-1ac5-5394-9782-50edc8f4af3a
+        summarizeBy: none
+        sourceColumn: ResourceId
+
+    column Scope
+        dataType: string
+        lineageTag: e6fabe28-f7f2-5fb6-a6db-24cfdb4b8121
+        summarizeBy: none
+        sourceColumn: Scope
+
+    column HasMailScope
+        dataType: boolean
+        lineageTag: f7ba18ed-29a1-5a99-b521-facecdb3d23c
+        summarizeBy: none
+        sourceColumn: HasMailScope
+
+    column ConsentLabel = IF(ISBLANK(DelegatedConsents[ConsentType]), "Unknown", IF(DelegatedConsents[ConsentType] = "AllPrincipals", "Tenant-wide", "Per-user"))
+        dataType: string
+        lineageTag: 6f8edb78-a565-56ff-a3dd-e1fea3f0d3ce
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column MailScopeLabel = IF(ISBLANK(DelegatedConsents[HasMailScope]), "Unknown", IF(DelegatedConsents[HasMailScope], "Mail scope", "No mail scope"))
+        dataType: string
+        lineageTag: 10a62586-00f9-507a-9196-22119bca8ee1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'DelegatedConsents Snapshot Date' = CALCULATE(MAX(DelegatedConsents[RunDate]), ALLSELECTED(DelegatedConsents), ALLSELECTED(UsersCurrent), ALLSELECTED(Apps))
+        formatString: Short Date
+        lineageTag: d9afb76f-efc6-56b3-91b5-85262a579642
+
+    measure 'Delegated Consents' = 
+            VAR Snap = [DelegatedConsents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(DelegatedConsents), DelegatedConsents[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 0895b02e-f886-5188-89b8-eb515b603f53
+
+    /// A scope starting with Mail. or MailboxSettings. (this report's rule).
+    measure 'Mail-Scoped Consents' = 
+            VAR Snap = [DelegatedConsents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(DelegatedConsents), DelegatedConsents[RunDate] = Snap, DelegatedConsents[HasMailScope] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 058c1631-9255-53d9-886d-25262e646549
+
+    /// Who approved a tenant-wide grant is not collected: the grant does not name the approver.
+    measure 'Tenant-Wide Mail Consents' = 
+            VAR Snap = [DelegatedConsents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(DelegatedConsents), DelegatedConsents[RunDate] = Snap, DelegatedConsents[ConsentType] = "AllPrincipals", DelegatedConsents[HasMailScope] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: b255fe52-c994-5955-82f2-67bdab918c84
+
+    measure 'Per-User Mail Consents' = 
+            VAR Snap = [DelegatedConsents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(DelegatedConsents), DelegatedConsents[RunDate] = Snap, DelegatedConsents[ConsentType] = "Principal", DelegatedConsents[HasMailScope] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 8a95c10c-eaff-57ba-8f0f-8fcb6a46182d
+
+    measure 'Consents With Unknown Mail Scope' = 
+            VAR Snap = [DelegatedConsents Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(DelegatedConsents), DelegatedConsents[RunDate] = Snap, ISBLANK(DelegatedConsents[HasMailScope])) + 0)
+        formatString: #,0
+        lineageTag: 3f8eb87a-256a-5fd8-a9a2-714e27115c06
+
+    measure 'Mail-Scoped Consents (All Snapshots)' = IF(COUNTROWS(DelegatedConsents) = 0, BLANK(), COUNTROWS(FILTER(DelegatedConsents, DelegatedConsents[HasMailScope] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: 30341847-17bf-5e5e-8f4f-d832daa5df13
+
+    partition DelegatedConsents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\delegated-consents.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"HasMailScope", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

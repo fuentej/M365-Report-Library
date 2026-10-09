@@ -1,0 +1,121 @@
+table AppRoleAssignments
+    lineageTag: ab67457f-7598-5286-9148-a50ed175eadc
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 865ec2a9-d8a1-59ee-8610-1bf67f55cf4a
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column AssignmentId
+        dataType: string
+        lineageTag: fc2688a2-312d-5a6c-94a2-5e6c6779076c
+        summarizeBy: none
+        sourceColumn: AssignmentId
+
+    column AppRoleId
+        dataType: string
+        lineageTag: bc775055-eb0d-5384-8d68-eb2c7ac87912
+        summarizeBy: none
+        sourceColumn: AppRoleId
+
+    column AppRoleValue
+        dataType: string
+        lineageTag: 9976944b-5551-56ec-b8ae-f5188ce9fd78
+        summarizeBy: none
+        sourceColumn: AppRoleValue
+
+    column PrincipalId
+        dataType: string
+        lineageTag: d2dc969e-2f15-5fe7-83ca-70b8b7133f83
+        summarizeBy: none
+        sourceColumn: PrincipalId
+
+    column PrincipalDisplayName
+        dataType: string
+        lineageTag: 060940ba-a5fa-5ef0-92ee-1622b73a1873
+        summarizeBy: none
+        sourceColumn: PrincipalDisplayName
+
+    column PrincipalType
+        dataType: string
+        lineageTag: ddc13eb8-d458-50ab-bc6b-665b2118e79e
+        summarizeBy: none
+        sourceColumn: PrincipalType
+
+    column ResourceId
+        dataType: string
+        lineageTag: 2ea8b4e9-1639-5f56-b4f5-d5d170898ad3
+        summarizeBy: none
+        sourceColumn: ResourceId
+
+    column ResourceDisplayName
+        dataType: string
+        lineageTag: e3bb2c3e-76fa-5b11-9c22-ee1180323ecb
+        summarizeBy: none
+        sourceColumn: ResourceDisplayName
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: f59437ac-59a1-5d71-8626-f7210c1fba8f
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column IsMailRole
+        dataType: boolean
+        lineageTag: ca62f385-2f5b-5063-bc38-ec4538f4f8ec
+        summarizeBy: none
+        sourceColumn: IsMailRole
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'AppRoleAssignments Snapshot Date' = CALCULATE(MAX(AppRoleAssignments[RunDate]), ALLSELECTED(AppRoleAssignments), ALLSELECTED(Apps))
+        formatString: Short Date
+        lineageTag: 304eeb8a-5dec-5a73-8ef8-d7d7156a8f7c
+
+    measure 'App Role Assignments' = 
+            VAR Snap = [AppRoleAssignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AppRoleAssignments), AppRoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 68f60b26-77cb-5e4c-88e4-64019faf44e7
+
+    /// An app role starting with Mail. or MailboxSettings. on the Microsoft Graph service principal (this report's rule).
+    measure 'Mail App Roles' = 
+            VAR Snap = [AppRoleAssignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AppRoleAssignments), AppRoleAssignments[RunDate] = Snap, AppRoleAssignments[IsMailRole] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 90e04345-990a-5c70-b306-17fb17f897a8
+
+    measure 'Apps Holding Mail App Roles' = 
+            VAR Snap = [AppRoleAssignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(AppRoleAssignments[PrincipalId]), AppRoleAssignments[RunDate] = Snap, AppRoleAssignments[IsMailRole] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 2a3ab284-0283-5c82-b585-4009bc839221
+
+    measure 'App Roles With Unknown Mail Flag' = 
+            VAR Snap = [AppRoleAssignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AppRoleAssignments), AppRoleAssignments[RunDate] = Snap, ISBLANK(AppRoleAssignments[IsMailRole])) + 0)
+        formatString: #,0
+        lineageTag: 436a1f1f-607f-5634-aea9-431b65cbfd16
+
+    measure 'Mail App Roles (All Snapshots)' = IF(COUNTROWS(AppRoleAssignments) = 0, BLANK(), COUNTROWS(FILTER(AppRoleAssignments, AppRoleAssignments[IsMailRole] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: f03b86b4-f4ec-51d9-b303-cb5e487734f9
+
+    partition AppRoleAssignments = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\app-role-assignments.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsMailRole", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

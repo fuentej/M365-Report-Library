@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-apps-with-mail",
+  "position": {
+    "x": 0,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 4
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Apps"
+                    }
+                  },
+                  "Property": "Apps With Mail Access"
+                }
+              },
+              "queryRef": "Apps.Apps With Mail Access"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Apps with mail access"
+          }
+        }
+      ]
+    }
+  }
+}

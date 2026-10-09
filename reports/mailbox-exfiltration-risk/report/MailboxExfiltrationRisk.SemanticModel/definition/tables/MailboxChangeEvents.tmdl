@@ -1,0 +1,158 @@
+table MailboxChangeEvents
+    lineageTag: bd0c1c35-89f9-53fc-b45a-439e760353da
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 5ff4fc20-5ac9-5ba1-a485-ce04dcb7ee78
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: 8484c6d6-5782-52e5-a9f1-25ec7015f50d
+        summarizeBy: none
+        sourceColumn: Id
+
+    column RecordType
+        dataType: string
+        lineageTag: a6b04f84-9918-51cc-be7e-f554f2ab3356
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Operation
+        dataType: string
+        lineageTag: 756cc651-5683-5f45-9e8a-7265abe75a45
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: d7b37b6f-fafe-5fe3-a9ef-0c01293708e4
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Workload
+        dataType: string
+        lineageTag: eb89d7a3-4daa-5d5f-93b1-9d80c1cbe0c6
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column ObjectId
+        dataType: string
+        lineageTag: 3ae7db0a-3326-5cb2-ad51-f9370cf74633
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column MailboxOwnerUPN
+        dataType: string
+        lineageTag: c6491d13-1e23-5f6e-bd6b-1d5ad2c9508f
+        summarizeBy: none
+        sourceColumn: MailboxOwnerUPN
+
+    column ClientIP
+        dataType: string
+        lineageTag: 5b6e146a-e2bc-52a8-a6b5-728e655b2598
+        summarizeBy: none
+        sourceColumn: ClientIP
+
+    column ResultStatus
+        dataType: string
+        lineageTag: 144583dc-d5c5-5e32-8835-f01ac310228d
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column Parameters
+        dataType: string
+        lineageTag: a5ed4bcf-af10-5aba-aa3f-366705337a17
+        summarizeBy: none
+        sourceColumn: Parameters
+
+    column ActivityDate = IF(ISBLANK(MailboxChangeEvents[CreationTime]), BLANK(), DATE(YEAR(MailboxChangeEvents[CreationTime]), MONTH(MailboxChangeEvents[CreationTime]), DAY(MailboxChangeEvents[CreationTime])))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: dbc4d1dd-ca72-5e2e-af09-95939e57e7aa
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActorPseudonym = 
+            VAR K = LOWER(MailboxChangeEvents[UserId])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 06c188f6-0f6c-5bd4-a10e-8e06ee297604
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ResultLabel = IF(ISBLANK(MailboxChangeEvents[ResultStatus]), "Unknown", IF(MailboxChangeEvents[ResultStatus] = "Succeeded" || MailboxChangeEvents[ResultStatus] = "True", "Succeeded", IF(MailboxChangeEvents[ResultStatus] = "Failed" || MailboxChangeEvents[ResultStatus] = "False", "Failed", MailboxChangeEvents[ResultStatus])))
+        dataType: string
+        lineageTag: 040ca0bc-8f96-5460-b5ad-a9cb1199e911
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ChangeCategory = IF(ISBLANK(MailboxChangeEvents[Operation]), "Unknown", IF(SEARCH("TransportRule", MailboxChangeEvents[Operation], 1, 0) > 0, "Mail flow rule", IF(SEARCH("InboxRule", MailboxChangeEvents[Operation], 1, 0) > 0, "Inbox rule", IF(SEARCH("MailboxPermission", MailboxChangeEvents[Operation], 1, 0) > 0, "Mailbox permission", IF(MailboxChangeEvents[Operation] = "Set-Mailbox" && SEARCH("Forwarding", MailboxChangeEvents[Parameters], 1, 0) > 0, "Forwarding", "Other")))))
+        dataType: string
+        lineageTag: 48e01bac-9833-5829-a47f-eb21835666e5
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym when Anonymize is selected.
+    measure 'Actor (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(MailboxChangeEvents[UserId])
+            VAR Pseudo = SELECTEDVALUE(MailboxChangeEvents[ActorPseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: fcf9ea39-90cc-50cf-9b70-7c48db7a93db
+
+    /// Blank when the file is header-only: not collected (audit availability can differ by cloud and licence).
+    measure 'Change Events' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents)) + 0)
+        formatString: #,0
+        lineageTag: 654c06d7-0e84-586a-b2b1-a525f6f2f574
+
+    measure 'Inbox Rule Changes' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ChangeCategory] = "Inbox rule") + 0)
+        formatString: #,0
+        lineageTag: f555c219-2f66-5383-a844-7b0d381dc344
+
+    measure 'Mail Flow Rule Changes' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ChangeCategory] = "Mail flow rule") + 0)
+        formatString: #,0
+        lineageTag: d99b45bc-b234-5f84-bc60-c26d7a6c510f
+
+    measure 'Forwarding Changes' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ChangeCategory] = "Forwarding") + 0)
+        formatString: #,0
+        lineageTag: 00ea48ef-c468-5921-bf15-9673622193e5
+
+    measure 'Mailbox Permission Changes' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ChangeCategory] = "Mailbox permission") + 0)
+        formatString: #,0
+        lineageTag: 07ecdc86-9433-5a6f-b63e-ba00a2748f24
+
+    measure 'Failed Change Events' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ResultLabel] = "Failed") + 0)
+        formatString: #,0
+        lineageTag: ea80986b-4690-5938-bf22-5969907ab36f
+
+    measure 'Change Events With Unknown Result' = IF(COUNTROWS(ALL(MailboxChangeEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailboxChangeEvents), MailboxChangeEvents[ResultLabel] = "Unknown") + 0)
+        formatString: #,0
+        lineageTag: 2a3f2c84-0f8d-50e4-a181-90671928b7ec
+
+    /// How far back the collected audit records go, over both event files and ignoring the slicers. Blank when neither file has rows.
+    measure 'Earliest Audit Record' = 
+            VAR A = CALCULATE(MIN(MailboxChangeEvents[CreationTime]), ALL(MailboxChangeEvents))
+            VAR B = CALCULATE(MIN(MailAccessEvents[CreationTime]), ALL(MailAccessEvents))
+            VAR Earliest = IF(ISBLANK(A), B, IF(ISBLANK(B), A, MIN(A, B)))
+            RETURN IF(ISBLANK(Earliest), BLANK(), FORMAT(Earliest, "yyyy-MM-dd"))
+        lineageTag: 5c703955-e7fc-50b1-a91e-73321ab268b2
+
+    partition MailboxChangeEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-change-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreationTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

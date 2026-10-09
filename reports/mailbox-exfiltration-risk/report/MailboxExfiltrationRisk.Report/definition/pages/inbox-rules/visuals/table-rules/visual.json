@@ -1,0 +1,124 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-rules",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 13
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Mailbox Display Name"
+                }
+              },
+              "queryRef": "UsersCurrent.Mailbox Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "RuleName"
+                }
+              },
+              "queryRef": "InboxRules.RuleName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "RuleKind"
+                }
+              },
+              "queryRef": "InboxRules.RuleKind"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "TargetScope"
+                }
+              },
+              "queryRef": "InboxRules.TargetScope"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "TargetDomainsLabel"
+                }
+              },
+              "queryRef": "InboxRules.TargetDomainsLabel"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "Inbox Rules"
+                }
+              },
+              "queryRef": "InboxRules.Inbox Rules"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Rules by mailbox and target domain"
+          }
+        }
+      ]
+    }
+  }
+}

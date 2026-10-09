@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-unknown",
+  "position": {
+    "x": 860,
+    "y": 100,
+    "z": 0,
+    "width": 203,
+    "height": 150,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "InboxRules"
+                    }
+                  },
+                  "Property": "Inbox Rules With Unknown Target"
+                }
+              },
+              "queryRef": "InboxRules.Inbox Rules With Unknown Target"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Unknown target"
+          }
+        }
+      ]
+    }
+  }
+}

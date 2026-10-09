@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-mail-consents",
+  "position": {
+    "x": 966,
+    "y": 100,
+    "z": 0,
+    "width": 149,
+    "height": 150,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DelegatedConsents"
+                    }
+                  },
+                  "Property": "Mail-Scoped Consents"
+                }
+              },
+              "queryRef": "DelegatedConsents.Mail-Scoped Consents"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Consents that include a mail scope"
+          }
+        }
+      ]
+    }
+  }
+}

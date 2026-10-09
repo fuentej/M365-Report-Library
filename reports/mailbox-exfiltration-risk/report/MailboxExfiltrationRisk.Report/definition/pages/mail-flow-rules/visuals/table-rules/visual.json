@@ -1,0 +1,124 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-rules",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 14
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "Name"
+                }
+              },
+              "queryRef": "TransportRules.Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "State"
+                }
+              },
+              "queryRef": "TransportRules.State"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "Priority"
+                }
+              },
+              "queryRef": "TransportRules.Priority"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "ActionLabel"
+                }
+              },
+              "queryRef": "TransportRules.ActionLabel"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "TargetScope"
+                }
+              },
+              "queryRef": "TransportRules.TargetScope"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "TargetDomainsLabel"
+                }
+              },
+              "queryRef": "TransportRules.TargetDomainsLabel"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "Mail Flow Rules"
+                }
+              },
+              "queryRef": "TransportRules.Mail Flow Rules"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Organization-wide redirect and blind-copy rules"
+          }
+        }
+      ]
+    }
+  }
+}

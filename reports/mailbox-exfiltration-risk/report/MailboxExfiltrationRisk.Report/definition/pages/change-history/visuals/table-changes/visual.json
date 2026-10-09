@@ -1,0 +1,137 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-changes",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 15
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "CreationTime"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.CreationTime"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "ChangeCategory"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.ChangeCategory"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "Operation"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.Operation"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "ActorPseudonym"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.ActorPseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "Actor (Display)"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.Actor (Display)"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "ResultLabel"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.ResultLabel"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "Change Events"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.Change Events"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Rule, forwarding and permission changes (auditing settings: Organization Auditing card; records go back to Earliest Audit Record)"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,118 @@
+table AuditConfiguration
+    lineageTag: 4921ff30-9e96-5917-94ff-33ae863f95b5
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 4db95b76-fb58-5ba3-8e39-baab3adebc27
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Scope
+        dataType: string
+        lineageTag: f9c0b0da-977c-5684-9991-f145dc134dc0
+        summarizeBy: none
+        sourceColumn: Scope
+
+    column Identity
+        dataType: string
+        lineageTag: 1cb95890-b45d-55ed-bf2d-9e3c20acb707
+        summarizeBy: none
+        sourceColumn: Identity
+
+    column AuditDisabled
+        dataType: boolean
+        lineageTag: e481165c-03c2-5f94-8585-40debb997988
+        summarizeBy: none
+        sourceColumn: AuditDisabled
+
+    column UnifiedAuditLogIngestionEnabled
+        dataType: boolean
+        lineageTag: 4647d14f-f175-573d-ad43-456b0ff663cb
+        summarizeBy: none
+        sourceColumn: UnifiedAuditLogIngestionEnabled
+
+    column DefaultAuditSet
+        dataType: string
+        lineageTag: 6c02355d-b905-55bc-aff6-0b149681680e
+        summarizeBy: none
+        sourceColumn: DefaultAuditSet
+
+    column AuditAdmin
+        dataType: string
+        lineageTag: 6176fa7f-ee2f-552c-83d5-0d5a1804f8d4
+        summarizeBy: none
+        sourceColumn: AuditAdmin
+
+    column AuditDelegate
+        dataType: string
+        lineageTag: 4416948e-cc57-5885-8af7-d36cd4840135
+        summarizeBy: none
+        sourceColumn: AuditDelegate
+
+    column AuditOwner
+        dataType: string
+        lineageTag: 1fc221e9-147c-504b-a86c-8dd1dea98ac3
+        summarizeBy: none
+        sourceColumn: AuditOwner
+
+    column AuditSetLabel = IF(AuditConfiguration[Scope] <> "Mailbox", "Not a mailbox row", IF(ISBLANK(AuditConfiguration[DefaultAuditSet]), "Unknown", IF(AuditConfiguration[DefaultAuditSet] = "Admin;Delegate;Owner", "Default actions", "Customized")))
+        dataType: string
+        lineageTag: 948ebc25-63d6-59fb-94e3-0cad1b3a92da
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'AuditConfiguration Snapshot Date' = CALCULATE(MAX(AuditConfiguration[RunDate]), ALLSELECTED(AuditConfiguration), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: e8863431-df21-542b-94c6-e6e8f531e48f
+
+    /// Mailbox rows in audit-configuration.csv.
+    measure 'Mailboxes Audited' = 
+            VAR Snap = [AuditConfiguration Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[Scope] = "Mailbox") + 0)
+        formatString: #,0
+        lineageTag: 491ac008-3bf5-53b2-b5b0-647beea1fcad
+
+    /// DefaultAuditSet is not Admin;Delegate;Owner.
+    measure 'Mailboxes On Customized Audit Actions' = 
+            VAR Snap = [AuditConfiguration Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[AuditSetLabel] = "Customized") + 0)
+        formatString: #,0
+        lineageTag: 67ad32e3-cdd4-5d60-8cd3-64cd6714b2ad
+
+    measure 'Mailboxes With Unknown Audit Set' = 
+            VAR Snap = [AuditConfiguration Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[AuditSetLabel] = "Unknown") + 0)
+        formatString: #,0
+        lineageTag: 658f0018-649b-5c14-b3b3-ab0ef8280938
+
+    /// AuditDisabled False means mailbox auditing on by default is on. Unknown when the organization row is missing or empty.
+    measure 'Organization Auditing' = 
+            VAR Snap = [AuditConfiguration Snapshot Date]
+            VAR OnRows = CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[Scope] = "Organization", AuditConfiguration[AuditDisabled] = FALSE(), NOT ISBLANK(AuditConfiguration[AuditDisabled]), REMOVEFILTERS(UsersCurrent))
+            VAR OffRows = CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[Scope] = "Organization", AuditConfiguration[AuditDisabled] = TRUE(), NOT ISBLANK(AuditConfiguration[AuditDisabled]), REMOVEFILTERS(UsersCurrent))
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(OnRows + OffRows = 0, "Unknown", IF(OffRows > 0, "Off", "On")))
+        lineageTag: 5e497265-4e95-55f4-a034-2f14704041ff
+
+    /// Read through Exchange Online. Unknown when the organization row is missing or empty.
+    measure 'Unified Audit Log Ingestion' = 
+            VAR Snap = [AuditConfiguration Snapshot Date]
+            VAR OnRows = CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[Scope] = "Organization", AuditConfiguration[UnifiedAuditLogIngestionEnabled] = TRUE(), NOT ISBLANK(AuditConfiguration[UnifiedAuditLogIngestionEnabled]), REMOVEFILTERS(UsersCurrent))
+            VAR OffRows = CALCULATE(COUNTROWS(AuditConfiguration), AuditConfiguration[RunDate] = Snap, AuditConfiguration[Scope] = "Organization", AuditConfiguration[UnifiedAuditLogIngestionEnabled] = FALSE(), NOT ISBLANK(AuditConfiguration[UnifiedAuditLogIngestionEnabled]), REMOVEFILTERS(UsersCurrent))
+            RETURN IF(ISBLANK(Snap), BLANK(), IF(OnRows + OffRows = 0, "Unknown", IF(OffRows > 0, "Off", "On")))
+        lineageTag: f24c435f-fbaf-5b7c-9563-7e0b1bbd72b2
+
+    partition AuditConfiguration = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-configuration.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"AuditDisabled", type logical}, {"UnifiedAuditLogIngestionEnabled", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

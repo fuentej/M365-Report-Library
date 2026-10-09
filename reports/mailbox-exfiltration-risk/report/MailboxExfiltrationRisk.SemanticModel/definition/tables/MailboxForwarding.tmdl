@@ -1,0 +1,147 @@
+table MailboxForwarding
+    lineageTag: 9f6d98ec-f205-5f54-aef2-420c6e4c48ed
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 93b15429-cf61-5430-be63-ac9ac26b0bd8
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ExternalDirectoryObjectId
+        dataType: string
+        lineageTag: e50d66ce-b9dc-5166-9183-76ca037d93a2
+        summarizeBy: none
+        sourceColumn: ExternalDirectoryObjectId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 7ace8b1c-e2e6-5607-839c-a8055b0918af
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column PrimarySmtpAddress
+        dataType: string
+        lineageTag: 48f34a02-9061-5aca-b420-fc3e4fc3c4e1
+        summarizeBy: none
+        sourceColumn: PrimarySmtpAddress
+
+    column ForwardingAddress
+        dataType: string
+        lineageTag: d02482a0-1786-5d9c-8e39-1b736bd37a02
+        summarizeBy: none
+        sourceColumn: ForwardingAddress
+
+    column ForwardingSmtpAddress
+        dataType: string
+        lineageTag: 42464c76-a25f-5ab8-9787-6562cf5f7d82
+        summarizeBy: none
+        sourceColumn: ForwardingSmtpAddress
+
+    column ForwardingSmtpDomain
+        dataType: string
+        lineageTag: 35ece744-822b-5506-857f-5c316f858ad1
+        summarizeBy: none
+        sourceColumn: ForwardingSmtpDomain
+
+    column DeliverToMailboxAndForward
+        dataType: boolean
+        lineageTag: 656157d4-4f02-5a55-91b2-c5047df86e42
+        summarizeBy: none
+        sourceColumn: DeliverToMailboxAndForward
+
+    column IsExternal
+        dataType: boolean
+        lineageTag: bc66e658-bbde-578c-95b6-0cd748b2b0f0
+        summarizeBy: none
+        sourceColumn: IsExternal
+
+    column DestinationType = IF(ISBLANK(MailboxForwarding[IsExternal]), "Unknown", IF(MailboxForwarding[IsExternal], "External", "Internal"))
+        dataType: string
+        lineageTag: 6296f094-5791-509e-a467-f337d8957e1a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DestinationDomain = IF(NOT ISBLANK(MailboxForwarding[ForwardingSmtpDomain]), MailboxForwarding[ForwardingSmtpDomain], IF(NOT ISBLANK(MailboxForwarding[ForwardingAddress]), "Internal recipient", "Unknown"))
+        dataType: string
+        lineageTag: 597ce4be-df62-5e18-a995-72326e4a4874
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column CopyLabel = IF(ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), "Unknown", IF(MailboxForwarding[DeliverToMailboxAndForward], "Copy stays in mailbox", "Forwarded only"))
+        dataType: string
+        lineageTag: 227fcab6-8b66-53ad-9a16-f5d14cb2ea25
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'MailboxForwarding Snapshot Date' = CALCULATE(MAX(MailboxForwarding[RunDate]), ALLSELECTED(MailboxForwarding), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 749116ce-a06c-5190-b9e8-4513a65ba274
+
+    /// Mailboxes with ForwardingAddress or ForwardingSmtpAddress set. The file holds only mailboxes that forward.
+    measure 'Forwarding Mailboxes' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: efa9ae99-0d42-5b46-a608-104b5f4c1ff6
+
+    /// ForwardingSmtpDomain is not an accepted domain.
+    measure 'External Forwarding Mailboxes' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, MailboxForwarding[IsExternal] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: aefbb12c-96f1-5ea2-8df0-338211310efe
+
+    measure 'Internal Forwarding Mailboxes' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, MailboxForwarding[IsExternal] = FALSE(), NOT ISBLANK(MailboxForwarding[IsExternal])) + 0)
+        formatString: #,0
+        lineageTag: ad96a81b-8e37-5f98-a765-c26820ed6b05
+
+    /// IsExternal is empty when the accepted domains could not be read. Unknown, not internal.
+    measure 'Unknown Forwarding Destination' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, ISBLANK(MailboxForwarding[IsExternal])) + 0)
+        formatString: #,0
+        lineageTag: 1c3e3b3c-3f49-527e-99ae-7732ab97ed6b
+
+    measure 'Forwarding Keeps Copy' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, MailboxForwarding[DeliverToMailboxAndForward] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 01172f5e-6201-59a3-827c-a164771f432d
+
+    measure 'Forwarding Without Copy' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, MailboxForwarding[DeliverToMailboxAndForward] = FALSE(), NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward])) + 0)
+        formatString: #,0
+        lineageTag: 9ceb5e27-3ac9-5092-9e22-c9f3e4080732
+
+    measure 'Unknown Copy Setting' = 
+            VAR Snap = [MailboxForwarding Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), MailboxForwarding[RunDate] = Snap, ISBLANK(MailboxForwarding[DeliverToMailboxAndForward])) + 0)
+        formatString: #,0
+        lineageTag: 1d4d8daa-480e-50c4-854c-54ef12159f60
+
+    measure 'Forwarding Mailboxes (All Snapshots)' = IF(COUNTROWS(MailboxForwarding) = 0, BLANK(), COUNTROWS(MailboxForwarding) + 0)
+        formatString: #,0
+        lineageTag: 2ca966ca-0654-57d8-9d6a-e606af6f08a8
+
+    measure 'External Forwarding Mailboxes (All Snapshots)' = IF(COUNTROWS(MailboxForwarding) = 0, BLANK(), COUNTROWS(FILTER(MailboxForwarding, MailboxForwarding[IsExternal] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: 8cedd6e5-ad7f-5a9d-be98-1949b81b5eef
+
+    partition MailboxForwarding = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-forwarding.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"DeliverToMailboxAndForward", type logical}, {"IsExternal", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-internal",
+  "position": {
+    "x": 368,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 6
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "Internal Forwarding Mailboxes"
+                }
+              },
+              "queryRef": "MailboxForwarding.Internal Forwarding Mailboxes"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Internal destination"
+          }
+        }
+      ]
+    }
+  }
+}

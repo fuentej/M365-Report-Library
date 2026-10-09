@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-full-access-delegates",
+  "position": {
+    "x": 552,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxFullAccess"
+                    }
+                  },
+                  "Property": "Full Access Delegates"
+                }
+              },
+              "queryRef": "MailboxFullAccess.Full Access Delegates"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Full Access delegates"
+          }
+        }
+      ]
+    }
+  }
+}

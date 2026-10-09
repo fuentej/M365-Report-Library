@@ -1,0 +1,47 @@
+table Apps
+    lineageTag: db871e3f-d373-5de7-a1a5-fedf1e2e682b
+
+    column AppId
+        dataType: string
+        lineageTag: 8645f223-faf6-5d21-bb00-27cd736eae43
+        summarizeBy: none
+        sourceColumn: AppId
+
+    column AppName = IFERROR(LOOKUPVALUE(AppRoleAssignments[PrincipalDisplayName], AppRoleAssignments[PrincipalId], Apps[AppId]), BLANK())
+        dataType: string
+        lineageTag: 4b4c09d1-14fe-5515-a73d-fe50d233457e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = 
+            VAR K = LOWER(Apps[AppId])
+            RETURN IF(K = "", BLANK(), "App " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 806ecce6-b531-565c-b4c5-b7e22f70ebe4
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Apps seen only in a delegated consent have no display name in the collected files: Unknown app name.
+    measure 'App Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(Apps[AppName])
+            VAR Pseudo = SELECTEDVALUE(Apps[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, IF(ISBLANK(RealName), "Unknown app name", RealName))
+        lineageTag: 36bfd79e-7d36-52ad-8d91-1ea1f2714202
+
+    /// Apps holding a mail-scoped delegated consent or a mail app role at the latest snapshots.
+    measure 'Apps With Mail Access' = IF(ISBLANK([Delegated Consents]) && ISBLANK([App Role Assignments]), BLANK(), COUNTROWS(FILTER(Apps, [Mail-Scoped Consents] > 0 || [Mail App Roles] > 0)) + 0)
+        formatString: #,0
+        lineageTag: 14c3b807-d418-5bd5-8ba4-9307c91afe9b
+
+    partition Apps = calculated
+        mode: import
+        source =
+            DISTINCT(
+                UNION(
+                    SELECTCOLUMNS(DelegatedConsents, "AppId", DelegatedConsents[ClientId]),
+                    SELECTCOLUMNS(AppRoleAssignments, "AppId", AppRoleAssignments[PrincipalId])
+                )
+            )
+
+    annotation PBI_ResultType = Table

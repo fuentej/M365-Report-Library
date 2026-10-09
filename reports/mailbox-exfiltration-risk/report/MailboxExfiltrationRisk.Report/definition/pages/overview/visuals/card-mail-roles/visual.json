@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-mail-roles",
+  "position": {
+    "x": 1127,
+    "y": 100,
+    "z": 0,
+    "width": 149,
+    "height": 150,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AppRoleAssignments"
+                    }
+                  },
+                  "Property": "Mail App Roles"
+                }
+              },
+              "queryRef": "AppRoleAssignments.Mail App Roles"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Mail app roles"
+          }
+        }
+      ]
+    }
+  }
+}

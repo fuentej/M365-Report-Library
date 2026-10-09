@@ -1,0 +1,128 @@
+table SendAsPermissions
+    lineageTag: 7764f19c-01bc-5a63-8f1e-bc65e91342f4
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 50d34332-2d20-5688-a198-b285964805d7
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Identity
+        dataType: string
+        lineageTag: 50199880-1a8b-5dc0-b31b-583b708bcc79
+        summarizeBy: none
+        sourceColumn: Identity
+
+    column Trustee
+        dataType: string
+        lineageTag: af6499ea-4b9f-515f-9524-f9fd896be57c
+        summarizeBy: none
+        sourceColumn: Trustee
+
+    column AccessRights
+        dataType: string
+        lineageTag: 2b49b1cb-a591-5d76-91f7-838906c4c936
+        summarizeBy: none
+        sourceColumn: AccessRights
+
+    column AccessControlType
+        dataType: string
+        lineageTag: 907dc7e8-4119-574c-9f0a-6e36ada67c79
+        summarizeBy: none
+        sourceColumn: AccessControlType
+
+    column IsInherited
+        dataType: boolean
+        lineageTag: d0d1f48d-f8e3-535c-8d0a-d224d619265d
+        summarizeBy: none
+        sourceColumn: IsInherited
+
+    column MailboxKey = IFERROR(LOOKUPVALUE(Users[UserPrincipalName], Users[DisplayName], SendAsPermissions[Identity]), BLANK())
+        dataType: string
+        lineageTag: f113b7aa-d316-5160-987b-34efbf7ab32d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column IdentityPseudonym = 
+            VAR K = LOWER(IF(ISBLANK(SendAsPermissions[MailboxKey]), SendAsPermissions[Identity], SendAsPermissions[MailboxKey]))
+            VAR Prefix = IF(ISBLANK(SendAsPermissions[MailboxKey]), "Object ", "Person ")
+            RETURN IF(K = "", BLANK(), Prefix & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 2e353171-b5d7-599f-be5f-965421549583
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TrusteeKey = LOWER(SendAsPermissions[Trustee])
+        dataType: string
+        lineageTag: 42f8c47b-ab8a-5218-9455-58312b1b105e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TrusteePseudonym = 
+            VAR K = LOWER(SendAsPermissions[TrusteeKey])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: c89247ab-44d8-5ecb-9bc5-dd862a09986c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'SendAsPermissions Snapshot Date' = CALCULATE(MAX(SendAsPermissions[RunDate]), ALLSELECTED(SendAsPermissions), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 95ff9c71-05f7-580f-96b7-b255fb2a3899
+
+    /// Explicit Allow entries. Inherited entries are the defaults the collector keeps so a report can filter them.
+    measure 'Send As Grants' = 
+            VAR Snap = [SendAsPermissions Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(SendAsPermissions), SendAsPermissions[RunDate] = Snap, SendAsPermissions[AccessControlType] = "Allow", SendAsPermissions[IsInherited] = FALSE(), NOT ISBLANK(SendAsPermissions[IsInherited])) + 0)
+        formatString: #,0
+        lineageTag: b27aafcc-bcac-5849-9079-e5fc5bc3504d
+
+    measure 'Send As With Unknown Inheritance' = 
+            VAR Snap = [SendAsPermissions Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(SendAsPermissions), SendAsPermissions[RunDate] = Snap, ISBLANK(SendAsPermissions[IsInherited])) + 0)
+        formatString: #,0
+        lineageTag: 32d7c69e-39d0-5e7b-aca4-15ea75df256e
+
+    /// Distinct trustees on explicit Allow rows. Inherited rows are the defaults the collector keeps so they can be filtered out.
+    measure 'Send As Trustees' = 
+            VAR Snap = [SendAsPermissions Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = Snap, SendAsPermissions[AccessControlType] = "Allow", SendAsPermissions[IsInherited] = FALSE(), NOT ISBLANK(SendAsPermissions[IsInherited])) + 0)
+        formatString: #,0
+        lineageTag: e95e5102-b613-5854-bc34-c353023ed686
+
+    /// Explicit Allow rows in the date filter. An empty IsInherited is not an explicit grant: in DAX, BLANK() = FALSE().
+    measure 'Send As Grants (All Snapshots)' = IF(COUNTROWS(SendAsPermissions) = 0, BLANK(), COUNTROWS(FILTER(SendAsPermissions, SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited]))) + 0)
+        formatString: #,0
+        lineageTag: 502b4f2a-9dda-5e13-9366-1bf679cebbd4
+
+    /// A stable pseudonym when Anonymize is selected.
+    measure 'Send As Trustee (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(SendAsPermissions[Trustee])
+            VAR Pseudo = SELECTEDVALUE(SendAsPermissions[TrusteePseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 4b26fcd7-d752-592f-bbbb-c1cfc31dab56
+
+    /// A stable pseudonym when Anonymize is selected. Identity can be a mailbox or a group; only a mailbox whose display name matches a user joins to the mailbox slicer.
+    measure 'Send As Identity (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(SendAsPermissions[Identity])
+            VAR Pseudo = SELECTEDVALUE(SendAsPermissions[IdentityPseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: ab826f66-d9ad-59ee-861f-7649646ca764
+
+    partition SendAsPermissions = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\send-as-permissions.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsInherited", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

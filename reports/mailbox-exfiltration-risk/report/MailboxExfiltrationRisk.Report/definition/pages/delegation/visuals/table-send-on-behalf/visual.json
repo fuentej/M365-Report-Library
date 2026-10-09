@@ -1,0 +1,85 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-send-on-behalf",
+  "position": {
+    "x": 860,
+    "y": 260,
+    "z": 0,
+    "width": 420,
+    "height": 200,
+    "tabOrder": 13
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SendOnBehalf"
+                    }
+                  },
+                  "Property": "DelegatePseudonym"
+                }
+              },
+              "queryRef": "SendOnBehalf.DelegatePseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SendOnBehalf"
+                    }
+                  },
+                  "Property": "Send On Behalf Delegate (Display)"
+                }
+              },
+              "queryRef": "SendOnBehalf.Send On Behalf Delegate (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SendOnBehalf"
+                    }
+                  },
+                  "Property": "Send On Behalf Grants"
+                }
+              },
+              "queryRef": "SendOnBehalf.Send On Behalf Grants"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Who holds Send on Behalf on whom"
+          }
+        }
+      ]
+    }
+  }
+}

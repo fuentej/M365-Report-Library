@@ -11,7 +11,8 @@ history you can chart over time.
 
 The sources were verified against Microsoft Learn in
 [`docs/candidates/mailbox-exfiltration-risk.md`](../../docs/candidates/mailbox-exfiltration-risk.md),
-which is the contract for this folder. The Power BI project is a separate, later piece of work.
+which is the contract for this folder. `report/` holds the Power BI project built on the sample CSVs;
+saving it as a .pbit and publishing the release are separate, manual steps.
 Nothing here writes to the tenant.
 
 ## Contents
@@ -33,6 +34,7 @@ Nothing here writes to the tenant.
 | `collectors/Run-All.ps1` | Runs the shared users collector and all twelve of the above; signs in once to Exchange Online and once to Graph |
 | `collectors/MailboxExfiltrationSchema.psd1` | The column order of every CSV, the per-cloud availability of every source |
 | `collectors/MailboxExfiltrationHelpers.ps1` | Helpers the collectors dot-source: availability, external-domain test, audit search |
+| `report/` | The Power BI project (PBIP): semantic model in TMDL and a seven-page report in PBIR. One parameter, `CsvFolder`, holds the folder the collectors write to |
 | `New-SampleData.ps1` | Regenerates `samples/` |
 | `samples/` | Generated fake data |
 | `tests/` | Pester tests; every tenant call is mocked |

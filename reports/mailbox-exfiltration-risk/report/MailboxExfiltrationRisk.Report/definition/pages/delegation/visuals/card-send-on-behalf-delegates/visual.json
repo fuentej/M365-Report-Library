@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-send-on-behalf-delegates",
+  "position": {
+    "x": 920,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SendOnBehalf"
+                    }
+                  },
+                  "Property": "Send On Behalf Delegates"
+                }
+              },
+              "queryRef": "SendOnBehalf.Send On Behalf Delegates"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Send on Behalf delegates"
+          }
+        }
+      ]
+    }
+  }
+}

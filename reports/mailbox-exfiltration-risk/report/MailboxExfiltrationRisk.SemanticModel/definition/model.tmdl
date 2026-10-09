@@ -1,0 +1,22 @@
+model Model
+    culture: en-US
+    defaultPowerBIDataSourceVersion: powerBI_V3
+    sourceQueryCulture: en-US
+
+ref table UsersCurrent
+ref table Apps
+ref table DateDim
+ref table AnonymizeMode
+ref table Users
+ref table AcceptedDomains
+ref table MailboxForwarding
+ref table SendOnBehalf
+ref table InboxRules
+ref table TransportRules
+ref table MailboxFullAccess
+ref table SendAsPermissions
+ref table DelegatedConsents
+ref table AppRoleAssignments
+ref table MailboxChangeEvents
+ref table MailAccessEvents
+ref table AuditConfiguration

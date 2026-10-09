@@ -1,0 +1,95 @@
+relationship 54556cea-aab0-5187-8c29-e180b47b4633
+    fromColumn: Users.RunDate
+    toColumn: DateDim.Date
+
+relationship 0fbca885-bb2b-543d-8069-ff1d4fb51f66
+    fromColumn: AcceptedDomains.RunDate
+    toColumn: DateDim.Date
+
+relationship b53fb072-5b08-5bf4-8907-477817af17ea
+    fromColumn: MailboxForwarding.RunDate
+    toColumn: DateDim.Date
+
+relationship a5bf38ba-67d5-5657-a99f-4cf5214e1c8c
+    fromColumn: SendOnBehalf.RunDate
+    toColumn: DateDim.Date
+
+relationship 1de6df88-dc24-5d37-b6d9-7072ec3ef9ac
+    fromColumn: InboxRules.RunDate
+    toColumn: DateDim.Date
+
+relationship 92583f79-821b-5cd2-b551-39c176ceac23
+    fromColumn: TransportRules.RunDate
+    toColumn: DateDim.Date
+
+relationship 539dd33e-a91f-52b2-98e6-eeae67b618da
+    fromColumn: MailboxFullAccess.RunDate
+    toColumn: DateDim.Date
+
+relationship 89a68bfe-7840-5028-8d11-31b087bca272
+    fromColumn: SendAsPermissions.RunDate
+    toColumn: DateDim.Date
+
+relationship 3350914a-53c1-5be8-a3d5-138c53d13280
+    fromColumn: DelegatedConsents.RunDate
+    toColumn: DateDim.Date
+
+relationship 68676e24-8474-53bd-b418-a8e6ff357c74
+    fromColumn: AppRoleAssignments.RunDate
+    toColumn: DateDim.Date
+
+relationship 2e91dbed-2aff-53f1-9c10-b83ddab5c7be
+    fromColumn: AuditConfiguration.RunDate
+    toColumn: DateDim.Date
+
+relationship e6e32414-b31c-5f5b-b585-4d43d7769937
+    fromColumn: MailboxChangeEvents.ActivityDate
+    toColumn: DateDim.Date
+
+relationship 4f1af11e-1c0d-552a-84ce-97a1ff548691
+    fromColumn: MailAccessEvents.ActivityDate
+    toColumn: DateDim.Date
+
+relationship 1087a41b-7eaf-5cee-883e-b6483637356f
+    fromColumn: MailboxForwarding.ExternalDirectoryObjectId
+    toColumn: UsersCurrent.Id
+
+relationship 68ab5cd1-1921-589e-a591-689a860d87c8
+    fromColumn: SendOnBehalf.ExternalDirectoryObjectId
+    toColumn: UsersCurrent.Id
+
+relationship b3d8f204-7058-50d5-8060-937d653ef839
+    fromColumn: InboxRules.MailboxExternalDirectoryObjectId
+    toColumn: UsersCurrent.Id
+
+relationship 843813c3-f6a7-544e-86c9-55f85753f006
+    fromColumn: MailboxFullAccess.MailboxExternalDirectoryObjectId
+    toColumn: UsersCurrent.Id
+
+relationship 77729472-8016-5acb-8231-f75e563a2eab
+    fromColumn: DelegatedConsents.PrincipalId
+    toColumn: UsersCurrent.Id
+
+relationship 9aa96dd2-297b-5a07-8dd8-7f4915f2aaa9
+    fromColumn: SendAsPermissions.MailboxKey
+    toColumn: UsersCurrent.UserPrincipalName
+
+relationship 7963455e-1874-560c-a864-0dc800d7098e
+    fromColumn: MailboxChangeEvents.MailboxOwnerUPN
+    toColumn: UsersCurrent.UserPrincipalName
+
+relationship 9455e544-ad2b-537a-a206-f0682a6db229
+    fromColumn: MailAccessEvents.MailboxOwnerUPN
+    toColumn: UsersCurrent.UserPrincipalName
+
+relationship 49d9175a-4514-5ec5-9d12-0ab83b2b8751
+    fromColumn: AuditConfiguration.Identity
+    toColumn: UsersCurrent.UserPrincipalName
+
+relationship 6d1b455f-079f-5c7e-9e81-86575958147d
+    fromColumn: DelegatedConsents.ClientId
+    toColumn: Apps.AppId
+
+relationship d9ed2296-f959-55e9-aae6-c3c7e325b4ab
+    fromColumn: AppRoleAssignments.PrincipalId
+    toColumn: Apps.AppId

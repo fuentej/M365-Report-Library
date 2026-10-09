@@ -1,0 +1,177 @@
+table InboxRules
+    lineageTag: 48069600-393f-56af-9004-d37ff639dfda
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3fb91194-38d8-58c4-9833-6358d9db9c9b
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column MailboxUserPrincipalName
+        dataType: string
+        lineageTag: 3208c2b8-b5c9-5a11-8b74-2d8b4c06f104
+        summarizeBy: none
+        sourceColumn: MailboxUserPrincipalName
+
+    column MailboxExternalDirectoryObjectId
+        dataType: string
+        lineageTag: cccbe1db-eca2-55fd-9189-0cd018731225
+        summarizeBy: none
+        sourceColumn: MailboxExternalDirectoryObjectId
+
+    column RuleIdentity
+        dataType: string
+        lineageTag: 59cecbdf-4059-5186-b356-cb31a54d66fc
+        summarizeBy: none
+        sourceColumn: RuleIdentity
+
+    column RuleName
+        dataType: string
+        lineageTag: 90c30c46-2afe-58c5-ad4b-b9df1749b265
+        summarizeBy: none
+        sourceColumn: RuleName
+
+    column Enabled
+        dataType: boolean
+        lineageTag: 678bffd2-7f83-53b1-8775-e59666fee2d2
+        summarizeBy: none
+        sourceColumn: Enabled
+
+    column Priority
+        dataType: int64
+        formatString: #,0
+        lineageTag: f6caa5f3-9d96-5341-a640-f718b753bb4b
+        summarizeBy: none
+        sourceColumn: Priority
+
+    column ForwardTo
+        dataType: string
+        lineageTag: b4b748dc-2ad1-540f-9075-ebe89e8419aa
+        summarizeBy: none
+        sourceColumn: ForwardTo
+
+    column ForwardAsAttachmentTo
+        dataType: string
+        lineageTag: bcc48d72-f6b8-5e31-88c0-f45a5fbd029d
+        summarizeBy: none
+        sourceColumn: ForwardAsAttachmentTo
+
+    column RedirectTo
+        dataType: string
+        lineageTag: 0850aa22-54f5-5ade-9ea2-8667a8755793
+        summarizeBy: none
+        sourceColumn: RedirectTo
+
+    column DeleteMessage
+        dataType: boolean
+        lineageTag: 3fc30392-7cae-5f1b-a63d-b7ac8597c1b5
+        summarizeBy: none
+        sourceColumn: DeleteMessage
+
+    column TargetDomains
+        dataType: string
+        lineageTag: 5f68ef9f-d005-550e-bd48-cc8505356c71
+        summarizeBy: none
+        sourceColumn: TargetDomains
+
+    column HasExternalTarget
+        dataType: boolean
+        lineageTag: 153e3c14-509c-5dbd-9ceb-0d4989582e8c
+        summarizeBy: none
+        sourceColumn: HasExternalTarget
+
+    column ForwardsMail = NOT ISBLANK(InboxRules[ForwardTo]) || NOT ISBLANK(InboxRules[ForwardAsAttachmentTo]) || NOT ISBLANK(InboxRules[RedirectTo])
+        dataType: boolean
+        lineageTag: 03b990b2-f48e-52b0-bc32-843ce3b0d58d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column RuleKind = IF(InboxRules[ForwardsMail] && InboxRules[DeleteMessage] = TRUE(), "Forward or redirect, and delete", IF(InboxRules[ForwardsMail], "Forward or redirect", IF(InboxRules[DeleteMessage] = TRUE(), "Delete", "Other")))
+        dataType: string
+        lineageTag: 5ddda7bc-b065-5740-af71-08e5aa6c5d32
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TargetScope = IF(InboxRules[ForwardsMail], IF(ISBLANK(InboxRules[HasExternalTarget]), "Unknown", IF(InboxRules[HasExternalTarget], "External", "Internal")), "No recipient")
+        dataType: string
+        lineageTag: 66b91d56-07b8-5036-a183-e625c39091e9
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TargetDomainsLabel = IF(NOT ISBLANK(InboxRules[TargetDomains]), InboxRules[TargetDomains], IF(InboxRules[ForwardsMail], "Unknown", "No recipient"))
+        dataType: string
+        lineageTag: 588266bc-a4e8-5e4d-b486-fe0a991a8db0
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'InboxRules Snapshot Date' = CALCULATE(MAX(InboxRules[RunDate]), ALLSELECTED(InboxRules), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 08062a96-c730-545f-b078-c9dc561b579d
+
+    /// Rules that forward, redirect or delete. The file holds only those rules. Hidden rules are read (-IncludeHidden) but the cmdlet documents no marker, so they are not flagged.
+    measure 'Inbox Rules' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: b36ec381-d011-5e89-9c1b-d06f91506c18
+
+    measure 'Forward Or Redirect Rules' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[ForwardsMail] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 360ae77c-01a4-54e9-b22a-b45c5f921275
+
+    measure 'Delete Rules' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[DeleteMessage] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 976c99a6-a37a-511e-bec2-1858bb20d915
+
+    measure 'Inbox Rules With External Target' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[HasExternalTarget] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 9e001256-713f-5190-8b64-5f38c4c4776a
+
+    /// A forward or redirect rule whose target domain could not be classified: unknown, not internal.
+    measure 'Inbox Rules With Unknown Target' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[ForwardsMail] = TRUE(), ISBLANK(InboxRules[HasExternalTarget])) + 0)
+        formatString: #,0
+        lineageTag: 78f02fce-507f-5f75-ab58-f40d11307c87
+
+    measure 'Enabled Inbox Rules' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[Enabled] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: e1179833-4e7e-50f2-be45-97b82f74af2c
+
+    measure 'Disabled Inbox Rules' = 
+            VAR Snap = [InboxRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(InboxRules), InboxRules[RunDate] = Snap, InboxRules[Enabled] = FALSE(), NOT ISBLANK(InboxRules[Enabled])) + 0)
+        formatString: #,0
+        lineageTag: 4bdea55d-bdde-519d-ac3d-fd765ce5d10c
+
+    measure 'Forward Or Redirect Rules (All Snapshots)' = IF(COUNTROWS(InboxRules) = 0, BLANK(), COUNTROWS(FILTER(InboxRules, InboxRules[ForwardsMail] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: a069761e-d726-5f3c-978a-b9ab96aa7886
+
+    measure 'Inbox Rules With External Target (All Snapshots)' = IF(COUNTROWS(InboxRules) = 0, BLANK(), COUNTROWS(FILTER(InboxRules, InboxRules[HasExternalTarget] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: 41b61cec-7503-5476-a93a-39e611781b33
+
+    partition InboxRules = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\inbox-rules.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"Enabled", type logical}, {"Priority", Int64.Type}, {"DeleteMessage", type logical}, {"HasExternalTarget", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
