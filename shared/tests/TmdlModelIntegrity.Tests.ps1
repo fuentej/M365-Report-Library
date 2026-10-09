@@ -11,10 +11,14 @@
       'GuestsCurrent' Table.
 
     Measure names are unique across the whole model, not per table. A calculated
-    table whose source is FILTER(<Base>, ...) inherits every column of <Base>, so it
-    may list one only as a bare declaration with `sourceColumn:` (relationships
-    resolve against columns declared in the table's own file). A `column X = <DAX>`
-    with the same name as a column of <Base> adds a second column called X.
+    table inherits one column for each column its partition expression returns
+    (a CalculatedTableColumn, sourceColumn = that name). FILTER(<Base>, ...) returns
+    every column of <Base>. SELECTCOLUMNS returns only its aliases. The table may
+    list an inherited column only as a bare declaration with `sourceColumn:`
+    (relationships resolve against columns declared in the table's own file). A
+    `column X = <DAX>` with the same name adds a second column called X.
+
+    https://learn.microsoft.com/en-us/analysis-services/tabular-models/create-a-calculated-table-ssas-tabular
 
     Microsoft.AnalysisServices.NetCore.retail.amd64 19.84.1 (TmdlSerializer)
     deserializes the broken guest-access model without error, because the duplicate
@@ -44,7 +48,7 @@ BeforeAll {
     function Read-TmdlTableText {
         <#
             .SYNOPSIS
-                Name, measures, columns and calculated-partition base of one table.
+                Name, measures, columns, FILTER base, and SELECTCOLUMNS aliases.
                 A column counts as calculated when its declaration carries `=`.
         #>
         param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Line)
@@ -61,6 +65,7 @@ BeforeAll {
         $measures = [System.Collections.Generic.List[string]]::new()
         $columns = [System.Collections.Generic.List[object]]::new()
         $filterBase = $null
+        $projected = $null
         for ($i = 0; $i -lt $Line.Count; $i++) {
             $text = $Line[$i]
             if ($text -match "^table\s+(?<n>'(?:[^']|'')+'|\S+)\s*$") {
@@ -73,22 +78,41 @@ BeforeAll {
                 $columns.Add([pscustomobject]@{ Name = (ConvertFrom-TmdlObjectName $Matches['n']); Calculated = ($Matches['eq'] -eq '='); LineNumber = $i + 1 })
             }
             elseif ($text -match '^    partition\s+.*=\s*calculated\s*$') {
+                $body = [System.Collections.Generic.List[string]]::new()
                 for ($j = $i + 1; $j -lt $Line.Count -and $Line[$j] -match '^\s{8}|^\s*$'; $j++) {
-                    if ($Line[$j] -match "^\s+FILTER\(\s*(?<b>'(?:[^']|'')+'|\w+)\s*,") {
-                        $filterBase = ConvertFrom-TmdlObjectName $Matches['b']
-                        break
-                    }
-                    if ($Line[$j] -match '^\s+FILTER\(\s*$') {
-                        for ($k = $j + 1; $k -lt $Line.Count -and $Line[$k] -match '^\s*$'; $k++) { }
-                        if ($k -lt $Line.Count -and $Line[$k] -match "^\s+(?<b>'(?:[^']|'')+'|\w+)\s*,") {
-                            $filterBase = ConvertFrom-TmdlObjectName $Matches['b']
+                    $body.Add($Line[$j])
+                }
+                $hasSelect = $false
+                foreach ($bodyLine in $body) {
+                    if ($bodyLine -match 'SELECTCOLUMNS\s*\(') { $hasSelect = $true }
+                }
+                if ($hasSelect) {
+                    # The expression returns the alias list, not every column of the inner FILTER.
+                    $projected = [System.Collections.Generic.List[string]]::new()
+                    foreach ($bodyLine in $body) {
+                        if ($bodyLine -match '^\s+"(?<alias>[^"]+)"\s*,') {
+                            $projected.Add($Matches['alias'])
                         }
-                        break
+                    }
+                }
+                else {
+                    for ($j = 0; $j -lt $body.Count; $j++) {
+                        if ($body[$j] -match "^\s+FILTER\(\s*(?<base>'(?:[^']|'')+'|\w+)\s*,") {
+                            $filterBase = ConvertFrom-TmdlObjectName $Matches['base']
+                            break
+                        }
+                        if ($body[$j] -match '^\s+FILTER\(\s*$') {
+                            for ($k = $j + 1; $k -lt $body.Count -and $body[$k] -match '^\s*$'; $k++) { }
+                            if ($k -lt $body.Count -and $body[$k] -match "^\s+(?<base>'(?:[^']|'')+'|\w+)\s*,") {
+                                $filterBase = ConvertFrom-TmdlObjectName $Matches['base']
+                            }
+                            break
+                        }
                     }
                 }
             }
         }
-        [pscustomobject]@{ Name = $name; Measures = $measures; Columns = $columns; FilterBase = $filterBase }
+        [pscustomobject]@{ Name = $name; Measures = $measures; Columns = $columns; FilterBase = $filterBase; Projected = $projected }
     }
 
     function Read-TmdlModelFolder {
@@ -109,12 +133,23 @@ BeforeAll {
     function Get-RedeclaredInheritedColumn {
         param([Parameter(Mandatory)][object[]]$Table)
 
-        foreach ($t in $Table | Where-Object FilterBase) {
-            $base = $Table | Where-Object Name -eq $t.FilterBase
-            if (-not $base) { continue }
-            $inherited = @($base.Columns.Name)
-            foreach ($c in $t.Columns | Where-Object { $_.Calculated -and $inherited -contains $_.Name }) {
-                "$($t.Name)[$($c.Name)] (line $($c.LineNumber)) repeats a column of $($t.FilterBase)"
+        foreach ($t in $Table) {
+            $inherited = $null
+            $from = $null
+            if ($null -ne $t.Projected) {
+                $inherited = @($t.Projected)
+                $from = 'its calculated partition'
+            }
+            elseif ($t.FilterBase) {
+                $base = @($Table | Where-Object Name -eq $t.FilterBase)
+                if ($base.Count -ne 1) { continue }
+                $inherited = @($base[0].Columns.Name)
+                $from = $t.FilterBase
+            }
+            else { continue }
+
+            foreach ($c in @($t.Columns) | Where-Object { $_.Calculated -and $inherited -contains $_.Name }) {
+                "$($t.Name)[$($c.Name)] (line $($c.LineNumber)) repeats a column of $from"
             }
         }
     }
@@ -134,7 +169,7 @@ Describe 'TMDL model integrity' {
         $dup -join '; ' | Should -BeNullOrEmpty
     }
 
-    It '<Name> has no FILTER-based calculated table repeating an inherited column as a calculated column' -ForEach $script:Models {
+    It '<Name> has no calculated table repeating a returned column as a calculated column' -ForEach $script:Models {
         $faults = @(Get-RedeclaredInheritedColumn -Table @(Read-TmdlModelFolder -Path $Path))
         $faults -join '; ' | Should -BeNullOrEmpty
     }
@@ -185,6 +220,53 @@ Describe 'TMDL model integrity' {
                 '    partition GuestsCurrent = calculated'
                 '        source ='
                 '            FILTER(Guests, Guests[RunDate] = MAX(Guests[RunDate]))'
+            )
+            @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 0
+        }
+
+        It 'reads a FILTER base when the table name is on the next line' {
+            $base = Read-TmdlTableText -Line @('table Users', '    column City')
+            $cur = Read-TmdlTableText -Line @(
+                'table UsersCurrent'
+                '    column City = "x"'
+                '    partition UsersCurrent = calculated'
+                '        source ='
+                '            FILTER('
+                '                Users,'
+                '                Users[RunDate] = MAX(Users[RunDate])'
+                '            )'
+            )
+            $cur.FilterBase | Should -Be 'Users'
+            @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 1
+        }
+
+        It 'flags a calculated column that repeats a SELECTCOLUMNS alias' {
+            $base = Read-TmdlTableText -Line @('table Users', '    column Id')
+            $cur = Read-TmdlTableText -Line @(
+                'table UsersCurrent'
+                '    column Pseudonym = "x"'
+                '    partition UsersCurrent = calculated'
+                '        source ='
+                '            SELECTCOLUMNS('
+                '                FILTER(Users, Users[RunDate] = MAX(Users[RunDate])),'
+                '                "Id", Users[Id],'
+                '                "Pseudonym", Users[DisplayName]'
+                '            )'
+            )
+            @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 1
+        }
+
+        It 'does not treat a base column omitted from SELECTCOLUMNS as inherited' {
+            $base = Read-TmdlTableText -Line @('table Users', '    column Id', '    column City')
+            $cur = Read-TmdlTableText -Line @(
+                'table UsersCurrent'
+                '    column City = "x"'
+                '    partition UsersCurrent = calculated'
+                '        source ='
+                '            SELECTCOLUMNS('
+                '                FILTER(Users, Users[RunDate] = MAX(Users[RunDate])),'
+                '                "Id", Users[Id]'
+                '            )'
             )
             @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 0
         }
