@@ -156,6 +156,143 @@ function Get-DelegatedAccessToken {
 
 #region Power Platform inventory
 
+function Get-HttpStatusCode {
+    <#
+        .SYNOPSIS
+            The HTTP status on a failed Invoke-RestMethod error, or $null.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord
+    )
+
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $status = $response.Value.PSObject.Properties['StatusCode']
+        if ($status -and $null -ne $status.Value) { return [int]$status.Value }
+    }
+
+    # PowerShell 7: "Response status code does not indicate success: 429 (Too Many Requests)."
+    if ($ErrorRecord.Exception.Message -match ':\s*(\d{3})\b') {
+        return [int]$Matches[1]
+    }
+    return $null
+}
+
+function Get-RetryAfterSeconds {
+    <#
+        .SYNOPSIS
+            Seconds to wait after HTTP 429, from Retry-After when the response has one.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord
+    )
+
+    $delay = 1
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $headers = $response.Value.PSObject.Properties['Headers']
+        if (-not $headers -or $null -eq $headers.Value) { continue }
+
+        $retryAfter = $headers.Value.PSObject.Properties['RetryAfter']
+        if ($retryAfter -and $retryAfter.Value) {
+            $delta = $retryAfter.Value.PSObject.Properties['Delta']
+            if ($delta -and $delta.Value) {
+                $delay = [int][math]::Ceiling($delta.Value.TotalSeconds)
+                break
+            }
+        }
+
+        $named = $null
+        if ($headers.Value -is [System.Collections.IDictionary] -and $headers.Value.Contains('Retry-After')) {
+            $named = [string]$headers.Value['Retry-After']
+        }
+        if (-not [string]::IsNullOrWhiteSpace($named)) {
+            $seconds = 0
+            if ([int]::TryParse($named, [ref]$seconds)) { $delay = $seconds }
+        }
+    }
+
+    if ($delay -lt 1) { return 1 }
+    # A multi-minute Retry-After would stall an interactive run. Cap the wait and
+    # let a later attempt fail if the service is still throttling.
+    if ($delay -gt 60) { return 60 }
+    return $delay
+}
+
+function Test-HttpRetry {
+    <#
+        .SYNOPSIS
+            Whether a failed read should be retried, and for how many seconds.
+
+        .DESCRIPTION
+            The inventory query returns 429 when Azure Resource Graph throttles
+            (https://learn.microsoft.com/rest/api/power-platform/resourcequery/resource-query/query-resources).
+            Dataverse service protection does the same and sends Retry-After
+            (https://learn.microsoft.com/power-apps/developer/data-platform/api-limits).
+            401 and 403 are not retried: those are an auth or role refusal, and
+            Invoke-RestMethod's -MaximumRetryCount would retry every 400-599.
+
+            The call itself stays in the caller so a test mock of Invoke-RestMethod
+            still applies. A script block invoked from here would run outside that mock.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord,
+
+        [Parameter(Mandatory)]
+        [int]$Attempt,
+
+        [int]$MaxAttempts = 4
+    )
+
+    $status = Get-HttpStatusCode -ErrorRecord $ErrorRecord
+    if ($status -ne 429 -or $Attempt -ge $MaxAttempts) {
+        return [pscustomobject]@{ Retry = $false; DelaySeconds = 0 }
+    }
+
+    [pscustomobject]@{
+        Retry        = $true
+        DelaySeconds = (Get-RetryAfterSeconds -ErrorRecord $ErrorRecord)
+    }
+}
+
+function Get-InventoryAgentId {
+    <#
+        .SYNOPSIS
+            The agent's Dataverse bot id.
+
+        .DESCRIPTION
+            properties.name is the CDS bot id on every agent
+            (https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#core-properties).
+            properties.botId is the same id when the Entra identity block is populated;
+            that block is empty for Microsoft Copilot Agent Builder agents. The ARM
+            resource name is only a last resort.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        $Item
+    )
+
+    foreach ($path in @('properties.name', 'properties.botId')) {
+        $value = Get-JsonValue -Object $Item -Path $path
+        if (-not [string]::IsNullOrWhiteSpace([string]$value)) { return [string]$value }
+    }
+    return [string]$Item.name
+}
+
 function Get-PowerPlatformApiHost {
     <#
         .SYNOPSIS
@@ -220,8 +357,23 @@ function Invoke-InventoryQuery {
         $body = @{ TableName = 'PowerPlatformResources'; Clauses = $Clauses; Options = $options } |
             ConvertTo-Json -Depth 10
 
-        $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body `
-            -ContentType 'application/json' -ErrorAction Stop
+        $response = $null
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body `
+                    -ContentType 'application/json' -ErrorAction Stop
+                break
+            }
+            catch {
+                $decision = Test-HttpRetry -ErrorRecord $_ -Attempt $attempt
+                if (-not $decision.Retry) { throw }
+                if ($OutputPath) {
+                    Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $Source -Message (
+                        'HTTP 429. Waiting {0} seconds before attempt {1}.' -f $decision.DelaySeconds, ($attempt + 1))
+                }
+                Start-Sleep -Seconds $decision.DelaySeconds
+            }
+        }
         $pages++
 
         foreach ($row in @($response.data)) {
@@ -249,6 +401,40 @@ function Invoke-InventoryQuery {
         }
         $skipToken = $next
     } while ($null -ne $skipToken)
+}
+
+function Invoke-InventoryRead {
+    <#
+        .SYNOPSIS
+            Collects every inventory row, keeping pages already read if a later page fails.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ApiHost,
+        [Parameter(Mandatory)][string]$Token,
+        [Parameter(Mandatory)][object[]]$Clauses,
+        [string]$OutputPath,
+        [string]$Source
+    )
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    $pagingError = ''
+    try {
+        Invoke-InventoryQuery -ApiHost $ApiHost -Token $Token -Clauses $Clauses -OutputPath $OutputPath -Source $Source |
+            ForEach-Object { $null = $items.Add($_) }
+    }
+    catch {
+        # No row yet means the call never succeeded (401, 403, network). The
+        # collector turns that into a header-only CSV. A failure after rows were
+        # read must not discard those rows or look like a successful snapshot.
+        if ($items.Count -eq 0) { throw }
+        $pagingError = $_.Exception.Message
+    }
+
+    [pscustomobject]@{
+        Items       = $items.ToArray()
+        PagingError = $pagingError
+    }
 }
 
 function New-InventoryTypeClause {
@@ -292,11 +478,31 @@ function Invoke-DataverseQuery {
         Accept             = 'application/json'
     }
     $seen = [System.Collections.Generic.HashSet[string]]::new()
+    $origin = $null
+    if (-not [uri]::TryCreate($DataverseUrl, [UriKind]::Absolute, [ref]$origin)) {
+        throw "DataverseUrl '$DataverseUrl' is not an absolute URL."
+    }
 
     while ($uri) {
+        $nextUri = $null
+        if (-not [uri]::TryCreate($uri, [UriKind]::Absolute, [ref]$nextUri) -or
+            -not $origin.Host.Equals($nextUri.Host, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Dataverse returned an @odata.nextLink on a different host ($uri). The bearer token is not sent there."
+        }
         if (-not $seen.Add($uri)) { throw 'Dataverse returned the same @odata.nextLink twice; stopping.' }
 
-        $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -ErrorAction Stop
+        $response = $null
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -ErrorAction Stop
+                break
+            }
+            catch {
+                $decision = Test-HttpRetry -ErrorRecord $_ -Attempt $attempt
+                if (-not $decision.Retry) { throw }
+                Start-Sleep -Seconds $decision.DelaySeconds
+            }
+        }
 
         foreach ($row in @($response.value)) {
             if ($null -ne $row) { $row }

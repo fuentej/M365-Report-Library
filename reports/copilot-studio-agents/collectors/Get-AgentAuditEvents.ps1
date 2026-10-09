@@ -18,7 +18,11 @@
 
         The cmdlet returns 100 records unless the same -SessionId is repeated with
         -SessionCommand ReturnLargeSet, which pages up to 50,000 records a session
-        (-ResultSize up to 5,000). The range is walked in windows (-WindowHours), one
+        (-ResultSize up to 5,000). A page is not the end while
+        AuditSearchRequestMetadata.moreRecordsAvailable is true, even when ResultCount
+        already matches the rows in hand
+        (https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog).
+        The range is walked in windows (-WindowHours), one
         session each. A window that reaches 50,000 is not written: the results are
         unsorted, so appending them would move the watermark past events never returned.
         The collector logs the exact -StartDate and -EndDate of that window and stops so
@@ -134,6 +138,40 @@ try {
     $rows = [System.Collections.Generic.List[object]]::new()
     $truncatedWindow = $null
 
+    function Test-AuditSearchHasMoreRecords {
+        <#
+            .SYNOPSIS
+                True when a Search-UnifiedAuditLog record says another page is expected.
+        #>
+        param($Record)
+
+        if ($null -eq $Record) { return $false }
+
+        $metaProperty = $Record.PSObject.Properties['AuditSearchRequestMetadata']
+        if (-not $metaProperty -or $null -eq $metaProperty.Value) { return $false }
+
+        $meta = $metaProperty.Value
+        $flag = $null
+        if ($meta -is [System.Collections.IDictionary]) {
+            foreach ($key in @('moreRecordsAvailable', 'MoreRecordsAvailable')) {
+                if ($meta.Contains($key)) { $flag = $meta[$key]; break }
+            }
+        }
+        else {
+            foreach ($name in @('moreRecordsAvailable', 'MoreRecordsAvailable')) {
+                $property = $meta.PSObject.Properties[$name]
+                if ($property) { $flag = $property.Value; break }
+            }
+        }
+
+        if ($null -eq $flag) { return $false }
+        if ($flag -is [bool]) { return $flag }
+
+        $parsed = $false
+        if ([bool]::TryParse([string]$flag, [ref]$parsed)) { return $parsed }
+        return $false
+    }
+
     foreach ($window in Split-DateRange -Start $start -End $end -WindowMinutes ($WindowHours * 60)) {
         $sessionId = 'copilot-studio-{0:yyyyMMddHHmmss}-{1}' -f $window.Start, [guid]::NewGuid().ToString('N').Substring(0, 8)
         $collected = 0
@@ -210,10 +248,23 @@ try {
                 break
             }
 
-            # Repeat until the cmdlet returns nothing or the cap is hit. A page shorter
-            # than -ResultSize is not the end on its own; the reported total is.
-            if ($hasResultCount -and $matched -gt 0 -and $collected -ge $matched) { break }
-            if ((-not $hasResultCount -or $matched -le 0) -and $records.Count -lt $pageSize) { break }
+            # Repeat until the cmdlet returns nothing or the session cap is hit.
+            # A page shorter than -ResultSize is not the end: ResultCount is the
+            # hit count across iterations, and moreRecordsAvailable says another
+            # iteration is still expected.
+            # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+            $moreRecords = $false
+            foreach ($record in $records) {
+                if (Test-AuditSearchHasMoreRecords -Record $record) {
+                    $moreRecords = $true
+                    break
+                }
+            }
+            if ($moreRecords) { continue }
+
+            $reportedTotalReached = $hasResultCount -and $matched -gt 0 -and $collected -ge $matched
+            $shortPageWithoutTotal = (-not $hasResultCount -or $matched -le 0) -and $records.Count -lt $pageSize
+            if ($reportedTotalReached -or $shortPageWithoutTotal) { break }
         }
 
         if ($windowTruncated) {
