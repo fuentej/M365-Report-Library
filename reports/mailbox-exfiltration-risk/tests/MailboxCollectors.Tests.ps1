@@ -693,6 +693,7 @@ Describe 'Audit events' {
 
         Should -Invoke Search-UnifiedAuditLog -Times 1 -Exactly -ParameterFilter {
             $SessionCommand -eq 'ReturnLargeSet' -and -not [string]::IsNullOrEmpty($SessionId) -and $ResultSize -eq 5000 -and
+            $Formatted -eq $true -and
             $Operations.Count -eq 6 -and $Operations -ccontains 'New-InboxRule' -and $Operations -ccontains 'Set-InboxRule' -and
             $Operations -ccontains 'UpdateInboxRules' -and $Operations -ccontains 'Set-Mailbox' -and
             $Operations -ccontains 'Add-MailboxPermission' -and $Operations -ccontains 'Remove-MailboxPermission'
@@ -837,6 +838,19 @@ Describe 'Audit events' {
         } | Should -Throw '*50,000*'
 
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-change-events.csv')).Id | Should -Be @('day1', 'admin-rule')
+    }
+
+    It 'treats a time-zone-less audit bound as midnight UTC' {
+        $helper = Join-Path $script:Collectors 'MailboxExfiltrationHelpers.ps1'
+        $probe = Join-Path $script:folder 'utc-bound.ps1'
+        @"
+. '$helper'
+`$value = [datetime]::SpecifyKind([datetime]'2026-08-10T00:00:00', [DateTimeKind]::Unspecified)
+(ConvertTo-AuditQueryDate `$value).ToString('yyyy-MM-ddTHH:mm:ssK')
+"@ | Set-Content -LiteralPath $probe -Encoding utf8
+
+        $result = bash -lc "TZ=America/Los_Angeles pwsh -NoProfile -File '$probe'"
+        ($result | Select-Object -Last 1).Trim() | Should -Be '2026-08-10T00:00:00Z'
     }
 
     It 'starts at the latest CreationTime already collected' {
@@ -995,6 +1009,10 @@ Describe 'Source availability' {
             Get-LogText -Folder $folder | Should -Match 'unavailable in GCC'
         }
         finally {
+            # The copied collector imports its own M365ReportLibrary. A second copy
+            # with the same name makes a later -ModuleName mock fail the whole file.
+            Get-Module -Name M365ReportLibrary -ErrorAction SilentlyContinue | Remove-Module -Force -ErrorAction SilentlyContinue
+            Import-Module (Join-Path $script:Root 'shared/M365ReportLibrary.psm1') -Force
             Remove-Item -LiteralPath $sandbox, $folder -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
@@ -1017,7 +1035,16 @@ Describe 'Run-All.ps1' {
         Mock Get-MgServicePrincipal -MockWith { New-MockGraphServicePrincipal }
         Mock Get-MgServicePrincipalAppRoleAssignedTo -MockWith { New-MockAppRoleAssignment }
         Mock Search-UnifiedAuditLog -MockWith { New-MockAuditRecord }
-        Mock Get-MgUser -MockWith { [pscustomobject]@{ Id = 'u1'; DisplayName = 'Avery'; UserPrincipalName = 'avery@example.com'; Mail = 'avery@example.com'; UserType = 'Member'; AccountEnabled = $true } }
+        # Invoke-EntraUserCollector calls Get-MgUser from inside M365ReportLibrary.
+        # A script-scoped mock never runs, so users.csv stays header-only.
+        # https://learn.microsoft.com/graph/api/user-list
+        Mock Get-MgUser -ModuleName M365ReportLibrary -MockWith {
+            [pscustomobject]@{
+                Id = 'u1'; DisplayName = 'Avery'; UserPrincipalName = 'avery@example.com'; Mail = 'avery@example.com'
+                UserType = 'Member'; AccountEnabled = $true; CreatedDateTime = [datetime]'2026-07-01T10:00:00Z'
+                Department = 'Engineering'; JobTitle = 'Specialist'; City = 'Seattle'; Country = 'US'; Manager = $null
+            }
+        }
     }
 
     AfterEach {
@@ -1036,6 +1063,8 @@ Describe 'Run-All.ps1' {
             'send-as-permissions', 'delegated-consents', 'app-role-assignments', 'audit-configuration', 'mailbox-change-events', 'mail-access-events') {
             Test-Path -LiteralPath (Join-Path $script:folder "$csv.csv") | Should -BeTrue -Because "$csv.csv should exist"
         }
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'users.csv')).Id | Should -Be 'u1'
+        Get-LogText -Folder $script:folder | Should -Not -Match 'Writing the header only'
         Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
     }
 }
