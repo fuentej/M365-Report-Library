@@ -51,12 +51,12 @@ table GuestInvitations
         sourceColumn: TargetUserPrincipalName
 
     column EventCategory = 
-        SWITCH(
-            TRUE(),
-            GuestInvitations[ActivityDisplayName] = "Redeem external user invite", "Redemption",
-            GuestInvitations[ActivityDisplayName] = "Redeem extern user invite", "Redemption",
-            "Invitation"
-        )
+            SWITCH(
+                TRUE(),
+                GuestInvitations[ActivityDisplayName] = "Redeem external user invite", "Redemption",
+                GuestInvitations[ActivityDisplayName] = "Redeem extern user invite", "Redemption",
+                "Invitation"
+            )
         dataType: string
         lineageTag: df0f5df6-81ed-5709-bcd3-618935e4a5fe
         summarizeBy: none

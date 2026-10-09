@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-single-owner",
+  "position": {
+    "x": 555,
+    "y": 100,
+    "z": 0,
+    "width": 170,
+    "height": 110,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Single-Owner Groups"
+                }
+              },
+              "queryRef": "Groups.Single-Owner Groups"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "One owner"
+          }
+        }
+      ]
+    }
+  }
+}

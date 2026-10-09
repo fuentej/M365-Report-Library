@@ -1,0 +1,89 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-mfa-by-type",
+  "position": {
+    "x": 640,
+    "y": 260,
+    "z": 0,
+    "width": 640,
+    "height": 200,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "UserType"
+                }
+              },
+              "queryRef": "AuthenticationMethods.UserType"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "MFA Registered Users"
+                }
+              },
+              "queryRef": "AuthenticationMethods.MFA Registered Users"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "No MFA Method"
+                }
+              },
+              "queryRef": "AuthenticationMethods.No MFA Method"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "MFA Status Unknown"
+                }
+              },
+              "queryRef": "AuthenticationMethods.MFA Status Unknown"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "MFA registered vs not, by member and guest"
+          }
+        }
+      ]
+    }
+  }
+}

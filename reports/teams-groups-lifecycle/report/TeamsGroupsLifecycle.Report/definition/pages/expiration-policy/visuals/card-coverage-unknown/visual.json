@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-coverage-unknown",
+  "position": {
+    "x": 1040,
+    "y": 100,
+    "z": 0,
+    "width": 240,
+    "height": 100,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupLifecycleCoverage"
+                    }
+                  },
+                  "Property": "Coverage Unknown Groups"
+                }
+              },
+              "queryRef": "GroupLifecycleCoverage.Coverage Unknown Groups"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Coverage unknown"
+          }
+        }
+      ]
+    }
+  }
+}

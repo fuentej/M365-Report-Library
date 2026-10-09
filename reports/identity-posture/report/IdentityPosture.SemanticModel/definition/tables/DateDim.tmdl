@@ -1,0 +1,42 @@
+table DateDim
+    lineageTag: a34df2b7-0157-5c93-a888-12bf6767627e
+
+    column Date
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: d2a1c1ac-8465-5dd7-a719-c09db051d603
+        summarizeBy: none
+        sourceColumn: Date
+
+    column Year = YEAR(DateDim[Date])
+        dataType: int64
+        formatString: 0
+        lineageTag: d84d945a-6c58-5e1a-9145-ae0013a4cee3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column MonthNumber = MONTH(DateDim[Date])
+        dataType: int64
+        formatString: 00
+        lineageTag: 0f3bb500-5804-52eb-b3ca-6baa25cefb9b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column MonthName = FORMAT(DateDim[Date], "MMMM")
+        dataType: string
+        lineageTag: 89952298-361f-5063-bbaa-1a9574e7bbf6
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column YearMonth = FORMAT(DateDim[Date], "yyyy-MM")
+        dataType: string
+        lineageTag: 160bf57a-1ada-5f27-8eba-5c267885ad7b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    partition DateDim = calculated
+        mode: import
+        source =
+            CALENDAR(DATE(2020, 1, 1), DATE(2035, 12, 31))
+
+    annotation PBI_ResultType = Table

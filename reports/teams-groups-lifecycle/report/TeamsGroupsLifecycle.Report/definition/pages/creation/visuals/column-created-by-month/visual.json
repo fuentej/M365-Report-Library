@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-created-by-month",
+  "position": {
+    "x": 0,
+    "y": 220,
+    "z": 0,
+    "width": 630,
+    "height": 250,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "CreatedYearMonth"
+                }
+              },
+              "queryRef": "Groups.CreatedYearMonth"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Groups Created"
+                }
+              },
+              "queryRef": "Groups.Groups Created"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Teams Created"
+                }
+              },
+              "queryRef": "Groups.Teams Created"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Groups and Teams created per month (from groups.csv)"
+          }
+        }
+      ]
+    }
+  }
+}

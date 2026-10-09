@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-creators",
+  "position": {
+    "x": 0,
+    "y": 480,
+    "z": 0,
+    "width": 1280,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupCreationEvents"
+                    }
+                  },
+                  "Property": "CreatorPseudonym"
+                }
+              },
+              "queryRef": "GroupCreationEvents.CreatorPseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupCreationEvents"
+                    }
+                  },
+                  "Property": "Creator Display Name"
+                }
+              },
+              "queryRef": "GroupCreationEvents.Creator Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupCreationEvents"
+                    }
+                  },
+                  "Property": "Creation Events"
+                }
+              },
+              "queryRef": "GroupCreationEvents.Creation Events"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupCreationEvents"
+                    }
+                  },
+                  "Property": "Group Creation Events (AddGroup)"
+                }
+              },
+              "queryRef": "GroupCreationEvents.Group Creation Events (AddGroup)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupCreationEvents"
+                    }
+                  },
+                  "Property": "Team Creation Events (TeamCreated)"
+                }
+              },
+              "queryRef": "GroupCreationEvents.Team Creation Events (TeamCreated)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Creators, where an audit record exists"
+          }
+        }
+      ]
+    }
+  }
+}

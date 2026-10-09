@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-deleted-kind",
+  "position": {
+    "x": 650,
+    "y": 220,
+    "z": 0,
+    "width": 630,
+    "height": 250,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "DeletedKind"
+                }
+              },
+              "queryRef": "DeletedGroups.DeletedKind"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Soft-Deleted Groups"
+                }
+              },
+              "queryRef": "DeletedGroups.Soft-Deleted Groups"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Soft-deleted groups by kind"
+          }
+        }
+      ]
+    }
+  }
+}

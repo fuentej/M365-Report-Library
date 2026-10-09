@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-by-protocol",
+  "position": {
+    "x": 640,
+    "y": 260,
+    "z": 0,
+    "width": 640,
+    "height": 200,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "ClientAppUsed"
+                }
+              },
+              "queryRef": "SignIns.ClientAppUsed"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins Succeeded"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins Succeeded"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins Failed or Blocked"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Succeeded vs failed or blocked by protocol (at least)"
+          }
+        }
+      ]
+    }
+  }
+}

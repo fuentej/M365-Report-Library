@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "TeamsGroupsLifecycle"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "33b78729-da7c-5c0f-8b08-dfd9173fd5f0"
+  }
+}

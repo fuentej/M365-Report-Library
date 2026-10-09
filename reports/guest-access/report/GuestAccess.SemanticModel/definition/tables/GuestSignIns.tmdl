@@ -63,7 +63,7 @@ table GuestSignIns
         sourceColumn: ClientAppUsed
 
     column IsInteractive
-        dataType: logical
+        dataType: boolean
         lineageTag: ffb77d5a-64ac-5582-a40f-627e1e7a28ba
         summarizeBy: none
         sourceColumn: IsInteractive

@@ -1,0 +1,116 @@
+table AgentComponents
+    lineageTag: 9d003ab7-daf3-5cc8-99a9-d1271525bc67
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: f0bb0aa9-4e6f-5af0-b349-f391222cc7f5
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column DataverseUrl
+        dataType: string
+        lineageTag: 8609b475-0557-5ae2-8d08-1677635bc212
+        summarizeBy: none
+        sourceColumn: DataverseUrl
+
+    column AgentId
+        dataType: string
+        lineageTag: 457febd8-040d-5b2c-beea-580bfc3aecae
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column ComponentId
+        dataType: string
+        lineageTag: e03f6cc5-b26c-56bd-9777-4771cbf46555
+        summarizeBy: none
+        sourceColumn: ComponentId
+
+    column ComponentName
+        dataType: string
+        lineageTag: c6971381-f671-5dbf-a3d0-be9b6e6ae558
+        summarizeBy: none
+        sourceColumn: ComponentName
+
+    column ComponentType
+        dataType: string
+        lineageTag: 65b19a34-601f-51b0-a220-ca6c14cd2101
+        summarizeBy: none
+        sourceColumn: ComponentType
+
+    column Category
+        dataType: string
+        lineageTag: 1dc74933-6e44-5410-bcc7-c27bfa37ffa8
+        summarizeBy: none
+        sourceColumn: Category
+
+    /// A component row with no category marker is Unknown, not a blank bar.
+    column CategoryLabel = IF(ISBLANK(AgentComponents[Category]), "Unknown", AgentComponents[Category])
+        dataType: string
+        lineageTag: 4b7d2e91-0c55-5a18-b6e4-9f3a1c8d7e20
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Agent Components Snapshot Date' = CALCULATE(MAX(AgentComponents[RunDate]), ALLSELECTED(AgentComponents), ALLSELECTED(AgentsCurrent))
+        formatString: Short Date
+        lineageTag: cf5064df-3723-5772-82d7-29fc3f334299
+
+    measure Components = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 2c8c1481-7fdb-5986-862b-5c0e02ff2fe7
+
+    measure 'Knowledge Source Components' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, AgentComponents[Category] = "KnowledgeSource") + 0)
+        formatString: #,0
+        lineageTag: e87a774d-f9c2-58ff-bb6e-4f014864be66
+
+    measure 'Tool Components' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, AgentComponents[Category] = "Tool") + 0)
+        formatString: #,0
+        lineageTag: 92ea129c-f7bc-50c4-9e14-63e8e90693d6
+
+    measure 'HTTP Request Actions' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, AgentComponents[Category] = "HttpRequest") + 0)
+        formatString: #,0
+        lineageTag: 67bef287-e8f6-5844-9883-a80c004b226a
+
+    measure 'Prompt Components' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, AgentComponents[Category] = "Prompt") + 0)
+        formatString: #,0
+        lineageTag: d594b913-b609-58b4-8296-1187e12d7b4f
+
+    measure 'MCP Actions' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, AgentComponents[Category] = "Mcp") + 0)
+        formatString: #,0
+        lineageTag: bb7f4eb8-cd87-51be-987d-65b3a19fbb5e
+
+    measure 'Components Of Unknown Category' = 
+            VAR Snap = [Agent Components Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = Snap, ISBLANK(AgentComponents[Category])) + 0)
+        formatString: #,0
+        lineageTag: 9b402bfc-c739-51ab-ab86-31ee78efb0a4
+
+    partition AgentComponents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agent-components.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Cleaned,
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

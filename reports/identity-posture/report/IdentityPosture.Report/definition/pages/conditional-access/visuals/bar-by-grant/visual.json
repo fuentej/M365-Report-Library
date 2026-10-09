@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-by-grant",
+  "position": {
+    "x": 850,
+    "y": 260,
+    "z": 0,
+    "width": 430,
+    "height": 200,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "BuiltInControls"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.BuiltInControls"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ConditionalAccessPolicies"
+                    }
+                  },
+                  "Property": "Policy Count"
+                }
+              },
+              "queryRef": "ConditionalAccessPolicies.Policy Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Policies by built-in grant control (blank: none, or an authentication strength only)"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,236 @@
+table AgentsCurrent
+    lineageTag: bcd908fc-ffc9-514a-ad9c-86e5c7a395cd
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 7d55777c-c1bb-52cd-8c71-8985f1739408
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column EnvironmentId
+        dataType: string
+        lineageTag: 3a230ecd-b455-54cf-a10e-57fd11c2ac7b
+        summarizeBy: none
+        sourceColumn: EnvironmentId
+
+    column AgentId
+        dataType: string
+        lineageTag: 0d541c74-746c-5507-a5b1-67c97b9ccaa3
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column DisplayName
+        dataType: string
+        lineageTag: ba48945c-73b7-54f0-9b8c-edfea397d92f
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Harness
+        dataType: string
+        lineageTag: 07ff040b-63bc-5a5f-b683-5a129953dedd
+        summarizeBy: none
+        sourceColumn: Harness
+
+    column CreatedIn
+        dataType: string
+        lineageTag: dd40660a-316c-5460-a8bf-5959cc455a84
+        summarizeBy: none
+        sourceColumn: CreatedIn
+
+    column CreatedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 3ceb0f6d-6555-50bf-95b6-433f99de13ab
+        summarizeBy: none
+        sourceColumn: CreatedAt
+
+    column CreatedBy
+        dataType: string
+        lineageTag: b4a85c0b-9aa5-5b05-9577-afa1588c0a9a
+        summarizeBy: none
+        sourceColumn: CreatedBy
+
+    column OwnerId
+        dataType: string
+        lineageTag: 442593d9-6b0a-5f83-8495-53cf50a196fc
+        summarizeBy: none
+        sourceColumn: OwnerId
+
+    column LastPublishedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 365caef9-a447-56cc-afae-0062d670e339
+        summarizeBy: none
+        sourceColumn: LastPublishedAt
+
+    column IsPublished
+        dataType: boolean
+        lineageTag: 47c135fd-62f2-5e1e-bb8f-2cd8364a6900
+        summarizeBy: none
+        sourceColumn: IsPublished
+
+    column IsQuarantined
+        dataType: boolean
+        lineageTag: aefe4a86-4b90-5976-b725-4bb4399f1c1e
+        summarizeBy: none
+        sourceColumn: IsQuarantined
+
+    column IsManaged
+        dataType: boolean
+        lineageTag: 65ceae65-d0c1-5557-8fb2-8d08e36962b0
+        summarizeBy: none
+        sourceColumn: IsManaged
+
+    column Orchestration
+        dataType: string
+        lineageTag: 62cdf729-81c9-557c-a02a-5608fc84c4fd
+        summarizeBy: none
+        sourceColumn: Orchestration
+
+    column Model
+        dataType: string
+        lineageTag: efc5ef51-689c-57d3-bdc8-c6d4e31d70a9
+        summarizeBy: none
+        sourceColumn: Model
+
+    column Authentication
+        dataType: string
+        lineageTag: 52f6c3e9-ad07-5d41-a2f5-e00bf2d0aafe
+        summarizeBy: none
+        sourceColumn: Authentication
+
+    column Channels
+        dataType: string
+        lineageTag: 5749bcee-e0da-5806-9ace-108bca0fbbbe
+        summarizeBy: none
+        sourceColumn: Channels
+
+    column ViewerUserCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 969acabc-3273-5ad8-9434-6a61f68ed988
+        summarizeBy: none
+        sourceColumn: ViewerUserCount
+
+    column ViewerGroupCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 806a671e-c926-503d-962d-6ad2a1218837
+        summarizeBy: none
+        sourceColumn: ViewerGroupCount
+
+    column ViewerEntireTenant
+        dataType: boolean
+        lineageTag: 58826917-dd58-5181-be81-a62fee9be110
+        summarizeBy: none
+        sourceColumn: ViewerEntireTenant
+
+    column EditorUserCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 34ae8749-b7ef-57af-a101-3183768358dd
+        summarizeBy: none
+        sourceColumn: EditorUserCount
+
+    column EditorGroupCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 86e974c2-11fb-507a-94be-d32ec8dab320
+        summarizeBy: none
+        sourceColumn: EditorGroupCount
+
+    column ListedConnectorCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: af26f789-b66b-5d7a-98a0-285f45b91943
+        summarizeBy: none
+        sourceColumn: ListedConnectorCount
+
+    column ListedConnectorOperationCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: c9e5af57-aaab-5794-a013-a0c01b3a5849
+        summarizeBy: none
+        sourceColumn: ListedConnectorOperationCount
+
+    column CapabilitiesDistinctConnectors
+        dataType: int64
+        formatString: #,0
+        lineageTag: 1d309156-0adc-5dcd-b2d7-a174fbecec57
+        summarizeBy: none
+        sourceColumn: CapabilitiesDistinctConnectors
+
+    column CapabilitiesDistinctConnectorOperations
+        dataType: int64
+        formatString: #,0
+        lineageTag: 26e6f923-3f3d-56ce-a1a6-ca6ecf835001
+        summarizeBy: none
+        sourceColumn: CapabilitiesDistinctConnectorOperations
+
+    column IsWebSearchEnabledForKnowledge
+        dataType: boolean
+        lineageTag: 00662a54-cc53-5249-ae61-81bd7ede9466
+        summarizeBy: none
+        sourceColumn: IsWebSearchEnabledForKnowledge
+
+    column PseudonymNumber = 
+            VAR IdText = AgentsCurrent[AgentId]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+            RETURN MOD(HashSeed, 9000) + 1000
+        dataType: int64
+        formatString: 0000
+        lineageTag: 904e41f4-70a1-514b-a883-3d9a46f4d73c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "Agent " & FORMAT(AgentsCurrent[PseudonymNumber], "0000")
+        dataType: string
+        lineageTag: b0d30bc9-df77-5618-89f0-6677d816dc89
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable AgentId-derived pseudonym when Anonymize is selected.
+    measure 'Agent Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(AgentsCurrent[DisplayName])
+            VAR Pseudo = SELECTEDVALUE(AgentsCurrent[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: b68043b8-1e3e-5ba4-81c5-a3e7fde92c9d
+
+    partition AgentsCurrent = calculated
+        mode: import
+        source =
+            SELECTCOLUMNS(
+                FILTER(Agents, Agents[RunDate] = MAX(Agents[RunDate])),
+                "RunDate", Agents[RunDate],
+                "EnvironmentId", Agents[EnvironmentId],
+                "AgentId", Agents[AgentId],
+                "DisplayName", Agents[DisplayName],
+                "Harness", Agents[Harness],
+                "CreatedIn", Agents[CreatedIn],
+                "CreatedAt", Agents[CreatedAt],
+                "CreatedBy", Agents[CreatedBy],
+                "OwnerId", Agents[OwnerId],
+                "LastPublishedAt", Agents[LastPublishedAt],
+                "IsPublished", Agents[IsPublished],
+                "IsQuarantined", Agents[IsQuarantined],
+                "IsManaged", Agents[IsManaged],
+                "Orchestration", Agents[Orchestration],
+                "Model", Agents[Model],
+                "Authentication", Agents[Authentication],
+                "Channels", Agents[Channels],
+                "ViewerUserCount", Agents[ViewerUserCount],
+                "ViewerGroupCount", Agents[ViewerGroupCount],
+                "ViewerEntireTenant", Agents[ViewerEntireTenant],
+                "EditorUserCount", Agents[EditorUserCount],
+                "EditorGroupCount", Agents[EditorGroupCount],
+                "ListedConnectorCount", Agents[ListedConnectorCount],
+                "ListedConnectorOperationCount", Agents[ListedConnectorOperationCount],
+                "CapabilitiesDistinctConnectors", Agents[CapabilitiesDistinctConnectors],
+                "CapabilitiesDistinctConnectorOperations", Agents[CapabilitiesDistinctConnectorOperations],
+                "IsWebSearchEnabledForKnowledge", Agents[IsWebSearchEnabledForKnowledge]
+            )
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,119 @@
+table GroupCreationEvents
+    lineageTag: 976004a5-ba14-5e07-b446-f497e2baaba6
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 27fb7fb7-d2f4-515c-aa54-5aa542e693ce
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: cb438913-a00d-5447-8662-c20457caeb37
+        summarizeBy: none
+        sourceColumn: Id
+
+    column Operation
+        dataType: string
+        lineageTag: 38b3ab9d-6085-5815-8fa9-154509d640b2
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: 895c05fa-55e3-593c-ab11-7b679818c4d7
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Workload
+        dataType: string
+        lineageTag: 078f8dee-79df-5a94-9368-55a180de4d7f
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column ObjectId
+        dataType: string
+        lineageTag: 97f04970-517c-59b2-b3c2-8b08a5fd51bd
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column TargetDisplayName
+        dataType: string
+        lineageTag: a94ebf33-67fb-5bcd-9b48-db1f502ba09d
+        summarizeBy: none
+        sourceColumn: TargetDisplayName
+
+    column TargetGroupId
+        dataType: string
+        lineageTag: dab34d88-324b-56b0-b9b9-4fe2ecb02253
+        summarizeBy: none
+        sourceColumn: TargetGroupId
+
+    /// UTC calendar date of the audit record.
+    column ActivityDate = DATE(YEAR(GroupCreationEvents[CreationTime]), MONTH(GroupCreationEvents[CreationTime]), DAY(GroupCreationEvents[CreationTime]))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 42ae4425-a8f6-5da2-8ddf-9e416eda62f8
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Matched to users.csv by user principal name; the same user shows the same pseudonym on every table.
+    column CreatorPseudonym = 
+            VAR Matched = RELATED(UsersCurrent[Pseudonym])
+            VAR IdText = GroupCreationEvents[UserId]
+            VAR HashSeed = SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973))
+            RETURN IF(NOT ISBLANK(Matched), Matched, IF(ISBLANK(IdText), "Unknown user", "Unmatched user " & FORMAT(MOD(HashSeed, 90000) + 10000, "00000")))
+        dataType: string
+        lineageTag: 4d06e029-1bbf-54cf-86fd-b4df21becb8d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Audit (Standard) keeps 180 days: a group created earlier has no creator here. Group counts by month come from Groups.
+    measure 'Creation Events' = COUNTROWS(GroupCreationEvents)
+        formatString: #,0
+        lineageTag: aece32af-b551-5f85-8a90-8892a69eeb20
+
+    measure 'Group Creation Events (AddGroup)' = CALCULATE(COUNTROWS(GroupCreationEvents), GroupCreationEvents[Operation] = "AddGroup")
+        formatString: #,0
+        lineageTag: 490cb235-6f6e-5876-82e5-e26664596867
+
+    measure 'Team Creation Events (TeamCreated)' = CALCULATE(COUNTROWS(GroupCreationEvents), GroupCreationEvents[Operation] = "TeamCreated")
+        formatString: #,0
+        lineageTag: 61728f08-18cb-5b28-856e-8420046e41ee
+
+    measure 'Creators Recorded' = DISTINCTCOUNT(GroupCreationEvents[UserId])
+        formatString: #,0
+        lineageTag: 1be65e42-d94c-59f7-9651-aff475a8c23c
+
+    measure 'Latest Creation Event' = 
+            VAR Latest = MAX(GroupCreationEvents[CreationTime])
+            RETURN IF(ISBLANK(Latest), "None recorded", FORMAT(Latest, "yyyy-MM-dd"))
+        lineageTag: f458bb47-0c0e-5ce5-bb62-d97d056bdb75
+
+    measure 'Creator Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = MAX(GroupCreationEvents[UserId])
+            VAR Pseudo = MAX(GroupCreationEvents[CreatorPseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, IF(ISBLANK(RealName), "Unknown user", RealName))
+        lineageTag: 50626c64-57c1-5a5e-b935-24ef6c9810ea
+
+    partition GroupCreationEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\group-creation-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreationTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

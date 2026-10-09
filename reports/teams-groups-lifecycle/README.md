@@ -11,8 +11,8 @@ deleted, so the folder is a history you can chart over time.
 
 The sources were verified against Microsoft Learn in
 [`docs/candidates/teams-groups-lifecycle.md`](../../docs/candidates/teams-groups-lifecycle.md),
-which is the contract for this folder. The Power BI project is a separate, later piece of
-work. Guest membership in groups is out of scope: the [Guest and external
+which is the contract for this folder. The Power BI project is in `report/`; saving it as
+a `.pbit` needs Power BI Desktop and is a separate step. Guest membership in groups is out of scope: the [Guest and external
 access](../guest-access/README.md) report covers it.
 
 ## Contents
@@ -33,7 +33,8 @@ access](../guest-access/README.md) report covers it.
 | `collectors/TeamsGroupsHelpers.ps1` | Small helpers the collectors dot-source |
 | `New-SampleData.ps1` | Regenerates `samples/` |
 | `samples/` | Generated fake data; `samples/gcchigh/` holds the header-only files GCC High writes |
-| `tests/` | Pester tests; every tenant call is mocked |
+| `report/` | The Power BI project (PBIP): `TeamsGroupsLifecycle.SemanticModel` in TMDL and `TeamsGroupsLifecycle.Report` in PBIR |
+| `tests/` | Pester tests; every tenant call is mocked. `ReportSchema`, `ReportModel` and `TmdlDataType` hold the PBIP to its schemas and to these CSVs |
 
 `users.csv` comes from `Invoke-EntraUserCollector` in the shared module, not from this
 folder, because every report needs it. Join it to `group-owners.csv` to find owners whose
@@ -244,3 +245,18 @@ days, so a group created earlier has no creator here; `groups.csv` still has its
 groups, archived teams, a policy scoped to Selected groups, and creation events inside the
 last 180 days. It is deterministic and uses only `example.com`. `samples/gcchigh/` holds
 the header-only `team-activity.csv` and `group-activity.csv` that GCC High writes.
+
+## The Power BI report
+
+Open `report/TeamsGroupsLifecycle.pbip` in Power BI Desktop and set the `CsvFolder`
+parameter to the folder the collectors wrote (it defaults to `C:\TeamsGroupsLifecycleData`;
+point it at `samples/` to see the sample data). Six pages follow the contract: Overview,
+Ownership, Inactivity, Expiration policy, Archived and deleted, and Creation. Every page has
+a date range, a Group or Team, and a Group slicer, plus the Anonymize toggle, which swaps
+names for stable pseudonyms (`Group 12345`, `User 12345`) derived from the id.
+
+* Counts are for the latest snapshot inside the date range. An empty value is Unknown, never
+  zero: owners Graph cannot list are "Owner unknown", an empty last activity date is
+  "Unknown", and the activity cards are blank when a snapshot has no usage-report rows (the
+  usage reports are not available in GCC High, and GCC is unverified).
+* `users.csv` is joined to owners to find disabled owners; an owner missing from it is Unknown.

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-inactive-groups",
+  "position": {
+    "x": 648,
+    "y": 100,
+    "z": 0,
+    "width": 200,
+    "height": 100,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GroupActivity"
+                    }
+                  },
+                  "Property": "Inactive Groups (90+ Days)"
+                }
+              },
+              "queryRef": "GroupActivity.Inactive Groups (90+ Days)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Groups inactive 90+ days"
+          }
+        }
+      ]
+    }
+  }
+}

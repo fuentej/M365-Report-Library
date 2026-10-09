@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-with-role",
+  "position": {
+    "x": 1016,
+    "y": 100,
+    "z": 0,
+    "width": 244,
+    "height": 150,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RiskyUsers"
+                    }
+                  },
+                  "Property": "At-Risk Users Holding a Role"
+                }
+              },
+              "queryRef": "RiskyUsers.At-Risk Users Holding a Role"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "At-risk users holding an active role"
+          }
+        }
+      ]
+    }
+  }
+}

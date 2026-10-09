@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-soft-deleted",
+  "position": {
+    "x": 1110,
+    "y": 100,
+    "z": 0,
+    "width": 170,
+    "height": 110,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Soft-Deleted Groups"
+                }
+              },
+              "queryRef": "DeletedGroups.Soft-Deleted Groups"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Soft-deleted"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -27,7 +27,7 @@ table GuestMemberships
         sourceColumn: GroupDisplayName
 
     column IsTeam
-        dataType: logical
+        dataType: boolean
         lineageTag: cbde16df-6315-53d5-bd09-2d05803ee8d5
         summarizeBy: none
         sourceColumn: IsTeam
@@ -46,8 +46,8 @@ table GuestMemberships
 
     /// Memberships on the latest snapshot inside the current date slicer.
     measure 'Membership Count' = 
-        VAR SnapshotDate = CALCULATE(MAX(GuestMemberships[RunDate]), ALLSELECTED(GuestMemberships))
-        RETURN CALCULATE(COUNTROWS(GuestMemberships), GuestMemberships[RunDate] = SnapshotDate)
+            VAR SnapshotDate = CALCULATE(MAX(GuestMemberships[RunDate]), ALLSELECTED(GuestMemberships))
+            RETURN CALCULATE(COUNTROWS(GuestMemberships), GuestMemberships[RunDate] = SnapshotDate)
         formatString: #,0
         lineageTag: 3020530a-b787-5943-9376-8a9f166ee69b
 

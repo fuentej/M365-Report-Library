@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-by-channels",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 640,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "ChannelsLabel"
+                }
+              },
+              "queryRef": "Agents.ChannelsLabel"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Agent Count"
+                }
+              },
+              "queryRef": "Agents.Agent Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Agents by channel set (Unknown = no value returned)"
+          }
+        }
+      ]
+    }
+  }
+}

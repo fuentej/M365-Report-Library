@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-source-status",
+  "position": {
+    "x": 0,
+    "y": 210,
+    "z": 0,
+    "width": 1280,
+    "height": 70,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamActivity"
+                    }
+                  },
+                  "Property": "Activity Source Status"
+                }
+              },
+              "queryRef": "TeamActivity.Activity Source Status"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Usage-report availability (not available in GCC High, GCC unverified)"
+          }
+        }
+      ]
+    }
+  }
+}

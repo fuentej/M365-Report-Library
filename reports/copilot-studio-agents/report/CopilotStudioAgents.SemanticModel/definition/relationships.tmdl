@@ -1,0 +1,51 @@
+relationship eceea05d-cdb2-58e1-877b-15e7a96578ec
+    fromColumn: Environments.RunDate
+    toColumn: DateDim.Date
+
+relationship 4290b502-934e-53ac-a638-0b70ecebba8e
+    fromColumn: Agents.RunDate
+    toColumn: DateDim.Date
+
+relationship ef0f1249-d1fa-5be0-a582-d99ed14bf1d8
+    fromColumn: AgentConnectors.RunDate
+    toColumn: DateDim.Date
+
+relationship 7d8c9cd7-9d1b-5eed-963f-1775337b7fcc
+    fromColumn: AgentComponents.RunDate
+    toColumn: DateDim.Date
+
+relationship 0a8f7f21-e60b-5047-bc0d-50e0092ea9ee
+    fromColumn: AgentModifications.RunDate
+    toColumn: DateDim.Date
+
+relationship ed4529d1-911d-5c4b-be7d-802723847054
+    fromColumn: AgentAuditEvents.ActivityDate
+    toColumn: DateDim.Date
+
+relationship 2b9aeca0-a88d-5bac-95f6-d590e9b9808f
+    fromColumn: Agents.EnvironmentId
+    toColumn: EnvironmentsCurrent.EnvironmentId
+
+relationship d6450974-72ad-56b9-9948-67f1f3c43e4a
+    fromColumn: Environments.EnvironmentId
+    toColumn: EnvironmentsCurrent.EnvironmentId
+
+relationship e1f7a8b9-bffd-5522-9dca-73b5fdbf85f2
+    fromColumn: Agents.AgentId
+    toColumn: AgentsCurrent.AgentId
+
+relationship 34eef487-e329-50f7-9bf9-878f1089dfad
+    fromColumn: AgentConnectors.AgentId
+    toColumn: AgentsCurrent.AgentId
+
+relationship e102d18e-7579-532e-98fe-2c3b9fe78b99
+    fromColumn: AgentComponents.AgentId
+    toColumn: AgentsCurrent.AgentId
+
+relationship e6a42673-0943-5aaa-b4e9-74c5d57f7aed
+    fromColumn: AgentModifications.AgentId
+    toColumn: AgentsCurrent.AgentId
+
+relationship 6e0496b7-8c0e-5e92-8ea8-39bffb79ddd9
+    fromColumn: AgentAuditEvents.BotId
+    toColumn: AgentsCurrent.AgentId

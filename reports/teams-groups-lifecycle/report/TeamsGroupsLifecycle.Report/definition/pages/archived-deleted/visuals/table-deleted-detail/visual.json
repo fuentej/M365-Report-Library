@@ -1,0 +1,111 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-deleted-detail",
+  "position": {
+    "x": 650,
+    "y": 480,
+    "z": 0,
+    "width": 630,
+    "height": 240,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "DeletedGroups.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Deleted Group Display Name"
+                }
+              },
+              "queryRef": "DeletedGroups.Deleted Group Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Deleted Kind (Display)"
+                }
+              },
+              "queryRef": "DeletedGroups.Deleted Kind (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Deleted Date (Display)"
+                }
+              },
+              "queryRef": "DeletedGroups.Deleted Date (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Purge Date (Display)"
+                }
+              },
+              "queryRef": "DeletedGroups.Purge Date (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DeletedGroups"
+                    }
+                  },
+                  "Property": "Days To Purge (Display)"
+                }
+              },
+              "queryRef": "DeletedGroups.Days To Purge (Display)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Soft-deleted groups and purge dates"
+          }
+        }
+      ]
+    }
+  }
+}

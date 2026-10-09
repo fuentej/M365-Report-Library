@@ -1,0 +1,124 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-users",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "User Display Name"
+                }
+              },
+              "queryRef": "UsersCurrent.User Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "UserType"
+                }
+              },
+              "queryRef": "UsersCurrent.UserType"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Account Status"
+                }
+              },
+              "queryRef": "UsersCurrent.Account Status"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UserSignInActivity"
+                    }
+                  },
+                  "Property": "Last Successful Sign-In (Display)"
+                }
+              },
+              "queryRef": "UserSignInActivity.Last Successful Sign-In (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UserSignInActivity"
+                    }
+                  },
+                  "Property": "Days Since Last Sign-In (Display)"
+                }
+              },
+              "queryRef": "UserSignInActivity.Days Since Last Sign-In (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UserSignInActivity"
+                    }
+                  },
+                  "Property": "Sign-In Status"
+                }
+              },
+              "queryRef": "UserSignInActivity.Sign-In Status"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Sign-in recency per user"
+          }
+        }
+      ]
+    }
+  }
+}

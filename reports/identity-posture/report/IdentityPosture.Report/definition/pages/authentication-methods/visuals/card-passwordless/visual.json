@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-passwordless",
+  "position": {
+    "x": 1016,
+    "y": 100,
+    "z": 0,
+    "width": 244,
+    "height": 150,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuthenticationMethods"
+                    }
+                  },
+                  "Property": "Passwordless Capable Users"
+                }
+              },
+              "queryRef": "AuthenticationMethods.Passwordless Capable Users"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Passwordless capable"
+          }
+        }
+      ]
+    }
+  }
+}

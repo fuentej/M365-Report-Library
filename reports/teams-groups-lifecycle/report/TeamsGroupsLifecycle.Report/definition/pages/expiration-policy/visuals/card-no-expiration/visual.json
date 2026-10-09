@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-no-expiration",
+  "position": {
+    "x": 1040,
+    "y": 210,
+    "z": 0,
+    "width": 240,
+    "height": 100,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Groups"
+                    }
+                  },
+                  "Property": "Groups Without Expiration Date"
+                }
+              },
+              "queryRef": "Groups.Groups Without Expiration Date"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "No expiration date set"
+          }
+        }
+      ]
+    }
+  }
+}

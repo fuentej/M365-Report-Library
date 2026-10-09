@@ -1,0 +1,15 @@
+model Model
+    culture: en-US
+    defaultPowerBIDataSourceVersion: powerBI_V3
+    sourceQueryCulture: en-US
+
+ref table AgentsCurrent
+ref table EnvironmentsCurrent
+ref table DateDim
+ref table AnonymizeMode
+ref table Environments
+ref table Agents
+ref table AgentConnectors
+ref table AgentComponents
+ref table AgentModifications
+ref table AgentAuditEvents

@@ -1,0 +1,133 @@
+table UsersCurrent
+    lineageTag: 40098129-8f33-5137-b803-e4b85337de5c
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: a3bcf6a2-4c87-5682-bd0d-18b963475690
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 1a220271-9537-5a48-976d-e79df23bd527
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 14bf191d-8331-5c04-bc07-592982798364
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 39b3c213-2259-5090-b946-8b7e8d4e2d68
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: 84cd4585-c71a-5cd6-a1c7-c20b30717aa0
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 4c0ffe75-af5d-5e39-9616-81d5a7320965
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: 2e9bfe88-6580-5fc0-8f57-a20b5fc7a927
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 1736dd64-bf73-5930-bcc6-69479c1b0f4d
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Department
+        dataType: string
+        lineageTag: bdaa9f3a-8007-56b8-b8dd-5588fc0b09c7
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: 34a9d032-d301-55f1-8f75-bcd187a920d8
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column City
+        dataType: string
+        lineageTag: a828a87e-df07-516b-997b-6b373db2802d
+        summarizeBy: none
+        sourceColumn: City
+
+    column Country
+        dataType: string
+        lineageTag: 85293b6b-20a9-582a-832e-18f647dc97dd
+        summarizeBy: none
+        sourceColumn: Country
+
+    column ManagerId
+        dataType: string
+        lineageTag: 8f76902d-4cc2-5530-a6c8-1647dce4267e
+        summarizeBy: none
+        sourceColumn: ManagerId
+
+    column ManagerUserPrincipalName
+        dataType: string
+        lineageTag: 7888d455-6a3b-5655-b3eb-2cb8ce49de25
+        summarizeBy: none
+        sourceColumn: ManagerUserPrincipalName
+
+    column PseudonymNumber = 
+            VAR IdText = UsersCurrent[Id]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+            RETURN MOD(HashSeed, 9000) + 1000
+        dataType: int64
+        formatString: 0000
+        lineageTag: 8b8d222c-d31f-5b92-b8ba-b8b18804d224
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "User " & FORMAT(UsersCurrent[PseudonymNumber], "0000")
+        dataType: string
+        lineageTag: 56461902-c0bc-5044-ba6a-72712a061659
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable Id-derived pseudonym when Anonymize is selected.
+    measure 'User Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(UsersCurrent[DisplayName])
+            VAR Pseudo = SELECTEDVALUE(UsersCurrent[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 74ce83b3-c410-5b22-a78e-807fe86cb3d4
+
+    measure 'Account Status' = 
+            VAR Rows = COUNTROWS(UsersCurrent)
+            VAR Enabled = SELECTEDVALUE(UsersCurrent[AccountEnabled])
+            RETURN IF(Rows = 0, BLANK(), IF(ISBLANK(Enabled), "Unknown", IF(Enabled, "Enabled", "Disabled")))
+        lineageTag: 37fc8a90-52fa-58fa-ab3e-487691f1c738
+
+    partition UsersCurrent = calculated
+        mode: import
+        source =
+            FILTER(
+                Users,
+                Users[RunDate] =
+                    CALCULATE(
+                        MAX(Users[RunDate]),
+                        ALLEXCEPT(Users, Users[Id])
+                    )
+            )
+
+    annotation PBI_ResultType = Table

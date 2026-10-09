@@ -1,0 +1,127 @@
+table SignIns
+    lineageTag: 2a35f48f-35b4-57d5-bcd4-be33d276fcd6
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 3aabb018-2982-5a3a-ae3c-b0de562028d4
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 188e846d-c504-55f4-a6f7-52b9e5da5c94
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: 3b0ae4ca-b8f5-554d-a167-cf66cf56a746
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 9f8057ca-aaf7-536a-80b6-8b0972e0491e
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column AppDisplayName
+        dataType: string
+        lineageTag: 278d450e-56a1-5e35-9340-dd0ba4f22fd8
+        summarizeBy: none
+        sourceColumn: AppDisplayName
+
+    column ResourceDisplayName
+        dataType: string
+        lineageTag: d4731f4d-60d3-5ab1-8bec-fed4ddab17b6
+        summarizeBy: none
+        sourceColumn: ResourceDisplayName
+
+    column IpAddress
+        dataType: string
+        lineageTag: a4d59401-d2e7-5002-9cf3-176550a0bee5
+        summarizeBy: none
+        sourceColumn: IpAddress
+
+    column ClientAppUsed
+        dataType: string
+        lineageTag: 091f8f72-d573-5630-904e-84766e2d829d
+        summarizeBy: none
+        sourceColumn: ClientAppUsed
+
+    column IsInteractive
+        dataType: boolean
+        lineageTag: fbfe04e8-3cb8-5f89-ba86-cd3a20221d48
+        summarizeBy: none
+        sourceColumn: IsInteractive
+
+    column ErrorCode
+        dataType: string
+        lineageTag: 6f910152-dab3-5925-a58a-4d42e093b73e
+        summarizeBy: none
+        sourceColumn: ErrorCode
+
+    column ConditionalAccessStatus
+        dataType: string
+        lineageTag: e8f39010-eb08-5fa9-80b5-6b978fbed5f2
+        summarizeBy: none
+        sourceColumn: ConditionalAccessStatus
+
+    column ActivityDate = IF(ISBLANK(SignIns[CreatedDateTime]), BLANK(), DATE(YEAR(SignIns[CreatedDateTime]), MONTH(SignIns[CreatedDateTime]), DAY(SignIns[CreatedDateTime])))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 55bf18cf-2ddb-5908-9402-70580a59df64
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// ErrorCode 0 is success. An empty ErrorCode is Unknown.
+    column Outcome = IF(ISBLANK(SignIns[ErrorCode]), "Unknown", IF(SignIns[ErrorCode] = "0", "Succeeded", "Failed or blocked"))
+        dataType: string
+        lineageTag: bcc90726-f780-5423-b2a0-ad2fc45fae12
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// At least: signins.csv holds interactive and successful federated sign-ins only; legacy protocols often authenticate non-interactively.
+    /// Header-only file (not collected): blank, never zero. BLANK() + 0 equals 0, so the empty-table check comes first.
+    measure 'Legacy Sign-Ins' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), COUNTROWS(SignIns) + 0)
+        formatString: #,0
+        lineageTag: b2a48984-ae39-5b18-80ad-d30aaa86692b
+
+    measure 'Legacy Sign-Ins Succeeded' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Succeeded") + 0)
+        formatString: #,0
+        lineageTag: fa3e9867-c1c7-519d-9791-b1f38f3c63ea
+
+    measure 'Legacy Sign-Ins Failed or Blocked' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Failed or blocked") + 0)
+        formatString: #,0
+        lineageTag: 71d8f145-7147-5387-ac73-701e55a94d08
+
+    measure 'Legacy Sign-Ins Outcome Unknown' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), CALCULATE(COUNTROWS(SignIns), SignIns[Outcome] = "Unknown") + 0)
+        formatString: #,0
+        lineageTag: 9a61911c-3433-56bf-a99a-7e63b692d3e0
+
+    measure 'Legacy Sign-In Users' = IF(COUNTROWS(ALL(SignIns)) = 0, BLANK(), DISTINCTCOUNT(SignIns[UserId]) + 0)
+        formatString: #,0
+        lineageTag: 8692a341-3d1c-540c-994b-309b51fd8c20
+
+    measure 'Last Legacy Sign-In' = 
+            VAR V = MAX(SignIns[CreatedDateTime])
+            RETURN IF(ISBLANK(V), BLANK(), FORMAT(V, "yyyy-MM-dd HH:mm"))
+        lineageTag: 300b38a9-cd9b-57f5-9aa6-923071c42156
+
+    partition SignIns = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\signins.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"IsInteractive", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

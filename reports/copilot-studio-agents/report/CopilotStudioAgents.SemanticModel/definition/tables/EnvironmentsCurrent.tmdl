@@ -1,0 +1,84 @@
+table EnvironmentsCurrent
+    lineageTag: 01566b09-9297-5711-85d5-eefb347e281e
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: b13f3462-03cd-53e9-af41-92f11747820d
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column EnvironmentId
+        dataType: string
+        lineageTag: 5e71e515-2226-5e42-b69c-d9d535964a77
+        summarizeBy: none
+        sourceColumn: EnvironmentId
+
+    column DisplayName
+        dataType: string
+        lineageTag: f47b0511-3897-598c-8317-15fd08450dcc
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Location
+        dataType: string
+        lineageTag: b8e34b51-ddab-59c0-bb0c-cb2a895d2f10
+        summarizeBy: none
+        sourceColumn: Location
+
+    column EnvironmentType
+        dataType: string
+        lineageTag: ce7c686d-b0e0-5f7d-979c-004d3c5ddbfb
+        summarizeBy: none
+        sourceColumn: EnvironmentType
+
+    column IsManaged
+        dataType: boolean
+        lineageTag: 0cea4b93-314e-5927-bd0d-c2b53acde168
+        summarizeBy: none
+        sourceColumn: IsManaged
+
+    column EnvironmentGroup
+        dataType: string
+        lineageTag: 4e6274f6-c35e-5050-8574-a96caf6eefa0
+        summarizeBy: none
+        sourceColumn: EnvironmentGroup
+
+    column LastModifiedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 336c867e-615e-5c3b-9a63-d253e00cd963
+        summarizeBy: none
+        sourceColumn: LastModifiedAt
+
+    column PseudonymNumber = 
+            VAR IdText = EnvironmentsCurrent[EnvironmentId]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+            RETURN MOD(HashSeed, 9000) + 1000
+        dataType: int64
+        formatString: 0000
+        lineageTag: 3f486852-26a1-564c-8ce7-9f9ca20e8949
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column Pseudonym = "Environment " & FORMAT(EnvironmentsCurrent[PseudonymNumber], "0000")
+        dataType: string
+        lineageTag: 0cf7f464-0b0d-5d3f-a642-ff8b7f5b982a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Environment names can carry a person's name (personal developer environments); the toggle replaces them.
+    measure 'Environment Display Name' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(EnvironmentsCurrent[DisplayName])
+            VAR Pseudo = SELECTEDVALUE(EnvironmentsCurrent[Pseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 9d3796e8-e4ec-5ee2-8301-b5e5f1f489ba
+
+    partition EnvironmentsCurrent = calculated
+        mode: import
+        source =
+            FILTER(Environments, Environments[RunDate] = MAX(Environments[RunDate]))
+
+    annotation PBI_ResultType = Table

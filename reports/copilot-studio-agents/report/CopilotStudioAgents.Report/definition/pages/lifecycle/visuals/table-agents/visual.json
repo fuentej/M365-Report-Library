@@ -1,0 +1,124 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-agents",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "AgentsCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Agent Display Name"
+                }
+              },
+              "queryRef": "AgentsCurrent.Agent Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Created (Display)"
+                }
+              },
+              "queryRef": "Agents.Created (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Last Published (Display)"
+                }
+              },
+              "queryRef": "Agents.Last Published (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentModifications"
+                    }
+                  },
+                  "Property": "Last Modified (Display)"
+                }
+              },
+              "queryRef": "AgentModifications.Last Modified (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentModifications"
+                    }
+                  },
+                  "Property": "Days Since Modified (Display)"
+                }
+              },
+              "queryRef": "AgentModifications.Days Since Modified (Display)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentAuditEvents"
+                    }
+                  },
+                  "Property": "Audit Events"
+                }
+              },
+              "queryRef": "AgentAuditEvents.Audit Events"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Created, last published, last modified and audit events per agent"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,103 @@
+table AgentAuditEvents
+    lineageTag: c21d8d87-6781-58d9-99bc-5060f55327a8
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 0e4297e8-27c4-5442-88d8-aaf5d5e0e2b5
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: 682943b8-cb12-5179-8a6d-87eadc8154af
+        summarizeBy: none
+        sourceColumn: Id
+
+    column Operation
+        dataType: string
+        lineageTag: d7a5dd96-50ea-5c57-a79d-4aa96040d92f
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: 753fceda-a46e-50e6-b79b-14edd3da3da0
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column ResultStatus
+        dataType: string
+        lineageTag: fea459f8-a471-51eb-931f-ba8fb9704890
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column BotId
+        dataType: string
+        lineageTag: 2655e213-fd42-5d2f-ac8e-7269ee14e99a
+        summarizeBy: none
+        sourceColumn: BotId
+
+    column BotSchemaName
+        dataType: string
+        lineageTag: 599a6bff-a516-5b8b-9877-ea2fd02729dc
+        summarizeBy: none
+        sourceColumn: BotSchemaName
+
+    column BotComponentId
+        dataType: string
+        lineageTag: 1b8637ec-c8f5-51d7-9101-312ae66fcc46
+        summarizeBy: none
+        sourceColumn: BotComponentId
+
+    column BotComponentType
+        dataType: string
+        lineageTag: 3191a1a0-54e8-55b3-9f05-735331f340e0
+        summarizeBy: none
+        sourceColumn: BotComponentType
+
+    column ActivityDate = IF(ISBLANK(AgentAuditEvents[CreationTime]), BLANK(), DATE(YEAR(AgentAuditEvents[CreationTime]), MONTH(AgentAuditEvents[CreationTime]), DAY(AgentAuditEvents[CreationTime])))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 33fed6c5-757c-5b92-b8c3-7bea8711c417
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActorPseudonym = 
+            VAR IdText = AgentAuditEvents[UserId]
+            RETURN IF(ISBLANK(IdText), BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: e896a621-d06e-5705-9750-4d0646f05ff2
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Blank when the audit file is header-only: not collected (audit availability in GCC and GCC High is unverified).
+    measure 'Audit Events' = IF(COUNTROWS(ALL(AgentAuditEvents)) = 0, BLANK(), COUNTROWS(AgentAuditEvents) + 0)
+        formatString: #,0
+        lineageTag: 3b41cdb9-53a2-58b4-9f81-b287081df792
+
+    measure 'Audit Actors' = IF(COUNTROWS(ALL(AgentAuditEvents)) = 0, BLANK(), DISTINCTCOUNT(AgentAuditEvents[UserId]) + 0)
+        formatString: #,0
+        lineageTag: ec8410be-89c2-52fe-9ed3-8a17b9375f8d
+
+    measure 'Latest Audit Event' = 
+            VAR X = MAX(AgentAuditEvents[CreationTime])
+            RETURN IF(ISBLANK(X), BLANK(), FORMAT(X, "yyyy-MM-dd HH:mm"))
+        lineageTag: ae4249cd-eb4a-5303-8367-b5087fdbca50
+
+    partition AgentAuditEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agent-audit-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreationTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

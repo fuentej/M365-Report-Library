@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-sources",
+  "position": {
+    "x": 810,
+    "y": 260,
+    "z": 0,
+    "width": 470,
+    "height": 140,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Users"
+                    }
+                  },
+                  "Property": "Sources With Data (of 9)"
+                }
+              },
+              "queryRef": "Users.Sources With Data (of 9)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Sources with data (of 9). A header-only file is not collected"
+          }
+        }
+      ]
+    }
+  }
+}

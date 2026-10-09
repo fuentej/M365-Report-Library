@@ -1,0 +1,161 @@
+table Users
+    lineageTag: 2cc639cb-4fd2-5c94-b2c2-f7ed88e2f401
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1dbe3fae-d625-5a42-a98d-b99480ea8410
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: c3b52b9d-cccd-5960-9f64-e18c853870b8
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 4be9c376-63d1-5c97-8140-3c6f3466568b
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 8c9c2486-9965-5df4-87f0-169d2e2c8644
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: b7572e24-a19a-5e19-b913-fff83cf68034
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 249a91bc-d77c-571e-9688-131369078cd4
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: a7d6868a-c9fd-55ea-8859-4fc259d00254
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7f89706b-3d52-5aed-b7e6-07986bf01106
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Department
+        dataType: string
+        lineageTag: 74103c8f-6a74-5f4a-9322-d9069e6bc681
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: 48929016-62b2-52fe-b595-fb19cb1a0d80
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column City
+        dataType: string
+        lineageTag: 836f3115-04ae-5813-b16b-cc4e3d575343
+        summarizeBy: none
+        sourceColumn: City
+
+    column Country
+        dataType: string
+        lineageTag: 61625c5d-a241-57bd-99d5-1b8628bccdce
+        summarizeBy: none
+        sourceColumn: Country
+
+    column ManagerId
+        dataType: string
+        lineageTag: a0c0ab54-835a-5351-8208-7de5dc38218b
+        summarizeBy: none
+        sourceColumn: ManagerId
+
+    column ManagerUserPrincipalName
+        dataType: string
+        lineageTag: c45ce469-d2ca-5a50-bd3e-4b9583253b7d
+        summarizeBy: none
+        sourceColumn: ManagerUserPrincipalName
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Users Snapshot Date' = CALCULATE(MAX(Users[RunDate]), ALLSELECTED(Users), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 41c2fc84-2655-5189-82e2-9d7b8a0fc35a
+
+    measure 'User Count' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 31387117-7537-5669-9134-0382abddf606
+
+    measure 'Enabled Users' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap, Users[AccountEnabled] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 37ae9fd8-3bc5-5dcb-82b1-38f643956ebb
+
+    /// AccountEnabled = False. An empty AccountEnabled is Unknown and is not counted here.
+    measure 'Disabled Users' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap, Users[AccountEnabled] = FALSE(), NOT ISBLANK(Users[AccountEnabled])) + 0)
+        formatString: #,0
+        lineageTag: f2145221-ffc0-5214-bc19-0a732e3e98a2
+
+    measure 'Unknown Account Status' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap, ISBLANK(Users[AccountEnabled])) + 0)
+        formatString: #,0
+        lineageTag: 722facfd-2812-5696-aaf5-a7268b946bc7
+
+    measure 'Guest Users' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap, Users[UserType] = "Guest") + 0)
+        formatString: #,0
+        lineageTag: e8df13ab-c74d-5409-8410-5ea09b7c9958
+
+    measure 'Member Users' = 
+            VAR Snap = [Users Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Users), Users[RunDate] = Snap, Users[UserType] = "Member") + 0)
+        formatString: #,0
+        lineageTag: bab5efd8-0e6a-517d-8895-1b1d4bee32e1
+
+    /// CSV files that hold at least one row. A header-only file means the source was not collected (see samples/unlicensed).
+    measure 'Sources With Data (of 9)' = 
+            IF(COUNTROWS(ALL(Users)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(AuthenticationMethods)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(ConditionalAccessPolicies)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(ActiveRoleAssignments)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(EligibleRoleAssignments)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(RoleAssignments)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(UserSignInActivity)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(RiskyUsers)) > 0, 1, 0)
+            + IF(COUNTROWS(ALL(SignIns)) > 0, 1, 0)
+        formatString: 0
+        lineageTag: db4ec11f-50f3-531c-8d5b-28f084f0a34e
+
+    partition Users = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-listed",
+  "position": {
+    "x": 0,
+    "y": 100,
+    "z": 0,
+    "width": 244,
+    "height": 150,
+    "tabOrder": 4
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RiskyUsers"
+                    }
+                  },
+                  "Property": "Risky Users Listed"
+                }
+              },
+              "queryRef": "RiskyUsers.Risky Users Listed"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Users Entra flags (any state)"
+          }
+        }
+      ]
+    }
+  }
+}

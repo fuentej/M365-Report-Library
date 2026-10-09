@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-by-agent",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 700,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "AgentsCurrent.Pseudonym"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentComponents"
+                    }
+                  },
+                  "Property": "Knowledge Source Components"
+                }
+              },
+              "queryRef": "AgentComponents.Knowledge Source Components"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "Knowledge Connector Operations"
+                }
+              },
+              "queryRef": "AgentConnectors.Knowledge Connector Operations"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Knowledge sources per agent"
+          }
+        }
+      ]
+    }
+  }
+}
