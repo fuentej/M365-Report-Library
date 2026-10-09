@@ -89,8 +89,10 @@ does not stop the others.
 * A search returns 100 records unless paged. Each window is paged with the same `-SessionId` and
   `-SessionCommand ReturnLargeSet`, which is unsorted and stops at 50,000. A window that reaches the cap
   is **not written**: `run.log` names its exact `-StartDate` and `-EndDate` and the collector stops, so
-  re-run that window with a smaller `-WindowHours`. A capped window is a failed window, not a complete
-  export.
+  re-run that window with a smaller `-WindowHours`. The mailbox-change search and the Exchange admin
+  search share that cutoff: a cap in either one holds back every record at or after the capped window,
+  including records the other search already has, so the watermark cannot pass events that were never
+  returned. A capped window is a failed window, not a complete export.
 * `AuditEnabled` on a mailbox is not a per-mailbox switch: `Get-Mailbox` always shows `True` when
   mailbox auditing on by default is on. `audit-configuration.csv` reads the organization setting instead.
 

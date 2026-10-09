@@ -22,10 +22,12 @@
 
         A call with no -SessionCommand returns 100 records at most, so each window is paged
         with the same -SessionId and -SessionCommand ReturnLargeSet until nothing comes
-        back. ReturnLargeSet is unsorted and stops at 50,000: a window that reaches the cap
-        is not written, the log names its exact -StartDate and -EndDate, and the collector
-        stops so it can be re-run with a smaller -WindowHours. -StartDate and -EndDate are
-        UTC.
+        back. ReturnLargeSet is unsorted and stops at 50,000. The two searches share one
+        cutoff: the earlier capped window. Records at or after that window, from either
+        search, are not written, because writing them would move the watermark past events
+        the capped search never returned. The log names that window's exact -StartDate and
+        -EndDate, and the collector stops so it can be re-run with a smaller -WindowHours.
+        -StartDate and -EndDate are UTC.
 
         Needs auditing on and the Audit Reader role group (View-Only Audit Logs) or Audit
         Manager. Set-Mailbox records are visible only to unrestricted admins. Audit
@@ -130,17 +132,41 @@ try {
             (ConvertTo-CsvTimestamp $start), (ConvertTo-CsvTimestamp $end), $WindowHours,
             $(if ($null -eq $watermark) { 'none' } else { ConvertTo-CsvTimestamp $watermark }))
 
-        $found = Invoke-AuditSearch -Start $start -End $end -WindowHours $WindowHours -Operation $schema.MailboxChangeOperations `
+        $mailboxSearch = Invoke-AuditSearch -Start $start -End $end -WindowHours $WindowHours -Operation $schema.MailboxChangeOperations `
             -OutputPath $OutputPath -Source $source
 
-        if ($null -eq $found.TruncatedWindow -and -not $SkipExchangeAdmin) {
+        $records = [System.Collections.Generic.List[object]]::new()
+        foreach ($item in @($mailboxSearch.Records)) { [void]$records.Add($item) }
+
+        # A cap in either search applies to both. Skipping the admin search when the
+        # mailbox search already capped would leave those admin events behind the new
+        # watermark forever.
+        $truncated = $mailboxSearch.TruncatedWindow
+        if (-not $SkipExchangeAdmin) {
             $admin = Invoke-AuditSearch -Start $start -End $end -WindowHours $WindowHours -RecordType 'ExchangeAdmin' `
                 -OutputPath $OutputPath -Source $source
-            $found = [pscustomobject]@{
-                Records         = @($found.Records) + @($admin.Records | Where-Object { [string]$_.Audit.Operation -like '*TransportRule*' })
-                TruncatedWindow = $admin.TruncatedWindow
+            foreach ($item in @($admin.Records)) {
+                $operation = [string](Get-GraphAdditionalProperty -Object $item.Audit -Name 'Operation')
+                if ($operation -like '*TransportRule*') { [void]$records.Add($item) }
+            }
+            if ($null -ne $admin.TruncatedWindow -and ($null -eq $truncated -or $admin.TruncatedWindow.Start -lt $truncated.Start)) {
+                $truncated = $admin.TruncatedWindow
             }
         }
+
+        $kept = @(foreach ($item in $records) {
+                if ($null -ne $truncated) {
+                    $stamp = ConvertTo-CsvTimestamp (Get-GraphAdditionalProperty -Object $item.Audit -Name 'CreationTime')
+                    $created = [datetime]::MinValue
+                    $styles = [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal
+                    $parsed = -not [string]::IsNullOrWhiteSpace($stamp) -and [datetime]::TryParse(
+                        $stamp, [System.Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$created)
+                    if (-not $parsed -or $created -ge $truncated.Start) { continue }
+                }
+                $item
+            })
+
+        $found = [pscustomobject]@{ Records = $kept; TruncatedWindow = $truncated }
     }
     catch {
         # A mistaken range is the caller's error, not a refusal by the service.

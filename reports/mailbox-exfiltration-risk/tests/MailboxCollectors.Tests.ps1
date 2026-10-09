@@ -188,11 +188,12 @@ BeforeAll {
             [string]$Id = 'event-1',
             [string]$Operation = 'New-InboxRule',
             [object]$ResultCount = $null,
-            [string]$RecordType = 'ExchangeAdmin'
+            [string]$RecordType = 'ExchangeAdmin',
+            [string]$CreationTime = '2026-08-10T12:00:00'
         )
 
         $auditData = [ordered]@{
-            CreationTime    = '2026-08-10T12:00:00'
+            CreationTime    = $CreationTime
             Id              = $Id
             Operation       = $Operation
             UserId          = 'avery.abara@example.com'
@@ -770,6 +771,60 @@ Describe 'Audit events' {
 
         $global:MxRecordTypes | Should -Contain 'ExchangeAdmin'
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-change-events.csv')).Id | Should -Be @('inbox', 'rule')
+    }
+
+    It 'does not write events at or after a capped Exchange admin window' {
+        # ReturnLargeSet stops at 50,000 and is unsorted. Writing the mailbox events
+        # from later in the range would move the watermark past the admin events that
+        # the capped window never returned.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+        Mock Search-UnifiedAuditLog -MockWith {
+            if ($RecordType -contains 'ExchangeAdmin') {
+                New-MockAuditRecord -ResultCount 60000
+            }
+            else {
+                $stamp = $StartDate.ToUniversalTime().AddHours(12).ToString('yyyy-MM-ddTHH:mm:ss', [cultureinfo]::InvariantCulture)
+                New-MockAuditRecord -Id ('mbx-' + $StartDate.ToUniversalTime().ToString('dd')) -Operation 'Set-Mailbox' -CreationTime $stamp
+            }
+        }
+
+        {
+            Invoke-CollectorScript 'Get-MailboxChangeEvents.ps1' @{
+                OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue'
+                StartDate  = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-12T00:00:00Z'; WindowHours = 24
+            }
+        } | Should -Throw '*50,000*'
+
+        @(Get-Content -LiteralPath (Join-Path $script:folder 'mailbox-change-events.csv')).Count | Should -Be 1
+    }
+
+    It 'keeps earlier windows from both searches when a later window hits the cap' {
+        Mock Search-UnifiedAuditLog -MockWith {
+            $firstWindow = $StartDate.ToUniversalTime() -lt [datetime]'2026-08-11T00:00:00Z'
+            if ($RecordType -contains 'ExchangeAdmin') {
+                if ($firstWindow) {
+                    New-MockAuditRecord -Id 'admin-rule' -Operation 'Set-TransportRule' -CreationTime '2026-08-10T06:00:00' -ResultCount 1
+                }
+                else {
+                    New-MockAuditRecord -Id 'admin-late' -Operation 'Set-TransportRule' -CreationTime '2026-08-11T06:00:00' -ResultCount 1
+                }
+            }
+            elseif ($firstWindow) {
+                New-MockAuditRecord -Id 'day1' -Operation 'New-InboxRule' -CreationTime '2026-08-10T12:00:00' -ResultCount 1
+            }
+            else {
+                New-MockAuditRecord -Id 'day2' -Operation 'Set-Mailbox' -ResultCount 60000
+            }
+        }
+
+        {
+            Invoke-CollectorScript 'Get-MailboxChangeEvents.ps1' @{
+                OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue'
+                StartDate  = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-12T00:00:00Z'; WindowHours = 24
+            }
+        } | Should -Throw '*50,000*'
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'mailbox-change-events.csv')).Id | Should -Be @('day1', 'admin-rule')
     }
 
     It 'starts at the latest CreationTime already collected' {
