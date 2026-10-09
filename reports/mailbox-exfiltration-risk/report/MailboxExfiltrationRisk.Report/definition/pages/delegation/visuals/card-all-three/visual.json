@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-all-three",
+  "position": {
+    "x": 1104,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxFullAccess"
+                    }
+                  },
+                  "Property": "Delegates With All Three Rights"
+                }
+              },
+              "queryRef": "MailboxFullAccess.Delegates With All Three Rights"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Delegates holding all three"
+          }
+        }
+      ]
+    }
+  }
+}

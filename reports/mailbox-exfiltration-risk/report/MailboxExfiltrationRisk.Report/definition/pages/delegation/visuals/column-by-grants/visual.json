@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-by-grants",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 420,
+    "height": 200,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DateDim"
+                    }
+                  },
+                  "Property": "YearMonth"
+                }
+              },
+              "queryRef": "DateDim.YearMonth"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxFullAccess"
+                    }
+                  },
+                  "Property": "Full Access Grants (All Snapshots)"
+                }
+              },
+              "queryRef": "MailboxFullAccess.Full Access Grants (All Snapshots)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SendAsPermissions"
+                    }
+                  },
+                  "Property": "Send As Grants (All Snapshots)"
+                }
+              },
+              "queryRef": "SendAsPermissions.Send As Grants (All Snapshots)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Full Access and Send As grants by month of snapshot"
+          }
+        }
+      ]
+    }
+  }
+}

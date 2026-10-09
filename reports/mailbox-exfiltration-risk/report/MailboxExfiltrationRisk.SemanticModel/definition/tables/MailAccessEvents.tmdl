@@ -1,0 +1,132 @@
+table MailAccessEvents
+    lineageTag: c230297e-badb-5ca0-b8b0-1da488baacd0
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 9b0a8142-1022-5596-83b5-e1a6bbe4857a
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: 1de8ee18-3f80-5d34-99ce-66f9d0768b5d
+        summarizeBy: none
+        sourceColumn: Id
+
+    column RecordType
+        dataType: string
+        lineageTag: 12c3d0dd-5fd7-588c-b0d9-dfea8d6e3063
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Operation
+        dataType: string
+        lineageTag: 2c715e0d-ce8b-5b25-af34-055783f0ee58
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: da56942c-ec88-57a7-b3f3-bf9d33fe6dd1
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Workload
+        dataType: string
+        lineageTag: 11200dab-41c9-5728-81df-b1c670bece10
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column ObjectId
+        dataType: string
+        lineageTag: 59e46c28-9685-5237-9c40-824948a8f61d
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column MailboxOwnerUPN
+        dataType: string
+        lineageTag: 3f6faf57-9f24-5c19-a098-97141eb9876d
+        summarizeBy: none
+        sourceColumn: MailboxOwnerUPN
+
+    column ClientIP
+        dataType: string
+        lineageTag: 54aa5f49-6523-5766-b64b-8a5da09ee5cd
+        summarizeBy: none
+        sourceColumn: ClientIP
+
+    column ResultStatus
+        dataType: string
+        lineageTag: eac92e80-afe3-51b2-a666-f3c1510e8278
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column Parameters
+        dataType: string
+        lineageTag: f6cbb0b6-5dc0-5ff4-854b-08985d61edc7
+        summarizeBy: none
+        sourceColumn: Parameters
+
+    column ActivityDate = IF(ISBLANK(MailAccessEvents[CreationTime]), BLANK(), DATE(YEAR(MailAccessEvents[CreationTime]), MONTH(MailAccessEvents[CreationTime]), DAY(MailAccessEvents[CreationTime])))
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 06a1ec12-7941-57c0-bd36-03fe87d9b685
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActorPseudonym = 
+            VAR K = LOWER(MailAccessEvents[UserId])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 2252b748-7347-597b-80c1-b6a4882c9790
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ResultLabel = IF(ISBLANK(MailAccessEvents[ResultStatus]), "Unknown", IF(MailAccessEvents[ResultStatus] = "Succeeded" || MailAccessEvents[ResultStatus] = "True", "Succeeded", IF(MailAccessEvents[ResultStatus] = "Failed" || MailAccessEvents[ResultStatus] = "False", "Failed", MailAccessEvents[ResultStatus])))
+        dataType: string
+        lineageTag: 37442c7e-fab0-5086-a86b-70f7c6270d49
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym when Anonymize is selected.
+    measure 'Accessor (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(MailAccessEvents[UserId])
+            VAR Pseudo = SELECTEDVALUE(MailAccessEvents[ActorPseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 6127c4a8-93eb-5ed1-a399-cf6faef33d9a
+
+    /// MailItemsAccessed, Send, SendAs and SendOnBehalf records. Blank when the file is header-only: not collected. MailItemsAccessed needs an audit licence that records it; a missing licence is not zero access.
+    measure 'Mail Access Events' = IF(COUNTROWS(ALL(MailAccessEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailAccessEvents)) + 0)
+        formatString: #,0
+        lineageTag: 11b8924a-9728-57aa-86c6-19d346c36dba
+
+    measure 'Mail Items Accessed Events' = IF(COUNTROWS(ALL(MailAccessEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailAccessEvents), MailAccessEvents[Operation] = "MailItemsAccessed") + 0)
+        formatString: #,0
+        lineageTag: ebf4a36f-abb7-5535-bf73-d3105e601881
+
+    measure 'Send Events' = IF(COUNTROWS(ALL(MailAccessEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailAccessEvents), MailAccessEvents[Operation] <> "MailItemsAccessed", NOT ISBLANK(MailAccessEvents[Operation])) + 0)
+        formatString: #,0
+        lineageTag: 388cb25e-5dc4-57d5-83b0-b4d9102fa490
+
+    measure 'Failed Access Events' = IF(COUNTROWS(ALL(MailAccessEvents)) = 0, BLANK(), CALCULATE(COUNTROWS(MailAccessEvents), MailAccessEvents[ResultLabel] = "Failed") + 0)
+        formatString: #,0
+        lineageTag: 90e752d1-0971-50fd-a2f5-a4f8b38e6716
+
+    partition MailAccessEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mail-access-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreationTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

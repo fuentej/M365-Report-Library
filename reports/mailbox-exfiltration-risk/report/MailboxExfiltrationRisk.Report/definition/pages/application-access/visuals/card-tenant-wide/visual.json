@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-tenant-wide",
+  "position": {
+    "x": 552,
+    "y": 100,
+    "z": 0,
+    "width": 172,
+    "height": 150,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DelegatedConsents"
+                    }
+                  },
+                  "Property": "Tenant-Wide Mail Consents"
+                }
+              },
+              "queryRef": "DelegatedConsents.Tenant-Wide Mail Consents"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Tenant-wide, mail scope"
+          }
+        }
+      ]
+    }
+  }
+}

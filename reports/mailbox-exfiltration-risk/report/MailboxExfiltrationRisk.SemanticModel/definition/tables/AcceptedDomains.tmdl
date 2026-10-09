@@ -1,0 +1,59 @@
+table AcceptedDomains
+    lineageTag: 575667e1-4b24-5322-8648-1af56c136f95
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 199cf3f5-1986-5ce8-a098-bc737bac61be
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Name
+        dataType: string
+        lineageTag: f4340ccd-0dbd-56e2-b36d-0942f48db8ed
+        summarizeBy: none
+        sourceColumn: Name
+
+    column DomainName
+        dataType: string
+        lineageTag: 5d9fad37-04fd-5de1-842a-3323de78e34b
+        summarizeBy: none
+        sourceColumn: DomainName
+
+    column DomainType
+        dataType: string
+        lineageTag: 200aed16-5960-5b51-aa47-2bda56d7e682
+        summarizeBy: none
+        sourceColumn: DomainType
+
+    column IsDefault
+        dataType: boolean
+        lineageTag: c41806a9-1660-5f87-a829-af588d6f2e0b
+        summarizeBy: none
+        sourceColumn: IsDefault
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'AcceptedDomains Snapshot Date' = CALCULATE(MAX(AcceptedDomains[RunDate]), ALLSELECTED(AcceptedDomains))
+        formatString: Short Date
+        lineageTag: 6f293362-1b8d-5452-8fb9-33341498fc14
+
+    /// Accepted domains at the latest snapshot. They decide what is external: IsExternal is empty in mailbox-forwarding.csv when they could not be read.
+    measure 'Accepted Domains' = 
+            VAR Snap = [AcceptedDomains Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AcceptedDomains), AcceptedDomains[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 8c6830db-9c1f-5b4e-b7bb-08ee37028fce
+
+    partition AcceptedDomains = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\accepted-domains.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsDefault", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-forwarding",
+  "position": {
+    "x": 322,
+    "y": 100,
+    "z": 0,
+    "width": 149,
+    "height": 150,
+    "tabOrder": 6
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "Forwarding Changes"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.Forwarding Changes"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Forwarding changes"
+          }
+        }
+      ]
+    }
+  }
+}

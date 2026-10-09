@@ -1,0 +1,185 @@
+table TransportRules
+    lineageTag: 774a969a-fc7f-51e5-8737-3574d79b114c
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 90456f87-e279-5009-ac1e-71ba4180c1d8
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Name
+        dataType: string
+        lineageTag: be7ff494-f70d-5e33-896c-404192cb3c0f
+        summarizeBy: none
+        sourceColumn: Name
+
+    column Guid
+        dataType: string
+        lineageTag: 7cf8405d-4fa3-5c2f-a1d3-853b6100ee5f
+        summarizeBy: none
+        sourceColumn: Guid
+
+    column State
+        dataType: string
+        lineageTag: 4d75286b-508f-54cc-8b77-afe47c04a6f8
+        summarizeBy: none
+        sourceColumn: State
+
+    column Priority
+        dataType: int64
+        formatString: #,0
+        lineageTag: d84ed99f-f877-5a5b-8bd7-0ac7f7ad6b03
+        summarizeBy: none
+        sourceColumn: Priority
+
+    column RedirectMessageTo
+        dataType: string
+        lineageTag: f604a6a5-d8ea-5bb2-b6c8-108c85ec8741
+        summarizeBy: none
+        sourceColumn: RedirectMessageTo
+
+    column BlindCopyTo
+        dataType: string
+        lineageTag: 17e5d479-4cfb-5fcd-a135-6fe5a0d28e11
+        summarizeBy: none
+        sourceColumn: BlindCopyTo
+
+    column CopyTo
+        dataType: string
+        lineageTag: 6357b646-463b-5c72-acaf-f8d7fd7a55b3
+        summarizeBy: none
+        sourceColumn: CopyTo
+
+    column AddToRecipients
+        dataType: string
+        lineageTag: b2eb37e3-4088-57c7-b6d1-a07c02b463ac
+        summarizeBy: none
+        sourceColumn: AddToRecipients
+
+    column TargetDomains
+        dataType: string
+        lineageTag: 54afcd20-442e-53f6-9b11-c42c2486ef1f
+        summarizeBy: none
+        sourceColumn: TargetDomains
+
+    column HasExternalTarget
+        dataType: boolean
+        lineageTag: bc9391ff-a631-5abc-9a8e-4fd587a9839a
+        summarizeBy: none
+        sourceColumn: HasExternalTarget
+
+    column HasRedirect = NOT ISBLANK(TransportRules[RedirectMessageTo])
+        dataType: boolean
+        lineageTag: 3e8fee96-90c3-5195-9db5-fe29958e51bf
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column HasBlindCopy = NOT ISBLANK(TransportRules[BlindCopyTo])
+        dataType: boolean
+        lineageTag: 6f05b8e9-e77d-59a6-b87e-4f899c3f2491
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column RedirectOrBlindCopy = TransportRules[HasRedirect] || TransportRules[HasBlindCopy]
+        dataType: boolean
+        lineageTag: b674e5b4-dfa7-5b59-b303-b5ebc56d5871
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ActionLabel = IF(TransportRules[HasRedirect] && TransportRules[HasBlindCopy], "Redirect and blind copy", IF(TransportRules[HasRedirect], "Redirect", IF(TransportRules[HasBlindCopy], "Blind copy", "Visible copy only")))
+        dataType: string
+        lineageTag: 401db099-3a6b-5e1a-bf5f-be9cb407c1fc
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TargetScope = IF(ISBLANK(TransportRules[HasExternalTarget]), "Unknown", IF(TransportRules[HasExternalTarget], "External", "Internal"))
+        dataType: string
+        lineageTag: ffff5cb1-d1ec-55f3-aecd-4654d9b6aa11
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column TargetDomainsLabel = IF(NOT ISBLANK(TransportRules[TargetDomains]), TransportRules[TargetDomains], "Unknown")
+        dataType: string
+        lineageTag: dbe9543d-3440-5bb9-b353-afbf1bc46b12
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'TransportRules Snapshot Date' = CALCULATE(MAX(TransportRules[RunDate]), ALLSELECTED(TransportRules))
+        formatString: Short Date
+        lineageTag: 56b39ea6-ea71-5d62-b9ef-2bbb5e74876d
+
+    /// Organization-wide rules with a redirect, blind-copy or visible-copy action. The file holds only those rules.
+    measure 'Mail Flow Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 3e51e4ca-dc77-522f-9a8e-c843fab7b975
+
+    measure 'Redirect Or Blind Copy Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[RedirectOrBlindCopy] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 634134a3-c318-56c8-aeaa-68b96946114f
+
+    measure 'Redirect Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[HasRedirect] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 22725ae2-0012-56cd-b7c8-3ac870a2d94e
+
+    measure 'Blind Copy Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[HasBlindCopy] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: f1b76e7f-bdcf-599c-b308-c5987fc19f2d
+
+    measure 'Enabled Mail Flow Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[State] = "Enabled") + 0)
+        formatString: #,0
+        lineageTag: 637aca2a-dddd-5c7b-8b8e-461e1aceb641
+
+    measure 'Disabled Mail Flow Rules' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[State] = "Disabled") + 0)
+        formatString: #,0
+        lineageTag: d13de0bb-f000-5850-b257-073620f993a1
+
+    measure 'Mail Flow Rules With External Target' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[HasExternalTarget] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 23dd016a-2554-52a5-bbc7-1a0afecf4322
+
+    measure 'Enabled Rules With External Target' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, TransportRules[State] = "Enabled", TransportRules[HasExternalTarget] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 572232b6-5606-5aae-9d52-3d8e55ec3457
+
+    /// Target domain could not be classified: unknown, not internal.
+    measure 'Mail Flow Rules With Unknown Target' = 
+            VAR Snap = [TransportRules Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(TransportRules), TransportRules[RunDate] = Snap, ISBLANK(TransportRules[HasExternalTarget])) + 0)
+        formatString: #,0
+        lineageTag: b56d4702-fc89-536d-ba62-6afe7b9c157f
+
+    measure 'Redirect Or Blind Copy Rules (All Snapshots)' = IF(COUNTROWS(TransportRules) = 0, BLANK(), COUNTROWS(FILTER(TransportRules, TransportRules[RedirectOrBlindCopy] = TRUE())) + 0)
+        formatString: #,0
+        lineageTag: bf70842b-ece2-5669-a8d9-50b0e8da529f
+
+    partition TransportRules = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\transport-rules.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"Priority", Int64.Type}, {"HasExternalTarget", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

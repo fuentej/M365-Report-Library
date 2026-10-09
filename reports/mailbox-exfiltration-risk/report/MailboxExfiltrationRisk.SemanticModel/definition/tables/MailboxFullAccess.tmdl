@@ -1,0 +1,109 @@
+table MailboxFullAccess
+    lineageTag: a17bf3ea-ac30-50fa-a102-e3eefd26b374
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: fa12de1f-8a1e-51e2-bd32-0789f46cf6ec
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column MailboxExternalDirectoryObjectId
+        dataType: string
+        lineageTag: 2372dfea-9cb3-5393-b554-f96c87c0b453
+        summarizeBy: none
+        sourceColumn: MailboxExternalDirectoryObjectId
+
+    column MailboxUserPrincipalName
+        dataType: string
+        lineageTag: 44152422-8ed4-5520-b26f-0753c6af8476
+        summarizeBy: none
+        sourceColumn: MailboxUserPrincipalName
+
+    column User
+        dataType: string
+        lineageTag: 4bb2196e-ad30-57a3-8448-5041eca5758c
+        summarizeBy: none
+        sourceColumn: User
+
+    column AccessRights
+        dataType: string
+        lineageTag: 4c83419b-a49f-5b56-a2ad-e3cfc769c8e8
+        summarizeBy: none
+        sourceColumn: AccessRights
+
+    column DelegateKey = LOWER(MailboxFullAccess[User])
+        dataType: string
+        lineageTag: 1c82330c-bb3c-5963-a088-aec2681ccb0b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DelegatePseudonym = 
+            VAR K = LOWER(MailboxFullAccess[DelegateKey])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: ec15afc4-7b14-5498-abe2-c591ec541e3a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'MailboxFullAccess Snapshot Date' = CALCULATE(MAX(MailboxFullAccess[RunDate]), ALLSELECTED(MailboxFullAccess), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 63a7c13f-f092-5fa1-9270-8818ec87527b
+
+    /// NT AUTHORITY\SELF, Deny rows and inherited rows are dropped by the collector.
+    measure 'Full Access Grants' = 
+            VAR Snap = [MailboxFullAccess Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(MailboxFullAccess), MailboxFullAccess[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 45e0f138-d93a-531a-852a-c799591cdba4
+
+    measure 'Mailboxes With Full Access Delegates' = 
+            VAR Snap = [MailboxFullAccess Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(MailboxFullAccess[MailboxExternalDirectoryObjectId]), MailboxFullAccess[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 22de4df7-9d8e-5810-b8fc-8e5f12b56ecc
+
+    measure 'Full Access Delegates' = 
+            VAR Snap = [MailboxFullAccess Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(MailboxFullAccess[DelegateKey]), MailboxFullAccess[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 88e7b16d-e579-59c1-a1b0-ed8d0640f95d
+
+    measure 'Full Access Grants (All Snapshots)' = IF(COUNTROWS(MailboxFullAccess) = 0, BLANK(), COUNTROWS(MailboxFullAccess) + 0)
+        formatString: #,0
+        lineageTag: 662b7bb7-05c0-508c-a9c4-c6c909b40229
+
+    /// A stable pseudonym when Anonymize is selected.
+    measure 'Full Access Delegate (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(MailboxFullAccess[User])
+            VAR Pseudo = SELECTEDVALUE(MailboxFullAccess[DelegatePseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 5cf3db2e-f647-557d-ac6c-976d8aa9e2a3
+
+    /// Delegates who hold Full Access, Send As and Send on Behalf. Blank when any of the three files is header-only: not collected. Send on Behalf delegates are matched to users by display name.
+    measure 'Delegates With All Three Rights' = 
+            VAR FaSnap = [MailboxFullAccess Snapshot Date]
+            VAR SaSnap = [SendAsPermissions Snapshot Date]
+            VAR SobSnap = [SendOnBehalf Snapshot Date]
+            VAR FaKeys = CALCULATETABLE(VALUES(MailboxFullAccess[DelegateKey]), MailboxFullAccess[RunDate] = FaSnap)
+            VAR SaKeys = CALCULATETABLE(VALUES(SendAsPermissions[TrusteeKey]), SendAsPermissions[RunDate] = SaSnap, SendAsPermissions[AccessControlType] = "Allow")
+            VAR SobKeys = CALCULATETABLE(VALUES(SendOnBehalf[DelegateKey]), SendOnBehalf[RunDate] = SobSnap)
+            RETURN IF(ISBLANK(FaSnap) || ISBLANK(SaSnap) || ISBLANK(SobSnap), BLANK(), COUNTROWS(INTERSECT(INTERSECT(FaKeys, SaKeys), SobKeys)) + 0)
+        formatString: #,0
+        lineageTag: 10273980-4b27-583d-a6a9-a1461485d66a
+
+    partition MailboxFullAccess = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-full-access.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-mail-flow",
+  "position": {
+    "x": 483,
+    "y": 100,
+    "z": 0,
+    "width": 149,
+    "height": 150,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxChangeEvents"
+                    }
+                  },
+                  "Property": "Mail Flow Rule Changes"
+                }
+              },
+              "queryRef": "MailboxChangeEvents.Mail Flow Rule Changes"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Mail flow rule changes"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "MailboxExfiltrationRisk"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "92f2f9a8-2ffe-5a8e-aef5-fe49c8c81f0e"
+  }
+}

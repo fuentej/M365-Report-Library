@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-apps",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 14
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Apps"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "Apps.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Apps"
+                    }
+                  },
+                  "Property": "App Display Name"
+                }
+              },
+              "queryRef": "Apps.App Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DelegatedConsents"
+                    }
+                  },
+                  "Property": "Mail-Scoped Consents"
+                }
+              },
+              "queryRef": "DelegatedConsents.Mail-Scoped Consents"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DelegatedConsents"
+                    }
+                  },
+                  "Property": "Tenant-Wide Mail Consents"
+                }
+              },
+              "queryRef": "DelegatedConsents.Tenant-Wide Mail Consents"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AppRoleAssignments"
+                    }
+                  },
+                  "Property": "Mail App Roles"
+                }
+              },
+              "queryRef": "AppRoleAssignments.Mail App Roles"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Apps with mail scopes or mail app roles"
+          }
+        }
+      ]
+    }
+  }
+}

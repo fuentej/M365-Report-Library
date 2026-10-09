@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\MailboxExfiltrationRiskData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 5aa31460-43fe-5c47-8a46-2c2b247b135a
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

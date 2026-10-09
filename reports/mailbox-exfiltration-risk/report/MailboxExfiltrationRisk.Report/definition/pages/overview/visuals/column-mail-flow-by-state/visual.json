@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-mail-flow-by-state",
+  "position": {
+    "x": 860,
+    "y": 260,
+    "z": 0,
+    "width": 420,
+    "height": 200,
+    "tabOrder": 15
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "State"
+                }
+              },
+              "queryRef": "TransportRules.State"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TransportRules"
+                    }
+                  },
+                  "Property": "Mail Flow Rules"
+                }
+              },
+              "queryRef": "TransportRules.Mail Flow Rules"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Mail flow rules by state"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-mailboxes",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 14
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "UsersCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "UsersCurrent"
+                    }
+                  },
+                  "Property": "Mailbox Display Name"
+                }
+              },
+              "queryRef": "UsersCurrent.Mailbox Display Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "DestinationType"
+                }
+              },
+              "queryRef": "MailboxForwarding.DestinationType"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "DestinationDomain"
+                }
+              },
+              "queryRef": "MailboxForwarding.DestinationDomain"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "CopyLabel"
+                }
+              },
+              "queryRef": "MailboxForwarding.CopyLabel"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxForwarding"
+                    }
+                  },
+                  "Property": "Forwarding Mailboxes"
+                }
+              },
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Mailboxes with forwarding set"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,95 @@
+table SendOnBehalf
+    lineageTag: 1811a760-68ba-57d7-bb1b-85e2c6853840
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 72d51b31-9b18-5ccc-92c7-4e7f387ad6b2
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ExternalDirectoryObjectId
+        dataType: string
+        lineageTag: acb04ee3-dc59-5542-866b-ac6b0b4d184b
+        summarizeBy: none
+        sourceColumn: ExternalDirectoryObjectId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 54bcd9cd-2db7-5fae-bfab-466c0beb91ce
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column PrimarySmtpAddress
+        dataType: string
+        lineageTag: 6f63fa32-c220-5a1c-990b-b80a125954db
+        summarizeBy: none
+        sourceColumn: PrimarySmtpAddress
+
+    column Delegate
+        dataType: string
+        lineageTag: f6e3d138-9194-5c6b-a02a-b0e3850bf50d
+        summarizeBy: none
+        sourceColumn: Delegate
+
+    column DelegateKey = 
+            VAR Resolved = IFERROR(LOOKUPVALUE(Users[UserPrincipalName], Users[DisplayName], SendOnBehalf[Delegate]), BLANK())
+            RETURN IF(ISBLANK(SendOnBehalf[Delegate]), BLANK(), LOWER(IF(ISBLANK(Resolved), SendOnBehalf[Delegate], Resolved)))
+        dataType: string
+        lineageTag: c7c01c08-91a2-5778-b2b1-7fb9263d3c26
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DelegatePseudonym = 
+            VAR K = LOWER(SendOnBehalf[DelegateKey])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        lineageTag: 7cfe8043-4242-5dbc-91ec-12b55e9e5d95
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'SendOnBehalf Snapshot Date' = CALCULATE(MAX(SendOnBehalf[RunDate]), ALLSELECTED(SendOnBehalf), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 0c3b08d6-c62c-5a93-98da-73a6f789f94c
+
+    /// One row per delegate in GrantSendOnBehalfTo.
+    measure 'Send On Behalf Grants' = 
+            VAR Snap = [SendOnBehalf Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(SendOnBehalf), SendOnBehalf[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 6f8fbd15-b285-5848-aff4-a64d0500310b
+
+    measure 'Mailboxes With Send On Behalf' = 
+            VAR Snap = [SendOnBehalf Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(SendOnBehalf[ExternalDirectoryObjectId]), SendOnBehalf[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 2975907f-c604-52cc-83ae-dcd669698210
+
+    measure 'Send On Behalf Delegates' = 
+            VAR Snap = [SendOnBehalf Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(SendOnBehalf[DelegateKey]), SendOnBehalf[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 9cbbd738-36e4-5568-ad00-c48875ae021f
+
+    /// A stable pseudonym when Anonymize is selected.
+    measure 'Send On Behalf Delegate (Display)' = 
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = SELECTEDVALUE(SendOnBehalf[Delegate])
+            VAR Pseudo = SELECTEDVALUE(SendOnBehalf[DelegatePseudonym])
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 1db5a41b-d8b3-54f2-b088-6d4b80ba4e11
+
+    partition SendOnBehalf = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\send-on-behalf.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
