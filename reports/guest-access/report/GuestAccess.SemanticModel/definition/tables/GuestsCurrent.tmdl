@@ -65,7 +65,7 @@ table GuestsCurrent
         sourceColumn: ExternalUserStateChangeDateTime
 
     column AccountEnabled
-        dataType: logical
+        dataType: boolean
         lineageTag: defcf43c-396c-51ce-be92-861459ad4d06
         summarizeBy: none
         sourceColumn: AccountEnabled
@@ -92,10 +92,10 @@ table GuestsCurrent
         sourceColumn: LastSuccessfulSignInDateTime
 
     column PseudonymNumber = 
-        VAR IdText = GuestsCurrent[Id]
-        VAR CharCount = LEN(IdText)
-        VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
-        RETURN MOD(HashSeed, 9000) + 1000
+            VAR IdText = GuestsCurrent[Id]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+            RETURN MOD(HashSeed, 9000) + 1000
         dataType: int64
         formatString: 0000
         lineageTag: d6efc5c7-8af8-5cb6-8131-4dd9e6c2759d
