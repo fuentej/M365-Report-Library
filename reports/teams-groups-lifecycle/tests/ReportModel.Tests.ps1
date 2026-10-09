@@ -377,6 +377,20 @@ Describe 'Empty values are Unknown, never zero' {
         $tmdl | Should -Match ([regex]::Escape('NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] >= 0, Groups[DaysToExpiry] <= 30'))
     }
 
+    It 'classifies a soft-deleted group by whether groupTypes contains Unified' {
+        # groupTypes is a collection. A dynamic Microsoft 365 group is Unified plus
+        # DynamicMembership, joined with ";" in the CSV. Equality with "Unified" calls
+        # that group a security group, and a dynamic security group (DynamicMembership
+        # only) matches neither an empty list nor "Unified", so both cards drop it.
+        # https://learn.microsoft.com/graph/api/resources/group
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'DeletedGroups.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified")'))
+        $tmdl | Should -Match ([regex]::Escape('CONTAINSSTRING(DeletedGroups[GroupTypes], "Unified")'))
+        $tmdl | Should -Match ([regex]::Escape('NOT CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified")'))
+        $tmdl | Should -Not -Match 'GroupTypes\] = "Unified"'
+        $tmdl | Should -Not -Match 'ISBLANK\(DeletedGroups\[GroupTypes\]\)'
+    }
+
     It 'treats an owner missing from users.csv as unknown, not enabled' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GroupOwners.tmdl') -Raw
         $tmdl | Should -Match 'IF\(ISBLANK\(Enabled\), "Unknown"'

@@ -71,8 +71,10 @@ table DeletedGroups
         summarizeBy: none
         sourceColumn: IsTeam
 
-    /// GroupTypes is Unified for a Microsoft 365 group and empty for a security group.
-    column DeletedKind = IF(DeletedGroups[GroupTypes] = "Unified", "Microsoft 365 group", "Security group")
+    /// Microsoft 365 when groupTypes contains Unified. A dynamic Microsoft 365 group is
+    /// "Unified;DynamicMembership", not the single token Unified. Anything without Unified
+    /// is a security group, including an empty list and DynamicMembership alone.
+    column DeletedKind = IF(CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified"), "Microsoft 365 group", "Security group")
         dataType: string
         lineageTag: 7cd46b18-6719-5148-a986-7b5b650a883d
         summarizeBy: none
@@ -112,13 +114,13 @@ table DeletedGroups
 
     measure 'Soft-Deleted Microsoft 365 Groups' = 
             VAR SnapshotDate = [Selected Snapshot Date]
-            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[GroupTypes] = "Unified")
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, CONTAINSSTRING(DeletedGroups[GroupTypes], "Unified"))
         formatString: #,0
         lineageTag: f8e2d0da-fdb6-5544-98cd-a0067677784f
 
     measure 'Soft-Deleted Security Groups' = 
             VAR SnapshotDate = [Selected Snapshot Date]
-            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, ISBLANK(DeletedGroups[GroupTypes]))
+            RETURN CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT CONTAINSSTRING(DeletedGroups[GroupTypes] & "", "Unified"))
         formatString: #,0
         lineageTag: 03281b9b-6b41-5855-8fa4-aeae6044fafd
 
