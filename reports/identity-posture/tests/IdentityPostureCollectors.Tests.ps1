@@ -87,8 +87,14 @@ BeforeAll {
                 }
             }
             GrantControls    = [pscustomobject]@{
-                Operator        = 'OR'
-                BuiltInControls = @('block')
+                Operator                    = 'OR'
+                BuiltInControls             = @('block')
+                CustomAuthenticationFactors = @()
+                TermsOfUse                  = @('tos-1')
+                AuthenticationStrength      = [pscustomobject]@{
+                    DisplayName = 'Phishing-resistant MFA'
+                    Id          = 'strength-1'
+                }
             }
         }
     }
@@ -308,6 +314,17 @@ Describe 'Each connection targets the endpoints of its -Environment' {
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains $wanted -and $Scopes -contains 'Directory.Read.All' }
     }
 
+    It 'reads sign-ins with AuditLog.Read.All and does not request Policy.Read.All' {
+        # conditionalAccessStatus is on the sign-in. Policy.Read.All is only for
+        # appliedConditionalAccessPolicies, which this collector does not read.
+        # https://learn.microsoft.com/graph/api/resources/signin
+        Invoke-CollectorScript 'Get-LegacySignIns.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 }
+
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter {
+            $Scopes -contains 'AuditLog.Read.All' -and $Scopes -contains 'Directory.Read.All' -and $Scopes -notcontains 'Policy.Read.All'
+        }
+    }
+
     It 'signs in app-only without scopes when given a certificate' {
         Invoke-CollectorScript 'Get-RiskyUsers.ps1' @{
             OutputPath = $script:folder; AppId = 'app-1'; CertificateThumbprint = 'AB12'; TenantId = 'tenant-1'
@@ -509,6 +526,64 @@ Describe 'What each collector keeps' {
         $rows[0].SignInRiskLevels | Should -Be 'high'
         $rows[0].GrantOperator | Should -Be 'OR'
         $rows[0].BuiltInControls | Should -Be 'block'
+        $rows[0].TermsOfUse | Should -Be 'tos-1'
+        $rows[0].AuthenticationStrength | Should -Be 'Phishing-resistant MFA'
+    }
+
+    It 'keeps authentication strength when built-in controls are empty' {
+        # grantControls.authenticationStrength is a nested object. The SDK often
+        # leaves it in AdditionalProperties under the camelCase Graph names.
+        # https://learn.microsoft.com/graph/api/resources/conditionalaccessgrantcontrols
+        Mock Get-MgIdentityConditionalAccessPolicy -MockWith {
+            [pscustomobject]@{
+                Id                   = 'strength-only'
+                DisplayName          = 'Phishing-resistant MFA'
+                State                = 'enabled'
+                CreatedDateTime      = [datetime]'2025-05-01T12:00:00Z'
+                ModifiedDateTime     = [datetime]'2026-07-15T12:00:00Z'
+                AdditionalProperties = @{
+                    conditions   = @{
+                        clientAppTypes   = @('all')
+                        signInRiskLevels = @()
+                        userRiskLevels   = @()
+                        applications     = @{ includeApplications = @('All'); excludeApplications = @() }
+                        users            = @{
+                            includeUsers  = @('All')
+                            excludeUsers  = @()
+                            includeGroups = @()
+                            excludeGroups = @()
+                            includeRoles  = @()
+                            excludeRoles  = @()
+                        }
+                    }
+                    grantControls = @{
+                        operator                    = 'OR'
+                        builtInControls             = @()
+                        customAuthenticationFactors = @('custom-factor-1')
+                        termsOfUse                  = @('tos-1')
+                        authenticationStrength      = @{
+                            id                     = '00000000-0000-0000-0000-000000000004'
+                            displayName            = 'Phishing-resistant MFA'
+                            description            = 'Phishing-resistant MFA'
+                            policyType             = 'builtIn'
+                            requirementsSatisfied  = 'mfa'
+                            allowedCombinations    = @('windowsHelloForBusiness')
+                            createdDateTime        = '2021-12-01T00:00:00Z'
+                            modifiedDateTime       = '2021-12-01T00:00:00Z'
+                        }
+                    }
+                }
+            }
+        }
+
+        Invoke-CollectorScript 'Get-ConditionalAccessPolicies.ps1' @{ OutputPath = $script:folder }
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'conditional-access-policies.csv')
+        $row.GrantOperator | Should -Be 'OR'
+        $row.BuiltInControls | Should -BeNullOrEmpty
+        $row.CustomAuthenticationFactors | Should -Be 'custom-factor-1'
+        $row.TermsOfUse | Should -Be 'tos-1'
+        $row.AuthenticationStrength | Should -Be 'Phishing-resistant MFA'
     }
 
     It 'keeps assignment type, member type and an empty end date for a permanent assignment' {

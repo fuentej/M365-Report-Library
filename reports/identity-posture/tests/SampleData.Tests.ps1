@@ -120,6 +120,17 @@ Describe 'The sample data uses the values the Learn pages document' {
         }
     }
 
+    It 'keeps each sign-in activity timestamp on or before its snapshot date' {
+        # A snapshot stamped RunDate cannot contain a later sign-in.
+        # https://learn.microsoft.com/graph/api/resources/signinactivity
+        foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples 'user-signin-activity.csv')) {
+            foreach ($column in 'LastSignInDateTime', 'LastNonInteractiveSignInDateTime', 'LastSuccessfulSignInDateTime') {
+                if ([string]::IsNullOrEmpty($row.$column)) { continue }
+                $row.$column.Substring(0, 10) -le $row.RunDate | Should -BeTrue
+            }
+        }
+    }
+
     It 'uses only the legacy clientAppUsed values' {
         foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples 'signins.csv')) {
             $script:Schema.LegacyClientAppValues | Should -Contain $row.ClientAppUsed

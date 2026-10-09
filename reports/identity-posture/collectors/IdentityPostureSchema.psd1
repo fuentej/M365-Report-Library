@@ -51,6 +51,12 @@
         'UserRiskLevels'
         'GrantOperator'
         'BuiltInControls'
+        'CustomAuthenticationFactors'
+        'TermsOfUse'
+        # displayName of grantControls.authenticationStrength. A policy can set this
+        # and leave builtInControls empty.
+        # https://learn.microsoft.com/graph/api/resources/conditionalaccessgrantcontrols
+        'AuthenticationStrength'
     )
 
     # Source 4a. AssignmentType is Assigned or Activated; MemberType is Inherited,
@@ -161,7 +167,10 @@
         EligibleRoleAssignments   = @('RoleEligibilitySchedule.Read.Directory')
         RoleAssignments           = @('RoleManagement.Read.Directory')
         UserSignInActivity        = @()
-        SignIns                   = @('Policy.Read.All')
+        # conditionalAccessStatus is on the sign-in. Policy.Read.All is only for
+        # appliedConditionalAccessPolicies, which this collector does not read.
+        # https://learn.microsoft.com/graph/api/resources/signin
+        SignIns                   = @()
         RiskyUsers                = @('IdentityRiskyUser.Read.All')
     }
 

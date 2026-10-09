@@ -78,7 +78,7 @@ an interactive sign-in; app-only sign-in uses the permissions granted to the app
 | `role-assignments.csv` | `RoleManagement.Read.Directory` | Directory Readers, Global Reader or Privileged Role Administrator |
 | `user-signin-activity.csv` | `User.Read.All` and `AuditLog.Read.All` | Reports Reader |
 | `risky-users.csv` | `IdentityRiskyUser.Read.All` | Global Reader, Security Operator, Security Reader or Security Administrator |
-| `signins.csv` | `AuditLog.Read.All`, and `Policy.Read.All` to read the Conditional Access result | Reports Reader (also Global Reader, Security Reader, Security Operator or Security Administrator) |
+| `signins.csv` | `AuditLog.Read.All` | Reports Reader (also Global Reader, Security Reader, Security Operator or Security Administrator) |
 
 A token that has only `AuditLog.Read.All` can intermittently fail with
 `Authentication_RequestFromNonPremiumTenantOrB2CTenant`, because reading the tenant licence
@@ -182,7 +182,7 @@ Disabled users are not returned by the API, so a "no MFA" count covers enabled u
 | `IncludeUsers`, `ExcludeUsers`, `IncludeGroups`, `ExcludeGroups`, `IncludeRoles`, `ExcludeRoles` | Who it targets (ids, `All`, `GuestsOrExternalUsers`) |
 | `IncludeApplications`, `ExcludeApplications` | The apps it targets |
 | `ClientAppTypes`, `SignInRiskLevels`, `UserRiskLevels` | Conditions |
-| `GrantOperator`, `BuiltInControls` | The grant controls (`OR`/`AND`; `mfa`, `block`, ...) |
+| `GrantOperator`, `BuiltInControls`, `CustomAuthenticationFactors`, `TermsOfUse`, `AuthenticationStrength` | Grant controls. `AuthenticationStrength` is the display name of `grantControls.authenticationStrength`. A policy can require a strength and leave `builtInControls` empty |
 
 A change shows as a difference between two `RunDate` blocks. The API records no one who made it.
 

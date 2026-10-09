@@ -86,7 +86,10 @@ Invoke-IdentityPostureSnapshot -Source 'ConditionalAccessPolicies' -CsvName 'con
             ClientAppTypes      = Join-ListValue (Get-GraphAdditionalProperty -Object $conditions -Name 'clientAppTypes')
             SignInRiskLevels    = Join-ListValue (Get-GraphAdditionalProperty -Object $conditions -Name 'signInRiskLevels')
             UserRiskLevels      = Join-ListValue (Get-GraphAdditionalProperty -Object $conditions -Name 'userRiskLevels')
-            GrantOperator       = [string](Get-GraphAdditionalProperty -Object $grant -Name 'operator')
-            BuiltInControls     = Join-ListValue (Get-GraphAdditionalProperty -Object $grant -Name 'builtInControls')
+            GrantOperator               = [string](Get-GraphAdditionalProperty -Object $grant -Name 'operator')
+            BuiltInControls             = Join-ListValue (Get-GraphAdditionalProperty -Object $grant -Name 'builtInControls')
+            CustomAuthenticationFactors = Join-ListValue (Get-GraphAdditionalProperty -Object $grant -Name 'customAuthenticationFactors')
+            TermsOfUse                  = Join-ListValue (Get-GraphAdditionalProperty -Object $grant -Name 'termsOfUse')
+            AuthenticationStrength      = [string](Get-GraphAdditionalProperty -Object (Get-GraphAdditionalProperty -Object $grant -Name 'authenticationStrength') -Name 'displayName')
         }
     }
