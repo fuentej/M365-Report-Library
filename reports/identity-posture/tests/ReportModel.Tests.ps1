@@ -261,8 +261,13 @@ Describe 'The header-only files of an unlicensed tenant still fit the model' {
     }
 
     It 'falls back to role-assignments.csv for active holders when PIM data is absent' {
+        # Source 4c replaces 4a only when the PIM schedule API was not collected.
+        # A slicer that merely excludes the PIM snapshot must not switch files.
+        # https://learn.microsoft.com/graph/api/rbacapplication-list-roleassignments
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'ActiveRoleAssignments.tmdl') -Raw
-        $tmdl | Should -Match ([regex]::Escape("IF(NOT ISBLANK([Active Assignments]), [Active Assignments], [Active Assignments (No PIM)])"))
+        $tmdl | Should -Match ([regex]::Escape('IF(NOT ISBLANK([Active Assignments]), [Active Assignments], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Assignments (No PIM)], BLANK()))'))
+        $tmdl | Should -Match ([regex]::Escape('IF(NOT ISBLANK([Active Role Holders]), [Active Role Holders], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Role Holders (No PIM)], BLANK()))'))
+        $tmdl | Should -Not -Match ([regex]::Escape('IF(NOT ISBLANK([Active Assignments]), [Active Assignments], [Active Assignments (No PIM)])'))
     }
 }
 

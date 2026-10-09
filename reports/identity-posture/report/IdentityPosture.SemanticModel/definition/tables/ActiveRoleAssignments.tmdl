@@ -107,16 +107,16 @@ table ActiveRoleAssignments
         formatString: #,0
         lineageTag: acf485dd-e4e1-5021-9a4f-ae4b691008dd
 
-    /// Falls back to role-assignments.csv when PIM schedule instances were not collected (no P2 or Governance licence).
-    measure 'Active Assignments (Effective)' = IF(NOT ISBLANK([Active Assignments]), [Active Assignments], [Active Assignments (No PIM)])
+    /// Falls back to role-assignments.csv only when the PIM file has no rows (not licensed). A date window with no PIM snapshot stays blank; it does not switch sources.
+    measure 'Active Assignments (Effective)' = IF(NOT ISBLANK([Active Assignments]), [Active Assignments], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Assignments (No PIM)], BLANK()))
         formatString: #,0
         lineageTag: 7faa8f52-8056-5b00-a284-d41b97571a1c
 
-    measure 'Active Role Holders (Effective)' = IF(NOT ISBLANK([Active Role Holders]), [Active Role Holders], [Active Role Holders (No PIM)])
+    measure 'Active Role Holders (Effective)' = IF(NOT ISBLANK([Active Role Holders]), [Active Role Holders], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Role Holders (No PIM)], BLANK()))
         formatString: #,0
         lineageTag: 5dfc3685-cc7e-5a30-bfce-61552c611c9b
 
-    measure 'Active Assignment Source' = IF(NOT ISBLANK([Active Assignments]), "PIM schedule instances (role-assignments-active.csv)", IF(NOT ISBLANK([Active Assignments (No PIM)]), "Role assignments, no PIM (role-assignments.csv)", "Not collected"))
+    measure 'Active Assignment Source' = IF(NOT ISBLANK([Active Assignments]), "PIM schedule instances (role-assignments-active.csv)", IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, IF(NOT ISBLANK([Active Assignments (No PIM)]), "Role assignments, no PIM (role-assignments.csv)", "Not collected"), "No PIM snapshot in the selected dates"))
         lineageTag: de962553-dc1f-5012-ac64-62186cc4a8d8
 
     partition ActiveRoleAssignments = m
