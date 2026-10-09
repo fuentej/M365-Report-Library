@@ -59,7 +59,9 @@ table GuestMembershipsCurrent
                 Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
                 #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsTeam", type logical}}),
                 Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "GuestId", "GroupId", "GroupDisplayName", "IsTeam", "Visibility"}),
-                LatestRunDate = List.Max(Selected[RunDate]),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
                 Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
             in
                 Latest

@@ -130,7 +130,9 @@ table GuestsCurrent
                 }),
                 #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
                 Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "Mail", "UserPrincipalName", "ExternalDomain", "CreatedDateTime", "CreationType", "ExternalUserState", "ExternalUserStateChangeDateTime", "AccountEnabled", "LastSignInDateTime", "LastNonInteractiveSignInDateTime", "LastSuccessfulSignInDateTime"}),
-                LatestRunDate = List.Max(Selected[RunDate]),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
                 Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
             in
                 Latest
