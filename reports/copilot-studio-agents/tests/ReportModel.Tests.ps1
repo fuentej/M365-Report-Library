@@ -268,6 +268,15 @@ Describe 'The inventory totals sit next to the returned counts' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Agents.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape('Agents[ListedConnectorOperationCount] < Agents[CapabilitiesDistinctConnectorOperations]'))
     }
+
+    It 'flags an agent whose listed connectors fall below the capabilitiesCounts total' {
+        # The inventory caps each resource type at a random 200. Connector rows are partial
+        # when either the connector count or the operation count is short of its total.
+        # https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#known-limitations
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Agents.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('Agents[ListedConnectorCount] < Agents[CapabilitiesDistinctConnectors]'))
+        $tmdl | Should -Match 'NOT ISBLANK\(Agents\[ConnectorRowsPartial\]\)'
+    }
 }
 
 Describe 'Empty values are Unknown, never zero' {

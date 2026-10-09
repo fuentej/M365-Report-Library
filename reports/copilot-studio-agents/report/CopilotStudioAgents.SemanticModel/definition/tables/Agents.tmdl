@@ -207,8 +207,13 @@ table Agents
         summarizeBy: none
         isDataTypeInferred: false
 
-    /// Listed below the capabilitiesCounts total: the inventory returned a random 200 of one resource type, so connector rows for this agent are partial.
-    column ConnectorRowsPartial = IF(ISBLANK(Agents[ListedConnectorOperationCount]) || ISBLANK(Agents[CapabilitiesDistinctConnectorOperations]), BLANK(), Agents[ListedConnectorOperationCount] < Agents[CapabilitiesDistinctConnectorOperations])
+    /// True when either listed count is below its capabilitiesCounts total. The inventory returns a random 200 of each resource type, so connectors and operations truncate independently. Blank when either pair was not returned: unknown, never "not partial".
+    column ConnectorRowsPartial = 
+            VAR ConnectorsKnown = NOT ISBLANK(Agents[ListedConnectorCount]) && NOT ISBLANK(Agents[CapabilitiesDistinctConnectors])
+            VAR OperationsKnown = NOT ISBLANK(Agents[ListedConnectorOperationCount]) && NOT ISBLANK(Agents[CapabilitiesDistinctConnectorOperations])
+            VAR ConnectorsPartial = ConnectorsKnown && Agents[ListedConnectorCount] < Agents[CapabilitiesDistinctConnectors]
+            VAR OperationsPartial = OperationsKnown && Agents[ListedConnectorOperationCount] < Agents[CapabilitiesDistinctConnectorOperations]
+            RETURN IF(ConnectorsPartial || OperationsPartial, TRUE(), IF(ConnectorsKnown && OperationsKnown, FALSE(), BLANK()))
         dataType: boolean
         lineageTag: 7cd91788-719c-5904-a413-b54b3f8140a8
         summarizeBy: none
@@ -329,7 +334,8 @@ table Agents
 
     measure 'Agents With Partial Connector Rows' = 
             VAR Snap = [Agents Snapshot Date]
-            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[ConnectorRowsPartial] = TRUE()) + 0)
+            VAR Known = CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, NOT ISBLANK(Agents[ConnectorRowsPartial]))
+            RETURN IF(ISBLANK(Snap) || Known = 0, BLANK(), CALCULATE(COUNTROWS(Agents), Agents[RunDate] = Snap, Agents[ConnectorRowsPartial] = TRUE()) + 0)
         formatString: #,0
         lineageTag: a6071cb8-1cb9-58d6-8fc8-1635a63a94a6
 
