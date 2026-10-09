@@ -76,3 +76,22 @@ function global:Get-MgServicePrincipalAppRoleAssignedTo {
     param([string]$ServicePrincipalId, [switch]$All)
     throw 'Get-MgServicePrincipalAppRoleAssignedTo was called for real. Mock it in the test.'
 }
+
+# Replaces the shared stub. Search-UnifiedAuditLog -Formatted is what turns RecordType
+# into a display name. Parameter binding happens before a Pester mock runs.
+# https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+function global:Search-UnifiedAuditLog {
+    [CmdletBinding()]
+    param(
+        [datetime]$StartDate,
+        [datetime]$EndDate,
+        [string[]]$Operations,
+        [string[]]$RecordType,
+        [string[]]$UserIds,
+        [string]$SessionId,
+        [string]$SessionCommand,
+        [object]$ResultSize,
+        [switch]$Formatted
+    )
+    throw 'Search-UnifiedAuditLog was called for real. Mock it in the test.'
+}

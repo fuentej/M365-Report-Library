@@ -109,11 +109,11 @@ try {
     try {
         $watermark = Get-CsvWatermark -Path $csvPath -Column 'CreationTime'
 
-        $start = if ($PSBoundParameters.ContainsKey('StartDate')) { $StartDate.ToUniversalTime() }
-        elseif ($null -ne $watermark) { $watermark }
-        else { [datetime]::UtcNow.AddDays(-$LookbackDays) }
+        $start = if ($PSBoundParameters.ContainsKey('StartDate')) { ConvertTo-AuditQueryDate $StartDate }
+        elseif ($null -ne $watermark) { ConvertTo-AuditQueryDate $watermark }
+        else { ConvertTo-AuditQueryDate ([datetime]::UtcNow.AddDays(-$LookbackDays)) }
 
-        $end = if ($PSBoundParameters.ContainsKey('EndDate')) { $EndDate.ToUniversalTime() } else { [datetime]::UtcNow }
+        $end = if ($PSBoundParameters.ContainsKey('EndDate')) { ConvertTo-AuditQueryDate $EndDate } else { ConvertTo-AuditQueryDate ([datetime]::UtcNow) }
 
         if ($end -le $start) {
             if ($PSBoundParameters.ContainsKey('StartDate') -or $PSBoundParameters.ContainsKey('EndDate')) {

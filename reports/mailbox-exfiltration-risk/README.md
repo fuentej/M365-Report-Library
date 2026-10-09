@@ -144,7 +144,9 @@ Online in GCC High uses `-ExchangeEnvironmentName O365USGovGCCHigh`
 Or one collector at a time, for example `./collectors/Get-MailboxForwarding.ps1 -OutputPath ./out`.
 The per-mailbox collectors (`Get-InboxRules.ps1`, `Get-MailboxFullAccess.ps1`) make one call per mailbox;
 `-MailboxLimit` reads only the first N for a trial run. The audit-event collectors take `-StartDate`,
-`-EndDate` (UTC), `-LookbackDays` (first run, default 90) and `-WindowHours` (default 24).
+`-EndDate` (UTC; a value with no time zone is midnight UTC), `-LookbackDays` (first run, default 90)
+and `-WindowHours` (default 24). The search uses `-Formatted`, so `RecordType` is a display name such
+as `ExchangeAdmin`.
 
 ## The CSVs
 

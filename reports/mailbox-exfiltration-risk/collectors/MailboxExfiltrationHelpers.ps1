@@ -285,6 +285,26 @@ function Test-AuditSearchHasMoreRecords {
     return $false
 }
 
+function ConvertTo-AuditQueryDate {
+    <#
+        .SYNOPSIS
+            A Search-UnifiedAuditLog date in UTC.
+
+        .DESCRIPTION
+            -StartDate and -EndDate are stored in UTC. A value with no time zone is
+            midnight UTC; converting it from the machine's local zone would shift the window.
+            https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+    #>
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param([Parameter(Mandatory)][datetime]$Value)
+
+    if ($Value.Kind -eq [DateTimeKind]::Unspecified) {
+        return [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
+    }
+    return $Value.ToUniversalTime()
+}
+
 function Invoke-AuditSearch {
     <#
         .SYNOPSIS
@@ -336,6 +356,10 @@ function Invoke-AuditSearch {
                 SessionId      = $sessionId
                 SessionCommand = 'ReturnLargeSet'
                 ResultSize     = $pageSize
+                # Without -Formatted, RecordType is an integer. The samples and the
+                # activities page use the display name, such as ExchangeAdmin.
+                # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+                Formatted      = $true
                 ErrorAction    = 'Stop'
             }
             if ($Operation) { $search['Operations'] = $Operation }
