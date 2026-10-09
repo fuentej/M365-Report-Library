@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "DateDim"
+                      "Entity": "AgentAuditEvents"
                     }
                   },
-                  "Property": "Date"
+                  "Property": "ActivityDate"
                 }
               },
-              "queryRef": "DateDim.Date"
+              "queryRef": "AgentAuditEvents.ActivityDate"
             }
           ]
         },

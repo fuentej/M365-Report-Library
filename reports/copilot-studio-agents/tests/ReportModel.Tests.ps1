@@ -399,4 +399,14 @@ Describe 'The pages say what the data cannot show' {
         $path = Join-Path $script:PagesFolder 'ownership/visuals/table-agents/visual.json'
         (Get-Content -LiteralPath $path -Raw) | Should -Match 'missing owner cannot be detected'
     }
+
+    It 'plots audit events on the days they occurred' {
+        # A DateDim axis evaluates the measure for every calendar day. COUNTROWS is blank
+        # on a day with no rows, and blank plus zero is zero, so the line would plot a
+        # zero for each day from 2020 through 2035.
+        $path = Join-Path $script:PagesFolder 'lifecycle/visuals/line-audit-over-time/visual.json'
+        $text = Get-Content -LiteralPath $path -Raw
+        $text | Should -Match 'AgentAuditEvents.ActivityDate'
+        $text | Should -Not -Match 'DateDim.Date'
+    }
 }
