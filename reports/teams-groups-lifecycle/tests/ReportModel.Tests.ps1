@@ -244,15 +244,43 @@ Describe 'Relationships join columns that exist, many side first' {
         $toDate | Should -Contain 'DeletedGroups'
         $toDate | Should -Contain 'GroupLifecyclePolicies'
         $toDate | Should -Contain 'GroupCreationEvents'
+        # Usage reports include groups that were deleted during the period. Those
+        # rows are not in groups.csv, so the date slicer has to reach them directly.
+        # https://learn.microsoft.com/graph/api/reportroot-getoffice365groupsactivitydetail
+        $toDate | Should -Contain 'TeamActivity'
+        $toDate | Should -Contain 'GroupActivity'
     }
 
     It 'puts the many side in fromColumn: a snapshot child points at the one Groups row' {
-        foreach ($child in 'GroupOwners', 'GroupLifecycleCoverage', 'TeamActivity', 'GroupActivity', 'TeamArchiveStatus') {
+        foreach ($child in 'GroupOwners', 'GroupLifecycleCoverage', 'TeamArchiveStatus') {
             $script:Relationships | Where-Object { $_.From -eq "$child.SnapshotKey" -and $_.To -eq 'Groups.SnapshotKey' } |
                 Should -Not -BeNullOrEmpty -Because $child
         }
         $script:Relationships | Where-Object { $_.From -like 'DateDim.*' -or $_.From -like '*Current.*' } |
             Should -BeNullOrEmpty -Because 'DateDim and the Current tables are the one side'
+    }
+
+    It 'does not drop a usage-report row whose id is absent from groups.csv' {
+        # Joining activity to Groups[SnapshotKey] makes the date slicer an inner join:
+        # a deleted group that still has a usage row disappears as soon as a date is selected.
+        foreach ($pair in @(
+                @{ From = 'TeamActivity.SnapshotKey'; To = 'Groups.SnapshotKey' }
+                @{ From = 'GroupActivity.SnapshotKey'; To = 'Groups.SnapshotKey' }
+            )) {
+            $script:Relationships | Where-Object { $_.From -eq $pair.From -and $_.To -eq $pair.To } |
+                Should -BeNullOrEmpty -Because $pair.From
+        }
+
+        $script:Relationships | Where-Object { $_.From -eq 'TeamActivity.TeamId' -and $_.To -eq 'GroupsCurrent.Id' } |
+            Should -Not -BeNullOrEmpty
+        $script:Relationships | Where-Object { $_.From -eq 'GroupActivity.GroupId' -and $_.To -eq 'GroupsCurrent.Id' } |
+            Should -Not -BeNullOrEmpty
+
+        foreach ($table in 'TeamActivity', 'GroupActivity') {
+            $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$table.tmdl") -Raw
+            $tmdl | Should -Not -Match '\[Selected Snapshot Date\]' -Because "$table must use its own RunDate"
+            $tmdl | Should -Match ([regex]::Escape("CALCULATE(MAX($table[RunDate]), ALLSELECTED($table))")) -Because $table
+        }
     }
 }
 

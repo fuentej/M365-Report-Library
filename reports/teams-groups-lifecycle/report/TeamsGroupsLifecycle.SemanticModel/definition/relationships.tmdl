@@ -18,13 +18,21 @@ relationship 48d1c5f4-93eb-54c4-9a9a-7064a1eec9d8
     fromColumn: GroupLifecycleCoverage.SnapshotKey
     toColumn: Groups.SnapshotKey
 
-relationship af6aa62a-ad27-5d99-bc2a-90e625eb2057
-    fromColumn: TeamActivity.SnapshotKey
-    toColumn: Groups.SnapshotKey
+relationship 60009933-ed2e-49e5-b0ea-5ef9ef47328a
+    fromColumn: TeamActivity.RunDate
+    toColumn: DateDim.Date
 
-relationship 05021b1f-874f-5b03-81e5-2a82bd17f297
-    fromColumn: GroupActivity.SnapshotKey
-    toColumn: Groups.SnapshotKey
+relationship a980ae21-82a3-42d8-a271-697b850108b6
+    fromColumn: GroupActivity.RunDate
+    toColumn: DateDim.Date
+
+relationship 1dc219c4-5197-4a69-929c-452056f7ed03
+    fromColumn: TeamActivity.TeamId
+    toColumn: GroupsCurrent.Id
+
+relationship 7fd2ae10-94ca-4b90-9046-64b21493219f
+    fromColumn: GroupActivity.GroupId
+    toColumn: GroupsCurrent.Id
 
 relationship 18fd1ffe-73d2-5adc-88e4-6db80c5d5848
     fromColumn: TeamArchiveStatus.SnapshotKey

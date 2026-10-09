@@ -147,14 +147,14 @@ table GroupActivity
         isDataTypeInferred: false
 
     measure 'Groups (Activity Snapshot)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             RETURN CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
         formatString: #,0
         lineageTag: ebcd22d2-1d16-5faf-baf2-6d3ce78ffb46
 
     /// Blank when the snapshot has no group-activity.csv rows (the usage report is not available in GCC High).
     measure 'Groups Reported (Activity)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             RETURN IF(Reported = 0, BLANK(), Matching)
@@ -162,7 +162,7 @@ table GroupActivity
         lineageTag: 58f46dde-1abf-5391-b972-c3e70d3675e3
 
     measure 'Inactive Groups (90+ Days)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate, NOT ISBLANK(GroupActivity[DaysSinceLastActivity]), GroupActivity[DaysSinceLastActivity] >= 90)
             RETURN IF(Reported = 0, BLANK(), Matching)
@@ -171,7 +171,7 @@ table GroupActivity
 
     /// Empty LastActivityDate is Unknown, not zero days.
     measure 'Groups With Unknown Last Activity' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             VAR Reported = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             VAR Matching = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate, ISBLANK(GroupActivity[LastActivityDate]))
             RETURN IF(Reported = 0, BLANK(), Matching)
@@ -179,14 +179,14 @@ table GroupActivity
         lineageTag: c1ed92b5-8537-5087-b9c9-84fb3c6da63c
 
     measure 'Group Last Activity' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             VAR Last = CALCULATE(MAX(GroupActivity[LastActivityDate]), GroupActivity[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Last), "Unknown", FORMAT(Last, "yyyy-MM-dd")))
         lineageTag: f2f91e7b-ee3d-585e-b082-17f1367ae20d
 
     measure 'Group Days Inactive (Display)' = 
-            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR SnapshotDate = CALCULATE(MAX(GroupActivity[RunDate]), ALLSELECTED(GroupActivity))
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupActivity), GroupActivity[RunDate] = SnapshotDate)
             VAR Days = CALCULATE(MAX(GroupActivity[DaysSinceLastActivity]), GroupActivity[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0, "No activity row", IF(ISBLANK(Days), "Unknown", FORMAT(Days, "#,0") & " days"))
