@@ -119,6 +119,24 @@ table UsersCurrent
     partition UsersCurrent = calculated
         mode: import
         source =
-            FILTER(Users, Users[RunDate] = MAX(Users[RunDate]))
+            VAR LatestRun = MAX(Users[RunDate])
+            RETURN
+                SELECTCOLUMNS(
+                    FILTER(Users, Users[RunDate] = LatestRun),
+                    "RunDate", Users[RunDate],
+                    "Id", Users[Id],
+                    "DisplayName", Users[DisplayName],
+                    "UserPrincipalName", Users[UserPrincipalName],
+                    "Mail", Users[Mail],
+                    "UserType", Users[UserType],
+                    "AccountEnabled", Users[AccountEnabled],
+                    "CreatedDateTime", Users[CreatedDateTime],
+                    "Department", Users[Department],
+                    "JobTitle", Users[JobTitle],
+                    "City", Users[City],
+                    "Country", Users[Country],
+                    "ManagerId", Users[ManagerId],
+                    "ManagerUserPrincipalName", Users[ManagerUserPrincipalName]
+                )
 
     annotation PBI_ResultType = Table

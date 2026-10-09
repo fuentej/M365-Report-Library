@@ -107,6 +107,26 @@ table GuestsCurrent
     partition GuestsCurrent = calculated
         mode: import
         source =
-            FILTER(Guests, Guests[RunDate] = MAX(Guests[RunDate]))
+            VAR LatestRun = MAX(Guests[RunDate])
+            RETURN
+                SELECTCOLUMNS(
+                    FILTER(Guests, Guests[RunDate] = LatestRun),
+                    "RunDate", Guests[RunDate],
+                    "Id", Guests[Id],
+                    "DisplayName", Guests[DisplayName],
+                    "Mail", Guests[Mail],
+                    "UserPrincipalName", Guests[UserPrincipalName],
+                    "ExternalDomain", Guests[ExternalDomain],
+                    "CreatedDateTime", Guests[CreatedDateTime],
+                    "CreationType", Guests[CreationType],
+                    "ExternalUserState", Guests[ExternalUserState],
+                    "ExternalUserStateChangeDateTime", Guests[ExternalUserStateChangeDateTime],
+                    "AccountEnabled", Guests[AccountEnabled],
+                    "LastSignInDateTime", Guests[LastSignInDateTime],
+                    "LastNonInteractiveSignInDateTime", Guests[LastNonInteractiveSignInDateTime],
+                    "LastSuccessfulSignInDateTime", Guests[LastSuccessfulSignInDateTime],
+                    "PseudonymNumber", Guests[PseudonymNumber],
+                    "Pseudonym", Guests[Pseudonym]
+                )
 
     annotation PBI_ResultType = Table
