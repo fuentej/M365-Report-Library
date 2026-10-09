@@ -11,7 +11,14 @@
     Calculated columns added on top of the table (declared with `= <expr>`) are
     not part of the expression output and are ignored here.
 
+    Each declared column binds to an output column through sourceColumn, and the
+    expression names its outputs `[Alias]`. Desktop writes these columns as
+    `isNameInferred` plus `sourceColumn: [Alias]`. A bare `sourceColumn: Alias`
+    names no output column. That leaves the declared column unbound, which is the
+    BRO-347 load error.
+
     https://learn.microsoft.com/analysis-services/tabular-models/create-a-calculated-table-ssas-tabular
+    https://learn.microsoft.com/dotnet/api/microsoft.analysisservices.tabular.calculatedtablecolumn.isnameinferred
 #>
 
 BeforeAll {
@@ -28,10 +35,21 @@ BeforeAll {
         $text = $Line -join "`n"
         if ($text -notmatch '(?m)^    partition\s+.+=\s*calculated\s*$') { return , @() }
 
-        $declared = @(
-            [regex]::Matches($text, '(?m)^    column\s+(\S+)\s*$\n(?:(?!^    \S).*\n?)*?^        sourceColumn:\s*(\S+)\s*$') |
-                ForEach-Object { $_.Groups[2].Value }
-        )
+        $blocks = @([regex]::Matches($text, '(?m)^    column\s+(\S+)\s*$\n(?:(?!^    \S).*\n?)*?^        sourceColumn:\s*(\S+)\s*$'))
+        $problems = [System.Collections.Generic.List[string]]::new()
+        $declared = foreach ($block in $blocks) {
+            $source = $block.Groups[2].Value
+            if ($source -notmatch '^\[(?<alias>[^\]]+)\]$') {
+                $problems.Add("$($block.Groups[1].Value): sourceColumn '$source' is not the bracketed output name '[...]'")
+                continue
+            }
+            $alias = $Matches['alias']
+            if ($block.Value -notmatch '(?m)^        isNameInferred\s*$') {
+                $problems.Add("$($block.Groups[1].Value): missing isNameInferred")
+            }
+            $alias
+        }
+        $declared = @($declared)
 
         $source = ($text -split '(?m)^        source =\s*$\n', 2)[1]
         if (-not $source -or $source -notmatch 'SELECTCOLUMNS\(') {
@@ -39,7 +57,6 @@ BeforeAll {
         }
         $produced = @([regex]::Matches($source, '(?m)^\s+"([^"]+)",\s') | ForEach-Object { $_.Groups[1].Value })
 
-        $problems = [System.Collections.Generic.List[string]]::new()
         foreach ($name in $declared | Where-Object { $_ -notin $produced }) { $problems.Add("declared but not produced: $name") }
         foreach ($name in $produced | Where-Object { $_ -notin $declared }) { $problems.Add("produced but not declared: $name") }
         foreach ($name in $declared | Group-Object | Where-Object Count -gt 1) { $problems.Add("declared twice: $($name.Name)") }
@@ -74,9 +91,23 @@ Describe 'Calculated table columns match their SELECTCOLUMNS output' {
 
     It 'fails on a copy that declares a column the expression does not output' {
         $lines = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GuestsCurrent.tmdl')
-        $broken = $lines -join "`n" -replace '(?m)^    partition', "    column DaysSinceCreated`n        dataType: int64`n        sourceColumn: DaysSinceCreated`n`n    partition"
+        $broken = $lines -join "`n" -replace '(?m)^    partition', "    column DaysSinceCreated`n        dataType: int64`n        isNameInferred`n        sourceColumn: [DaysSinceCreated]`n`n    partition"
         $problems = Get-CalculatedTableColumnMismatch -Line ($broken -split "`n")
         $problems | Should -Contain 'declared but not produced: DaysSinceCreated'
+    }
+
+    It 'fails on a copy that uses a bare sourceColumn name' {
+        $lines = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GuestsCurrent.tmdl')
+        $broken = $lines -join "`n" -replace 'sourceColumn: \[Id\]', 'sourceColumn: Id'
+        $problems = Get-CalculatedTableColumnMismatch -Line ($broken -split "`n")
+        $problems | Should -Contain "Id: sourceColumn 'Id' is not the bracketed output name '[...]'"
+    }
+
+    It 'fails on a copy without isNameInferred' {
+        $lines = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'GuestsCurrent.tmdl')
+        $broken = $lines -join "`n" -replace '(?m)^        isNameInferred\n(        sourceColumn: \[Id\])', '$1'
+        $problems = Get-CalculatedTableColumnMismatch -Line ($broken -split "`n")
+        $problems | Should -Contain 'Id: missing isNameInferred'
     }
 
     It 'fails on a copy that goes back to a bare FILTER' {

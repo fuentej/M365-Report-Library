@@ -6,43 +6,50 @@ table GuestMembershipsCurrent
         formatString: Short Date
         lineageTag: 3d03e7b9-1d15-5b30-821a-5f07c3f305f8
         summarizeBy: none
-        sourceColumn: RunDate
+        isNameInferred
+        sourceColumn: [RunDate]
 
     column GuestId
         dataType: string
         lineageTag: 7fedc43f-af6f-5120-8878-59a0ea43a6de
         summarizeBy: none
-        sourceColumn: GuestId
+        isNameInferred
+        sourceColumn: [GuestId]
 
     column GroupId
         dataType: string
         lineageTag: c30a4eb0-d104-553a-b320-df4834d240ef
         summarizeBy: none
-        sourceColumn: GroupId
+        isNameInferred
+        sourceColumn: [GroupId]
 
     column GroupDisplayName
         dataType: string
         lineageTag: 53b6d3c5-d2c7-596b-9e96-2b17ab2d7809
         summarizeBy: none
-        sourceColumn: GroupDisplayName
+        isNameInferred
+        sourceColumn: [GroupDisplayName]
 
     column IsTeam
         dataType: boolean
         lineageTag: 17096ec5-e652-53c8-8b47-93dbbff108bc
         summarizeBy: none
-        sourceColumn: IsTeam
+        isNameInferred
+        sourceColumn: [IsTeam]
 
     column Visibility
         dataType: string
         lineageTag: f08d8d7d-b333-5e93-b1f6-a3afbbcc85e5
         summarizeBy: none
-        sourceColumn: Visibility
+        isNameInferred
+        sourceColumn: [Visibility]
 
     column IsTeamLabel
         dataType: string
         lineageTag: d1aa69dd-e3d9-57a5-939a-93ef4c621b9e
         summarizeBy: none
-        sourceColumn: IsTeamLabel
+        isNameInferred
+        sourceColumn: [IsTeamLabel]
 
     /// Group/Team memberships in the latest guest-memberships.csv snapshot.
     measure 'Current Membership Count' = COUNTROWS(GuestMembershipsCurrent)
