@@ -276,7 +276,14 @@ Describe 'No Graph request uses a method other than GET' {
     It 'reaches no service through a raw HTTP call' {
         # Invoke-RestMethod and friends would slip past the verb rule above, so they are
         # not allowed in the library at all.
+        #
+        # One exception: the Copilot Studio agents report reads the Power Platform
+        # inventory API and the Dataverse Web API, neither of which has a PowerShell
+        # cmdlet. Its helper file is exempt here and held to a stricter rule in
+        # reports/copilot-studio-agents/tests/ReadOnly.Tests.ps1 (GET everywhere, and one
+        # POST that carries an inventory query specification).
         $offenders = $script:Calls |
+            Where-Object { (Split-Path $_.Path -Leaf) -ne 'CopilotStudioHelpers.ps1' } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 
