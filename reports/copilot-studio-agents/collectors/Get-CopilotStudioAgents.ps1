@@ -92,8 +92,8 @@ if ($null -eq $apiBase) {
 
 try {
     $token = Get-DelegatedAccessToken -ResourceUrl $apiBase -Environment $Environment -TenantId $TenantId -SkipConnect:$SkipConnect
-    $items = @(Invoke-InventoryQuery -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
-            -Clauses (New-InventoryTypeClause -Type 'microsoft.copilotstudio/agents'))
+    $read = Invoke-InventoryRead -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
+        -Clauses (New-InventoryTypeClause -Type 'microsoft.copilotstudio/agents')
 }
 catch {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
@@ -101,6 +101,8 @@ catch {
     Export-AppendCsv -Path $csvPath -Column $columns
     return
 }
+
+$items = @($read.Items)
 
 $rows = foreach ($item in $items) {
     $connectors = @(Get-JsonValue $item 'properties.powerPlatformConnectors')
@@ -111,8 +113,7 @@ $rows = foreach ($item in $items) {
     }
 
     $lastPublished = Get-JsonValue $item 'properties.lastPublishedAt'
-    $agentId = Get-JsonValue $item 'properties.botId'
-    if ([string]::IsNullOrWhiteSpace([string]$agentId)) { $agentId = $item.name }
+    $agentId = Get-InventoryAgentId -Item $item
 
     [pscustomobject]@{
         RunDate                                 = $runDate
@@ -147,6 +148,11 @@ $rows = foreach ($item in $items) {
 
 $rowList = @($rows)
 $result = Export-AppendCsv -Path $csvPath -Rows $rowList -Column $columns -KeyColumn @('RunDate', 'EnvironmentId', 'AgentId') -PassThru
+if (-not [string]::IsNullOrWhiteSpace($read.PagingError)) {
+    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+        'agents.csv: wrote {0} row(s) already read, then stopped. The snapshot is incomplete. {1}' -f $result.Written, $read.PagingError)
+    throw $read.PagingError
+}
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'agents.csv: {0} rows written, {1} skipped.' -f $result.Written, $result.Skipped)
 

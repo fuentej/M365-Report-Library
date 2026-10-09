@@ -86,8 +86,8 @@ if ($null -eq $apiBase) {
 
 try {
     $token = Get-DelegatedAccessToken -ResourceUrl $apiBase -Environment $Environment -TenantId $TenantId -SkipConnect:$SkipConnect
-    $items = @(Invoke-InventoryQuery -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
-            -Clauses (New-InventoryTypeClause -Type 'microsoft.powerplatform/environments'))
+    $read = Invoke-InventoryRead -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
+        -Clauses (New-InventoryTypeClause -Type 'microsoft.powerplatform/environments')
 }
 catch {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
@@ -95,6 +95,8 @@ catch {
     Export-AppendCsv -Path $csvPath -Column $columns
     return
 }
+
+$items = @($read.Items)
 
 $rows = foreach ($item in $items) {
     [pscustomobject]@{
@@ -110,5 +112,10 @@ $rows = foreach ($item in $items) {
 }
 
 $result = Export-AppendCsv -Path $csvPath -Rows @($rows) -Column $columns -KeyColumn @('RunDate', 'EnvironmentId') -PassThru
+if (-not [string]::IsNullOrWhiteSpace($read.PagingError)) {
+    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+        'environments.csv: wrote {0} row(s) already read, then stopped. The snapshot is incomplete. {1}' -f $result.Written, $read.PagingError)
+    throw $read.PagingError
+}
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'environments.csv: {0} rows written, {1} skipped.' -f $result.Written, $result.Skipped)

@@ -153,7 +153,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | Column | Meaning |
 | --- | --- |
 | `RunDate`, `EnvironmentId` | As above |
-| `AgentId` | The bot id (`properties.botId`) |
+| `AgentId` | The CDS bot id (`properties.name`). `properties.botId` is the same id when the Entra identity block is present; Agent Builder agents leave that block empty |
 | `DisplayName` | Agent name |
 | `Harness` | Harness type, such as `Standard` |
 | `CreatedIn` | Copilot Studio or Microsoft Copilot Agent Builder |
@@ -181,7 +181,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `UsedAs` | `Tool`, `Topic Tool` or `Knowledge` |
 | `IsEnabled`, `RequiresEndUserConsent` | Operation settings |
 | `WhenCanBeUsed` | `Anytime`, `ViaDirectReferenceOnly` or `Conditional` |
-| `ConnectionProvider` | `User` or `Maker` |
+| `ConnectionProvider` | `User` or `Maker`. A connector returned with an empty `operations` array (tabular connectors such as SharePoint) is still one row, with the operation columns empty |
 
 ### `agent-components.csv` — snapshot
 

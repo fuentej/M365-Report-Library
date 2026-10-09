@@ -351,14 +351,45 @@ Describe 'Power Platform inventory collectors' {
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'agents.csv')).AgentId | Should -Be @('agent-1', 'agent-2', 'agent-3')
     }
 
-    It 'stops when the same SkipToken comes back twice' {
-        Mock Invoke-RestMethod -MockWith { New-InventoryResponse -Data @((New-MockAgentItem)) -SkipToken 'stuck' -ResultTruncated 1 }
+    It 'stops when the same SkipToken comes back twice, keeps the rows already read, and fails the run' {
+        Mock Invoke-RestMethod -MockWith { New-InventoryResponse -Data @((New-MockAgentItem -Name 'agent-kept')) -SkipToken 'stuck' -ResultTruncated 1 }
+
+        { Invoke-CollectorScript 'Get-CopilotStudioAgents.ps1' @{ OutputPath = $script:folder; WarningAction = 'SilentlyContinue' } } |
+            Should -Throw '*skipToken*'
+
+        Should -Invoke Invoke-RestMethod -Times 2 -Exactly
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agents.csv')).AgentId | Should -Be 'agent-kept'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'same skipToken twice'
+    }
+
+    It 'uses properties.name, the CDS bot id, when the Entra botId is absent' {
+        # Agent Builder agents omit the Entra identity block, including botId.
+        # https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#entra-identity-properties
+        $item = New-MockAgentItem -Name 'arm-resource-name'
+        $item.properties.name = 'cds-bot-id'
+        $item.properties.PSObject.Properties.Remove('botId')
+        Mock Invoke-RestMethod -MockWith { New-InventoryResponse -Data @($item) }
+
+        Invoke-CollectorScript 'Get-CopilotStudioAgents.ps1' @{ OutputPath = $script:folder }
+
+        (Import-Csv -LiteralPath (Join-Path $script:folder 'agents.csv')).AgentId | Should -Be 'cds-bot-id'
+    }
+
+    It 'retries HTTP 429 and then writes the page' {
+        # https://learn.microsoft.com/rest/api/power-platform/resourcequery/resource-query/query-resources
+        $global:CsCalls = 0
+        Mock Invoke-RestMethod -MockWith {
+            $global:CsCalls++
+            if ($global:CsCalls -eq 1) {
+                throw 'Response status code does not indicate success: 429 (Too Many Requests).'
+            }
+            New-InventoryResponse -Data @((New-MockAgentItem -Name 'after-throttle'))
+        }
 
         Invoke-CollectorScript 'Get-CopilotStudioAgents.ps1' @{ OutputPath = $script:folder; WarningAction = 'SilentlyContinue' }
 
-        Should -Invoke Invoke-RestMethod -Times 2 -Exactly
-        @(Get-Content -LiteralPath (Join-Path $script:folder 'agents.csv')).Count | Should -Be 1
-        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'same skipToken twice'
+        $global:CsCalls | Should -Be 2
+        (Import-Csv -LiteralPath (Join-Path $script:folder 'agents.csv')).AgentId | Should -Be 'after-throttle'
     }
 
     It 'writes both the listed connector count and capabilitiesCounts, and warns when they differ' {
@@ -440,6 +471,23 @@ Describe 'Power Platform inventory collectors' {
         $rows[0].WhenCanBeUsed | Should -Be 'ViaDirectReferenceOnly'
     }
 
+    It 'keeps a connector whose operations array is empty' {
+        # Tabular connectors emit connectorId and an empty operations array.
+        # https://learn.microsoft.com/power-platform/admin/inventory-schema#known-limitations
+        $item = New-MockAgentItem -Name 'bot-tabular'
+        $item.properties.powerPlatformConnectors = @(
+            [pscustomobject]@{ connectorId = 'shared_sharepointonline'; operations = @() }
+        )
+        Mock Invoke-RestMethod -MockWith { New-InventoryResponse -Data @($item) }
+
+        Invoke-CollectorScript 'Get-AgentConnectors.ps1' @{ OutputPath = $script:folder }
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'agent-connectors.csv')
+        $row.ConnectorId | Should -Be 'shared_sharepointonline'
+        $row.OperationId | Should -Be ''
+        $row.AgentId | Should -Be 'bot-tabular'
+    }
+
     It 'skips the connector source in <Cloud>: header only, no sign-in, no query, and the reason is logged' -ForEach @(
         @{ Cloud = 'GCC' }
         @{ Cloud = 'GCCHigh' }
@@ -515,8 +563,22 @@ Describe 'Dataverse collectors' {
         Should -Invoke Get-AzAccessToken -Times 1 -Exactly -ParameterFilter { $ResourceUrl -eq 'https://org.crm.example.com/' }
         Should -Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter {
             $Method -eq 'Get' -and $Uri -like 'https://org.crm.example.com/api/data/v9.1/bots?*modifiedon*' -and
+            $Uri -match 'orderby=botid' -and
             $Headers.Authorization -eq 'Bearer fake-token'
         }
+    }
+
+    It 'does not send the bearer token to an @odata.nextLink on another host' {
+        Mock Invoke-RestMethod -MockWith {
+            New-DataverseResponse -Value @((New-MockBot)) -NextLink 'https://evil.example/api/data/v9.1/bots?$skiptoken=2'
+        }
+
+        { Invoke-CollectorScript 'Get-AgentModifications.ps1' @{
+                OutputPath = $script:folder; DataverseUrl = 'https://org.crm.example.com'; WarningAction = 'SilentlyContinue'
+            } } | Should -Throw '*different host*'
+
+        Should -Invoke Invoke-RestMethod -Times 1 -Exactly
+        Should -Not -Invoke Invoke-RestMethod -ParameterFilter { $Uri -like 'https://evil.example/*' }
     }
 
     It 'reads the last modified date, the modifier and the published date from bot' {
@@ -701,6 +763,29 @@ Describe 'Get-AgentAuditEvents.ps1' {
         Invoke-CollectorScript 'Get-AgentAuditEvents.ps1' (@{ OutputPath = $script:folder } + $script:range)
 
         @($global:CsSessions | Select-Object -Unique).Count | Should -Be 1
+    }
+
+    It 'fetches the next page when moreRecordsAvailable is true even if ResultCount looks complete' {
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+        $global:CsCalls = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $global:CsCalls++
+            if ($global:CsCalls -eq 1) {
+                $record = New-MockAuditRecord -Id 'event-1' -ResultCount 1
+                $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $true })
+                return $record
+            }
+            if ($global:CsCalls -eq 2) {
+                $record = New-MockAuditRecord -Id 'event-2' -ResultCount 2
+                $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $false })
+                return $record
+            }
+            return $null
+        }
+
+        Invoke-CollectorScript 'Get-AgentAuditEvents.ps1' (@{ OutputPath = $script:folder } + $script:range)
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-audit-events.csv')).Id | Should -Be @('event-1', 'event-2')
     }
 
     It 'stops at the 50,000-record session cap, writes nothing from that window, and names the window to re-run' {

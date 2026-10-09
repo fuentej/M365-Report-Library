@@ -78,8 +78,8 @@ if ($null -eq $apiBase) {
 
 try {
     $token = Get-DelegatedAccessToken -ResourceUrl $apiBase -Environment $Environment -TenantId $TenantId -SkipConnect:$SkipConnect
-    $items = @(Invoke-InventoryQuery -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
-            -Clauses (New-InventoryTypeClause -Type 'microsoft.copilotstudio/agents'))
+    $read = Invoke-InventoryRead -ApiHost $apiBase -Token $token -OutputPath $OutputPath -Source $source `
+        -Clauses (New-InventoryTypeClause -Type 'microsoft.copilotstudio/agents')
 }
 catch {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
@@ -88,14 +88,21 @@ catch {
     return
 }
 
+$items = @($read.Items)
+
 $rows = foreach ($item in $items) {
-    $agentId = Get-JsonValue $item 'properties.botId'
-    if ([string]::IsNullOrWhiteSpace([string]$agentId)) { $agentId = $item.name }
+    $agentId = Get-InventoryAgentId -Item $item
     $environmentId = [string](Get-JsonValue $item 'properties.environmentId')
 
     foreach ($connector in @(Get-JsonValue $item 'properties.powerPlatformConnectors' | Where-Object { $null -ne $_ })) {
         $connectorId = [string](Get-JsonValue $connector 'connectorId')
-        foreach ($operation in @(Get-JsonValue $connector 'operations' | Where-Object { $null -ne $_ })) {
+        # Tabular connectors (SharePoint, Dataverse, SQL, Excel) are returned with an
+        # empty operations array. Dropping them would omit the connector id.
+        # https://learn.microsoft.com/power-platform/admin/inventory-schema#known-limitations
+        $operations = @(Get-JsonValue $connector 'operations' | Where-Object { $null -ne $_ })
+        if ($operations.Count -eq 0) { $operations = @($null) }
+
+        foreach ($operation in $operations) {
             [pscustomobject]@{
                 RunDate                = $runDate
                 EnvironmentId          = $environmentId
@@ -114,5 +121,10 @@ $rows = foreach ($item in $items) {
 
 $result = Export-AppendCsv -Path $csvPath -Rows @($rows) -Column $columns `
     -KeyColumn @('RunDate', 'EnvironmentId', 'AgentId', 'ConnectorId', 'OperationId', 'UsedAs') -PassThru
+if (-not [string]::IsNullOrWhiteSpace($read.PagingError)) {
+    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+        'agent-connectors.csv: wrote {0} row(s) already read, then stopped. The snapshot is incomplete. {1}' -f $result.Written, $read.PagingError)
+    throw $read.PagingError
+}
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'agent-connectors.csv: {0} rows written, {1} skipped.' -f $result.Written, $result.Skipped)

@@ -85,8 +85,10 @@ foreach ($url in $DataverseUrl) {
         # The first sign-in is interactive; later environments reuse the session.
         $token = Get-DelegatedAccessToken -ResourceUrl $url -Environment $Environment -TenantId $TenantId -SkipConnect:$connected
         $connected = $true
+        # Order by the primary key so a page boundary cannot repeat or skip a row.
+        # https://learn.microsoft.com/power-apps/developer/data-platform/webapi/query/page-results
         $bots = @(Invoke-DataverseQuery -DataverseUrl $url -Token $token `
-                -Path 'bots?$select=botid,name,createdon,modifiedon,_modifiedby_value,published')
+                -Path 'bots?$select=botid,name,createdon,modifiedon,_modifiedby_value,published&$orderby=botid')
 
         foreach ($bot in $bots) {
             $rows.Add([pscustomobject]@{
@@ -102,6 +104,8 @@ foreach ($url in $DataverseUrl) {
         }
     }
     catch {
+        # An off-host nextLink is not an environment the caller asked to skip.
+        if ($_.Exception.Message -like '*different host*') { throw }
         $failed++
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
             'Dataverse at {0} is unavailable to this sign-in ({1}). It needs a role that can read bot. Skipping this environment.' -f $url, $_.Exception.Message)
