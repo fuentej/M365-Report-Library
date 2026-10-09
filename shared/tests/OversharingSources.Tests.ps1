@@ -41,4 +41,25 @@ Describe 'Oversharing source list' {
         $script:Doc | Should -Match 'SharingInheritanceReset'
         $script:Doc | Should -Match 'specific-people link'
     }
+
+    It 'passes the mandatory site-permissions parameters and the E5 activity cap' {
+        # CountOfUsersMoreThan and Name are mandatory on the site-permissions parameter set.
+        # E5 without SAM gets no snapshots, and activity reports stop at 10,000 sites.
+        $script:Doc | Should -Match 'CountOfUsersMoreThan'
+        $script:Doc | Should -Match 'more than 1000 users'
+        $script:Doc | Should -Match 'at most 10,000 sites'
+        $script:Doc | Should -Match 'no snapshot reports'
+        $script:Doc | Should -Match '16\.0\.25409'
+        $row3a = ($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 3a \|' })
+        $row3a | Should -Match '-Name <name> -CountOfUsersMoreThan 0'
+    }
+
+    It 'records both data-collection entity spellings and the status that allows a report' {
+        # The accepted-values list drops the underscore. The example keeps it.
+        $script:Doc | Should -Match 'SharingLinksAnyone'
+        $script:Doc | Should -Match 'Which string the cmdlet accepts is UNVERIFIED'
+        $script:Doc | Should -Match 'NotInitiated'
+        $script:Doc | Should -Match 'InProgress'
+        $script:Doc | Should -Match 'Paused'
+    }
 }
