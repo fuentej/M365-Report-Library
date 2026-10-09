@@ -10,10 +10,10 @@
     "tabOrder": 9
   },
   "visual": {
-    "visualType": "clusteredColumnChart",
+    "visualType": "tableEx",
     "query": {
       "queryState": {
-        "Category": {
+        "Values": {
           "projections": [
             {
               "field": {
@@ -27,11 +27,20 @@
                 }
               },
               "queryRef": "EnvironmentsCurrent.Pseudonym"
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "EnvironmentsCurrent"
+                    }
+                  },
+                  "Property": "Environment Display Name"
+                }
+              },
+              "queryRef": "EnvironmentsCurrent.Environment Display Name"
+            },
             {
               "field": {
                 "Measure": {

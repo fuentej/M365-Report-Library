@@ -409,4 +409,9 @@ Describe 'The pages say what the data cannot show' {
         $text | Should -Match 'AgentAuditEvents.ActivityDate'
         $text | Should -Not -Match 'DateDim.Date'
     }
+
+    It 'shows environment names through the anonymize toggle' {
+        $path = Join-Path $script:PagesFolder 'overview/visuals/column-by-environment/visual.json'
+        (Get-Content -LiteralPath $path -Raw) | Should -Match 'Environment Display Name'
+    }
 }
