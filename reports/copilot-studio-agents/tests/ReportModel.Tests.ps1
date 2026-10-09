@@ -414,4 +414,18 @@ Describe 'The pages say what the data cannot show' {
         $path = Join-Path $script:PagesFolder 'overview/visuals/column-by-environment/visual.json'
         (Get-Content -LiteralPath $path -Raw) | Should -Match 'Environment Display Name'
     }
+
+    It 'labels an empty connector use or component category Unknown' {
+        # A tabular connector is stored as one row with the operation columns empty.
+        # https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#connector-properties
+        $connectors = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentConnectors.tmdl') -Raw
+        $connectors | Should -Match ([regex]::Escape('IF(ISBLANK(AgentConnectors[UsedAs]), "Unknown", AgentConnectors[UsedAs])'))
+        $use = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'knowledge/visuals/column-use/visual.json') -Raw
+        $use | Should -Match 'AgentConnectors.UsedAsLabel'
+
+        $components = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentComponents.tmdl') -Raw
+        $components | Should -Match ([regex]::Escape('IF(ISBLANK(AgentComponents[Category]), "Unknown", AgentComponents[Category])'))
+        $chart = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'connectors-actions/visuals/column-components/visual.json') -Raw
+        $chart | Should -Match 'AgentComponents.CategoryLabel'
+    }
 }

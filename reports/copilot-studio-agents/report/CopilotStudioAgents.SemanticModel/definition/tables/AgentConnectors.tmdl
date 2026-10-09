@@ -62,6 +62,13 @@ table AgentConnectors
         summarizeBy: none
         sourceColumn: ConnectionProvider
 
+    /// A tabular connector is one row with the operation columns empty. An empty use is Unknown, not a blank category.
+    column UsedAsLabel = IF(ISBLANK(AgentConnectors[UsedAs]), "Unknown", AgentConnectors[UsedAs])
+        dataType: string
+        lineageTag: 8c1e4a27-6b90-5d14-9e33-1a7c5f0b2d48
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
     measure 'Agent Connectors Snapshot Date' = CALCULATE(MAX(AgentConnectors[RunDate]), ALLSELECTED(AgentConnectors), ALLSELECTED(AgentsCurrent))
         formatString: Short Date

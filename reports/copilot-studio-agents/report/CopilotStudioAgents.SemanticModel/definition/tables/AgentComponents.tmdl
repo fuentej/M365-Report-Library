@@ -44,6 +44,13 @@ table AgentComponents
         summarizeBy: none
         sourceColumn: Category
 
+    /// A component row with no category marker is Unknown, not a blank bar.
+    column CategoryLabel = IF(ISBLANK(AgentComponents[Category]), "Unknown", AgentComponents[Category])
+        dataType: string
+        lineageTag: 4b7d2e91-0c55-5a18-b6e4-9f3a1c8d7e20
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
     measure 'Agent Components Snapshot Date' = CALCULATE(MAX(AgentComponents[RunDate]), ALLSELECTED(AgentComponents), ALLSELECTED(AgentsCurrent))
         formatString: Short Date

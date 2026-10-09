@@ -23,10 +23,10 @@
                       "Entity": "AgentConnectors"
                     }
                   },
-                  "Property": "UsedAs"
+                  "Property": "UsedAsLabel"
                 }
               },
-              "queryRef": "AgentConnectors.UsedAs"
+              "queryRef": "AgentConnectors.UsedAsLabel"
             }
           ]
         },
@@ -54,7 +54,7 @@
         {
           "properties": {
             "show": true,
-            "text": "Connector operations by use (Knowledge, Tool, Topic Tool)"
+            "text": "Connector operations by use (Unknown = no value returned)"
           }
         }
       ]

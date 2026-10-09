@@ -23,10 +23,10 @@
                       "Entity": "AgentComponents"
                     }
                   },
-                  "Property": "Category"
+                  "Property": "CategoryLabel"
                 }
               },
-              "queryRef": "AgentComponents.Category"
+              "queryRef": "AgentComponents.CategoryLabel"
             }
           ]
         },
@@ -54,7 +54,7 @@
         {
           "properties": {
             "show": true,
-            "text": "Components by category (tools, HTTP request, prompts, MCP, knowledge)"
+            "text": "Components by category (Unknown = no value returned)"
           }
         }
       ]
