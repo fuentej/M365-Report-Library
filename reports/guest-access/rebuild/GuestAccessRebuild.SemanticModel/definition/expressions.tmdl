@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\GuestAccessData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 472ee73a-54fe-474e-be56-66830b24a2e9
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

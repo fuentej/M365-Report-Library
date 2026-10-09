@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "GuestAccessRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "a1839b21-84c3-41e0-b4bf-bff864e6067a"
+  }
+}
