@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\CopilotStudioAgentsData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: abd0ddd5-55ac-5fe1-9663-1f07f7bd1719
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

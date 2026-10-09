@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "card-viewer-users",
+  "position": {
+    "x": 254,
+    "y": 100,
+    "z": 0,
+    "width": 244,
+    "height": 150,
+    "tabOrder": 5
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Viewer Users"
+                }
+              },
+              "queryRef": "Agents.Viewer Users"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Viewer users (Preview)"
+          }
+        }
+      ]
+    }
+  }
+}

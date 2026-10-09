@@ -1,0 +1,98 @@
+table Environments
+    lineageTag: ffedb3d4-c936-56f2-9c0a-35c13db23748
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6ee08ea6-e6b0-59fb-9ca6-398392931543
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column EnvironmentId
+        dataType: string
+        lineageTag: 39745a7f-2ef7-54fd-950d-c3b31fb805bb
+        summarizeBy: none
+        sourceColumn: EnvironmentId
+
+    column DisplayName
+        dataType: string
+        lineageTag: ac78b0ec-666d-5a86-bdc4-df85034b700f
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Location
+        dataType: string
+        lineageTag: 206b58c6-e674-5e85-8508-b29018157db2
+        summarizeBy: none
+        sourceColumn: Location
+
+    column EnvironmentType
+        dataType: string
+        lineageTag: 265a5eff-3f59-5c41-bf13-f8a01382c1a8
+        summarizeBy: none
+        sourceColumn: EnvironmentType
+
+    column IsManaged
+        dataType: boolean
+        lineageTag: ad22a5f8-cd82-5413-9738-8d50fe431b81
+        summarizeBy: none
+        sourceColumn: IsManaged
+
+    column EnvironmentGroup
+        dataType: string
+        lineageTag: 5225fe4e-09d7-5c9e-85da-936c0a4c78fc
+        summarizeBy: none
+        sourceColumn: EnvironmentGroup
+
+    column LastModifiedAt
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7691b675-a4e1-567b-879b-6b06456061ce
+        summarizeBy: none
+        sourceColumn: LastModifiedAt
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Environments Snapshot Date' = CALCULATE(MAX(Environments[RunDate]), ALLSELECTED(Environments), ALLSELECTED(EnvironmentsCurrent))
+        formatString: Short Date
+        lineageTag: 974e5ed2-432f-5b57-8b16-2ecc73cee7c1
+
+    measure 'Environment Count' = 
+            VAR Snap = [Environments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Environments), Environments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 57430460-cc5d-57ff-86b6-2f205e5d2692
+
+    measure 'Managed Environments' = 
+            VAR Snap = [Environments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Environments), Environments[RunDate] = Snap, Environments[IsManaged] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 29164146-9e9e-54fc-a551-b22499c3aad8
+
+    measure 'Unmanaged Environments' = 
+            VAR Snap = [Environments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Environments), Environments[RunDate] = Snap, Environments[IsManaged] = FALSE(), NOT ISBLANK(Environments[IsManaged])) + 0)
+        formatString: #,0
+        lineageTag: dd2c0129-07b9-5382-a5ad-e827326765e8
+
+    measure 'Unknown Managed State' = 
+            VAR Snap = [Environments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(Environments), Environments[RunDate] = Snap, ISBLANK(Environments[IsManaged])) + 0)
+        formatString: #,0
+        lineageTag: ec2d72e6-3782-514c-8422-f56124b9ec98
+
+    partition Environments = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\environments.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"LastModifiedAt", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsManaged", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

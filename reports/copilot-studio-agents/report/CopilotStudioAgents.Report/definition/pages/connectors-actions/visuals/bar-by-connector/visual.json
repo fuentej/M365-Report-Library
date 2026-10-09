@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-by-connector",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 640,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "ConnectorId"
+                }
+              },
+              "queryRef": "AgentConnectors.ConnectorId"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "Connector Operation Rows"
+                }
+              },
+              "queryRef": "AgentConnectors.Connector Operation Rows"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "Agents Using Connectors"
+                }
+              },
+              "queryRef": "AgentConnectors.Agents Using Connectors"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Operations and agents per connector (Commercial only; not collected in GCC or GCC High)"
+          }
+        }
+      ]
+    }
+  }
+}

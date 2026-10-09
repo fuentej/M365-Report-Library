@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-use",
+  "position": {
+    "x": 710,
+    "y": 260,
+    "z": 0,
+    "width": 570,
+    "height": 200,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "UsedAsLabel"
+                }
+              },
+              "queryRef": "AgentConnectors.UsedAsLabel"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentConnectors"
+                    }
+                  },
+                  "Property": "Connector Operation Rows"
+                }
+              },
+              "queryRef": "AgentConnectors.Connector Operation Rows"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Connector operations by use (Unknown = no value returned)"
+          }
+        }
+      ]
+    }
+  }
+}

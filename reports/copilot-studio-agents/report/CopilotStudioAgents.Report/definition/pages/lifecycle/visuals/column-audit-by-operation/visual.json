@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-audit-by-operation",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 620,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentAuditEvents"
+                    }
+                  },
+                  "Property": "Operation"
+                }
+              },
+              "queryRef": "AgentAuditEvents.Operation"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentAuditEvents"
+                    }
+                  },
+                  "Property": "Audit Events"
+                }
+              },
+              "queryRef": "AgentAuditEvents.Audit Events"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Audit events by operation (where collected)"
+          }
+        }
+      ]
+    }
+  }
+}

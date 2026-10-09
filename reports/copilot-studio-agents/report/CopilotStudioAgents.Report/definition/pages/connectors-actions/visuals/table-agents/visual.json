@@ -1,0 +1,150 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-agents",
+  "position": {
+    "x": 0,
+    "y": 470,
+    "z": 0,
+    "width": 1280,
+    "height": 250,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Pseudonym"
+                }
+              },
+              "queryRef": "AgentsCurrent.Pseudonym"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentsCurrent"
+                    }
+                  },
+                  "Property": "Agent Display Name"
+                }
+              },
+              "queryRef": "AgentsCurrent.Agent Display Name"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Connectors Listed"
+                }
+              },
+              "queryRef": "Agents.Connectors Listed"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Connectors Total (capabilitiesCounts)"
+                }
+              },
+              "queryRef": "Agents.Connectors Total (capabilitiesCounts)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Connector Operations Listed"
+                }
+              },
+              "queryRef": "Agents.Connector Operations Listed"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Connector Operations Total (capabilitiesCounts)"
+                }
+              },
+              "queryRef": "Agents.Connector Operations Total (capabilitiesCounts)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentComponents"
+                    }
+                  },
+                  "Property": "HTTP Request Actions"
+                }
+              },
+              "queryRef": "AgentComponents.HTTP Request Actions"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentComponents"
+                    }
+                  },
+                  "Property": "Prompt Components"
+                }
+              },
+              "queryRef": "AgentComponents.Prompt Components"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AgentComponents"
+                    }
+                  },
+                  "Property": "MCP Actions"
+                }
+              },
+              "queryRef": "AgentComponents.MCP Actions"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Listed count next to the complete count, per agent"
+          }
+        }
+      ]
+    }
+  }
+}

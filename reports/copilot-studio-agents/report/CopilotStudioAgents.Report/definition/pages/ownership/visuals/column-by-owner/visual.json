@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-by-owner",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 700,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "OwnerPseudonym"
+                }
+              },
+              "queryRef": "Agents.OwnerPseudonym"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Agents"
+                    }
+                  },
+                  "Property": "Agent Count"
+                }
+              },
+              "queryRef": "Agents.Agent Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Agents per owner (Entra object id, pseudonymised; no directory file to name owners)"
+          }
+        }
+      ]
+    }
+  }
+}
