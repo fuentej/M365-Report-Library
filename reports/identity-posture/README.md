@@ -182,7 +182,7 @@ Disabled users are not returned by the API, so a "no MFA" count covers enabled u
 | `IncludeUsers`, `ExcludeUsers`, `IncludeGroups`, `ExcludeGroups`, `IncludeRoles`, `ExcludeRoles` | Who it targets (ids, `All`, `GuestsOrExternalUsers`) |
 | `IncludeApplications`, `ExcludeApplications` | The apps it targets |
 | `ClientAppTypes`, `SignInRiskLevels`, `UserRiskLevels` | Conditions |
-| `GrantOperator`, `BuiltInControls` | The grant controls (`OR`/`AND`; `mfa`, `block`, ...) |
+| `GrantOperator`, `BuiltInControls`, `CustomAuthenticationFactors`, `TermsOfUse`, `AuthenticationStrength` | Grant controls. `AuthenticationStrength` is the display name of `grantControls.authenticationStrength`. A policy can require a strength and leave `builtInControls` empty |
 
 A change shows as a difference between two `RunDate` blocks. The API records no one who made it.
 

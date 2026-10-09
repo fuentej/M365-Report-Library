@@ -51,6 +51,12 @@
         'UserRiskLevels'
         'GrantOperator'
         'BuiltInControls'
+        'CustomAuthenticationFactors'
+        'TermsOfUse'
+        # displayName of grantControls.authenticationStrength. A policy can set this
+        # and leave builtInControls empty.
+        # https://learn.microsoft.com/graph/api/resources/conditionalaccessgrantcontrols
+        'AuthenticationStrength'
     )
 
     # Source 4a. AssignmentType is Assigned or Activated; MemberType is Inherited,
