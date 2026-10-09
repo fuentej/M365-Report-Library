@@ -1,0 +1,99 @@
+table EligibleRoleAssignments
+    lineageTag: a1b97ed4-9014-5239-b771-2920d93880ae
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6a02fb5d-3f14-5479-bd40-1cb85be77322
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 69a1f535-38bc-5703-9c6c-8f65bab9393c
+        summarizeBy: none
+        sourceColumn: Id
+
+    column PrincipalId
+        dataType: string
+        lineageTag: 4107380a-8d24-5ecb-9035-dd10db537277
+        summarizeBy: none
+        sourceColumn: PrincipalId
+
+    column RoleDefinitionId
+        dataType: string
+        lineageTag: d585113b-281b-5e62-951e-ce3892a60af7
+        summarizeBy: none
+        sourceColumn: RoleDefinitionId
+
+    column DirectoryScopeId
+        dataType: string
+        lineageTag: 65a607e7-bc60-567c-be42-548d802a1cd3
+        summarizeBy: none
+        sourceColumn: DirectoryScopeId
+
+    column AppScopeId
+        dataType: string
+        lineageTag: c9636da0-3854-58d6-b854-f90416f82b91
+        summarizeBy: none
+        sourceColumn: AppScopeId
+
+    column MemberType
+        dataType: string
+        lineageTag: b0de956c-7d8e-5fed-ba5a-9f4662994805
+        summarizeBy: none
+        sourceColumn: MemberType
+
+    column StartDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: a203c621-a323-57c7-a74f-7025c5b1fb11
+        summarizeBy: none
+        sourceColumn: StartDateTime
+
+    column EndDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: cce94bd8-3fea-5bfa-8326-2eddf96e883b
+        summarizeBy: none
+        sourceColumn: EndDateTime
+
+    column RoleEligibilityScheduleId
+        dataType: string
+        lineageTag: f1923ada-bd5c-5f21-a5e0-80e8080e3415
+        summarizeBy: none
+        sourceColumn: RoleEligibilityScheduleId
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Eligible Role Assignments Snapshot Date' = CALCULATE(MAX(EligibleRoleAssignments[RunDate]), ALLSELECTED(EligibleRoleAssignments), ALLSELECTED(UsersCurrent), ALLSELECTED(RoleDefinitions))
+        formatString: Short Date
+        lineageTag: e53d2eaf-4924-5cc5-a519-f1f2d9afb93c
+
+    measure 'Eligible Assignments' = 
+            VAR Snap = [Eligible Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(EligibleRoleAssignments), EligibleRoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 8a5f8ecf-5857-5e0c-a2cd-6d0ab4dbe742
+
+    measure 'Eligible Role Holders' = 
+            VAR Snap = [Eligible Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(EligibleRoleAssignments[PrincipalId]), EligibleRoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 320ddb99-7056-516c-bfc5-c86511d20f13
+
+    partition EligibleRoleAssignments = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\role-assignments-eligible.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"StartDateTime", ParseUtc, type datetime}, {"EndDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

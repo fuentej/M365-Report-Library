@@ -1,0 +1,137 @@
+table ActiveRoleAssignments
+    lineageTag: 8b9ffe34-9e0c-5149-9245-d8fbd78d901a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1694f130-4ae8-5070-8a0b-10d39df9e310
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 6ff37836-faa8-56e4-a0f3-0bcc6b6eb5fb
+        summarizeBy: none
+        sourceColumn: Id
+
+    column PrincipalId
+        dataType: string
+        lineageTag: a15534d7-477c-5475-8812-705405dcab12
+        summarizeBy: none
+        sourceColumn: PrincipalId
+
+    column RoleDefinitionId
+        dataType: string
+        lineageTag: 3fb38bd1-7c56-5c00-8fbd-30b2a96f7e81
+        summarizeBy: none
+        sourceColumn: RoleDefinitionId
+
+    column DirectoryScopeId
+        dataType: string
+        lineageTag: 3dc53659-2973-50df-ab4a-6d17f3b0e118
+        summarizeBy: none
+        sourceColumn: DirectoryScopeId
+
+    column AppScopeId
+        dataType: string
+        lineageTag: 73dfa4d8-7abc-5902-a8c7-8a6f437a12e1
+        summarizeBy: none
+        sourceColumn: AppScopeId
+
+    column AssignmentType
+        dataType: string
+        lineageTag: 29946599-f23c-59c2-a2a5-78fc096a3679
+        summarizeBy: none
+        sourceColumn: AssignmentType
+
+    column MemberType
+        dataType: string
+        lineageTag: 52f6e085-41b2-5c1e-993c-6c920906b810
+        summarizeBy: none
+        sourceColumn: MemberType
+
+    column StartDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 408b5fa8-2003-52a1-9527-c6286d1f340b
+        summarizeBy: none
+        sourceColumn: StartDateTime
+
+    column EndDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 40ed644c-dd50-538f-a511-78351cf5bdd6
+        summarizeBy: none
+        sourceColumn: EndDateTime
+
+    column RoleAssignmentOriginId
+        dataType: string
+        lineageTag: adfe3f51-e7e3-5beb-bd6e-a4a090109b60
+        summarizeBy: none
+        sourceColumn: RoleAssignmentOriginId
+
+    column RoleAssignmentScheduleId
+        dataType: string
+        lineageTag: e9186f64-50a4-585f-80c5-5ecc9640fd1d
+        summarizeBy: none
+        sourceColumn: RoleAssignmentScheduleId
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Active Role Assignments Snapshot Date' = CALCULATE(MAX(ActiveRoleAssignments[RunDate]), ALLSELECTED(ActiveRoleAssignments), ALLSELECTED(UsersCurrent), ALLSELECTED(RoleDefinitions))
+        formatString: Short Date
+        lineageTag: 3fd4cbeb-de97-548b-b461-0eaa8921b9d9
+
+    measure 'Active Assignments' = 
+            VAR Snap = [Active Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ActiveRoleAssignments), ActiveRoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 26a4f4ee-f49a-5532-b552-96c675248726
+
+    /// PIM activations of an eligible assignment.
+    measure 'Activated Assignments' = 
+            VAR Snap = [Active Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ActiveRoleAssignments), ActiveRoleAssignments[RunDate] = Snap, ActiveRoleAssignments[AssignmentType] = "Activated") + 0)
+        formatString: #,0
+        lineageTag: 9f3b759c-717e-54ad-a477-9a12239a093e
+
+    /// An empty EndDateTime is a permanent assignment (README), not an unknown.
+    measure 'Permanent Active Assignments' = 
+            VAR Snap = [Active Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(ActiveRoleAssignments), ActiveRoleAssignments[RunDate] = Snap, ISBLANK(ActiveRoleAssignments[EndDateTime])) + 0)
+        formatString: #,0
+        lineageTag: 10082848-f705-5940-b3a9-30905b97713c
+
+    measure 'Active Role Holders' = 
+            VAR Snap = [Active Role Assignments Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(ActiveRoleAssignments[PrincipalId]), ActiveRoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: acf485dd-e4e1-5021-9a4f-ae4b691008dd
+
+    /// Falls back to role-assignments.csv only when the PIM file has no rows (not licensed). A date window with no PIM snapshot stays blank; it does not switch sources.
+    measure 'Active Assignments (Effective)' = IF(NOT ISBLANK([Active Assignments]), [Active Assignments], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Assignments (No PIM)], BLANK()))
+        formatString: #,0
+        lineageTag: 7faa8f52-8056-5b00-a284-d41b97571a1c
+
+    measure 'Active Role Holders (Effective)' = IF(NOT ISBLANK([Active Role Holders]), [Active Role Holders], IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, [Active Role Holders (No PIM)], BLANK()))
+        formatString: #,0
+        lineageTag: 5dfc3685-cc7e-5a30-bfce-61552c611c9b
+
+    measure 'Active Assignment Source' = IF(NOT ISBLANK([Active Assignments]), "PIM schedule instances (role-assignments-active.csv)", IF(COUNTROWS(ALL(ActiveRoleAssignments)) = 0, IF(NOT ISBLANK([Active Assignments (No PIM)]), "Role assignments, no PIM (role-assignments.csv)", "Not collected"), "No PIM snapshot in the selected dates"))
+        lineageTag: de962553-dc1f-5012-ac64-62186cc4a8d8
+
+    partition ActiveRoleAssignments = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\role-assignments-active.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"StartDateTime", ParseUtc, type datetime}, {"EndDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

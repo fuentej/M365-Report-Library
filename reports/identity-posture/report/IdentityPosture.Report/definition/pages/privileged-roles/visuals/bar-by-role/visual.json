@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "bar-by-role",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 800,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RoleDefinitions"
+                    }
+                  },
+                  "Property": "RoleDefinitionId"
+                }
+              },
+              "queryRef": "RoleDefinitions.RoleDefinitionId"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ActiveRoleAssignments"
+                    }
+                  },
+                  "Property": "Active Assignments (Effective)"
+                }
+              },
+              "queryRef": "ActiveRoleAssignments.Active Assignments (Effective)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "EligibleRoleAssignments"
+                    }
+                  },
+                  "Property": "Eligible Assignments"
+                }
+              },
+              "queryRef": "EligibleRoleAssignments.Eligible Assignments"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Active vs eligible by role definition ID (role names and the privileged flag are not collected)"
+          }
+        }
+      ]
+    }
+  }
+}

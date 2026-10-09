@@ -1,0 +1,19 @@
+table RoleDefinitions
+    lineageTag: 6e0c4113-d381-5006-9f8d-07c620a4f904
+
+    column RoleDefinitionId
+        dataType: string
+        lineageTag: f7ef9c9f-101a-5444-aded-fdce532f9621
+        summarizeBy: none
+        sourceColumn: RoleDefinitionId
+
+    partition RoleDefinitions = calculated
+        mode: import
+        source =
+            DISTINCT(UNION(
+                SELECTCOLUMNS(ActiveRoleAssignments, "RoleDefinitionId", ActiveRoleAssignments[RoleDefinitionId]),
+                SELECTCOLUMNS(EligibleRoleAssignments, "RoleDefinitionId", EligibleRoleAssignments[RoleDefinitionId]),
+                SELECTCOLUMNS(RoleAssignments, "RoleDefinitionId", RoleAssignments[RoleDefinitionId])
+            ))
+
+    annotation PBI_ResultType = Table

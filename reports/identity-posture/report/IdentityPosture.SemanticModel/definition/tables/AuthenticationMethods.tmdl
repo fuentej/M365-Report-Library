@@ -1,0 +1,248 @@
+table AuthenticationMethods
+    lineageTag: 54951fc1-e2f8-5d26-8257-f875088fe9d3
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 726a2b87-36b0-5b76-90da-3fe0dc442c9b
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UserId
+        dataType: string
+        lineageTag: d65f6cee-4be8-5037-95c8-2b2c471df637
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 78f45644-fc67-5fa7-848a-299af093319f
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column UserDisplayName
+        dataType: string
+        lineageTag: 86167994-0a02-5ec5-8cbe-a40611983471
+        summarizeBy: none
+        sourceColumn: UserDisplayName
+
+    column UserType
+        dataType: string
+        lineageTag: a38cc6cb-7f81-51f2-87e8-26081d7e181a
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column IsAdmin
+        dataType: boolean
+        lineageTag: 500e1622-8683-56ef-b375-5479e05a3d07
+        summarizeBy: none
+        sourceColumn: IsAdmin
+
+    column IsMfaRegistered
+        dataType: boolean
+        lineageTag: d0b41443-90e9-5f8f-b721-dcf4d4c6633b
+        summarizeBy: none
+        sourceColumn: IsMfaRegistered
+
+    column IsMfaCapable
+        dataType: boolean
+        lineageTag: c67977d9-339e-5387-9253-92126c047579
+        summarizeBy: none
+        sourceColumn: IsMfaCapable
+
+    column IsPasswordlessCapable
+        dataType: boolean
+        lineageTag: e508a0a3-d9c6-58ae-bb0a-1d7d69a92896
+        summarizeBy: none
+        sourceColumn: IsPasswordlessCapable
+
+    column IsSsprEnabled
+        dataType: boolean
+        lineageTag: 9ac18e18-9b9f-5f7d-9352-1a5392fb49fd
+        summarizeBy: none
+        sourceColumn: IsSsprEnabled
+
+    column IsSsprRegistered
+        dataType: boolean
+        lineageTag: 9d46bb8a-4d8b-59da-a4eb-9eb9c5ba9bc5
+        summarizeBy: none
+        sourceColumn: IsSsprRegistered
+
+    column IsSsprCapable
+        dataType: boolean
+        lineageTag: c721aedf-fc6b-5efa-914b-b4379f61bd06
+        summarizeBy: none
+        sourceColumn: IsSsprCapable
+
+    column IsSystemPreferredAuthenticationMethodEnabled
+        dataType: boolean
+        lineageTag: ae1d8145-88de-5ad7-95a6-aabb712a2628
+        summarizeBy: none
+        sourceColumn: IsSystemPreferredAuthenticationMethodEnabled
+
+    column UserPreferredMethodForSecondaryAuthentication
+        dataType: string
+        lineageTag: 8a7c25f2-9312-5d4f-8c7a-aa0116df704f
+        summarizeBy: none
+        sourceColumn: UserPreferredMethodForSecondaryAuthentication
+
+    column MethodsRegistered
+        dataType: string
+        lineageTag: 6e2e9b76-b413-52a5-859d-c23cb24a54d4
+        summarizeBy: none
+        sourceColumn: MethodsRegistered
+
+    column SystemPreferredAuthenticationMethods
+        dataType: string
+        lineageTag: 9a7b206d-a9c9-5d4f-95cf-50dbdb73bf24
+        summarizeBy: none
+        sourceColumn: SystemPreferredAuthenticationMethods
+
+    column LastUpdatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 6b9b6519-4a13-58bf-a63c-d000a0a56d9f
+        summarizeBy: none
+        sourceColumn: LastUpdatedDateTime
+
+    /// Semicolon-separated methods counted. Blank when MethodsRegistered is empty: unknown, not zero.
+    column MethodsRegisteredCount = IF(ISBLANK(AuthenticationMethods[MethodsRegistered]), BLANK(), LEN(AuthenticationMethods[MethodsRegistered]) - LEN(SUBSTITUTE(AuthenticationMethods[MethodsRegistered], ";", "")) + 1)
+        dataType: int64
+        formatString: 0
+        lineageTag: 605e2496-cac7-5a0e-8723-cccaff0b101b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column MethodsRegisteredOrder = IF(ISBLANK(AuthenticationMethods[MethodsRegisteredCount]), 99, AuthenticationMethods[MethodsRegisteredCount])
+        dataType: int64
+        formatString: 0
+        lineageTag: 03fd89ba-429c-5a94-9b2e-e7fc3e4be72c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column MethodsRegisteredLabel = IF(ISBLANK(AuthenticationMethods[MethodsRegisteredCount]), "Unknown", FORMAT(AuthenticationMethods[MethodsRegisteredCount], "0"))
+        dataType: string
+        lineageTag: 2ceb48ac-5ed2-5338-b467-50bd715e2c68
+        summarizeBy: none
+        sortByColumn: MethodsRegisteredOrder
+        isDataTypeInferred: false
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Authentication Methods Snapshot Date' = CALCULATE(MAX(AuthenticationMethods[RunDate]), ALLSELECTED(AuthenticationMethods), ALLSELECTED(UsersCurrent))
+        formatString: Short Date
+        lineageTag: 8eea7334-2b0c-56dc-95e0-302256ce47c8
+
+    measure 'Registered Users' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: bcef9714-ec6a-5ec8-a415-f17d460436ec
+
+    measure 'MFA Registered Users' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: 4136c580-b34e-58d1-ab53-2677ec7d97b1
+
+    /// Enabled users with IsMfaRegistered = False. Disabled users are not returned by the API. An empty value is Unknown, not counted here.
+    measure 'No MFA Method' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsMfaRegistered])) + 0)
+        formatString: #,0
+        lineageTag: 6f41e246-60ca-5a75-b9a7-eef3e8064b1b
+
+    measure 'No MFA Method (Members)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsMfaRegistered]), AuthenticationMethods[UserType] = "member") + 0)
+        formatString: #,0
+        lineageTag: 42279f1a-15f1-575c-87fb-93ac59ee31f0
+
+    measure 'No MFA Method (Guests)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsMfaRegistered]), AuthenticationMethods[UserType] = "guest") + 0)
+        formatString: #,0
+        lineageTag: 03fdca7e-0f06-5b0d-9635-5f94f0a345fc
+
+    measure 'MFA Status Unknown' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, ISBLANK(AuthenticationMethods[IsMfaRegistered])) + 0)
+        formatString: #,0
+        lineageTag: efb13e9f-2fab-5672-b6a7-efcb94b61df6
+
+    measure 'MFA Capable Users' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaCapable] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: dde617c4-d8fb-56c2-8dde-a20408a0c82c
+
+    measure 'Passwordless Capable Users' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsPasswordlessCapable] = TRUE()) + 0)
+        formatString: #,0
+        lineageTag: b1649cf5-f464-52f0-88b3-97a0f57332ef
+
+    /// IsAdmin is the registration-details flag (the user holds an admin role); it is not the privileged-role flag, which is beta only and not collected.
+    measure 'Admins Without MFA' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsAdmin] = TRUE(), AuthenticationMethods[IsMfaRegistered] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsMfaRegistered])) + 0)
+        formatString: #,0
+        lineageTag: a421f5c0-3d54-5cdb-8bf8-2c3f99181973
+
+    /// Registered / (registered + not registered). Users with an unknown status are left out of both sides.
+    measure 'MFA Registered %' = DIVIDE([MFA Registered Users], [MFA Registered Users] + [No MFA Method])
+        formatString: 0.0%
+        lineageTag: eb4aeebd-869a-5066-8e2b-d148ef9e5ecc
+
+    /// Per RunDate, for the trend line.
+    measure 'No MFA Method (All Snapshots)' = IF(COUNTROWS(AuthenticationMethods) = 0, BLANK(), COUNTROWS(FILTER(AuthenticationMethods, AuthenticationMethods[IsMfaRegistered] = FALSE() && NOT ISBLANK(AuthenticationMethods[IsMfaRegistered]))) + 0)
+        formatString: #,0
+        lineageTag: 06a7d5b5-2859-56e9-94ee-aa45807fc8be
+
+    /// userRegistrationDetails userType is member, guest, or unknownFutureValue. Blank when this user has no registration row. Directory userType (Member, Guest) is a different property.
+    measure 'User Type (Display)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            VAR Listed = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap)
+            VAR V = CALCULATE(MAX(AuthenticationMethods[UserType]), AuthenticationMethods[RunDate] = Snap)
+            RETURN IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))
+        lineageTag: 9b7e2c14-0a58-5d33-b6e1-4f8c0d2a71e5
+
+    /// Yes, No, or Unknown when the column is empty. An empty value is never read as No.
+    measure 'MFA Registered (Display)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            VAR OnSnap = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap)
+            VAR Yes = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = TRUE())
+            VAR No = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsMfaRegistered] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsMfaRegistered]))
+            RETURN IF(ISBLANK(OnSnap), BLANK(), IF(Yes > 0, "Yes", IF(No > 0, "No", "Unknown")))
+        lineageTag: f16be609-2c3b-5ed2-9843-5fecc14206b1
+
+    /// Yes, No, or Unknown when the column is empty. An empty value is never read as No.
+    measure 'Passwordless Capable (Display)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            VAR OnSnap = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap)
+            VAR Yes = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsPasswordlessCapable] = TRUE())
+            VAR No = CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap, AuthenticationMethods[IsPasswordlessCapable] = FALSE(), NOT ISBLANK(AuthenticationMethods[IsPasswordlessCapable]))
+            RETURN IF(ISBLANK(OnSnap), BLANK(), IF(Yes > 0, "Yes", IF(No > 0, "No", "Unknown")))
+        lineageTag: c3955e21-8070-5f13-a725-7f28b0e2d293
+
+    measure 'Methods Registered (Display)' = 
+            VAR Snap = [Authentication Methods Snapshot Date]
+            VAR V = CALCULATE(MAX(AuthenticationMethods[MethodsRegistered]), AuthenticationMethods[RunDate] = Snap)
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AuthenticationMethods), AuthenticationMethods[RunDate] = Snap)), BLANK(), IF(ISBLANK(V), "Unknown", SUBSTITUTE(V, ";", ", ")))
+        lineageTag: 55363b3d-197a-56da-8ad4-a6662bec9c96
+
+    partition AuthenticationMethods = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\authentication-methods.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"LastUpdatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsAdmin", type logical}, {"IsMfaRegistered", type logical}, {"IsMfaCapable", type logical}, {"IsPasswordlessCapable", type logical}, {"IsSsprEnabled", type logical}, {"IsSsprRegistered", type logical}, {"IsSsprCapable", type logical}, {"IsSystemPreferredAuthenticationMethodEnabled", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

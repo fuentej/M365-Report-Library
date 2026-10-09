@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
+  "pageOrder": [
+    "overview",
+    "authentication-methods",
+    "conditional-access",
+    "privileged-roles",
+    "account-hygiene",
+    "legacy-authentication",
+    "risky-users"
+  ],
+  "activePageName": "overview"
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "column-by-state",
+  "position": {
+    "x": 640,
+    "y": 260,
+    "z": 0,
+    "width": 640,
+    "height": 200,
+    "tabOrder": 10
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RiskyUsers"
+                    }
+                  },
+                  "Property": "RiskState"
+                }
+              },
+              "queryRef": "RiskyUsers.RiskState"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "RiskyUsers"
+                    }
+                  },
+                  "Property": "Risky Users Listed"
+                }
+              },
+              "queryRef": "RiskyUsers.Risky Users Listed"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "By risk state"
+          }
+        }
+      ]
+    }
+  }
+}

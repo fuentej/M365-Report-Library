@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "IdentityPosture"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "90efb0b9-e7b3-52e0-af14-b7ee315b74e1"
+  }
+}

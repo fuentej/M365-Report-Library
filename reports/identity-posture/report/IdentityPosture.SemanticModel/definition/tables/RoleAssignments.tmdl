@@ -1,0 +1,73 @@
+table RoleAssignments
+    lineageTag: 6d2b6f65-a8ef-5427-878f-3209f9c070ce
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 193bd91e-cfbb-59db-9ba1-12b6585e345e
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 7d5c7ce2-9b56-523e-a478-953671d1df64
+        summarizeBy: none
+        sourceColumn: Id
+
+    column PrincipalId
+        dataType: string
+        lineageTag: 3c1cc218-96ff-56b2-a2a6-de4a0fc058ac
+        summarizeBy: none
+        sourceColumn: PrincipalId
+
+    column RoleDefinitionId
+        dataType: string
+        lineageTag: 52add521-0918-5533-9b3a-705678dc1c5e
+        summarizeBy: none
+        sourceColumn: RoleDefinitionId
+
+    column DirectoryScopeId
+        dataType: string
+        lineageTag: a62bbd77-d4f6-5bf3-87d1-62df2e9dda95
+        summarizeBy: none
+        sourceColumn: DirectoryScopeId
+
+    column AppScopeId
+        dataType: string
+        lineageTag: 035e7b41-1cf8-55bd-ae87-78cd2398d35b
+        summarizeBy: none
+        sourceColumn: AppScopeId
+
+    /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own user axis. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'Role Assignments (No PIM) Snapshot Date' = CALCULATE(MAX(RoleAssignments[RunDate]), ALLSELECTED(RoleAssignments), ALLSELECTED(UsersCurrent), ALLSELECTED(RoleDefinitions))
+        formatString: Short Date
+        lineageTag: 5354c4d7-9fc9-5f85-840e-9d5fc4291072
+
+    measure 'Active Assignments (No PIM)' = 
+            VAR Snap = [Role Assignments (No PIM) Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(RoleAssignments), RoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 55f22d28-17a3-59cf-9f6b-2815db353cab
+
+    measure 'Active Role Holders (No PIM)' = 
+            VAR Snap = [Role Assignments (No PIM) Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(DISTINCTCOUNT(RoleAssignments[PrincipalId]), RoleAssignments[RunDate] = Snap) + 0)
+        formatString: #,0
+        lineageTag: 162fc34e-5f20-5d38-beef-814e3cb2c334
+
+    partition RoleAssignments = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\role-assignments.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

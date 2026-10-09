@@ -1,0 +1,80 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "line-over-time",
+  "position": {
+    "x": 0,
+    "y": 260,
+    "z": 0,
+    "width": 620,
+    "height": 200,
+    "tabOrder": 9
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "DateDim"
+                    }
+                  },
+                  "Property": "Date"
+                }
+              },
+              "queryRef": "DateDim.Date"
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "ClientAppUsed"
+                }
+              },
+              "queryRef": "SignIns.ClientAppUsed"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignIns"
+                    }
+                  },
+                  "Property": "Legacy Sign-Ins"
+                }
+              },
+              "queryRef": "SignIns.Legacy Sign-Ins"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Legacy sign-ins over time by protocol (at least)"
+          }
+        }
+      ]
+    }
+  }
+}
