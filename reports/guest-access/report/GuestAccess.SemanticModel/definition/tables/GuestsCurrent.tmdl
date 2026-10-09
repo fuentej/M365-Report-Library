@@ -6,143 +6,135 @@ table GuestsCurrent
         formatString: Short Date
         lineageTag: d71e5832-bc24-569f-95fa-337d74c65def
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [RunDate]
+        sourceColumn: RunDate
 
     column Id
         dataType: string
         lineageTag: cafa92ba-e4a6-5e4a-80c4-cfa3af4396b1
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Id]
+        sourceColumn: Id
 
     column DisplayName
         dataType: string
         lineageTag: 9d356b11-30e2-5c5b-bbc8-4b962c17f448
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [DisplayName]
+        sourceColumn: DisplayName
 
     column Mail
         dataType: string
         lineageTag: ae16752a-2e75-5980-af12-e2742790fe5a
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Mail]
+        sourceColumn: Mail
 
     column UserPrincipalName
         dataType: string
         lineageTag: 62aebe2d-0a14-5ebe-a152-bc3a8c089240
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [UserPrincipalName]
+        sourceColumn: UserPrincipalName
 
     column ExternalDomain
         dataType: string
         lineageTag: 8fc276b9-baf3-53a3-bfa1-f230fe76e6ff
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [ExternalDomain]
+        sourceColumn: ExternalDomain
 
     column CreatedDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: d30d2856-88fc-57e2-b065-611e88da3775
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [CreatedDateTime]
+        sourceColumn: CreatedDateTime
 
     column CreationType
         dataType: string
         lineageTag: da9db9ed-7ccc-571e-a6ae-efe51bca26a4
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [CreationType]
+        sourceColumn: CreationType
 
     column ExternalUserState
         dataType: string
         lineageTag: 87b07b33-a728-5b14-b9df-e0dd1fc0b625
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [ExternalUserState]
+        sourceColumn: ExternalUserState
 
     column ExternalUserStateChangeDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: bccc05cb-77a7-5c25-a04c-f33e4b81cfd5
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [ExternalUserStateChangeDateTime]
+        sourceColumn: ExternalUserStateChangeDateTime
 
     column AccountEnabled
         dataType: boolean
         lineageTag: defcf43c-396c-51ce-be92-861459ad4d06
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [AccountEnabled]
+        sourceColumn: AccountEnabled
 
     column LastSignInDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: 7a8fa233-0a94-5c40-871c-502d23a01f8f
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [LastSignInDateTime]
+        sourceColumn: LastSignInDateTime
 
     column LastNonInteractiveSignInDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: a56339b5-48ea-5922-99b6-be35b50c9980
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [LastNonInteractiveSignInDateTime]
+        sourceColumn: LastNonInteractiveSignInDateTime
 
     column LastSuccessfulSignInDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: 0593735d-9b40-5318-ac63-871ba3f10208
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [LastSuccessfulSignInDateTime]
+        sourceColumn: LastSuccessfulSignInDateTime
 
-    column PseudonymNumber
+    column PseudonymNumber = 
+            VAR IdText = GuestsCurrent[Id]
+            VAR CharCount = LEN(IdText)
+            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * [Value])
+            RETURN MOD(HashSeed, 9000) + 1000
         dataType: int64
         formatString: 0000
         lineageTag: d6efc5c7-8af8-5cb6-8131-4dd9e6c2759d
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [PseudonymNumber]
+        isDataTypeInferred: false
 
-    column Pseudonym
+    column Pseudonym = "Guest " & FORMAT(GuestsCurrent[PseudonymNumber], "0000")
         dataType: string
         lineageTag: 1c8a0d4e-6b27-5f31-9a44-0e5d7c2b8f10
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Pseudonym]
+        isDataTypeInferred: false
 
-    partition GuestsCurrent = calculated
+    partition GuestsCurrent = m
         mode: import
         source =
-            VAR LatestRun = MAX(Guests[RunDate])
-            RETURN
-                SELECTCOLUMNS(
-                    FILTER(Guests, Guests[RunDate] = LatestRun),
-                    "RunDate", Guests[RunDate],
-                    "Id", Guests[Id],
-                    "DisplayName", Guests[DisplayName],
-                    "Mail", Guests[Mail],
-                    "UserPrincipalName", Guests[UserPrincipalName],
-                    "ExternalDomain", Guests[ExternalDomain],
-                    "CreatedDateTime", Guests[CreatedDateTime],
-                    "CreationType", Guests[CreationType],
-                    "ExternalUserState", Guests[ExternalUserState],
-                    "ExternalUserStateChangeDateTime", Guests[ExternalUserStateChangeDateTime],
-                    "AccountEnabled", Guests[AccountEnabled],
-                    "LastSignInDateTime", Guests[LastSignInDateTime],
-                    "LastNonInteractiveSignInDateTime", Guests[LastNonInteractiveSignInDateTime],
-                    "LastSuccessfulSignInDateTime", Guests[LastSuccessfulSignInDateTime],
-                    "PseudonymNumber", Guests[PseudonymNumber],
-                    "Pseudonym", Guests[Pseudonym]
-                )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guests.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {
+                    {"CreatedDateTime", ParseUtc, type datetime},
+                    {"ExternalUserStateChangeDateTime", ParseUtc, type datetime},
+                    {"LastSignInDateTime", ParseUtc, type datetime},
+                    {"LastNonInteractiveSignInDateTime", ParseUtc, type datetime},
+                    {"LastSuccessfulSignInDateTime", ParseUtc, type datetime}
+                }),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "Mail", "UserPrincipalName", "ExternalDomain", "CreatedDateTime", "CreationType", "ExternalUserState", "ExternalUserStateChangeDateTime", "AccountEnabled", "LastSignInDateTime", "LastNonInteractiveSignInDateTime", "LastSuccessfulSignInDateTime"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table

@@ -11,12 +11,12 @@
       the columns that CSV has, in the same order -- the same guarantee
       SampleData.Tests.ps1 holds the collectors to, extended to the report.
 
-    Calculated tables (GuestsCurrent, UsersCurrent, GuestMembershipsCurrent) and
-    helper tables that are not sourced from any CSV (DateDim, a calendar; and
-    AnonymizeMode, the disconnected table behind the anonymize toggle) are exempt
-    from the CSV-mapping check -- there is no CSV for a calculated or disconnected
-    table to match. $CsvBackedTables below is the complete, explicit list of what
-    *is* checked.
+    GuestsCurrent, UsersCurrent and GuestMembershipsCurrent import the same CSVs
+    as Guests, Users and GuestMemberships, keeping only the latest RunDate.
+    Their imported columns are checked against that CSV. Calculated columns on
+    those tables (pseudonyms, IsTeamLabel) are not in the file. DateDim and
+    AnonymizeMode are not loaded from a CSV. $CsvBackedTables is the complete
+    list of tables this check covers.
 #>
 
 BeforeAll {
@@ -38,7 +38,10 @@ BeforeAll {
         GuestInvitations = 'guest-invitations.csv'
         GuestSignIns     = 'guest-signins.csv'
         SharingEvents    = 'sharing-events.csv'
-        GuestMemberships = 'guest-memberships.csv'
+        GuestMemberships        = 'guest-memberships.csv'
+        GuestsCurrent           = 'guests.csv'
+        UsersCurrent            = 'users.csv'
+        GuestMembershipsCurrent = 'guest-memberships.csv'
     }
 
     function Get-VisualFieldReference {
@@ -85,7 +88,7 @@ AfterAll {
 }
 
 Describe 'The semantic model has tables to check' {
-    It 'parses at least the six CSV-backed tables plus the calculated dimensions' {
+    It 'parses the CSV-backed tables plus the calculated dimensions' {
         $script:Model.Keys.Count | Should -BeGreaterOrEqual 9
     }
 
@@ -149,6 +152,9 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'GuestSignIns' }
         @{ Table = 'SharingEvents' }
         @{ Table = 'GuestMemberships' }
+        @{ Table = 'GuestsCurrent' }
+        @{ Table = 'UsersCurrent' }
+        @{ Table = 'GuestMembershipsCurrent' }
     ) {
         $script:Model.ContainsKey($Table) | Should -BeTrue -Because "the model should have a $Table table"
 
@@ -164,12 +170,24 @@ Describe 'Every CSV-backed table matches its sample CSV' {
                 ForEach-Object { $_.SourceColumn })
 
         ($modelColumns -join ',') | Should -Be ($csvHeader -join ',')
+
+        # GuestsCurrent, UsersCurrent and GuestMembershipsCurrent also name the
+        # imported columns in Table.SelectColumns. That list is the CSV header.
+        $tmdlPath = Join-Path $script:TablesFolder "$Table.tmdl"
+        $tmdl = Get-Content -LiteralPath $tmdlPath -Raw
+        if ($tmdl -match 'Table\.SelectColumns\([^,]+,\s*\{(?<cols>[^}]+)\}') {
+            $selected = @([regex]::Matches($Matches['cols'], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+            ($selected -join ',') | Should -Be ($csvHeader -join ',')
+        }
     }
 
     It 'names every CSV-backed table exactly once' {
         # Every key in $CsvBackedTables is the single source of truth for this
-        # check; this just confirms the six names above match what it defines.
+        # check; this just confirms the names above match what it defines.
         (@($script:CsvBackedTables.Keys) | Sort-Object) -join ',' |
-            Should -Be ((@('Users', 'Guests', 'GuestInvitations', 'GuestSignIns', 'SharingEvents', 'GuestMemberships') | Sort-Object) -join ',')
+            Should -Be ((@(
+                    'Users', 'Guests', 'GuestInvitations', 'GuestSignIns', 'SharingEvents', 'GuestMemberships',
+                    'GuestsCurrent', 'UsersCurrent', 'GuestMembershipsCurrent'
+                ) | Sort-Object) -join ',')
     }
 }

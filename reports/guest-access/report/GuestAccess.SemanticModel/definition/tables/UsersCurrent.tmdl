@@ -6,100 +6,86 @@ table UsersCurrent
         formatString: Short Date
         lineageTag: 6341c5ee-21a4-5c89-9309-34e0b89f3154
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [RunDate]
+        sourceColumn: RunDate
 
     column Id
         dataType: string
         lineageTag: c50eafbf-6486-5cb0-94b7-1d46419564dd
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Id]
+        sourceColumn: Id
 
     column DisplayName
         dataType: string
         lineageTag: 6e945fbe-6524-5d74-acb2-550a6ceb17bc
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [DisplayName]
+        sourceColumn: DisplayName
 
     column UserPrincipalName
         dataType: string
         lineageTag: ffed7364-2a20-5de3-8e49-daaae6046d7a
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [UserPrincipalName]
+        sourceColumn: UserPrincipalName
 
     column Mail
         dataType: string
         lineageTag: 7d0b98cd-39fb-597a-a8fa-663fedb81a70
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Mail]
+        sourceColumn: Mail
 
     column UserType
         dataType: string
         lineageTag: 4ed4f1fa-a74b-585b-870f-4753c27f94c8
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [UserType]
+        sourceColumn: UserType
 
     column AccountEnabled
         dataType: boolean
         lineageTag: d989ad6e-331c-5408-92ad-9da93291d791
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [AccountEnabled]
+        sourceColumn: AccountEnabled
 
     column CreatedDateTime
         dataType: dateTime
         formatString: General Date
         lineageTag: 3a7c1899-db17-5712-9b5f-0313e56280dd
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [CreatedDateTime]
+        sourceColumn: CreatedDateTime
 
     column Department
         dataType: string
         lineageTag: ded130f4-1921-56b7-b69e-f62f96800f1c
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Department]
+        sourceColumn: Department
 
     column JobTitle
         dataType: string
         lineageTag: 5200ea98-3f5e-520c-8d33-428a2b047f2c
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [JobTitle]
+        sourceColumn: JobTitle
 
     column City
         dataType: string
         lineageTag: ba32c08f-5d77-509b-a237-e6cdbeb88ed0
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [City]
+        sourceColumn: City
 
     column Country
         dataType: string
         lineageTag: 8471dbe8-e941-5b00-af2b-32a6189a9454
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [Country]
+        sourceColumn: Country
 
     column ManagerId
         dataType: string
         lineageTag: 81da82ac-6138-5344-97ed-bd63952917d5
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [ManagerId]
+        sourceColumn: ManagerId
 
     column ManagerUserPrincipalName
         dataType: string
         lineageTag: 2fdfed9a-849e-5d77-b16b-c8fe03c8d69c
         summarizeBy: none
-        isNameInferred
-        sourceColumn: [ManagerUserPrincipalName]
+        sourceColumn: ManagerUserPrincipalName
 
     column PseudonymNumber = 
             VAR IdText = UsersCurrent[Id]
@@ -130,27 +116,24 @@ table UsersCurrent
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: 4e7b1a90-c5d2-5f68-91ab-3c6e8d0f1a74
 
-    partition UsersCurrent = calculated
+    partition UsersCurrent = m
         mode: import
         source =
-            VAR LatestRun = MAX(Users[RunDate])
-            RETURN
-                SELECTCOLUMNS(
-                    FILTER(Users, Users[RunDate] = LatestRun),
-                    "RunDate", Users[RunDate],
-                    "Id", Users[Id],
-                    "DisplayName", Users[DisplayName],
-                    "UserPrincipalName", Users[UserPrincipalName],
-                    "Mail", Users[Mail],
-                    "UserType", Users[UserType],
-                    "AccountEnabled", Users[AccountEnabled],
-                    "CreatedDateTime", Users[CreatedDateTime],
-                    "Department", Users[Department],
-                    "JobTitle", Users[JobTitle],
-                    "City", Users[City],
-                    "Country", Users[Country],
-                    "ManagerId", Users[ManagerId],
-                    "ManagerUserPrincipalName", Users[ManagerUserPrincipalName]
-                )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "UserPrincipalName", "Mail", "UserType", "AccountEnabled", "CreatedDateTime", "Department", "JobTitle", "City", "Country", "ManagerId", "ManagerUserPrincipalName"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table
