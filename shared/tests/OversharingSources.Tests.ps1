@@ -32,4 +32,13 @@ Describe 'Oversharing source list' {
         $script:Doc | Should -Match 'custom retention policy overrides the default and can be shorter'
         $script:Doc | Should -Not -Match 'One year for Exchange, SharePoint, OneDrive and Entra records of E5 users'
     }
+
+    It 'includes withdrawn, blocked, and updated sharing invitations' {
+        # Created and accepted invitations are not the whole invitation set.
+        $script:Doc | Should -Match 'SharingInvitationBlocked'
+        $script:Doc | Should -Match 'SharingInvitationUpdated'
+        $script:Doc | Should -Match 'SharingInvitationRevoked'
+        $script:Doc | Should -Match 'SharingInheritanceReset'
+        $script:Doc | Should -Match 'specific-people link'
+    }
 }
