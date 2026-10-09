@@ -57,3 +57,11 @@ relationship 6d6867af-2ef9-581b-82aa-7906b84e63b7
 relationship 256cdbf3-5af0-587d-80a0-983bc54e4432
     fromColumn: GroupCreationEvents.UserId
     toColumn: UsersCurrent.UserPrincipalName
+
+relationship e2808b95-d51a-42a6-8087-269a7dfcdddd
+    fromColumn: GroupsCurrent.IsTeamLabel
+    toColumn: GroupKind.Label
+
+relationship 4c0e1a27-6b58-4d3a-9f11-7a6d2e8c91b4
+    fromColumn: DeletedGroups.IsTeamLabel
+    toColumn: GroupKind.Label

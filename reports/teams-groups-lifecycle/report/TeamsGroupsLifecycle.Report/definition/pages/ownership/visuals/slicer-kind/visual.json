@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "GroupsCurrent"
+                      "Entity": "GroupKind"
                     }
                   },
-                  "Property": "IsTeamLabel"
+                  "Property": "Label"
                 }
               },
-              "queryRef": "GroupsCurrent.IsTeamLabel"
+              "queryRef": "GroupKind.Label"
             }
           ]
         }

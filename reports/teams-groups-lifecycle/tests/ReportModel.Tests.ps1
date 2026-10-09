@@ -92,7 +92,7 @@ AfterAll {
 
 Describe 'The semantic model has tables to check' {
     It 'parses the ten CSV-backed tables plus the calculated dimensions' {
-        $script:Model.Keys.Count | Should -Be 14
+        $script:Model.Keys.Count | Should -Be 15
     }
 
     It 'finds visual.json files to check' {
@@ -256,8 +256,19 @@ Describe 'Relationships join columns that exist, many side first' {
             $script:Relationships | Where-Object { $_.From -eq "$child.SnapshotKey" -and $_.To -eq 'Groups.SnapshotKey' } |
                 Should -Not -BeNullOrEmpty -Because $child
         }
-        $script:Relationships | Where-Object { $_.From -like 'DateDim.*' -or $_.From -like '*Current.*' } |
-            Should -BeNullOrEmpty -Because 'DateDim and the Current tables are the one side'
+        $fromOneSide = @($script:Relationships | Where-Object { $_.From -like 'DateDim.*' -or ($_.From -like '*Current.*' -and $_.From -ne 'GroupsCurrent.IsTeamLabel') })
+        $fromOneSide | Should -BeNullOrEmpty -Because 'DateDim and the Current key columns are the one side'
+    }
+
+    It 'filters soft-deleted groups from the same Group or Team slicer as the inventory' {
+        # IsTeamLabel is not unique, so the slicer cannot sit on GroupsCurrent and still
+        # reach DeletedGroups. A shared dimension is the one side of both.
+        $script:Relationships | Where-Object { $_.From -eq 'GroupsCurrent.IsTeamLabel' -and $_.To -eq 'GroupKind.Label' } |
+            Should -Not -BeNullOrEmpty
+        $script:Relationships | Where-Object { $_.From -eq 'DeletedGroups.IsTeamLabel' -and $_.To -eq 'GroupKind.Label' } |
+            Should -Not -BeNullOrEmpty
+        $deleted = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'DeletedGroups.tmdl') -Raw
+        $deleted | Should -Match 'column IsTeamLabel = IF\(DeletedGroups\[IsTeam\] = TRUE\(\), "Team", "Group"\)'
     }
 
     It 'does not drop a usage-report row whose id is absent from groups.csv' {
@@ -313,6 +324,9 @@ Describe 'The anonymize toggle covers every displayed name' {
         $anonymize.visual.query.queryState.Values.projections[0].field.Column.Expression.SourceRef.Entity | Should -Be 'AnonymizeMode'
         $group = Get-Content -LiteralPath (Join-Path $dir 'slicer-group/visual.json') -Raw | ConvertFrom-Json
         $group.visual.query.queryState.Values.projections[0].field.Column.Property | Should -Be 'Pseudonym'
+        $kind = Get-Content -LiteralPath (Join-Path $dir 'slicer-kind/visual.json') -Raw | ConvertFrom-Json
+        $kind.visual.query.queryState.Values.projections[0].field.Column.Expression.SourceRef.Entity | Should -Be 'GroupKind'
+        $kind.visual.query.queryState.Values.projections[0].field.Column.Property | Should -Be 'Label'
     }
 
     It 'binds <Page> date slicer to DateDim[Date] in Between mode' -ForEach @(

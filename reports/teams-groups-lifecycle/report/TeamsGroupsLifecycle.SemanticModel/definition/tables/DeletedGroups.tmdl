@@ -71,6 +71,13 @@ table DeletedGroups
         summarizeBy: none
         sourceColumn: IsTeam
 
+    /// Same labels as GroupsCurrent[IsTeamLabel], so one Group or Team slicer filters both.
+    column IsTeamLabel = IF(DeletedGroups[IsTeam] = TRUE(), "Team", "Group")
+        dataType: string
+        lineageTag: b723cdac-b470-47e8-bfa2-094b29239373
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Microsoft 365 when groupTypes contains Unified. A dynamic Microsoft 365 group is
     /// "Unified;DynamicMembership", not the single token Unified. Anything without Unified
     /// is a security group, including an empty list and DynamicMembership alone.

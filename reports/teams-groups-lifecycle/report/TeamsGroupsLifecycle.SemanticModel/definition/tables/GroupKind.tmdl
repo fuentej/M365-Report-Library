@@ -1,0 +1,15 @@
+table GroupKind
+    lineageTag: 9675c634-1f57-46a0-96b6-b212dc438398
+
+    column Label
+        dataType: string
+        lineageTag: fedb2630-ad7d-42c7-ae2e-eb9113896f9e
+        summarizeBy: none
+        sourceColumn: Label
+
+    partition GroupKind = calculated
+        mode: import
+        source =
+            DATATABLE("Label", STRING, {{"Group"}, {"Team"}})
+
+    annotation PBI_ResultType = Table
