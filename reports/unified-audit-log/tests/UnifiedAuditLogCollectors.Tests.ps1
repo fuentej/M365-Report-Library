@@ -123,16 +123,16 @@ Describe 'Cloud availability' {
     }
 
     It 'attempts <Script> in <Cloud> and logs a warning that availability is UNVERIFIED' -ForEach @(
-        @{ Script = 'Get-AuditSearchCmdlet.ps1'; Cloud = 'GCC'; Cmdlet = 'Search-UnifiedAuditLog'; Extra = @{ LookbackDays = 1; SliceMinutes = 1440 } }
-        @{ Script = 'Get-AuditSearchCmdlet.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Search-UnifiedAuditLog'; Extra = @{ LookbackDays = 1; SliceMinutes = 1440 } }
-        @{ Script = 'Get-AuditIngestion.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-AdminAuditLogConfig'; Extra = @{} }
-        @{ Script = 'Get-AuditIngestion.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-AdminAuditLogConfig'; Extra = @{} }
-        @{ Script = 'Get-AuditRetentionPolicies.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-UnifiedAuditLogRetentionPolicy'; Extra = @{} }
-        @{ Script = 'Get-AuditRetentionPolicies.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-UnifiedAuditLogRetentionPolicy'; Extra = @{} }
+        @{ Script = 'Get-AuditSearchCmdlet.ps1'; Cloud = 'GCC'; Cmdlet = 'Search-UnifiedAuditLog'; Extra = @{ LookbackDays = 1; SliceMinutes = 1440 }; Calls = 4 }
+        @{ Script = 'Get-AuditSearchCmdlet.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Search-UnifiedAuditLog'; Extra = @{ LookbackDays = 1; SliceMinutes = 1440 }; Calls = 4 }
+        @{ Script = 'Get-AuditIngestion.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-AdminAuditLogConfig'; Extra = @{}; Calls = 1 }
+        @{ Script = 'Get-AuditIngestion.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-AdminAuditLogConfig'; Extra = @{}; Calls = 1 }
+        @{ Script = 'Get-AuditRetentionPolicies.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-UnifiedAuditLogRetentionPolicy'; Extra = @{}; Calls = 1 }
+        @{ Script = 'Get-AuditRetentionPolicies.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-UnifiedAuditLogRetentionPolicy'; Extra = @{}; Calls = 1 }
     ) {
         Invoke-CollectorScript $Script (@{ OutputPath = $script:Out; Environment = $Cloud; SkipConnect = $true } + $Extra)
         Get-LogText $script:Out | Should -Match 'UNVERIFIED'
-        Should -Invoke $Cmdlet -Times 1 -Exactly
+        Should -Invoke $Cmdlet -Times $Calls -Exactly
     }
 
     It 'attempts the activity feed in <Cloud> without a warning about availability' -ForEach @(
@@ -331,10 +331,26 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv')).Count | Should -Be 0
     }
 
+    It 'retries the first empty page of a session and then reads the records' {
+        $global:AuTest.Served = @{}
+        Mock Search-UnifiedAuditLog {
+            $n = if ($global:AuTest.Served.ContainsKey($SessionId)) { $global:AuTest.Served[$SessionId] } else { 0 }
+            $n++
+            $global:AuTest.Served[$SessionId] = $n
+            if ($n -eq 1) { return }
+            if ($n -eq 2) { return New-SearchRecord -Id 'late' }
+        }
+        Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1; SliceMinutes = 1440 }
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv')).RecordId | Should -Contain 'late'
+    }
+
     It 'resumes from the latest CreationTime already in the file' {
         $watermark = [datetime]::UtcNow.AddHours(-3)
         New-ExistingCsv $script:Out 'audit-search-cmdlet.csv' 'AuditSearchCmdlet' @{ CreationTime = (Get-Stamp $watermark); RecordId = 'old' }
-        Mock Search-UnifiedAuditLog { $global:AuTest.Calls.Add($StartDate) }
+        $global:AuTest.Seen = [System.Collections.Generic.HashSet[string]]::new()
+        Mock Search-UnifiedAuditLog {
+            if ($global:AuTest.Seen.Add([string]$SessionId)) { $global:AuTest.Calls.Add($StartDate) }
+        }
 
         Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; SliceMinutes = 60 }
 

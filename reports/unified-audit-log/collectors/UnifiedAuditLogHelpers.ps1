@@ -289,7 +289,9 @@ function Get-AuditSearchSession {
             ReturnLargeSet with a fresh SessionId and ResultSize 5000. The same command is used
             for every call of the session, because switching commands lowers the limit to 10,000.
             A call that returns nothing ends the session; so does a record whose
-            AuditSearchRequestMetadata.moreRecordsAvailable is false.
+            AuditSearchRequestMetadata.moreRecordsAvailable is false. The first empty call is
+            retried, because the service often returns nothing while the search is prepared and
+            that empty page is not the documented end of the session.
             A page whose ResultCount is 50,000 or more is a capped session even when the page
             is short and moreRecordsAvailable is false: the cap is not a complete result.
             https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
@@ -304,10 +306,18 @@ function Get-AuditSearchSession {
     $sessionId = [guid]::NewGuid().ToString()
     $records = [System.Collections.Generic.List[object]]::new()
     $capped = $false
+    $nullTries = 0
     while ($true) {
         $batch = @(Search-UnifiedAuditLog -StartDate $Start -EndDate $End -SessionId $sessionId `
                 -SessionCommand ReturnLargeSet -ResultSize 5000 -Formatted -ErrorAction Stop | Where-Object { $null -ne $_ })
-        if ($batch.Count -eq 0) { break }
+        if ($batch.Count -eq 0) {
+            if ($records.Count -eq 0 -and $nullTries -lt 3) {
+                $nullTries++
+                Start-Sleep -Milliseconds 200
+                continue
+            }
+            break
+        }
 
         # Do not keep a page that already reports the cap. The objects in hand are
         # unsorted and are not the full window.
