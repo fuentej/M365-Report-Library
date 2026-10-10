@@ -56,4 +56,18 @@ Describe 'SharePoint and OneDrive activity sources' {
         $flat | Should -Match 'not yet available in all national deployments'
         $question3 | Should -Not -Match 'no page read shows a last-activity property'
     }
+
+    It 'does not treat a capped Get-SPOSite call as every site or as Commercial' {
+        # -Limit defaults to 200 and personal sites default to off. No page states the cmdlet per cloud.
+        $row9 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 9 \| Tenant total' })
+        $row10 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 10 \| Site list and per-site' })
+        $row10 | Should -Match 'defaults to 200'
+        $row10 | Should -Match 'defaults to `\$false`'
+        $row10 | Should -Match 'different parameter sets'
+        $row10 | Should -Not -Match '\[Available\]'
+        $row10 | Should -Match 'microsoft\.online\.sharepoint\.powershell/get-sposite'
+        $row9 | Should -Match 'microsoft\.online\.sharepoint\.powershell/get-spotenant'
+        $row9 | Should -Not -Match 'sharepoint-online/get-spotenant'
+        $row9 | Should -Match 'no page states this cmdlet per cloud'
+    }
 }
