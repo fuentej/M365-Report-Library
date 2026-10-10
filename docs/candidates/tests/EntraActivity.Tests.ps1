@@ -21,4 +21,21 @@ Describe 'entra activity sources' {
         $source3 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 3 \|' })
         $source3 | Should -Match 'report-only four'
     }
+
+    It 'pages sign-ins and directory audits and retries 429' {
+        # Sign-ins cap a page at 1,000 and do not list $skip. Directory audits state no page size.
+        # 429 on these resources is Retry-After, then a shorter window. Five calls per 10 seconds per tenant.
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \|' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \|' })
+        $source1 | Should -Match 'does not list `\$skip` or `\$select`'
+        $source1 | Should -Match 'Do not send `\$top` above 1,000'
+        $source4 | Should -Match 'does not state a page size'
+        $source4 | Should -Match 'one page is not the window'
+        $source4 | Should -Match '`activityDateTime` is always UTC'
+        $script:Doc | Should -Match 'DirectoryPageTokenNotFoundException'
+        $script:Doc | Should -Match 'five requests per 10 seconds per app per tenant'
+        $script:Doc | Should -Match 'Wait the `Retry-After` seconds'
+        $script:Doc | Should -Match 'starts at three days'
+        $script:Doc | Should -Match 'not an empty log'
+    }
 }
