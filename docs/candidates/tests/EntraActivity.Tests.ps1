@@ -18,15 +18,15 @@ Describe 'entra activity sources' {
         $script:Doc | Should -Match '`00000000-0000-0000`'
         $script:Doc | Should -Match '`createdDateTime` is UTC'
         $script:Doc | Should -Match '`unknownFutureValue`'
-        $source3 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 3 \|' })
+        $source3 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 3 \| Conditional Access result' })
         $source3 | Should -Match 'report-only four'
     }
 
     It 'pages sign-ins and directory audits and retries 429' {
         # Sign-ins cap a page at 1,000 and do not list $skip. Directory audits state no page size.
         # 429 on these resources is Retry-After, then a shorter window. Five calls per 10 seconds per tenant.
-        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \|' })
-        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \|' })
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Interactive' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit' })
         $source1 | Should -Match 'does not list `\$skip` or `\$select`'
         $source1 | Should -Match 'Do not send `\$top` above 1,000'
         $source4 | Should -Match 'does not state a page size'
@@ -37,5 +37,24 @@ Describe 'entra activity sources' {
         $script:Doc | Should -Match 'Wait the `Retry-After` seconds'
         $script:Doc | Should -Match 'starts at three days'
         $script:Doc | Should -Match 'not an empty log'
+    }
+
+    It 'keeps directory audit rows the four category examples leave out' {
+        # Policy is the Conditional Access category. result includes timeout.
+        # Application and App are both documented type strings. Example 2 id is not a GUID.
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit' })
+        $script:Doc | Should -Not -Match 'did not research'
+        $source4 | Should -Match 'not a closed set'
+        $source4 | Should -Match 'category `Policy`'
+        $source4 | Should -Match '`timeout`'
+        $source4 | Should -Match 'not limited to'
+        $source4 | Should -Match '`Application`'
+        $source4 | Should -Match '`ServicePrincipal`'
+        $source4 | Should -Match '`N/A`'
+        $script:Doc | Should -Match 'Add Conditional Access policy'
+        $script:Doc | Should -Match 'do not rewrite `Application` to `App`'
+        $script:Doc | Should -Match 'SSGM_b662f17a-4e4d-4e1c-9248-cdec180024b2_MCDC4_88453290'
+        $page5 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5 \| Directory changes' })
+        $page5 | Should -Match '`timeout` kept apart'
     }
 }
