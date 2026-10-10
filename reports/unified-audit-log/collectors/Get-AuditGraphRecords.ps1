@@ -47,7 +47,12 @@ param(
     [string]$Organization,
 
     # How far back the first run looks, in days. Later runs resume from the file.
-    [ValidateRange(1, 180)]
+    # The same retention as Search-UnifiedAuditLog: 180 days, one year for E5, or up to 10 years
+    # when a custom policy says so. 3653 covers leap days. A long first run is many queries;
+    # the tenant allows at least 200 submissions per rolling 24 hours.
+    # https://learn.microsoft.com/purview/audit-log-retention-policies
+    # https://learn.microsoft.com/graph/throttling-limits#security-audit-log-query-service-limits
+    [ValidateRange(1, 3653)]
     [int]$LookbackDays = 7,
 
     # The range each query covers. The default is one day.

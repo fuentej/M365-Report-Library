@@ -43,7 +43,10 @@ param(
     [string]$Organization,
 
     # How far back the first run looks, in days. Later runs resume from the file.
-    [ValidateRange(1, 180)]
+    # Audit (Standard) keeps 180 days. One year is the E5 default for Exchange, SharePoint,
+    # OneDrive and Entra, and a custom policy can keep records for 10 years. 3653 covers leap days.
+    # https://learn.microsoft.com/purview/audit-log-retention-policies
+    [ValidateRange(1, 3653)]
     [int]$LookbackDays = 7,
 
     # The slice each session reads. The audit log search script article uses 60 minutes.

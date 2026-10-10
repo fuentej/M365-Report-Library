@@ -48,7 +48,9 @@ param(
     [securestring]$AccessToken,
     [switch]$NoStartSubscription,
 
-    [ValidateRange(1, 180)]
+    # Sources 1 and 2 can read up to ten years (3653 covers leap days). Source 3 is clamped to 7.
+    # https://learn.microsoft.com/purview/audit-log-retention-policies
+    [ValidateRange(1, 3653)]
     [int]$LookbackDays = 7
 )
 

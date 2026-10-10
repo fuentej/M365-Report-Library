@@ -350,6 +350,14 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv')).RecordId | Should -Contain 'late'
     }
 
+    It 'accepts a lookback of 365 days so a first run can cover one-year retention' {
+        Mock Search-UnifiedAuditLog { $global:AuTest.Calls.Add($StartDate); throw 'stop after the first window' }
+        { Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 365; SliceMinutes = 1440 } } |
+            Should -Throw '*stop after the first window*'
+        ([datetime]::UtcNow - $global:AuTest.Calls[0]).TotalDays | Should -BeGreaterThan 364
+        ([datetime]::UtcNow - $global:AuTest.Calls[0]).TotalDays | Should -BeLessThan 366
+    }
+
     It 'resumes from the latest CreationTime already in the file' {
         $watermark = [datetime]::UtcNow.AddHours(-3)
         New-ExistingCsv $script:Out 'audit-search-cmdlet.csv' 'AuditSearchCmdlet' @{ CreationTime = (Get-Stamp $watermark); RecordId = 'old' }
@@ -945,5 +953,14 @@ Describe 'Run-All' {
         Get-LogText $script:Out | Should -Match 'SecurityCompliance sign-in failed'
         Test-Path -LiteralPath (Join-Path $script:Out 'audit-ingestion.csv') | Should -BeTrue
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly
+    }
+
+    It 'passes a 365-day lookback through to Search-UnifiedAuditLog' {
+        $global:AuTest.Starts = [System.Collections.Generic.List[datetime]]::new()
+        Mock Search-UnifiedAuditLog { $global:AuTest.Starts.Add($StartDate); throw 'stop' }
+        Mock Invoke-MgGraphRequest { throw 'stop graph' }
+        & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -LookbackDays 365
+        ([datetime]::UtcNow - $global:AuTest.Starts[0]).TotalDays | Should -BeGreaterThan 364
+        ([datetime]::UtcNow - $global:AuTest.Starts[0]).TotalDays | Should -BeLessThan 366
     }
 }
