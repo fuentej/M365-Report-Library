@@ -13,7 +13,7 @@
     - an empty value is Unknown, never zero, and a header-only file is blank, never zero;
     - the Anonymize toggle reaches every name and address a visual shows.
 
-    Calculated tables (UsersCurrent, Apps) and the helper tables that are not sourced from
+    UsersCurrent (latest-snapshot import of users.csv), the calculated Apps, and the helper tables that are not sourced from
     any CSV (DateDim and the AnonymizeMode toggle) are exempt from the CSV-mapping check.
     $CsvBackedTables below is the complete list of what is checked.
 #>
