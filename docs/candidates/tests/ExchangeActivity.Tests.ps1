@@ -32,4 +32,15 @@ Describe 'exchange activity sources' {
         $source8 | Should -Match 'does not name a retry'
         $source8 | Should -Not -Match 'from the last row'
     }
+
+    It 'does not limit mobile devices to the ActiveSync filter' {
+        # ActiveSync, RestApi, OWAforDevices and UniversalOutlook are filters.
+        # Passing only ActiveSync drops the other device families.
+        $source9 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 9 \|' })
+        $source9 | Should -Match 'Get-EXOMobileDeviceStatistics -Mailbox <upn>'
+        $source9 | Should -Not -Match 'Mailbox <upn> -ActiveSync'
+        $source9 | Should -Match 'only `-ActiveSync` drops'
+        $source9 | Should -Match '-RestApi'
+        $source9 | Should -Match '-UniversalOutlook'
+    }
 }
