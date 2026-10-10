@@ -36,4 +36,16 @@ Describe 'unified audit log sources' {
         $script:Doc | Should -Not -Match 'How far back content stays listable was not found'
         $script:Doc | Should -Not -Match 'Content types seen on the pages read'
     }
+
+    It 'keeps one-year retention to E5 and the audit add-on, and guests at 180 days' {
+        # The one-year default does not cover non-E5 users or guests.
+        # Get-UnifiedAuditLogRetentionPolicy omits the default policy.
+        $script:Doc | Should -Match 'Microsoft Purview Suite'
+        $script:Doc | Should -Match 'E5 eDiscovery and Audit add-on'
+        $script:Doc | Should -Match 'guest users stay at 180 days'
+        $script:Doc | Should -Match 'custom retention policy overrides the default and can be shorter'
+        $script:Doc | Should -Match 'does not return the default'
+        $script:Doc | Should -Match '7 Days, 30 Days, 3 Years, 5 Years, and 7 Years'
+        $script:Doc | Should -Not -Match 'Entra ID, Exchange, OneDrive and SharePoint records are kept one year by default'
+    }
 }
