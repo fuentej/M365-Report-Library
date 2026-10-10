@@ -22,4 +22,22 @@ Describe 'SharePoint and OneDrive activity sources' {
         $flat | Should -Match 'regardless of the selected time period'
         $flat | Should -Match 'rows 5 and 6 must not be read as lifetime last activity'
     }
+
+    It 'keeps the deleted-user windows and the storage units apart' {
+        # The overview removes a deleted user in 30 days. The OneDrive usage page keeps them for 180.
+        # Graph date is 30 days and its storage columns are bytes. The admin center day view is 28 days and megabytes.
+        $row1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| SharePoint storage' })
+        $row2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| OneDrive storage' })
+        $question2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Files each user' })
+        $flat = $script:Doc -replace '\s+', ' '
+        $row1 | Should -Not -Match 'so plan for 28'
+        $row2 | Should -Match 'temporarily empty'
+        $row2 | Should -Match 'no Site Id'
+        $flat | Should -Match 'do not drop OneDrive rows at 30 days'
+        $flat | Should -Match 'perpetual license'
+        $flat | Should -Match 'Storage used \(MB\)'
+        $flat | Should -Match 'Do not add the two units'
+        $question2 | Should -Match 'past 30 days'
+        $question2 | Should -Not -Match 'last 28 days'
+    }
 }
