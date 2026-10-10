@@ -25,7 +25,8 @@
         used.
 
         Paging, the 50,000-record cap, the UTC dates, the roles, the retention and the
-        Management Activity API note are as in Get-AnonymousLinkEvents.ps1. In GCC and GCC High
+        Management Activity API note are as in Get-AnonymousLinkEvents.ps1. -LookbackDays
+        accepts up to 365 so a first run can cover the one-year retention. In GCC and GCC High
         the Audit (Standard) feature is listed as available but the page does not list these
         SharePoint operations, so they are attempted on that basis.
 
@@ -53,7 +54,7 @@ param(
     [datetime]$StartDate,
     [datetime]$EndDate,
 
-    [ValidateRange(1, 180)]
+    [ValidateRange(1, 365)]
     [int]$LookbackDays = 90,
 
     [ValidateRange(1, 24)]

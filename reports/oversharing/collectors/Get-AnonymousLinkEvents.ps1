@@ -33,7 +33,9 @@
         Audit (Standard) is enough. Retention is 180 days for records generated on or after 17
         October 2023, one year only for Exchange, SharePoint, OneDrive and Microsoft Entra
         records of users with E5 or the audit add-on, and a custom retention policy can be
-        shorter (https://learn.microsoft.com/purview/audit-log-retention-policies). Learn
+        shorter (https://learn.microsoft.com/purview/audit-log-retention-policies).
+        -LookbackDays accepts up to 365 so a first run can cover that one-year retention.
+        Learn
         recommends the Management Activity API for programmatic export; its availability in
         GCC and GCC High was not checked, and this collector does not use it.
 
@@ -59,7 +61,7 @@ param(
     [datetime]$StartDate,
     [datetime]$EndDate,
 
-    [ValidateRange(1, 180)]
+    [ValidateRange(1, 365)]
     [int]$LookbackDays = 90,
 
     [ValidateRange(1, 24)]

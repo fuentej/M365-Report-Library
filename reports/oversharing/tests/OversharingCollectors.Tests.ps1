@@ -422,6 +422,25 @@ Describe 'Event sources resume from the last exported timestamp' {
         @(Import-Csv -LiteralPath (Join-Path $script:folder $Csv)).Count | Should -BeGreaterThan 0
     }
 
+    It 'accepts a 365-day lookback so the one-year retention can be collected' {
+        Mock Search-UnifiedAuditLog -MockWith {
+            $global:OversharingTestStarts.Add($StartDate.ToUniversalTime())
+            @()
+        }
+        $end = [datetime]::UtcNow
+
+        Invoke-CollectorScript 'Get-AnonymousLinkEvents.ps1' @{
+            OutputPath = $script:folder; SkipConnect = $true; LookbackDays = 365; EndDate = $end; WindowHours = 24
+        }
+
+        [math]::Abs(($global:OversharingTestStarts[0] - $end.AddDays(-365)).TotalHours) | Should -BeLessThan 2
+
+        { Invoke-CollectorScript 'Get-SharingEvents.ps1' @{
+                OutputPath = $script:folder; SkipConnect = $true; LookbackDays = 365
+                StartDate = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-10T06:00:00Z'
+            } } | Should -Not -Throw
+    }
+
     It 'searches the operations the contract lists' {
         Mock Search-UnifiedAuditLog -MockWith { @() }
 

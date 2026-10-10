@@ -32,7 +32,7 @@ Options worth knowing:
 
 * `-MaxSites`, `-MaxItemsPerDrive`, `-LinksOnly`, `-SkipItemPermissions` bound the item permission walk, which is
   one Graph call per item. Read Learn's [scan guidance](https://learn.microsoft.com/onedrive/developer/rest-api/concepts/scan-guidance) before running it against a large tenant.
-* `-StartDate`, `-EndDate`, `-LookbackDays` (default 90), `-WindowHours` (default 24) set the audit search range.
+* `-StartDate`, `-EndDate`, `-LookbackDays` (default 90, up to 365 for the one-year E5 retention), `-WindowHours` (default 24) set the audit search range.
 * `-LabelGuid` names the sensitivity labels for the labelled-files report; without it the collector lists file labels with `Get-Label`.
 * `-WaitMinutes` is how long a Data access governance report is waited for. A report still running is left
   running and a later run exports it. A completed report newer than `-MaxReportAgeHours` is reused, because these
@@ -113,6 +113,8 @@ open item in the contract: those clouds log a warning and try anyway.
 * **Audit events (5a, 5b).** `Search-UnifiedAuditLog` is paged with a `ReturnLargeSet` session (5,000 per page, 50,000
   per session). A window that reaches 50,000 is incomplete and unsorted, so it is not written: the collector throws
   and tells you the window to re-run with a smaller `-WindowHours`. Audit (Standard) keeps 180 days.
+  The one-year retention is collected by passing `-LookbackDays` up to 365
+  ([retention](https://learn.microsoft.com/purview/audit-log-retention-policies)).
 
 ## CSV files
 
