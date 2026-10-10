@@ -34,4 +34,24 @@ Describe 'Teams activity sources' {
         $source7 | Should -Match 'Purview DLP'
         $source7 | Should -Match 'follow `@odata.nextLink`'
     }
+
+    It 'pages the audit search and keeps Teams retention at 180 days' {
+        # A bare call returns 100 records. Teams is not in the one-year workload set.
+        # MessageSent is not a complete chat count. The compliance cmdlet always reports auditing off.
+        $source8 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 8 \| Teams events' })
+        $source8 | Should -Match 'at most 100 records'
+        $source8 | Should -Match 'maximum is 5,000'
+        $source8 | Should -Match 'moreRecordsAvailable'
+        $source8 | Should -Match 'not the full window'
+        $source8 | Should -Match 'HighCompleteness'
+        $source8 | Should -Match 'midnight UTC'
+        $source8 | Should -Match 'always `False` in Security & Compliance PowerShell'
+        $source8 | Should -Match 'Exchange admin center'
+        $source8 | Should -Match 'Microsoft Purview Suite'
+        $source8 | Should -Match 'E5 eDiscovery and Audit add-on'
+        $source8 | Should -Match 'guest users stay at 180 days'
+        $source8 | Should -Match 'can be shorter'
+        $source8 | Should -Match 'not a complete chat count'
+        $source8 | Should -Match 'footnote 12'
+    }
 }
