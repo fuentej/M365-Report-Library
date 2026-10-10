@@ -7,8 +7,9 @@ table Measures
 	column 'Measures Key'
 		dataType: int64
 		isHidden
-		sourceColumn: 'Measures Key'
 		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Measures Key]
 
 	measure 'Total Events' = COUNTROWS(ActivityExplorerEvents)
 		formatString: #,##0

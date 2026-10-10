@@ -9,8 +9,8 @@ table 'Anonymize Toggle'
 	column 'Anonymize Toggle'
 		dataType: int64
 		isHidden
-		sourceColumn: Value
 		summarizeBy: none
+		sourceColumn: [Value]
 
 	column 'Anonymize Toggle Label' = IF('Anonymize Toggle'[Anonymize Toggle] = 1, "On (pseudonyms)", "Off (real names)")
 		dataType: string
