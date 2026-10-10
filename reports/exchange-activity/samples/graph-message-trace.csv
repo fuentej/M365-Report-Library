@@ -1,0 +1,3 @@
+"ReceivedDateTime","Id","SenderAddress","RecipientAddress","Status","Size"
+"2026-10-07T14:03:11Z","bbbbbbbb-0000-0000-0000-000000000001","avery.abara@example.com","blake.bishop@example.com","delivered","45678"
+"2026-10-07T16:20:45Z","bbbbbbbb-0000-0000-0000-000000000002","partner@fabrikam.example.com","avery.abara@example.com","delivered","12034"
