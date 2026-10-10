@@ -31,7 +31,7 @@ fake data so the report can be built and opened without a tenant.
 
 Open `report/GuestAccess.pbip` in Power BI Desktop (Store reports using enhanced
 metadata format (PBIR) and Store semantic model using TMDL format must be enabled
-under Preview features; both are required to read this project). On first open, Power
+under Preview features, both are required to read this project). On first open, Power
 BI Desktop asks for the `CsvFolder` parameter's value: point it at a folder holding the
 same CSVs described below: `samples/` to explore with fake data, or a collector output
 folder for a real tenant. Every table is a plain CSV import from

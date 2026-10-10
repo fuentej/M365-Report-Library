@@ -121,7 +121,7 @@ The same command runs on every pull request (see `.github/workflows/tests.yml`).
 
 ### Running tests in a cloud agent session
 
-CI installs Pester from the PowerShell Gallery as usual; that is unchanged. A scheduled
+CI installs Pester from the PowerShell Gallery as usual: that is unchanged. A scheduled
 or on-demand Claude Code cloud session cannot: its egress proxy denies
 `www.powershellgallery.com` and `codeload.github.com`, so `Install-Module Pester` fails
 there. `.claude/hooks/session-start.sh` is a `SessionStart` hook (registered in

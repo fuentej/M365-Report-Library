@@ -87,7 +87,7 @@ application permissions with admin consent.
 ([national cloud deployments](https://learn.microsoft.com/graph/deployments)).
 
 * **Available**: collected.
-* **NotAvailable**: the collector skips the source; it writes a header-only CSV and logs why.
+* **NotAvailable**: the collector skips the source. It writes a header-only CSV and logs why.
 * **UNVERIFIED**: no Microsoft page found says either way. The collector asks for the data,
   logs a warning, and records any refusal in `run.log`.
 

@@ -170,7 +170,7 @@ Most columns carry the name `Export-ActivityExplorerData` uses. The derived ones
 | `IsLabelDowngrade` | `LabelEventType -eq 'LabelDowngraded'` |
 | `SensitiveInfoTypeName` / `Count` / `Confidence` | `SensitiveInfoTypeData` flattened: names joined with `;`, counts totalled, highest confidence kept |
 
-`SensitivityLabel` and `OldSensitivityLabel` hold label GUIDs; join them to
+`SensitivityLabel` and `OldSensitivityLabel` hold label GUIDs: join them to
 `policies.csv` on `ObjectId` where `ObjectType` is `SensitivityLabel`.
 
 ### `content-explorer-snapshot.csv`: snapshot
