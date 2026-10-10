@@ -43,10 +43,32 @@ BeforeAll {
         if ($text -notmatch 'Table\.Distinct\([^\r\n]*\{"Id"\}\)') {
             $faults.Add('does not keep one row per Id')
         }
+        # The steps above do nothing unless the query returns that table.
+        # `in Selected` keeps every snapshot, and UsersCurrent.Id is then not unique.
+        if ($text -notmatch '(?m)^            in\r?\n                OnePerId\s*$') {
+            $faults.Add('does not return the one-row-per-Id table')
+        }
         if ($text -match 'List\.Max\([^\r\n]*Selected\[RunDate\]') {
             $faults.Add('takes the newest RunDate of the whole file, not per Id')
         }
         return , $faults.ToArray()
+    }
+
+    function Get-UsersCsvParseSteps {
+        <#
+            .SYNOPSIS
+                The shared users.csv steps, from Csv.Document through the RunDate
+                and AccountEnabled type change. Whitespace is collapsed so the
+                comparison is the steps, not the indent.
+        #>
+        param([Parameter(Mandatory)][string]$Path)
+
+        $text = Get-Content -LiteralPath $Path -Raw
+        $match = [regex]::Match(
+            $text,
+            '(?s)Source = Csv\.Document\(File\.Contents\(CsvFolder & "\\users\.csv"\).*?#"Changed Type" = Table\.TransformColumnTypes\(Parsed, \{\{"RunDate", type date\}, \{"AccountEnabled", type logical\}\}\)')
+        if (-not $match.Success) { return $null }
+        return ($match.Value -replace '\s+', ' ')
     }
 
     function Select-LatestPerId {
@@ -77,6 +99,17 @@ Describe 'UsersCurrent keeps each user at that user''s latest snapshot' {
         $read = [regex]::Escape('File.Contents(CsvFolder & "\users.csv")')
         $current | Should -Match $read
         $users | Should -Match $read
+    }
+
+    It 'parses users.csv through Changed Type the same way Users does' {
+        # DateTime.FromText with a quoted Z keeps the UTC clock time. A drift here
+        # refreshes Users and UsersCurrent as different types.
+        # https://learn.microsoft.com/en-us/powerquery-m/datetime-fromtext
+        $current = Get-UsersCsvParseSteps -Path (Join-Path $script:TablesFolder 'UsersCurrent.tmdl')
+        $users = Get-UsersCsvParseSteps -Path (Join-Path $script:TablesFolder 'Users.tmdl')
+        $current | Should -Not -BeNullOrEmpty
+        $users | Should -Not -BeNullOrEmpty
+        $current | Should -Be $users
     }
 
     It 'gives one row per Id on samples/users.csv' {
@@ -138,6 +171,20 @@ Describe 'UsersCurrent keeps each user at that user''s latest snapshot' {
             $path = New-BrokenCopy -Pattern 'Table\.Distinct\(Table\.Buffer\(Latest\), \{"Id"\}\)' -Replacement 'Latest'
             $faults = Get-CurrentSnapshotFault -Path $path
             $faults | Should -Contain 'does not keep one row per Id'
+        }
+
+        It 'fails when the query still has the steps but returns every row' {
+            $path = New-BrokenCopy -Pattern '(?m)^            in\r?\n                OnePerId\s*$' -Replacement "            in`n                Selected"
+            $faults = Get-CurrentSnapshotFault -Path $path
+            $faults | Should -Contain 'does not return the one-row-per-Id table'
+        }
+
+        It 'fails when the CreatedDateTime parse drifts from Users' {
+            $path = New-BrokenCopy -Pattern "yyyy-MM-dd'T'HH:mm:ss'Z'" -Replacement 'yyyy-MM-dd HH:mm:ss'
+            $current = Get-UsersCsvParseSteps -Path $path
+            $users = Get-UsersCsvParseSteps -Path (Join-Path $script:TablesFolder 'Users.tmdl')
+            $current | Should -Not -BeNullOrEmpty
+            $current | Should -Not -Be $users
         }
     }
 }
