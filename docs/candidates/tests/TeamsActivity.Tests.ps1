@@ -53,6 +53,14 @@ Describe 'Teams activity sources' {
         $source8 | Should -Match 'can be shorter'
         $source8 | Should -Match 'not a complete chat count'
         $source8 | Should -Match 'footnote 12'
+        $source8 | Should -Match 'manage-gcc.office.com'
+        $source8 | Should -Match 'manage.office365.us'
+        $source8 | Should -Match 'ActivityFeed.Read'
+        $source8 | Should -Match 'Audit.General'
+        $source8 | Should -Match 'at most 24 hours apart'
+        $source8 | Should -Match 'at most 7 days ago'
+        $source8 | Should -Match 'does not replace a 180-day'
+        $source8 | Should -Not -Match 'was not checked'
     }
 
     It 'does not add overlapping Teams usage columns' {
