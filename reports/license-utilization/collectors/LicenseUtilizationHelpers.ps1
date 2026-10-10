@@ -85,7 +85,11 @@ function Test-LicenseError {
     [OutputType([bool])]
     param([Parameter(Mandatory)][AllowEmptyString()][string]$Message)
 
-    return ($Message -match '(?i)licen[cs]e|NonPremium|premium|RequiresPremium|AadPremium')
+    # Match a missing-licence refusal only. A permission name such as
+    # LicenseAssignment.Read.All also contains "license", and treating that as a
+    # missing licence would skip the source and exit successfully.
+    # https://learn.microsoft.com/graph/api/resources/user
+    return ($Message -match '(?i)NonPremium|RequiresPremium|AadPremium|premium\s+licen[cs]e|Entra ID P[12]\s+licen[cs]e')
 }
 
 function Get-LicenseUtilizationScope {

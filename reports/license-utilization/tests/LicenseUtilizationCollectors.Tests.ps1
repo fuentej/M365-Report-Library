@@ -459,6 +459,12 @@ Describe 'A refused read is logged, not hidden' {
         Get-LogText -Folder $script:folder | Should -Match 'not licensed'
     }
 
+    It 'throws when the refusal names a permission, instead of skipping as unlicensed' {
+        Mock Get-MgSubscribedSku -MockWith { throw 'Application must have one of the following permissions: LicenseAssignment.Read.All' }
+
+        { Invoke-CollectorScript 'Get-SubscribedSkus.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*unavailable*'
+    }
+
     It 'logs an error, leaves the header and throws on any other failure' {
         Mock Get-MgSubscribedSku -MockWith { throw 'Insufficient privileges to complete the operation.' }
 
