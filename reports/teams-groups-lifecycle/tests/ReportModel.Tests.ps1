@@ -13,10 +13,12 @@
       fromColumn;
     - no visual binds a raw name column, so the Anonymize toggle covers every name.
 
-    GroupsCurrent and UsersCurrent (calculated, latest snapshot), DateDim (a calendar)
-    and AnonymizeMode (the disconnected table behind the toggle) have no CSV of their
-    own and are exempt from the CSV-mapping check. $CsvBackedTables below is the
-    complete, explicit list of what is checked.
+    GroupsCurrent and UsersCurrent import the same CSVs as Groups and Users, keeping
+    only the latest RunDate (BRO-434). Their imported columns are checked against
+    that CSV; calculated columns on them (IsTeamLabel, pseudonyms) are not in the
+    file. DateDim (a calendar), GroupKind and AnonymizeMode (the disconnected table
+    behind the toggle) are calculated tables with no CSV and are exempt.
+    $CsvBackedTables below is the complete, explicit list of what is checked.
 
     The TMDL reader and the CSV header helper are the guest-access report's; this
     folder does not carry a second copy.
@@ -47,6 +49,8 @@ BeforeAll {
         GroupActivity          = 'group-activity.csv'
         TeamArchiveStatus      = 'team-archive-status.csv'
         GroupCreationEvents    = 'group-creation-events.csv'
+        GroupsCurrent          = 'groups.csv'
+        UsersCurrent           = 'users.csv'
     }
 
     function Get-VisualFieldReference {
@@ -171,6 +175,8 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'GroupActivity' }
         @{ Table = 'TeamArchiveStatus' }
         @{ Table = 'GroupCreationEvents' }
+        @{ Table = 'GroupsCurrent' }
+        @{ Table = 'UsersCurrent' }
     ) {
         $script:Model.ContainsKey($Table) | Should -BeTrue -Because "the model should have a $Table table"
 
@@ -185,6 +191,17 @@ Describe 'Every CSV-backed table matches its sample CSV' {
                 ForEach-Object { $_.SourceColumn })
 
         ($modelColumns -join ',') | Should -Be ($csvHeader -join ',')
+
+        # GroupsCurrent and UsersCurrent also name the imported columns in
+        # Table.SelectColumns. That list is the CSV header.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$Table.tmdl") -Raw
+        if ($Table -like '*Current') {
+            $tmdl | Should -Match 'Table\.SelectColumns\(' -Because "$Table keeps only the CSV columns"
+        }
+        if ($tmdl -match 'Table\.SelectColumns\([^,]+,\s*\{(?<cols>[^}]+)\}') {
+            $selected = @([regex]::Matches($Matches['cols'], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+            ($selected -join ',') | Should -Be ($csvHeader -join ',')
+        }
     }
 
     It 'imports each table from the CsvFolder parameter and the CSV named in the map' {
@@ -203,12 +220,13 @@ Describe 'Every CSV-backed table matches its sample CSV' {
 
     It 'names every CSV-backed table exactly once' {
         (@($script:CsvBackedTables.Keys) | Sort-Object) -join ',' |
-            Should -Be ((@('Users', 'Groups', 'GroupOwners', 'DeletedGroups', 'GroupLifecyclePolicies', 'GroupLifecycleCoverage', 'TeamActivity', 'GroupActivity', 'TeamArchiveStatus', 'GroupCreationEvents') | Sort-Object) -join ',')
+            Should -Be ((@('Users', 'Groups', 'GroupOwners', 'DeletedGroups', 'GroupLifecyclePolicies', 'GroupLifecycleCoverage', 'TeamActivity', 'GroupActivity', 'TeamArchiveStatus', 'GroupCreationEvents', 'GroupsCurrent', 'UsersCurrent') | Sort-Object) -join ',')
     }
 
     It 'covers every sample CSV the collectors write' {
+        # GroupsCurrent and UsersCurrent read groups.csv and users.csv a second time.
         $samples = @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -File | ForEach-Object Name | Sort-Object)
-        $samples -join ',' | Should -Be ((@($script:CsvBackedTables.Values) | Sort-Object) -join ',')
+        $samples -join ',' | Should -Be ((@($script:CsvBackedTables.Values) | Sort-Object -Unique) -join ',')
     }
 }
 

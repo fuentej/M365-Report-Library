@@ -176,7 +176,8 @@ Describe 'TMDL model integrity' {
 
     It 'finds calculated tables in identity-posture, so the inheritance rule is exercised' {
         # BRO-347 rebuilt guest-access's *Current tables as import tables, so it has
-        # none left to check. The rule still runs against the other reports' models.
+        # none left to check, and BRO-434 did the same for teams-groups-lifecycle.
+        # The rule still runs against the other reports' models.
         $path = (Resolve-Path (Join-Path $PSScriptRoot '../../reports/identity-posture/report/IdentityPosture.SemanticModel/definition')).Path
         $calculated = @(Read-TmdlModelFolder -Path $path | Where-Object { $_.FilterBase -or $null -ne $_.Projected })
         $calculated.Count | Should -BeGreaterThan 0
