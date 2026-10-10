@@ -470,6 +470,28 @@ Describe 'Data access governance reports are read, reused and left running' {
         $row.UsersWithAccess | Should -Be '42'
     }
 
+    It 'reads an Unspecified report time as UTC when the machine zone is not UTC' {
+        $helper = (Join-Path $script:Collectors 'OversharingHelpers.ps1').Replace("'", "''")
+        $probe = @"
+Set-StrictMode -Version Latest
+. '$helper'
+`$stamp = [datetime]::SpecifyKind([datetime]::new(2026, 8, 10, 19, 32, 34), [DateTimeKind]::Unspecified)
+`$parsed = Get-ReportTime `$stamp
+if (`$parsed.ToString('yyyy-MM-ddTHH:mm:ss') -ne '2026-08-10T19:32:34') { exit 1 }
+exit 0
+"@
+        $previous = $env:TZ
+        try {
+            $env:TZ = 'America/New_York'
+            & pwsh -NoProfile -Command $probe
+            $LASTEXITCODE | Should -Be 0
+        }
+        finally {
+            if ($null -eq $previous) { Remove-Item Env:TZ -ErrorAction SilentlyContinue }
+            else { $env:TZ = $previous }
+        }
+    }
+
     It 'reuses a completed report that is newer than -MaxReportAgeHours instead of starting another' {
         Mock Get-SPODataAccessGovernanceInsight -MockWith {
             if ($ReportID) { [pscustomobject]@{ ReportId = $ReportID; Status = 'Completed' } }

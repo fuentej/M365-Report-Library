@@ -396,12 +396,29 @@ function Connect-SharePointAdmin {
 }
 
 function Get-ReportTime {
+    <#
+        .SYNOPSIS
+            A Data access governance report timestamp as UTC.
+
+        .DESCRIPTION
+            Get-SPODataAccessGovernanceInsight prints TriggeredDateTime and CreatedDateTime
+            with no time zone
+            (https://learn.microsoft.com/sharepoint/powershell-for-data-access-governance).
+            An Unspecified DateTime is that UTC clock time. ToUniversalTime would treat it
+            as the machine's local zone and make the report look newer than it is, so a
+            stale activity report would be reused.
+    #>
     [CmdletBinding()]
     [OutputType([nullable[datetime]])]
     param([AllowNull()]$Value)
 
     if ($null -eq $Value) { return $null }
-    if ($Value -is [datetime]) { return $Value.ToUniversalTime() }
+    if ($Value -is [datetime]) {
+        if ($Value.Kind -eq [DateTimeKind]::Unspecified) {
+            return [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
+        }
+        return $Value.ToUniversalTime()
+    }
     [datetime]$parsed = [datetime]::MinValue
     $styles = [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal
     if ([datetime]::TryParse([string]$Value, [System.Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$parsed)) {
