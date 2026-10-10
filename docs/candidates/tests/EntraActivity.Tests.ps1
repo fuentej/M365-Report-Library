@@ -57,4 +57,15 @@ Describe 'entra activity sources' {
         $page5 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5 \| Directory changes' })
         $page5 | Should -Match '`timeout` kept apart'
     }
+
+    It 'does not count service principals as non-interactive users' {
+        # The beta "not interactiveUser" example includes servicePrincipal and managedIdentity.
+        # The resource note lowercases the value; the list examples do not.
+        $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Non-interactive' })
+        $source2 | Should -Match "t ne 'interactiveUser'"
+        $source2 | Should -Match 'service principal and managed identity'
+        $source2 | Should -Match '`noninteractiveUser`'
+        $source2 | Should -Match 'isInteractive eq false'
+        $script:Doc | Should -Match "signInEventTypes/any\(t: t eq 'nonInteractiveUser'\)"
+    }
 }
