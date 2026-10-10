@@ -54,4 +54,17 @@ Describe 'copilot usage sources' {
         $source7 | Should -Match 'AuditLogsQuery-Entra.Read.All'
         $script:Doc | Should -Not -Match 'record type filter includes Copilot. Neither is stated'
     }
+
+    It 'bounds the interaction export and does not treat a 429 as empty' {
+        # createdDateTime needs both bounds. $top 100 is not the whole history. A 429 is throttling.
+        $source8 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 8 \| Copilot prompts' })
+        $source8 | Should -Match 'both a minimum and a maximum'
+        $source8 | Should -Match 'not the full history'
+        $source8 | Should -Match 'userPrompt'
+        $source8 | Should -Match 'deleted users'
+        $source8 | Should -Match '1,500 requests per second per app and 30 per app per tenant'
+        $source8 | Should -Match 'a `429` is not an empty history'
+        $source8 | Should -Match 'Outlook, PowerPoint, OneNote and Loop are not in this export'
+        $source8 | Should -Not -Match 'Recommended `\$top` is 100\. Returns prompt'
+    }
 }
