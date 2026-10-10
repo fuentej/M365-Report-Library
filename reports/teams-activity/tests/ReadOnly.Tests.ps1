@@ -34,12 +34,13 @@ Describe 'Only read-only tenant commands are called' {
         }
     }
 
-    It 'sends a raw Graph request only from the Graph paging and call-record helpers, and only as GET' {
+    It 'sends a raw Graph request only from the one Invoke-GraphGet helper, and only as GET' {
         $raw = @($script:Calls | Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'curl', 'wget') })
         $raw.Count | Should -Be 0
 
         $graph = @($script:Calls | Where-Object { $_.Name -eq 'Invoke-MgGraphRequest' })
-        $graph.Count | Should -BeGreaterThan 0
+        $graph.Count | Should -Be 1
+        $graph[0].File | Should -Be 'TeamsActivityHelpers.ps1'
         foreach ($call in $graph) {
             $call.Ast.Extent.Text | Should -Match '-Method GET\b' -Because ('{0} line {1}' -f $call.File, $call.Ast.Extent.StartLineNumber)
         }

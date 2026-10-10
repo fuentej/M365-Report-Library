@@ -114,9 +114,7 @@ foreach ($item in $listed) {
     if (-not $id) { continue }
     try {
         $recordId = $id
-        $record = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $source -Action {
-            Invoke-MgGraphRequest -Method GET -Uri ('/v1.0/communications/callRecords/{0}?$expand=sessions' -f $recordId) -ErrorAction Stop
-        }
+        $record = Invoke-GraphGet -Uri ('/v1.0/communications/callRecords/{0}?$expand=sessions' -f $recordId) -OutputPath $OutputPath -LogSource $source
         $sessions = @(Get-GraphJsonValue -Object $record -Name 'sessions')
         $more = [string](Get-GraphJsonValue -Object $record -Name 'sessions@odata.nextLink')
         if ($more) {

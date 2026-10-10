@@ -375,6 +375,32 @@ function Invoke-ReadWithThrottleRetry {
     }
 }
 
+function Invoke-GraphGet {
+    <#
+        .SYNOPSIS
+            One Graph read with GET, retrying HTTP 429 and 503. The only Invoke-MgGraphRequest
+            call in this report.
+
+        .DESCRIPTION
+            Refuses a URL that is not relative or on a Microsoft Graph host, so the session
+            token is not sent elsewhere. Only GET is sent.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [string]$OutputPath,
+        [string]$LogSource
+    )
+
+    if (-not (Test-GraphReadUri -Uri $Uri)) {
+        throw "Refusing to request a page outside Microsoft Graph: $Uri"
+    }
+    $requestUri = $Uri
+    Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action {
+        Invoke-MgGraphRequest -Method GET -Uri $requestUri -ErrorAction Stop
+    }
+}
+
 function Get-GraphPagedValue {
     <#
         .SYNOPSIS
@@ -405,10 +431,7 @@ function Get-GraphPagedValue {
         if (-not $visited.Add($next)) {
             throw "Graph returned a nextLink that was already requested: $next"
         }
-        $pageUri = $next
-        $page = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action {
-            Invoke-MgGraphRequest -Method GET -Uri $pageUri -ErrorAction Stop
-        }
+        $page = Invoke-GraphGet -Uri $next -OutputPath $OutputPath -LogSource $LogSource
         foreach ($item in @(Get-GraphJsonValue -Object $page -Name 'value')) {
             if ($null -ne $item) { $item }
         }
