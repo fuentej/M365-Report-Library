@@ -118,16 +118,32 @@ table UsersCurrent
             RETURN IF(Rows = 0, BLANK(), IF(ISBLANK(Enabled), "Unknown", IF(Enabled, "Enabled", "Disabled")))
         lineageTag: 37fc8a90-52fa-58fa-ab3e-487691f1c738
 
-    partition UsersCurrent = calculated
+    partition UsersCurrent = m
         mode: import
         source =
-            FILTER(
-                Users,
-                Users[RunDate] =
-                    CALCULATE(
-                        MAX(Users[RunDate]),
-                        ALLEXCEPT(Users, Users[Id])
-                    )
-            )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "UserPrincipalName", "Mail", "UserType", "AccountEnabled", "CreatedDateTime", "Department", "JobTitle", "City", "Country", "ManagerId", "ManagerUserPrincipalName"}),
+                // Each user keeps the row from that user's own latest snapshot, not only
+                // the newest file date, so a user missing from the last run keeps a row.
+                // This is the M form of the DAX it replaces:
+                // CALCULATE(MAX(Users[RunDate]), ALLEXCEPT(Users, Users[Id])).
+                // Blank cells are null. List.Max includes nulls by default, so they are
+                // removed first.
+                LatestPerId = Table.Group(Selected, {"Id"}, {{"LatestRunDate", each List.Max(List.RemoveNulls([RunDate])), type nullable date}}),
+                Joined = Table.NestedJoin(Selected, {"Id", "RunDate"}, LatestPerId, {"Id", "LatestRunDate"}, "LatestPerId", JoinKind.Inner),
+                Latest = Table.RemoveColumns(Joined, {"LatestPerId"}),
+                // Id is the one side of eight relationships. Keep one row per Id even if
+                // a snapshot lists the same user twice.
+                OnePerId = Table.Distinct(Table.Buffer(Latest), {"Id"})
+            in
+                OnePerId
 
     annotation PBI_ResultType = Table

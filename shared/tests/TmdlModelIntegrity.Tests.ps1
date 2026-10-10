@@ -35,6 +35,8 @@ BeforeDiscovery {
 }
 
 BeforeAll {
+    $script:ModelsForAll = @(Get-ChildItem -Path (Join-Path $PSScriptRoot '../../reports/*/report/*.SemanticModel/definition') -Directory | ForEach-Object FullName)
+
     function ConvertFrom-TmdlObjectName {
         param([Parameter(Mandatory)][string]$Name)
 
@@ -92,6 +94,11 @@ BeforeAll {
                     foreach ($bodyLine in $body) {
                         if ($bodyLine -match '^\s+"(?<alias>[^"]+)"\s*,') {
                             $projected.Add($Matches['alias'])
+                        }
+                        # SELECTCOLUMNS(<table>, "Alias", <expr>) on one line, as in
+                        # identity-posture's RoleDefinitions.
+                        foreach ($m in [regex]::Matches($bodyLine, 'SELECTCOLUMNS\(\s*[^,()"]+,\s*"(?<alias>[^"]+)"\s*,')) {
+                            if (-not $projected.Contains($m.Groups['alias'].Value)) { $projected.Add($m.Groups['alias'].Value) }
                         }
                     }
                 }
@@ -174,12 +181,36 @@ Describe 'TMDL model integrity' {
         $faults -join '; ' | Should -BeNullOrEmpty
     }
 
-    It 'finds calculated tables in identity-posture, so the inheritance rule is exercised' {
-        # BRO-347 rebuilt guest-access's *Current tables as import tables, so it has
-        # none left to check. The rule still runs against the other reports' models.
+    It 'finds a FILTER table and a SELECTCOLUMNS table across the models, so the inheritance rule is exercised' {
+        # BRO-347 (guest-access) and BRO-433 (identity-posture) rebuilt their FILTER
+        # *Current tables as import tables, so no single report is guaranteed to keep
+        # one. Count across every model instead: a FILTER table whose base resolves in
+        # the same model, and a SELECTCOLUMNS table whose aliases were read.
+        $filterTables = 0
+        $projectedTables = 0
+        foreach ($model in $script:ModelsForAll) {
+            $tables = @(Read-TmdlModelFolder -Path $model)
+            foreach ($t in $tables) {
+                if ($t.FilterBase -and @($tables | Where-Object Name -eq $t.FilterBase).Count -eq 1) { $filterTables++ }
+                if ($null -ne $t.Projected -and @($t.Projected).Count -gt 0) { $projectedTables++ }
+            }
+        }
+        $filterTables | Should -BeGreaterThan 0
+        $projectedTables | Should -BeGreaterThan 0
+    }
+
+    It 'reads the alias of identity-posture''s RoleDefinitions, the calculated table it keeps' {
+        # identity-posture's UsersCurrent is an import table since BRO-433 and has no
+        # FILTER base. RoleDefinitions stays a calculated table whose one-line
+        # SELECTCOLUMNS calls return RoleDefinitionId.
         $path = (Resolve-Path (Join-Path $PSScriptRoot '../../reports/identity-posture/report/IdentityPosture.SemanticModel/definition')).Path
-        $calculated = @(Read-TmdlModelFolder -Path $path | Where-Object { $_.FilterBase -or $null -ne $_.Projected })
-        $calculated.Count | Should -BeGreaterThan 0
+        $tables = @(Read-TmdlModelFolder -Path $path)
+        $roles = @($tables | Where-Object Name -eq 'RoleDefinitions')
+        $roles.Count | Should -Be 1
+        @($roles[0].Projected) -join ',' | Should -Be 'RoleDefinitionId'
+        $current = @($tables | Where-Object Name -eq 'UsersCurrent')
+        $current.Count | Should -Be 1
+        $current[0].FilterBase | Should -BeNullOrEmpty
     }
 
     Context 'detection' {
@@ -255,6 +286,21 @@ Describe 'TMDL model integrity' {
                 '            )'
             )
             @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 1
+        }
+
+        It 'reads aliases from one-line SELECTCOLUMNS calls inside UNION' {
+            $roles = Read-TmdlTableText -Line @(
+                'table RoleDefinitions'
+                '    column RoleDefinitionId = "x"'
+                '    partition RoleDefinitions = calculated'
+                '        source ='
+                '            DISTINCT(UNION('
+                '                SELECTCOLUMNS(A, "RoleDefinitionId", A[RoleDefinitionId]),'
+                '                SELECTCOLUMNS(B, "RoleDefinitionId", B[RoleDefinitionId])'
+                '            ))'
+            )
+            @($roles.Projected) -join ',' | Should -Be 'RoleDefinitionId'
+            @(Get-RedeclaredInheritedColumn -Table @($roles)).Count | Should -Be 1
         }
 
         It 'does not treat a base column omitted from SELECTCOLUMNS as inherited' {

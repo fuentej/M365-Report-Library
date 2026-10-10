@@ -13,9 +13,11 @@
     - every relationship names columns that exist, and the report builds no page on
       the two beta-only sources the README lists as not collected.
 
-    Calculated tables (UsersCurrent, RoleDefinitions) and the helper tables that are
-    not sourced from any CSV (DateDim and the AnonymizeMode toggle) are exempt from the
-    CSV-mapping check. $CsvBackedTables below is the complete list of what is checked.
+    UsersCurrent imports users.csv, the file Users reads, and keeps each user's latest
+    snapshot (BRO-433), so its imported columns are checked against that CSV too. The
+    calculated table RoleDefinitions and the helper tables that are not sourced from
+    any CSV (DateDim and the AnonymizeMode toggle) are exempt from the CSV-mapping
+    check. $CsvBackedTables below is the complete list of what is checked.
 #>
 
 BeforeAll {
@@ -42,6 +44,7 @@ BeforeAll {
         UserSignInActivity        = 'user-signin-activity.csv'
         RiskyUsers                = 'risky-users.csv'
         SignIns                   = 'signins.csv'
+        UsersCurrent              = 'users.csv'
     }
 
     function Get-VisualFieldReference {
@@ -88,9 +91,9 @@ AfterAll {
 }
 
 Describe 'The semantic model has tables to check' {
-    It 'parses the nine CSV-backed tables plus the calculated and helper tables' {
+    It 'parses the ten CSV-backed tables plus the calculated and helper tables' {
         $script:Model.Keys.Count | Should -Be 13
-        foreach ($name in $script:CsvBackedTables.Keys + @('UsersCurrent', 'RoleDefinitions', 'DateDim', 'AnonymizeMode')) {
+        foreach ($name in $script:CsvBackedTables.Keys + @('RoleDefinitions', 'DateDim', 'AnonymizeMode')) {
             $script:Model.ContainsKey($name) | Should -BeTrue -Because "the model should have a $name table"
         }
     }
@@ -188,6 +191,7 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'UserSignInActivity' }
         @{ Table = 'RiskyUsers' }
         @{ Table = 'SignIns' }
+        @{ Table = 'UsersCurrent' }
     ) {
         $script:Model.ContainsKey($Table) | Should -BeTrue -Because "the model should have a $Table table"
 
@@ -202,17 +206,27 @@ Describe 'Every CSV-backed table matches its sample CSV' {
                 ForEach-Object { $_.SourceColumn })
 
         ($modelColumns -join ',') | Should -Be ($csvHeader -join ',')
+
+        # UsersCurrent also names the imported columns in Table.SelectColumns.
+        # That list is the CSV header.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$Table.tmdl") -Raw
+        if ($tmdl -match 'Table\.SelectColumns\([^,]+,\s*\{(?<cols>[^}]+)\}') {
+            $selected = @([regex]::Matches($Matches['cols'], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+            ($selected -join ',') | Should -Be ($csvHeader -join ',')
+        }
     }
 
     It 'names every CSV-backed table exactly once' {
-        $script:CsvBackedTables.Keys.Count | Should -Be 9
+        # Ten tables read nine files: UsersCurrent reads users.csv, as Users does.
+        $script:CsvBackedTables.Keys.Count | Should -Be 10
         (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 9
+        $script:CsvBackedTables['UsersCurrent'] | Should -Be $script:CsvBackedTables['Users']
     }
 
     It 'reads <Table> from the CsvFolder parameter and the CSV named in the map' -ForEach @(
         @{ Table = 'Users' }, @{ Table = 'AuthenticationMethods' }, @{ Table = 'ConditionalAccessPolicies' },
         @{ Table = 'ActiveRoleAssignments' }, @{ Table = 'EligibleRoleAssignments' }, @{ Table = 'RoleAssignments' },
-        @{ Table = 'UserSignInActivity' }, @{ Table = 'RiskyUsers' }, @{ Table = 'SignIns' }
+        @{ Table = 'UserSignInActivity' }, @{ Table = 'RiskyUsers' }, @{ Table = 'SignIns' }, @{ Table = 'UsersCurrent' }
     ) {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$Table.tmdl") -Raw
         $tmdl | Should -Match ([regex]::Escape('File.Contents(CsvFolder & "\' + $script:CsvBackedTables[$Table] + '")'))
@@ -389,8 +403,11 @@ Describe 'Relationships and the anonymize toggle' {
     It 'keeps each user at that user''s own latest snapshot, not only the newest file date' {
         # A global MAX(RunDate) drops anyone who left before the newest snapshot,
         # and the one-side relationship then removes their historical rows.
+        # UsersCurrent groups by Id and keeps each Id's latest RunDate
+        # (CurrentSnapshot.Tests.ps1 checks every step).
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
-        $tmdl | Should -Match ([regex]::Escape('ALLEXCEPT(Users, Users[Id])'))
+        $tmdl | Should -Match ([regex]::Escape('Table.Group(Selected, {"Id"}, {{"LatestRunDate", each List.Max(List.RemoveNulls([RunDate]))'))
+        $tmdl | Should -Not -Match ([regex]::Escape('List.Max(List.RemoveNulls(Selected[RunDate]))'))
         $tmdl | Should -Not -Match ([regex]::Escape('Users[RunDate] = MAX(Users[RunDate])'))
     }
 }
