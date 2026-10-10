@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "DLP Overrides With Justification"
                 }
               },
-              "queryRef": "Measures.[DLP Overrides With Justification]",
-              "nativeQueryRef": "Measures.[DLP Overrides With Justification]"
+              "queryRef": "_Measures.[DLP Overrides With Justification]",
+              "nativeQueryRef": "_Measures.[DLP Overrides With Justification]"
             }
           ]
         }

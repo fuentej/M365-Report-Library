@@ -48,14 +48,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Sensitivity Items At Rest"
                 }
               },
-              "queryRef": "Measures.[Sensitivity Items At Rest]",
-              "nativeQueryRef": "Measures.[Sensitivity Items At Rest]"
+              "queryRef": "_Measures.[Sensitivity Items At Rest]",
+              "nativeQueryRef": "_Measures.[Sensitivity Items At Rest]"
             }
           ]
         }

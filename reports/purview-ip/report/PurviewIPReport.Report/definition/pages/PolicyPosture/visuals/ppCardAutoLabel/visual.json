@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Auto-Labeling Policy Count"
                 }
               },
-              "queryRef": "Measures.[Auto-Labeling Policy Count]",
-              "nativeQueryRef": "Measures.[Auto-Labeling Policy Count]"
+              "queryRef": "_Measures.[Auto-Labeling Policy Count]",
+              "nativeQueryRef": "_Measures.[Auto-Labeling Policy Count]"
             }
           ]
         }

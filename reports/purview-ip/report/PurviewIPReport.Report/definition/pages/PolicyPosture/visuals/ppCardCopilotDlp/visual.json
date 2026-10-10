@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot-Scoped DLP Policies"
                 }
               },
-              "queryRef": "Measures.[Copilot-Scoped DLP Policies]",
-              "nativeQueryRef": "Measures.[Copilot-Scoped DLP Policies]"
+              "queryRef": "_Measures.[Copilot-Scoped DLP Policies]",
+              "nativeQueryRef": "_Measures.[Copilot-Scoped DLP Policies]"
             }
           ]
         }

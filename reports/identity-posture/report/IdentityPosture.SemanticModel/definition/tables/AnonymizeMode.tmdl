@@ -5,7 +5,8 @@ table AnonymizeMode
         dataType: string
         lineageTag: 1470101b-800b-591a-a07b-2fd68f912756
         summarizeBy: none
-        sourceColumn: Mode
+        isNameInferred
+        sourceColumn: [Mode]
 
     partition AnonymizeMode = calculated
         mode: import

@@ -34,28 +34,28 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot Access Blocked"
                 }
               },
-              "queryRef": "Measures.[Copilot Access Blocked]",
-              "nativeQueryRef": "Measures.[Copilot Access Blocked]"
+              "queryRef": "_Measures.[Copilot Access Blocked]",
+              "nativeQueryRef": "_Measures.[Copilot Access Blocked]"
             }
           ]
         }

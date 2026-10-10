@@ -199,38 +199,24 @@ table AgentsCurrent
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: b68043b8-1e3e-5ba4-81c5-a3e7fde92c9d
 
-    partition AgentsCurrent = calculated
+    partition AgentsCurrent = m
         mode: import
         source =
-            SELECTCOLUMNS(
-                FILTER(Agents, Agents[RunDate] = MAX(Agents[RunDate])),
-                "RunDate", Agents[RunDate],
-                "EnvironmentId", Agents[EnvironmentId],
-                "AgentId", Agents[AgentId],
-                "DisplayName", Agents[DisplayName],
-                "Harness", Agents[Harness],
-                "CreatedIn", Agents[CreatedIn],
-                "CreatedAt", Agents[CreatedAt],
-                "CreatedBy", Agents[CreatedBy],
-                "OwnerId", Agents[OwnerId],
-                "LastPublishedAt", Agents[LastPublishedAt],
-                "IsPublished", Agents[IsPublished],
-                "IsQuarantined", Agents[IsQuarantined],
-                "IsManaged", Agents[IsManaged],
-                "Orchestration", Agents[Orchestration],
-                "Model", Agents[Model],
-                "Authentication", Agents[Authentication],
-                "Channels", Agents[Channels],
-                "ViewerUserCount", Agents[ViewerUserCount],
-                "ViewerGroupCount", Agents[ViewerGroupCount],
-                "ViewerEntireTenant", Agents[ViewerEntireTenant],
-                "EditorUserCount", Agents[EditorUserCount],
-                "EditorGroupCount", Agents[EditorGroupCount],
-                "ListedConnectorCount", Agents[ListedConnectorCount],
-                "ListedConnectorOperationCount", Agents[ListedConnectorOperationCount],
-                "CapabilitiesDistinctConnectors", Agents[CapabilitiesDistinctConnectors],
-                "CapabilitiesDistinctConnectorOperations", Agents[CapabilitiesDistinctConnectorOperations],
-                "IsWebSearchEnabledForKnowledge", Agents[IsWebSearchEnabledForKnowledge]
-            )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agents.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedAt", ParseUtc, type datetime}, {"LastPublishedAt", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"ViewerUserCount", Int64.Type}, {"ViewerGroupCount", Int64.Type}, {"EditorUserCount", Int64.Type}, {"EditorGroupCount", Int64.Type}, {"ListedConnectorCount", Int64.Type}, {"ListedConnectorOperationCount", Int64.Type}, {"CapabilitiesDistinctConnectors", Int64.Type}, {"CapabilitiesDistinctConnectorOperations", Int64.Type}, {"IsPublished", type logical}, {"IsQuarantined", type logical}, {"IsManaged", type logical}, {"ViewerEntireTenant", type logical}, {"IsWebSearchEnabledForKnowledge", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "EnvironmentId", "AgentId", "DisplayName", "Harness", "CreatedIn", "CreatedAt", "CreatedBy", "OwnerId", "LastPublishedAt", "IsPublished", "IsQuarantined", "IsManaged", "Orchestration", "Model", "Authentication", "Channels", "ViewerUserCount", "ViewerGroupCount", "ViewerEntireTenant", "EditorUserCount", "EditorGroupCount", "ListedConnectorCount", "ListedConnectorOperationCount", "CapabilitiesDistinctConnectors", "CapabilitiesDistinctConnectorOperations", "IsWebSearchEnabledForKnowledge"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table

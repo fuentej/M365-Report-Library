@@ -13,7 +13,7 @@
       fromColumn;
     - no visual binds a raw name column, so the Anonymize toggle covers every name.
 
-    GroupsCurrent and UsersCurrent (calculated, latest snapshot), DateDim (a calendar)
+    GroupsCurrent and UsersCurrent (latest-snapshot imports of their source CSVs), DateDim (a calendar)
     and AnonymizeMode (the disconnected table behind the toggle) have no CSV of their
     own and are exempt from the CSV-mapping check. $CsvBackedTables below is the
     complete, explicit list of what is checked.

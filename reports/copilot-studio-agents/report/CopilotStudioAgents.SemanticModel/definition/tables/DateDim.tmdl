@@ -6,7 +6,8 @@ table DateDim
         formatString: Short Date
         lineageTag: d2a1c1ac-8465-5dd7-a719-c09db051d603
         summarizeBy: none
-        sourceColumn: Date
+        isNameInferred
+        sourceColumn: [Date]
 
     column Year = YEAR(DateDim[Date])
         dataType: int64

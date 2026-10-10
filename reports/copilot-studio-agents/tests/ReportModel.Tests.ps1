@@ -13,7 +13,7 @@
     - every relationship names columns that exist, and the inventory totals
       (capabilitiesCounts) are shown next to the returned counts.
 
-    Calculated tables (AgentsCurrent, EnvironmentsCurrent) and the helper tables that are
+    AgentsCurrent and EnvironmentsCurrent (latest-snapshot imports of their source CSVs) and the helper tables that are
     not sourced from any CSV (DateDim and the AnonymizeMode toggle) are exempt from the
     CSV-mapping check. $CsvBackedTables below is the complete list of what is checked.
 #>

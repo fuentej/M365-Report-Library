@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Removals"
                 }
               },
-              "queryRef": "Measures.[Label Removals]",
-              "nativeQueryRef": "Measures.[Label Removals]"
+              "queryRef": "_Measures.[Label Removals]",
+              "nativeQueryRef": "_Measures.[Label Removals]"
             }
           ]
         }

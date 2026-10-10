@@ -75,121 +75,123 @@ table Users
 		sourceColumn: ManagerUserPrincipalName
 		summarizeBy: none
 
-	/// Parent-child hierarchy DAX pattern (PATH over UserId/ManagerId) for
-	/// the Org decomposition page's manager-chain drill-down.
-	column 'Manager Path' = PATH(Users[UserId], Users[ManagerId])
+	/// Manager chain from the top of the org down to this user, UserIds joined
+	/// with "|" (the same text DAX PATH() returns). This column, the Level
+	/// columns and the pseudonyms are all built in the Users query below, not
+	/// as DAX calculated columns. 'User Display' has a relationship to Users,
+	/// which gives Users a blank row; DAX columns that scan Users (PATH, RANKX,
+	/// LOOKUPVALUE) depend on that blank row, and 'User Display' reads them, so
+	/// Power BI Desktop refused the refresh with a circular dependency.
+	column 'Manager Path'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Manager Path
 		summarizeBy: none
 
-	column 'Manager Path Length' = PATHLENGTH(Users[Manager Path])
+	column 'Manager Path Length'
 		dataType: int64
-		type: calculated
 		isHidden
+		sourceColumn: Manager Path Length
 		summarizeBy: none
 
-	column 'Level 1 Id' = PATHITEM(Users[Manager Path], 1)
+	column 'Level 1 Id'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 1 Id
 		summarizeBy: none
 
-	column 'Level 2 Id' = PATHITEM(Users[Manager Path], 2)
+	column 'Level 2 Id'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 2 Id
 		summarizeBy: none
 
-	column 'Level 3 Id' = PATHITEM(Users[Manager Path], 3)
+	column 'Level 3 Id'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 3 Id
 		summarizeBy: none
 
-	column 'Level 4 Id' = PATHITEM(Users[Manager Path], 4)
+	column 'Level 4 Id'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 4 Id
 		summarizeBy: none
 
-	column 'Level 5 Id' = PATHITEM(Users[Manager Path], 5)
+	column 'Level 5 Id'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 5 Id
 		summarizeBy: none
 
-	column 'Level 1 Name' = LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[Level 1 Id])
+	column 'Level 1 Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Level 1 Name
 		summarizeBy: none
 
-	column 'Level 2 Name' = LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[Level 2 Id])
+	column 'Level 2 Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Level 2 Name
 		summarizeBy: none
 
-	column 'Level 3 Name' = LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[Level 3 Id])
+	column 'Level 3 Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Level 3 Name
 		summarizeBy: none
 
-	column 'Level 4 Name' = LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[Level 4 Id])
+	column 'Level 4 Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Level 4 Name
 		summarizeBy: none
 
-	column 'Level 5 Name' = LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[Level 5 Id])
+	column 'Level 5 Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Level 5 Name
 		summarizeBy: none
 
-	/// Stable per-user pseudonym: a dense rank over UserId, so the same user
-	/// always gets the same "User 00001"-style label while the data is
-	/// unchanged. Used by the [Display Name] measure when the report-wide
+	/// Stable per-user pseudonym number: the user's position in UserId order, so
+	/// the same user always gets the same "User 00001"-style label while the data
+	/// is unchanged. Used by the [Display Name] measure when the report-wide
 	/// anonymize toggle is on.
-	/// ALL(Users[UserId]) — not ALL(Users). Ranking over the whole table makes
-	/// this column depend on every other calculated column, which is a
-	/// circular dependency once those columns also exist.
-	column 'Anonymous Id' = RANKX(ALL(Users[UserId]), Users[UserId], , ASC, Dense)
+	column 'Anonymous Id'
 		dataType: int64
-		type: calculated
 		isHidden
+		sourceColumn: Anonymous Id
 		summarizeBy: none
 
-	column 'Anonymous Display Name' = "User " & FORMAT(Users[Anonymous Id], "00000")
+	column 'Anonymous Display Name'
 		dataType: string
-		type: calculated
+		sourceColumn: Anonymous Display Name
 		summarizeBy: none
 
-	column 'Level 1 Anonymous Name' = LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[Level 1 Id])
+	column 'Level 1 Anonymous Name'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 1 Anonymous Name
 		summarizeBy: none
 
-	column 'Level 2 Anonymous Name' = LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[Level 2 Id])
+	column 'Level 2 Anonymous Name'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 2 Anonymous Name
 		summarizeBy: none
 
-	column 'Level 3 Anonymous Name' = LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[Level 3 Id])
+	column 'Level 3 Anonymous Name'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 3 Anonymous Name
 		summarizeBy: none
 
-	column 'Level 4 Anonymous Name' = LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[Level 4 Id])
+	column 'Level 4 Anonymous Name'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 4 Anonymous Name
 		summarizeBy: none
 
-	column 'Level 5 Anonymous Name' = LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[Level 5 Id])
+	column 'Level 5 Anonymous Name'
 		dataType: string
-		type: calculated
 		isHidden
+		sourceColumn: Level 5 Anonymous Name
 		summarizeBy: none
 
 	hierarchy 'Manager Chain'
@@ -222,6 +224,40 @@ table Users
 				    ParsedUtc = Table.TransformColumns(ParsedRun, {
 				        {"CreatedDateTime", each ParseUtcDateTime(_), type datetime}
 				    }),
-				    Current = KeepLatestRunDate(ParsedUtc)
+				    Current = KeepLatestRunDate(ParsedUtc),
+				    SortedById = Table.Sort(Current, {{"Id", Order.Ascending}}),
+				    Numbered = Table.AddIndexColumn(SortedById, "Anonymous Id", 1, 1, Int64.Type),
+				    // Lookups by UserId. Rows with no Id can't be anyone's manager.
+				    Keyed = Table.SelectRows(Numbered, each [Id] <> null and [Id] <> ""),
+				    KeyIds = Table.Column(Keyed, "Id"),
+				    ManagerOf = Record.FromList(Table.Column(Keyed, "ManagerId"), KeyIds),
+				    NameOf = Record.FromList(Table.Column(Keyed, "DisplayName"), KeyIds),
+				    AnonymousNameOf = Record.FromList(
+				        List.Transform(Table.Column(Keyed, "Anonymous Id"), each "User " & Text.PadStart(Text.From(_), 5, "0")),
+				        KeyIds),
+				    // This user, then their manager, and so on up. Stops at a manager who is
+				    // not in the file or who is already in the chain (a reporting loop).
+				    ChainUp = (id) => List.Generate(
+				        () => [Cur = id, Seen = {}],
+				        each [Cur] <> null and [Cur] <> "" and Record.HasFields(ManagerOf, [Cur]) and not List.Contains([Seen], [Cur]),
+				        each [Cur = Record.Field(ManagerOf, [Cur]), Seen = [Seen] & {[Cur]}],
+				        each [Cur]),
+				    WithChain = Table.AddColumn(Numbered, "Chain", each List.Reverse(ChainUp([Id]))),
+				    LevelId = (chain as list, n as number) => if List.Count(chain) >= n then chain{n - 1} else null,
+				    NameAt = (names as record, chain as list, n as number) =>
+				        let id = LevelId(chain, n) in if id = null then null else Record.FieldOrDefault(names, id, null),
+				    WithPath = Table.AddColumn(WithChain, "Manager Path", each if List.IsEmpty([Chain]) then null else Text.Combine([Chain], "|"), type text),
+				    WithLength = Table.AddColumn(WithPath, "Manager Path Length", each List.Count([Chain]), Int64.Type),
+				    WithLevelIds = List.Accumulate({1..5}, WithLength, (tbl, n) =>
+				        Table.AddColumn(tbl, "Level " & Text.From(n) & " Id", each LevelId([Chain], n), type text)),
+				    WithLevelNames = List.Accumulate({1..5}, WithLevelIds, (tbl, n) =>
+				        Table.AddColumn(tbl, "Level " & Text.From(n) & " Name",
+				            each NameAt(NameOf, [Chain], n), type text)),
+				    WithAnonymousName = Table.AddColumn(WithLevelNames, "Anonymous Display Name",
+				        each "User " & Text.PadStart(Text.From([Anonymous Id]), 5, "0"), type text),
+				    WithAnonymousLevels = List.Accumulate({1..5}, WithAnonymousName, (tbl, n) =>
+				        Table.AddColumn(tbl, "Level " & Text.From(n) & " Anonymous Name",
+				            each NameAt(AnonymousNameOf, [Chain], n), type text)),
+				    Result = Table.RemoveColumns(WithAnonymousLevels, {"Chain"})
 				in
-				    Current
+				    Result

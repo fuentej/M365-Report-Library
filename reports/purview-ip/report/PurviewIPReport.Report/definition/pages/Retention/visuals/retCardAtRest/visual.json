@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Retention Items At Rest (Latest)"
                 }
               },
-              "queryRef": "Measures.[Retention Items At Rest (Latest)]",
-              "nativeQueryRef": "Measures.[Retention Items At Rest (Latest)]"
+              "queryRef": "_Measures.[Retention Items At Rest (Latest)]",
+              "nativeQueryRef": "_Measures.[Retention Items At Rest (Latest)]"
             }
           ]
         }
