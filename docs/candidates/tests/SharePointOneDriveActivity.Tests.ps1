@@ -70,4 +70,24 @@ Describe 'SharePoint and OneDrive activity sources' {
         $row9 | Should -Not -Match 'sharepoint-online/get-spotenant'
         $row9 | Should -Match 'no page states this cmdlet per cloud'
     }
+
+    It 'pages the audit search and keeps guest records at 180 days' {
+        # A single Search-UnifiedAuditLog call stops at 100, and ReturnLargeSet stops at 50,000.
+        # Guest and non-E5 records stay at 180 days. Business SKUs are not on by default.
+        $row12 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 12 \| File events' })
+        $flat = $script:Doc -replace '\s+', ' '
+        $row12 | Should -Not -Match 'Audit roles not read'
+        $row12 | Should -Match 'View-Only Audit Logs'
+        $row12 | Should -Match '50,000'
+        $row12 | Should -Match 'not the full window'
+        $row12 | Should -Match '5,000'
+        $row12 | Should -Match 'HighCompleteness'
+        $row12 | Should -Match 'midnight UTC'
+        $row12 | Should -Match 'plan-for-microsoft-purview-gcc-deployments'
+        $row12 | Should -Not -Match 'no page read states GCC'
+        $flat | Should -Match 'guest users stay at 180 days'
+        $flat | Should -Match 'Microsoft Purview Suite'
+        $flat | Should -Match 'Business Basic'
+        $flat | Should -Match 'always False'
+    }
 }
