@@ -1,0 +1,5 @@
+"CreatedDateTime","SignInId","UserId","IsInteractive","ConditionalAccessStatus","PolicyId","PolicyDisplayName","PolicyResult","EnforcedGrantControls","EnforcedSessionControls","PolicyDetailReadable"
+"2026-09-10T06:05:00Z","a1000000-0000-4000-8000-000000000001","aaaaaaaa-0000-4000-8000-000000000001","True","success","cccccccc-0000-4000-8000-000000000001","Require MFA for all users","success","Mfa","","True"
+"2026-09-11T09:40:00Z","a1000000-0000-4000-8000-000000000004","aaaaaaaa-0000-4000-8000-000000000003","True","failure","cccccccc-0000-4000-8000-000000000002","Block unmanaged devices","failure","Block","","True"
+"2026-09-11T09:40:00Z","a1000000-0000-4000-8000-000000000004","aaaaaaaa-0000-4000-8000-000000000003","True","failure","cccccccc-0000-4000-8000-000000000003","Report-only: require compliant device","unknownFutureValue","","","True"
+"2026-09-10T07:30:00Z","a1000000-0000-4000-8000-000000000002","aaaaaaaa-0000-4000-8000-000000000002","True","notApplied","","","","","","False"
