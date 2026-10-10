@@ -228,7 +228,13 @@ Describe 'The shared module is never imported with -Force' {
 
 Describe 'Only read-only tenant commands are called' {
     It 'calls no Graph, Exchange Online or Security & Compliance cmdlet outside <AllowedVerbs>' {
+        # Invoke-MgGraphRequest in the license utilization helper is the one Invoke-verb
+        # call here: the usage reports have no SDK cmdlet. The next Describe holds every
+        # -Method to GET, and reports/license-utilization/tests/ReadOnly.Tests.ps1 holds
+        # that helper file to GET in two named functions.
         $offenders = $script:TenantCalls | Where-Object {
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -eq 'LicenseUtilizationHelpers.ps1')
+        } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
         } | ForEach-Object {
@@ -282,8 +288,13 @@ Describe 'No Graph request uses a method other than GET' {
         # cmdlet. Its helper file is exempt here and held to a stricter rule in
         # reports/copilot-studio-agents/tests/ReadOnly.Tests.ps1 (GET everywhere, and one
         # POST that carries an inventory query specification).
+        #
+        # The license utilization usage reports (Microsoft Graph reports and copilot
+        # functions) are read with GET through Invoke-MgGraphRequest; their helper file
+        # is exempt here and held to GET in two named functions in
+        # reports/license-utilization/tests/ReadOnly.Tests.ps1.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -ne 'CopilotStudioHelpers.ps1' } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 
