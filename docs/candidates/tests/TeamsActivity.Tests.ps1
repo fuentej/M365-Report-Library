@@ -54,4 +54,41 @@ Describe 'Teams activity sources' {
         $source8 | Should -Match 'not a complete chat count'
         $source8 | Should -Match 'footnote 12'
     }
+
+    It 'does not add overlapping Teams usage columns' {
+        # Team Chat Message Count already includes posts and replies. Call Count is 1:1.
+        # The team-activity header list spells Active users; the schema spells Active Users.
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Teams activity per user' })
+        $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Teams activity per day' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Teams activity per team' })
+        $source1 | Should -Match 'includes original posts and replies'
+        $source1 | Should -Match '1:1 calls'
+        $source1 | Should -Match 'being phased out'
+        $source1 | Should -Match 'UTC date'
+        $source1 | Should -Match '`Report Period`'
+        $source2 | Should -Match '`Team Chat Messages`'
+        $source2 | Should -Match '`Private Chat Messages`'
+        $source4 | Should -CMatch '`Active users`'
+        $source4 | Should -CMatch '`Active Users`'
+        $source4 | Should -Match '00:00 through 23:59 UTC'
+        $source4 | Should -Match 'do not add `Guests`'
+        $source4 | Should -Match 'unique messages posted in a team chat'
+        $source4 | Should -Match 'Cross-posted messages count only'
+    }
+
+    It 'puts a Learn link on every Available or NotAvailable cell in the source table' {
+        $sources = $script:Doc -split '## Sources', 2
+        $sourceSection = ($sources[1] -split 'Consolidated notes:', 2)[0]
+        $rows = @($sourceSection -split '\r?\n' | Where-Object { $_ -match '^\| \d' })
+        $rows.Count | Should -Be 9
+        foreach ($row in $rows) {
+            $cells = $row -split '\|' | Select-Object -Skip 1
+            foreach ($cell in $cells) {
+                # Match the status token, not the word "available" inside an UNVERIFIED note.
+                if ($cell -match '\[(?:Not)?Available\]') {
+                    $cell | Should -Match 'https://learn\.microsoft\.com/'
+                }
+            }
+        }
+    }
 }
