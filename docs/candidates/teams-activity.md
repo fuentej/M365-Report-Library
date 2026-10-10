@@ -1,0 +1,140 @@
+# Candidate: Teams usage and activity
+
+Status: sources verified against Microsoft Learn; nothing built. Written for BRO-382 so the build issue can
+be written without guessing. Nothing here was run against a tenant. Pages read 2026-10-10.
+
+Cloud names follow the library: `Commercial`, `GCC`, `GCCHigh` (`-Environment`). Graph uses
+`https://graph.microsoft.com` for Commercial and GCC and `Connect-MgGraph -Environment USGov` for GCC High
+([national cloud deployments](https://learn.microsoft.com/graph/deployments)). Every Graph page cited below
+carries a national-cloud table; "US Government L4" is the GCC High column.
+
+## How to read the table
+
+* `Available` / `NotAvailable` appear only where a Microsoft page says so; the link is in the cell.
+* `UNVERIFIED` means no Microsoft page found says either way, or the pages disagree. The collector should ask for
+  the data and record a refusal in `run.log`, as the existing reports do.
+* **The headline finding:** the four Microsoft 365 usage report APIs that answer questions 1 to 4 (sources 1 to
+  4) are marked `❌` for US Government L4 on their Learn pages, so they are `NotAvailable` through Graph in GCC
+  High. The Teams reports do exist in the Teams admin center and the Microsoft 365 admin center for GCC and GCC
+  High (source 9), but as a manual export, not a collector. The only Graph sources Learn marks `✅` for GCC High
+  that touch Teams activity are call records (source 6, calls and meetings only, 30 days) and the Teams export
+  APIs (source 7, which read message content). So this report is a full report in Commercial, a report whose GCC
+  coverage is unconfirmed (see the next point) and a partial one in GCC High.
+* **GCC is UNVERIFIED for the usage report APIs.** Each API page shows only a "Global service" column, and GCC
+  calls the global endpoint. But the [usage reports cloud table](https://learn.microsoft.com/graph/api/resources/report#cloud-deployments)
+  lists Teams user activity, device usage and team activity, and admin report settings, as `➖` for "Microsoft
+  Cloud for US Government", and no page separates GCC from GCC High there. The same conflict is recorded for team
+  activity in [teams-groups-lifecycle.md](teams-groups-lifecycle.md). [license-utilization.md](license-utilization.md)
+  recorded GCC as `Available (global service)` for the same family of APIs; the build issue should settle this
+  once for the library. The admin center does list these reports as `Yes` for GCC (source 9).
+* The shared sign-in requests `User.Read.All`, `Directory.Read.All`, `GroupMember.Read.All` and
+  `AuditLog.Read.All`. The build has to add `Reports.Read.All` and `ReportSettings.Read.All`, and
+  `CallRecords.Read.All` if source 6 is built.
+* The usage reports are periods, not events. See the consolidated notes.
+
+## Sources
+
+| # | Source | Endpoint or cmdlet | Least privileged role or permission | License | Event / state | Retention or period | Commercial | GCC | GCC High |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Teams activity per user: chat, call and meeting counts, last activity, `Is Licensed` | [`GET /reports/getTeamsUserActivityUserDetail(period='D7')`](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail) (`period` D7, D30, D90 or D180, or `date=YYYY-MM-DD`). CSV via a 302 redirect to a pre-authenticated URL valid "a few minutes". Columns include `Team Chat Message Count`, `Private Chat Message Count`, `Call Count`, `Meeting Count`, `Post Messages`, `Reply Messages`, `Urgent Messages`, meetings organized and attended (ad hoc, scheduled one-time, scheduled recurring), audio, video and screen share duration in seconds, `Has Other Action`, `Is Licensed`, `Last Activity Date`, `Is Deleted` | `Reports.Read.All` (application and delegated). Delegated callers also need an Entra limited admin role: Company Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. Global Reader and Usage Summary Reports Reader are listed and see tenant-level data only, without visibility into detailed metrics ([authorization](https://learn.microsoft.com/graph/reportroot-authorization)) | None named on the page | State (snapshot of a rolling period) | D7, D30, D90, D180. The `date` form: "only available for the past 30 days" on the API page, "up to 28 days" on the [admin center report page](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/user-activity-report). The page does not say whether the count columns are single-day values when `date` is used | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail) | UNVERIFIED (API page marks global service `✅`; the [cloud table](https://learn.microsoft.com/graph/api/resources/report#cloud-deployments) marks Microsoft Cloud for US Government `➖`; admin center report is `Yes` for GCC, source 9) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail) (US Government L4 `❌`) |
+| 2 | Teams activity per day for the whole tenant: team chat, post, reply, private chat messages, calls, meetings, audio, video and screen share duration, meetings organized and attended | [`GET /reports/getTeamsUserActivityCounts(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivitycounts) (`Get-MgReportTeamUserActivityCount`). CSV via 302 redirect. One row per `Report Date`. The counts are for "Microsoft Teams licensed users" | `Reports.Read.All`, same roles as source 1. Global Reader and Usage Summary Reports Reader see tenant-level data, which is all this source holds | None named on the page | State (daily totals inside a rolling period) | D7, D30, D90, D180 | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivitycounts) | UNVERIFIED (same conflict as source 1) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivitycounts) (US Government L4 `❌`) |
+| 3 | Teams device and platform use per user: `Used Web`, `Used Windows Phone`, `Used iOS`, `Used Mac`, `Used Android Phone`, `Used Windows`, `Used Chrome OS`, `Used Linux`, `Is Licensed`, `Last Activity Date` | [`GET /reports/getTeamsDeviceUsageUserDetail(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail). CSV via 302 redirect. The columns are yes/no per platform for the period, not counts. The [admin center report](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/device-usage-report) says "Selected if the user was active" on that client | `Reports.Read.All`, same roles as source 1 | None named on the page | State | D7, D30, D90, D180. The `date` form: "only available for the past 28 days" on this API page | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail) | UNVERIFIED (same conflict as source 1) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail) (US Government L4 `❌`) |
+| 4 | Teams activity per team: `Active Users`, `Active Channels`, `Guests`, `Reactions`, `Meetings Organized`, `Post Messages`, `Reply Messages`, `Channel Messages`, `Urgent Messages`, `Mentions`, `Active Shared Channels`, `Active External Users`, `Last Activity Date` | [`GET /reports/getTeamsTeamActivityDetail(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail). CSV via 302 redirect. The page says the numbers include licensed and non-licensed users. The header list spells `Team type` and the schema example spells `Team Type`; match the header case-insensitively. The same source is row 5 of [teams-groups-lifecycle.md](teams-groups-lifecycle.md) | `Reports.Read.All`, same roles as source 1 | None named on the page | State | D7, D30, D90, D180. The `date` form: "only available for the past 30 days" | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail) | UNVERIFIED (same conflict as source 1) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail) (US Government L4 `❌`) |
+| 5 | Whether usage reports show names or concealed identifiers: `displayConcealedNames` | [`GET /admin/reportSettings`](https://learn.microsoft.com/graph/api/adminreportsettings-get) (`Get-MgAdminReportSetting`). By default all reports hide usernames, display names, groups and sites. For the Teams team usage report the concealed property is the team name. The setting is Settings, Org Settings, Services, Reports, "Conceal user, group, and site names in all reports", and also applies to Graph and the Teams admin center reports ([activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#show-user-group-or-site-details-in-usage-reports)). Same source as source 6 of [license-utilization.md](license-utilization.md) | `ReportSettings.Read.All`. Delegated callers also need an Entra limited admin role ([authorization](https://learn.microsoft.com/graph/reportroot-authorization)) | None named | State | n/a | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | UNVERIFIED (API page marks global service `✅`; the cloud table marks Microsoft Cloud for US Government `➖`) | UNVERIFIED (API page marks US Government L4 `❌`, but the [activity reports page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#use-adminreportsettings-to-show-user-group-or-site-details) says an API "in all environments" changes the setting). Sources 1 to 4 are `NotAvailable` there anyway, so there is nothing to conceal |
+| 6 | Calls and meetings that ended in the last 30 days, with the platform each participant used | [`GET /communications/callRecords?$filter=startDateTime ge ...`](https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords) (`Get-MgCommunicationCallRecord`), then [`GET /communications/callRecords/{id}?$expand=sessions($expand=segments)`](https://learn.microsoft.com/graph/api/callrecords-callrecord-get) for detail. The list page says the listed records do not include `sessions` or `participants_v2`. `type` is `groupCall` or `peerToPeer`; `modalities` lists audio, video, screen sharing. `platform` on [clientUserAgent](https://learn.microsoft.com/graph/api/resources/callrecords-clientuseragent) is `windows`, `macOS`, `iOS`, `android`, `web`, `ipPhone`, `roomSystem`, `surfaceHub`, `holoLens` or `unknown`. Default page 60. The Get page does not return participants who stream a live event | `CallRecords.Read.All`, **application only**; delegated is "Not supported" on both pages. The [FAQ](https://learn.microsoft.com/graph/callrecords-api-faq) says an administrator must grant it | None named on the pages | Event | "A call record is created after a call or meeting ends and remains available for 30 days"; older records return `404`. A daily run is the only way to keep history | [Available](https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords) | [Available](https://learn.microsoft.com/graph/deployments) (global service; the API pages have no GCC column) | [Available](https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords) (US Government L4 `✅`) |
+| 7 | Chat and channel messages, for counting messages per user and per team where source 1 and 4 are not available. Reads message bodies, so it is a last resort, not a default | Channels: [`GET /teams/{team-id}/channels/getAllMessages?$filter=lastModifiedDateTime gt ...`](https://learn.microsoft.com/graph/api/channel-getallmessages). Chats: [`GET /users/{id}/chats/getAllMessages`](https://learn.microsoft.com/graph/api/chats-getallmessages), which can filter by `from/user/id` and exclude system messages with `messageType ne 'systemEventMessage'`. The chat call returns each message once for every participant's mailbox, so calling it for every user duplicates messages ([Teams export APIs](https://learn.microsoft.com/microsoftteams/export-teams-content)). Counts would be derived by the library. Neither page documents a count-only call | `ChannelMessage.Read.All` (channels) and `Chat.Read.All` (chats), **application only**; delegated is "Not supported" on both pages. The export page calls these "protected APIs" | The export page: "an active Microsoft Teams license assigned to the users whose data is being exported"; no Purview licence needed | Event | Not stated as a window on the API pages. The export page says deleted messages stay readable for 21 days, and deleted users' and teams' messages for 30 days | [Available](https://learn.microsoft.com/graph/api/channel-getallmessages) | [Available](https://learn.microsoft.com/graph/deployments) (global service; the API pages have no GCC column) | [Available](https://learn.microsoft.com/graph/api/channel-getallmessages) (channels, US Government L4 `✅`); [Available](https://learn.microsoft.com/graph/api/chats-getallmessages) (chats, US Government L4 `✅`) |
+| 8 | Teams events in the unified audit log: meetings and participants (`MeetingDetail`, `MeetingParticipantDetail`), call participants (`CallParticipantDetail`), messages (`MessageSent`), chats created (`ChatCreated`) | Exchange Online PowerShell `Search-UnifiedAuditLog` ([audit search](https://learn.microsoft.com/purview/audit-search)); operation names from the [Teams activities table](https://learn.microsoft.com/purview/audit-log-activities#teams-activities). `MessageSent` is "generated for chat only if there are guests, federated and/or anonymous users" and is in public preview, so it cannot count all chat messages. `ChatCreated` is logged only when created through a Graph API call, not in the Teams client | View-Only Audit Logs or Audit Logs ([audit search](https://learn.microsoft.com/purview/audit-search)) | Audit (Standard) is enough for the operations above; the page notes some Teams events need Audit (Premium) (`MessagesExported`, `MessageDeleted`) | Event | 180 days for non-E5 users; one year for Entra, Exchange and SharePoint records for E5 users. Other workloads stay at 180 days unless a retention policy says otherwise. Records are typically available 60 to 90 minutes after the event ([audit search](https://learn.microsoft.com/purview/audit-search)) | [Available](https://learn.microsoft.com/purview/audit-log-activities#teams-activities) | Audit (Standard) [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments#step-4-understand-which-capabilities-are-currently-unavailable-or-disabled-by-default-in-microsoft-365-government-%E2%80%93-gcc%5E1%5E). `MeetingDetail` and `MeetingParticipantDetail`: [Available](https://learn.microsoft.com/purview/audit-log-activities#teams-activities) (footnote 9). `CallParticipantDetail`, `MessageSent`, `ChatCreated`: UNVERIFIED | Audit (Standard) [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments#step-4-understand-which-capabilities-are-currently-unavailable-or-disabled-by-default-in-microsoft-365-government-%E2%80%93-gcc-high%5E1%5E). `MeetingDetail` and `MeetingParticipantDetail`: [Available](https://learn.microsoft.com/purview/audit-log-activities#teams-activities) (footnote 9). `CallParticipantDetail`, `MessageSent`, `ChatCreated`: UNVERIFIED |
+| 9 | Fallback for GCC and GCC High: the same reports in the admin centers (Teams usage, Teams user activity, Teams device usage) | Microsoft 365 admin center **Reports > Usage > Microsoft Teams**, or Teams admin center **Analytics & reports**. Both have **Export** to CSV. Not a Graph call. Whether a script can read these exports in GCC or GCC High is not stated on the pages read | Teams admin center: Teams or Skype for Business administrator; Global Reader sees tenant-level aggregates only ([Teams reporting reference](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference#how-to-access-the-reports)). Microsoft 365 admin center: Global Administrator, Exchange Administrator, SharePoint Administrator, Reports Reader, Teams Administrator, Teams Communications Administrator or AI Administrator; Usage Summary Reports Reader and User Experience Success Manager see no user details ([usage reports overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#before-you-begin)) | None named | State | 7, 30, 90 or 180 days; a selected day shows up to 28 days back | [Available](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference) | [Available](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference) (`Yes` for all three Teams reports; the [overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) agrees) | [Available](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference) (`Yes` in the GCCH column; the overview agrees) |
+
+Consolidated notes:
+
+* **GCC High.** Sources 1 to 5 are `NotAvailable` or UNVERIFIED through Graph. Under the library rule ("a source
+  not available in a cloud is skipped, and the README says why"), a GCC High run skips sources 1 to 4. Source 9
+  shows the data exists in the admin centers; turning that into a collector is an open item, not a claim.
+* **Usage reports are periods, not events.** The count columns aggregate 7, 30, 90 or 180 days. A daily run
+  appends a snapshot stamped with the run date; it is not an event stream. The last activity date is the most
+  recent intentional activity, regardless of the selected time period
+  ([activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#how-do-i-interpret-the-last-activity-date-in-user-group-or-site-details-in-the-usage-reports)).
+  Reports typically become available within 24 to 72 hours and sometimes take several days. The Team usage page
+  says data for a given day "appears within 48 hours" and that the system re-checks the past three days and
+  fills gaps, so a recent day can change between runs ([Team usage report](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-usage-report)).
+  Usage reports don't include perpetual license models.
+* **Per day, per user (question 1).** No page found defines a per-user, per-day Teams usage call. Source 2 is per
+  day but for the whole tenant. Source 1 with `date=` is described as "users who performed any activity" on that
+  date, and the page does not say the count columns are single-day. Until the build issue tests that, per-user
+  daily counts come from the difference between snapshots, or from a snapshot of period D7 stamped with the run
+  date. This is the library's derivation, not a Microsoft-documented result.
+* **What the counts leave out.** "Metric counts include Teams client built-in features, but don't include changes
+  to chat and channel through service integration, such as Teams app posts or replies and emails in the channel"
+  ([user activity report](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/user-activity-report)).
+  Audio and video duration count the whole call or meeting if audio or video was enabled, not speaking or
+  camera-on time. `Meetings Organized Count` need not equal the sum of its three parts, because unclassified
+  meetings are not in the CSV (page for source 1).
+* **Concealed names.** When `displayConcealedNames` is `true`, sources 1, 3 and 4 hide user principal names and
+  team names, so they cannot be joined to the users collector or to the groups inventory. Read source 5 first,
+  and show "names concealed, usage not joined" instead of zero-activity users or teams. Showing names is a
+  Global Administrator action and "is a logged event in the Microsoft Purview portal audit log"
+  ([activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#show-user-group-or-site-details-in-usage-reports)).
+* **Missing rows are not zero.** The Teams admin center definitions say a user "isn't active ... data for that
+  user isn't included in that report" ([Teams reporting reference](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference#definitions)).
+  That text is about the admin center reports; the Graph pages do not say whether an inactive team or user is
+  returned. A deleted user's usage data is removed within 30 days and the user leaves the user-detail table
+  ([activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#what-happens-to-usage-data-when-i-delete-a-user-account)).
+  The no-activity questions therefore need a full user list and a full team list to join against, and the build
+  should test whether source 1 and 4 return zero-activity rows before relying on either.
+* **Download mechanics.** The CSV reports for sources 1 to 4 return `302 Found` to a pre-authenticated URL that
+  is "only valid for a short period of time (a few minutes)". The collector must follow the redirect at once.
+* **Shared channels.** `Shared Channel Tenant Display Names` (source 1) and `Active Shared Channels` and
+  `Active External Users` (source 4) appear in the schemas. The Team usage page warns that for shared channels
+  with external users "the report might undercount the number of active shared channels due to current telemetry
+  limitations".
+* **Source 6 in GCC High answers a different question.** It sees calls and meetings, not chat or channel
+  messages, and only 30 days back. Its `platform` is the platform of that call endpoint, so it cannot show a user
+  who only chats on a device. It is application-only, so it cannot be run by a signed-in reader.
+* **Source 7 reads content.** It returns message bodies, attachments and mentions. A collector that only needs
+  counts would still read them. Whether the library should do that is a policy decision for the build issue, not
+  a technical one. The channel call is per team, so it needs the team list first.
+* **No Teams PowerShell cmdlet found.** See question 5 below.
+
+## Proposed report pages
+
+| # | Page | Reads | What it shows |
+| --- | --- | --- | --- |
+| 1 | Overview | 1, 2, 3, 4, 5 | Headline counts: active users, licensed users with no activity, active teams, teams with no activity; trend by snapshot date |
+| 2 | User activity | 1, 2 | Chat, channel, call and meeting counts per user for the period; organized versus attended; audio, video and screen share time; tenant totals per day |
+| 3 | Meetings and calls | 1, 6, 8 | Meetings organized and attended, ad hoc versus scheduled; in GCC High, calls and meetings from call records for the last 30 days, no chat |
+| 4 | Devices and platforms | 3, 6 | Users per platform for the period; users on more than one; in GCC High, platform per call endpoint (calls and meetings only) |
+| 5 | Team activity | 4, 5, groups inventory | Active users, active channels, posts, replies, mentions, reactions, guests and external users per team; shared channel counts |
+| 6 | Inactive users and teams | 1, 3, 4, users and groups inventory | Licensed users with a last activity date before the period start or none; teams with no activity in the period. Hidden when names are concealed; absent in GCC High |
+| 7 | Coverage | 5, `run.log` | Which sources ran, which were skipped in this cloud and why, whether names were concealed, the report refresh date of each snapshot |
+
+## Starting questions
+
+| # | Question | Status |
+| --- | --- | --- |
+| 1 | How many chat messages, channel messages, calls and meetings each user has, per day | Counts per user: source 1 (`Private Chat Message Count`, `Team Chat Message Count`, `Call Count`, `Meeting Count`), for a rolling period. Per day: source 2 gives daily totals for the tenant, and per-user daily values are derived from snapshots; see the note above. Commercial `Available`, GCC UNVERIFIED. **Dropped for GCC High through the reports:** `NotAvailable`. Partial GCC High cover: calls and meetings from source 6 (last 30 days, no chat); chat and channel messages only by counting source 7, which reads message content. |
+| 2 | Which devices and platforms users run Teams on | Source 3, yes/no per platform per user for the period. Commercial `Available`, GCC UNVERIFIED. **Dropped for GCC High through the reports.** Partial GCC High cover: source 6 `platform` for calls and meetings in the last 30 days. |
+| 3 | Activity per team: active users, active channels, posts and replies | Source 4 (`Active Users`, `Active Channels`, `Post Messages`, `Reply Messages`). Commercial `Available`, GCC UNVERIFIED. **Dropped for GCC High through the reports.** Source 7 channel messages could be counted per team, which gives posts and replies but not a Microsoft-defined "active user" or "active channel". |
+| 4 | Which users and teams have had no activity over a period | Users: source 1 and 3 `Last Activity Date` joined to the users collector. Teams: source 4 joined to the groups and Teams inventory from [teams-groups-lifecycle.md](teams-groups-lifecycle.md). Both need the missing-row test in the notes. Commercial `Available`, GCC UNVERIFIED. **Dropped for GCC High.** |
+| 5 | For GCC High, whether any read-only Teams PowerShell cmdlet or Graph call gives the same answers | **No cmdlet found.** The Teams PowerShell cmdlet that returns user information, [`Get-CsOnlineUser`](https://learn.microsoft.com/powershell/module/microsoftteams/get-csonlineuser), is described as returning account details and policy assignment, with no activity counts. This is a negative result from Learn search, not a page that says no such cmdlet exists. Graph calls that work in GCC High: source 6 (calls and meetings, 30 days), source 7 (message content), and source 8 for meeting and meeting-participant events (`MeetingDetail`, `MeetingParticipantDetail`). None gives the report's chat counts, device use or per-team active users, so the answer to "the same answers" is no. The admin center (source 9) is the only documented route. |
+
+Question 5's answer is a finding, not a dropped question. The usage half of questions 1 to 4 is dropped for GCC
+High through Graph, for the reason above.
+
+## Overlap with other candidates
+
+* Teams and Groups lifecycle ([teams-groups-lifecycle.md](teams-groups-lifecycle.md), BRO-314, BRO-320, BRO-325):
+  source 4 is the same API as its source 5, and the team inventory this report joins to is its sources 1 and 7. Build once.
+* License utilization ([license-utilization.md](license-utilization.md), BRO-364, BRO-374): its source 5c is the
+  same call as source 1 here, and its source 6 is source 5 here. Build the shared collector once and the concealed-names check once.
+
+## Open items for the build issue
+
+* GCC: decide how the library treats the usage report APIs, given the conflict between the API pages and the
+  cloud table. Both candidate docs now record the conflict; this one chose UNVERIFIED.
+* GCC High: decide between skipping sources 1 to 4 (the library rule) and a documented manual export from source 9.
+  No page read says the admin center exports can be read by script in GCC or GCC High.
+* Whether source 1 with `date=` returns single-day counts, and whether sources 1 and 4 return zero-activity rows.
+  Both need a test tenant; neither is answered by a Learn page.
+* Whether to build source 7 at all. It is the only GCC High route to message counts and it reads message content.
+* Source 6 needs a daily run to keep more than 30 days, and an application permission that no delegated sign-in can use.
