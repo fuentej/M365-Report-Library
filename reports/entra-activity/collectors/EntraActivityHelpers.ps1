@@ -125,6 +125,28 @@ function Test-ConditionalAccessReadable {
     return $false
 }
 
+function ConvertTo-EntraActivityUtc {
+    <#
+        .SYNOPSIS
+            A sign-in or directory-audit timestamp as UTC.
+
+        .DESCRIPTION
+            createdDateTime and activityDateTime are UTC
+            (https://learn.microsoft.com/graph/api/resources/signin#properties,
+            https://learn.microsoft.com/graph/api/resources/directoryaudit#properties).
+            An Unspecified DateTime is that UTC clock time. ToUniversalTime would treat
+            it as the machine's local zone and move the query window.
+    #>
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param([Parameter(Mandatory)][datetime]$Value)
+
+    if ($Value.Kind -eq [DateTimeKind]::Unspecified) {
+        return [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
+    }
+    return $Value.ToUniversalTime()
+}
+
 function Invoke-EntraActivityEventCollector {
     <#
         .SYNOPSIS
@@ -212,11 +234,11 @@ function Invoke-EntraActivityEventCollector {
     $explicitRange = ($null -ne $StartDate) -or ($null -ne $EndDate)
     $watermark = Get-CsvWatermark -Path $csvPath -Column $WatermarkColumn
 
-    $start = if ($null -ne $StartDate) { ([datetime]$StartDate).ToUniversalTime() }
-    elseif ($null -ne $watermark) { $watermark }
+    $start = if ($null -ne $StartDate) { ConvertTo-EntraActivityUtc ([datetime]$StartDate) }
+    elseif ($null -ne $watermark) { ConvertTo-EntraActivityUtc ([datetime]$watermark) }
     else { [datetime]::UtcNow.AddDays(-$LookbackDays) }
 
-    $end = if ($null -ne $EndDate) { ([datetime]$EndDate).ToUniversalTime() } else { [datetime]::UtcNow }
+    $end = if ($null -ne $EndDate) { ConvertTo-EntraActivityUtc ([datetime]$EndDate) } else { [datetime]::UtcNow }
 
     if ($end -le $start) {
         if ($explicitRange) {

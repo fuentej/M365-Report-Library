@@ -546,6 +546,37 @@ Describe 'An event collector resumes from its watermark' {
             } } | Should -Throw '*range is empty*'
     }
 
+    It 'reads an Unspecified collection bound as that UTC clock time' {
+        # createdDateTime is UTC. Kind Unspecified is not the local zone.
+        # https://learn.microsoft.com/graph/api/resources/signin#properties
+        $probe = Join-Path $script:folder 'utc-bound.ps1'
+        $out = Join-Path $script:folder 'utc-out'
+        $filters = Join-Path $script:folder 'filters.txt'
+        $collector = Join-Path $script:Collectors 'Get-InteractiveSignIns.ps1'
+        $stubs = Join-Path $script:Root 'shared/tests/TenantCmdletStubs.ps1'
+        @"
+`$ErrorActionPreference = 'Stop'
+. '$stubs'
+function global:Get-MgBetaAuditLogSignIn { throw 'beta' }
+function global:Get-MgContext { throw 'context' }
+`$global:EntraFilters = [System.Collections.Generic.List[string]]::new()
+function global:Get-MgAuditLogSignIn {
+    [CmdletBinding()]
+    param([switch]`$All, [string]`$Filter, [int]`$Top, [hashtable]`$Headers)
+    `$global:EntraFilters.Add(`$Filter)
+}
+& '$collector' -OutputPath '$out' -SkipConnect ``
+    -StartDate ([datetime]::SpecifyKind([datetime]'2026-09-10T00:00:00', [DateTimeKind]::Unspecified)) ``
+    -EndDate ([datetime]::SpecifyKind([datetime]'2026-09-11T00:00:00', [DateTimeKind]::Unspecified))
+`$global:EntraFilters | Set-Content -LiteralPath '$filters' -Encoding utf8
+"@ | Set-Content -LiteralPath $probe -Encoding utf8
+
+        bash -lc "TZ=America/Los_Angeles pwsh -NoProfile -File '$probe'"
+        $text = Get-Content -LiteralPath $filters -Raw
+        $text | Should -Match 'createdDateTime ge 2026-09-10T00:00:00Z and createdDateTime lt 2026-09-11T00:00:00Z'
+        $text | Should -Not -Match '2026-09-10T07:00:00Z'
+    }
+
     It 'looks back -LookbackDays on a first run' {
         Mock Get-MgAuditLogDirectoryAudit -MockWith { @() }
 
