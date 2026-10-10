@@ -10,9 +10,10 @@ in [`docs/candidates/teams-activity.md`](../../docs/candidates/teams-activity.md
 tables below are copied from it.
 
 The collectors write one CSV per source into an output folder, plus a `run.log`. State sources
-append a snapshot stamped with `RunDate`; event sources (`call-records.csv`,
-`teams-audit-events.csv`) append from the latest timestamp already in the file. Nothing is
-rewritten or deleted. Everything is read-only against the tenant.
+append a snapshot stamped with `RunDate`. `teams-audit-events.csv` appends from the day after the
+latest date already in the file. `call-records.csv` re-reads the 30-day retention window and
+appends only rows that are not already there, because a later version of a call can arrive after
+its start time was stored. Nothing is rewritten or deleted. Everything is read-only against the tenant.
 
 ## Contents
 
@@ -84,9 +85,11 @@ for GCC High ([national cloud deployments](https://learn.microsoft.com/graph/dep
 | Call records (6) | Graph `CallRecords.Read.All`, **application only**; delegated is not supported on either API page, and an administrator must grant it ([FAQ](https://learn.microsoft.com/graph/callrecords-api-faq)) | None named |
 | Audit events (8) | Audit Logs or View-Only Audit Logs in the Microsoft Purview portal, and the same roles in the Exchange admin center to run `Search-UnifiedAuditLog` ([audit search](https://learn.microsoft.com/purview/audit-search)) | Audit (Standard) is enough for the operations used; `MessagesExported` and `MessageDeleted` need Audit (Premium) and are not searched |
 
-`Run-All.ps1` requests `Reports.Read.All`, `ReportSettings.Read.All` and `CallRecords.Read.All` on a
-Graph sign-in in addition to the library's default scopes. `CallRecords.Read.All` is an application
-permission, so source 6 returns data only on an app-only sign-in (`-AppId` and `-CertificateThumbprint`).
+`Run-All.ps1` requests `Reports.Read.All` and `ReportSettings.Read.All` on an interactive Graph
+sign-in in addition to the library's default scopes. `CallRecords.Read.All` is an application
+permission and is not a delegated scope, so it is not requested on that sign-in. Source 6 returns
+data only on an app-only sign-in (`-AppId` and `-CertificateThumbprint`) after an administrator
+has granted that permission to the app.
 
 ## Availability per cloud
 
@@ -121,7 +124,7 @@ Dates and times are UTC. `RunDate` is the UTC date of the run.
 | `teams-user-activity-counts.csv` | State | A report date in a run | `RunDate`, `ReportRefreshDate`, `ReportDate`, `TeamChatMessages`, `PostMessages`, `ReplyMessages`, `PrivateChatMessages`, `Calls`, `Meetings`, `AudioDuration`, `VideoDuration`, `ScreenShareDuration`, `MeetingsOrganized`, `MeetingsAttended`, `ReportPeriod` |
 | `teams-device-usage-user-detail.csv` | State | A user, a run, a period or a day | `RunDate`, `QueryDate`, `ReportRefreshDate`, `UserId`, `UserPrincipalName`, `LastActivityDate`, `IsDeleted`, `DeletedDate`, then `UsedWeb`, `UsedWindowsPhone`, `UsediOS`, `UsedMac`, `UsedAndroidPhone`, `UsedWindows`, `UsedChromeOS`, `UsedLinux` (Yes or No in the period, not counts), `IsLicensed`, `ReportPeriod` |
 | `report-settings.csv` | State | A run | `RunDate`, `DisplayConcealedNames` |
-| `call-records.csv` | Event | A session of a call record, per record version (one row with empty session columns if a record has none) | `CallRecordId`, `Version`, `Type` (`groupCall`, `peerToPeer`), `Modalities` (joined with `;`), `StartDateTime`, `EndDateTime`, `LastModifiedDateTime`, `SessionId`, `SessionStartDateTime`, `SessionEndDateTime`, `CallerUserId`, `CallerPlatform`, `CalleeUserId`, `CalleePlatform` (`windows`, `macOS`, `iOS`, `android`, `web`, ...) |
+| `call-records.csv` | Event | A session of a call record, per record version (one row with empty session columns if a record has none; a repeated session id stays when the endpoints or times differ) | `CallRecordId`, `Version`, `Type` (`groupCall`, `peerToPeer`, `unknown`), `Modalities` (joined with `;`), `StartDateTime`, `EndDateTime`, `LastModifiedDateTime`, `SessionId`, `SessionStartDateTime`, `SessionEndDateTime`, `CallerUserId`, `CallerPlatform`, `CalleeUserId`, `CalleePlatform` (`windows`, `macOS`, `iOS`, `android`, `web`, ...) |
 | `teams-audit-events.csv` | Event | A UTC day, workload, user and operation | `Date`, `Workload`, `UserId`, `Operation`, `EventCount` |
 | `team-activity.csv` | State | Written by the lifecycle report | See [`reports/teams-groups-lifecycle`](../teams-groups-lifecycle/README.md) |
 
@@ -144,12 +147,16 @@ Dates and times are UTC. `RunDate` is the UTC date of the run.
 * **Activity from apps is not counted.** Metric counts include Teams client built-in features but not Teams app posts or
   replies, or emails in the channel.
 * **Audio and video duration** count the whole call or meeting if audio or video was enabled, not speaking or camera-on time.
-* **Call records** appear up to 150 minutes after a call ends, so the collector's window ends `-DelayMinutes` (default 180)
-  before now. An older record, or one not readable yet, answers 404; the collector logs and skips it. A record gains
-  `Version`s as data is filled in; `Version` is part of the row key, so each version appends its own rows and a reader keeps
-  the highest `Version` per `CallRecordId`. The collector does not rewrite earlier rows. Records are kept 30 days, so run it
-  daily to keep history. `organizer` and `participants` stopped returning data on 2026-06-30, so the user id comes from the
-  endpoint's `associatedIdentity`. Participants who stream a live event are not returned.
+* **Call records** appear up to 150 minutes after a call ends, and a later version can arrive after that, so every run
+  reads `startDateTime` from now minus `-LookbackDays` (30) through now minus `-DelayMinutes` (default 180). The list
+  filter is the call's start, so resuming from the latest start already stored would skip a call that started earlier
+  and was not readable yet, and would skip a later version of it. Rows already exported are skipped. `Version` is part of
+  the row key, so each version appends its own rows and a reader keeps the highest `Version` per `CallRecordId`. A session
+  id can repeat when a transfer involves more than one service identity; those rows stay because the session times and
+  endpoint ids are part of the key. An older record, or one not readable yet, answers 404; the collector logs and skips it.
+  Records are kept 30 days, so run it daily to keep history. `organizer` and `participants` stopped returning data on
+  2026-06-30, so the user id comes from the endpoint's `associatedIdentity`. Each read sends
+  `Prefer: include-unknown-enum-members`. Participants who stream a live event are not returned.
 * **Audit event counts** are made by the library and will not match the usage report counts. `MessageSent` is in public preview
   and is generated for chat only when guests, federated or anonymous users are present, so it is not a complete chat count;
   `ChatCreated` is logged only when the chat is created through a Graph API call; `MeetingParticipantDetail` already includes

@@ -39,7 +39,7 @@ function global:Get-MgAdminReportSetting {
 
 function global:Invoke-MgGraphRequest {
     [CmdletBinding()]
-    param([string]$Method, [string]$Uri)
+    param([string]$Method, [string]$Uri, [hashtable]$Headers)
     throw 'Invoke-MgGraphRequest was called for real. Mock it in the test.'
 }
 

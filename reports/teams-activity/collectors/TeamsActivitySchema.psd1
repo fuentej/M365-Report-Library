@@ -96,9 +96,10 @@
     )
 
     # Source 6. GET /communications/callRecords, then each record with sessions expanded. Event source.
-    # One row per session (one row with empty session columns when a record has none). Version is part of
-    # the key: a later version of a record appends new rows, and a reader keeps the highest Version per
-    # CallRecordId. Platform is the callRecords userAgent platform of the caller and callee endpoint.
+    # One row per session (one row with empty session columns when a record has none). The query is the
+    # lookback window every run: a start-time watermark would skip a late record and a later version.
+    # Version is part of the key, and so are the session times and endpoint ids, because a session id
+    # can repeat. A reader keeps the highest Version per CallRecordId. Platform is userAgent.platform.
     CallRecords = @(
         'CallRecordId'
         'Version'

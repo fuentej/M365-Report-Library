@@ -93,6 +93,37 @@ function Get-ReportColumnValue {
     return ''
 }
 
+function Get-TeamsUsageReportDay {
+    <#
+        .SYNOPSIS
+            The calendar day for a Teams usage report's date form, or a throw when it is out of range.
+
+        .DESCRIPTION
+            getTeamsUserActivityUserDetail accepts a date from the past 30 days.
+            getTeamsDeviceUsageUserDetail accepts a date from the past 28 days.
+            https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail
+            https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail
+            The day is the year, month and day the caller passed. ToUniversalTime on an
+            Unspecified value would treat it as local and move the day.
+    #>
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param(
+        [Parameter(Mandatory)][datetime]$Value,
+        [Parameter(Mandatory)][int]$PastDays,
+        [Parameter(Mandatory)][string]$ReportName
+    )
+
+    $day = [datetime]::new($Value.Year, $Value.Month, $Value.Day, 0, 0, 0, [DateTimeKind]::Utc)
+    $today = [datetime]::SpecifyKind([datetime]::UtcNow.Date, [DateTimeKind]::Utc)
+    $earliest = $today.AddDays(-$PastDays)
+    if ($day -lt $earliest -or $day -gt $today) {
+        throw ('The {0} date form covers the past {1} days ({2} through {3}). {4} is outside that range.' -f `
+                $ReportName, $PastDays, $earliest.ToString('yyyy-MM-dd'), $today.ToString('yyyy-MM-dd'), $day.ToString('yyyy-MM-dd'))
+    }
+    return $day
+}
+
 function Invoke-UsageReportCollector {
     <#
         .SYNOPSIS
@@ -123,16 +154,23 @@ function Invoke-UsageReportCollector {
     $download = Join-Path ([System.IO.Path]::GetTempPath()) ('teams-activity-' + [guid]::NewGuid().ToString('N') + '.csv')
     $report = $null
     try {
-        try {
-            & $Fetch $download
-            $report = if (Test-Path -LiteralPath $download) { @(Import-Csv -LiteralPath $download) } else { @() }
+        # A 429 or 503 is throttling, not a missing Reports.Read.All role.
+        # https://learn.microsoft.com/graph/throttling
+        Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action { & $Fetch $download }
+        $report = if (Test-Path -LiteralPath $download) { @(Import-Csv -LiteralPath $download) } else { @() }
+    }
+    catch {
+        $status = Get-GraphHttpStatus -ErrorRecord $_
+        if ($status -eq 429 -or $status -eq 503) {
+            Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $LogSource -Message (
+                'The {0} report is still throttled after retries ({1}). A 429 or 503 is not an empty report. Writing the header only.' -f $ReportName, $_.Exception.Message)
         }
-        catch {
+        else {
             Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $LogSource -Message (
                 'The {0} report is unavailable to this sign-in or cloud ({1}). It needs Reports.Read.All and, for a delegated sign-in, a role such as Reports Reader. Writing the header only.' -f $ReportName, $_.Exception.Message)
-            Export-AppendCsv -Path $csvPath -Column $Column
-            return
         }
+        Export-AppendCsv -Path $csvPath -Column $Column
+        return
     }
     finally {
         Remove-Item -LiteralPath $download -Force -ErrorAction SilentlyContinue
@@ -396,8 +434,12 @@ function Invoke-GraphGet {
         throw "Refusing to request a page outside Microsoft Graph: $Uri"
     }
     $requestUri = $Uri
+    # Without this header a modality, type or platform past the sentinel comes back as unknown.
+    # https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords
+    # https://learn.microsoft.com/graph/api/callrecords-callrecord-get
+    $preferUnknownEnums = @{ Prefer = 'include-unknown-enum-members' }
     Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action {
-        Invoke-MgGraphRequest -Method GET -Uri $requestUri -ErrorAction Stop
+        Invoke-MgGraphRequest -Method GET -Uri $requestUri -Headers $preferUnknownEnums -ErrorAction Stop
     }
 }
 

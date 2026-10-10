@@ -18,8 +18,9 @@
         report CSVs and team-activity.csv are skipped that way.
 
         Reports.Read.All and ReportSettings.Read.All are requested for an interactive sign-in.
-        The call records need the application permission CallRecords.Read.All, so they only return
-        data on an app-only sign-in (-AppId and -CertificateThumbprint).
+        The call records need the application permission CallRecords.Read.All. That permission is
+        not a delegated scope, so it is not added to the interactive sign-in; grant it on the app
+        and sign in with -AppId and -CertificateThumbprint.
 
     .PARAMETER Organization
         The tenant's *.onmicrosoft.com domain. Required for app-only sign-in to Exchange Online.
@@ -79,7 +80,9 @@ $exchangeConnected = $false
 
 try {
     try {
-        Connect-M365Service -Service Graph @auth -Scopes (@(Get-DefaultGraphScope) + 'Reports.Read.All', 'ReportSettings.Read.All', 'CallRecords.Read.All')
+        # CallRecords.Read.All is application only and is not a valid delegated scope.
+        # https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords
+        Connect-M365Service -Service Graph @auth -Scopes (@(Get-DefaultGraphScope) + 'Reports.Read.All', 'ReportSettings.Read.All')
     }
     catch {
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source 'run-all' -Message (

@@ -162,9 +162,11 @@ Describe 'Connection endpoint per -Environment' {
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Environment -eq $Graph }
     }
 
-    It 'signs in to Graph with the USGov environment for GCC High, for call records' {
+    It 'signs in to Graph with the USGov environment for GCC High, without the application-only call-records scope' {
         Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; Environment = 'GCCHigh' }
-        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Environment -eq 'USGov' -and $Scopes -contains 'CallRecords.Read.All' }
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter {
+            $Environment -eq 'USGov' -and $Scopes -notcontains 'CallRecords.Read.All'
+        }
     }
 
     It 'signs in to Exchange Online with <Name> for <Cloud>' -ForEach @(
@@ -215,13 +217,44 @@ Describe 'Graph usage reports (sources 1 to 3) are state snapshots stamped with 
         foreach ($file in $global:TaTest.Files) { Test-Path -LiteralPath $file | Should -BeFalse }
     }
 
-    It 'sends the date alone when one is given, and records it as QueryDate' -ForEach @(
-        @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail'; Csv = 'teams-user-activity-user-detail.csv'; Header = 'UserHeader' }
-        @{ Script = 'Get-TeamsDeviceUsageUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamDeviceUsageUserDetail'; Csv = 'teams-device-usage-user-detail.csv'; Header = 'DeviceHeader' }
+    It 'sends the date alone when one is given, as UTC midnight of that calendar day' -ForEach @(
+        @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail'; Header = 'UserHeader' }
+        @{ Script = 'Get-TeamsDeviceUsageUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamDeviceUsageUserDetail'; Header = 'DeviceHeader' }
     ) {
+        $script:ActivityDay = [datetime]::UtcNow.Date.AddDays(-2)
         Mock $Cmdlet -MockWith ([scriptblock]::Create("Set-Content -LiteralPath `$OutFile -Value `$global:TaTest.$Header"))
-        Invoke-CollectorScript $Script @{ OutputPath = $script:Out; SkipConnect = $true; Date = [datetime]'2026-10-05' }
-        Should -Invoke $Cmdlet -Times 1 -Exactly -ParameterFilter { $Date -eq [datetime]'2026-10-05' -and [string]::IsNullOrEmpty($Period) }
+        Invoke-CollectorScript $Script @{ OutputPath = $script:Out; SkipConnect = $true; Date = $script:ActivityDay }
+        Should -Invoke $Cmdlet -Times 1 -Exactly -ParameterFilter {
+            $Date.Kind -eq [DateTimeKind]::Utc -and $Date -eq $script:ActivityDay -and $Date.TimeOfDay -eq [timespan]::Zero -and [string]::IsNullOrEmpty($Period)
+        }
+    }
+
+    It 'keeps an Unspecified activity time on that calendar day' {
+        $yesterday = [datetime]::UtcNow.Date.AddDays(-1)
+        $script:ActivityDay = [datetime]::new($yesterday.Year, $yesterday.Month, $yesterday.Day, 23, 30, 0, [DateTimeKind]::Unspecified)
+        Mock Get-MgReportTeamUserActivityUserDetail { Set-Content -LiteralPath $OutFile -Value $global:TaTest.UserHeader }
+        Invoke-CollectorScript 'Get-TeamsUserActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $script:ActivityDay }
+        Should -Invoke Get-MgReportTeamUserActivityUserDetail -Times 1 -Exactly -ParameterFilter {
+            $Date.Kind -eq [DateTimeKind]::Utc -and $Date.Year -eq $script:ActivityDay.Year -and $Date.Month -eq $script:ActivityDay.Month -and $Date.Day -eq $script:ActivityDay.Day -and $Date.Hour -eq 0
+        }
+    }
+
+    It 'rejects a user-activity date outside the past 30 days instead of calling the report' {
+        $tooOld = [datetime]::UtcNow.Date.AddDays(-31)
+        Mock Get-MgReportTeamUserActivityUserDetail { throw 'should not be called' }
+        { Invoke-CollectorScript 'Get-TeamsUserActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $tooOld } } | Should -Throw '*past 30 days*'
+        Should -Invoke Get-MgReportTeamUserActivityUserDetail -Times 0 -Exactly
+    }
+
+    It 'rejects a device date outside the past 28 days, including a day user activity still accepts' {
+        $day = [datetime]::UtcNow.Date.AddDays(-29)
+        Mock Get-MgReportTeamDeviceUsageUserDetail { throw 'should not be called' }
+        { Invoke-CollectorScript 'Get-TeamsDeviceUsageUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $day } } | Should -Throw '*past 28 days*'
+        Should -Invoke Get-MgReportTeamDeviceUsageUserDetail -Times 0 -Exactly
+
+        Mock Get-MgReportTeamUserActivityUserDetail { Set-Content -LiteralPath $OutFile -Value $global:TaTest.UserHeader }
+        Invoke-CollectorScript 'Get-TeamsUserActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $day }
+        Should -Invoke Get-MgReportTeamUserActivityUserDetail -Times 1 -Exactly
     }
 
     It 'reads the device usage columns as yes/no per platform' {
@@ -265,6 +298,32 @@ Describe 'Graph usage reports (sources 1 to 3) are state snapshots stamped with 
         @(Import-Csv -LiteralPath $path).Count | Should -Be 2
     }
 
+    It 'retries a usage report 429 and does not record it as a refused report' {
+        $global:TaTest.UsageTries = 0
+        Mock Get-MgReportTeamUserActivityUserDetail {
+            $global:TaTest.UsageTries++
+            if ($global:TaTest.UsageTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Set-Content -LiteralPath $OutFile -Value (New-UserReportCsv) -Encoding utf8
+        }
+        Mock Start-Sleep { }
+        Invoke-CollectorScript 'Get-TeamsUserActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $global:TaTest.UsageTries | Should -Be 2
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'teams-user-activity-user-detail.csv')).Count | Should -Be 1
+        $log = Get-LogText $script:Out
+        $log | Should -Match 'HTTP 429'
+        $log | Should -Not -Match 'Reports\.Read\.All'
+    }
+
+    It 'logs a usage report that stays throttled as throttle, not a missing permission' {
+        Mock Get-MgReportTeamUserActivityCount { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+        Mock Start-Sleep { }
+        Invoke-CollectorScript 'Get-TeamsUserActivityCounts.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'teams-user-activity-counts.csv')).Count | Should -Be 0
+        $log = Get-LogText $script:Out
+        $log | Should -Match 'still throttled'
+        $log | Should -Not -Match 'Reports\.Read\.All'
+    }
+
     It 'writes the header only and logs the refusal when <Script> is refused' -ForEach @(
         @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail'; Csv = 'teams-user-activity-user-detail.csv'; Key = 'TeamsUserActivityUserDetail' }
         @{ Script = 'Get-TeamsUserActivityCounts.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityCount'; Csv = 'teams-user-activity-counts.csv'; Key = 'TeamsUserActivityCounts' }
@@ -293,6 +352,22 @@ Describe 'Report settings (source 5)' {
         $row.DisplayConcealedNames | Should -Be $Expected
         $row.RunDate | Should -Be ([datetime]::UtcNow.ToString('yyyy-MM-dd'))
         if ($Expected -eq 'True') { Get-LogText $script:Out | Should -Match 'conceal names' }
+    }
+
+    It 'retries report settings on 429 and does not record throttle as a missing permission' {
+        $global:TaTest.SettingsTries = 0
+        Mock Get-MgAdminReportSetting {
+            $global:TaTest.SettingsTries++
+            if ($global:TaTest.SettingsTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            [pscustomobject]@{ DisplayConcealedNames = $false }
+        }
+        Mock Start-Sleep { }
+        Invoke-CollectorScript 'Get-ReportSettings.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $global:TaTest.SettingsTries | Should -Be 2
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'report-settings.csv')).DisplayConcealedNames | Should -Be 'False'
+        $log = Get-LogText $script:Out
+        $log | Should -Match 'HTTP 429'
+        $log | Should -Not -Match 'ReportSettings\.Read\.All'
     }
 
     It 'writes the header only when the setting cannot be read' {
@@ -356,13 +431,53 @@ Describe 'Call records (source 6) are an event source that pages and resumes' {
         ([datetime]::UtcNow - $to).TotalMinutes | Should -BeLessThan 181
     }
 
-    It 'resumes from the latest StartDateTime already in the file' {
+    It 'still requests a call that started before the latest stored start' {
+        # A later start already in the file must not become the filter. The record can appear
+        # up to 150 minutes after the call ends, and the list filters on startDateTime.
+        # https://learn.microsoft.com/graph/callrecords-api-faq
+        $stored = [datetime]::UtcNow.AddDays(-1).ToString('yyyy-MM-ddTHH:mm:ssZ')
         Export-AppendCsv -Path (Join-Path $script:Out 'call-records.csv') -Column $script:Schema.CallRecords -Rows @(
-            [pscustomobject]@{ CallRecordId = 'old'; Version = '1'; StartDateTime = '2026-10-04T08:00:00Z'; SessionId = 's' })
-        Mock Invoke-MgGraphRequest { $global:TaTest.Requested.Add($Uri); @{ value = @() } }
-        Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+            [pscustomobject]@{ CallRecordId = 'newer'; Version = '1'; StartDateTime = $stored; SessionId = 'already' })
+        $global:TaTest.RecordStart = [datetime]::UtcNow.AddDays(-10)
+        Mock Invoke-MgGraphRequest {
+            $text = [uri]::UnescapeDataString([string]$Uri)
+            if ($text -like '*communications/callRecords[?]*') {
+                $matched = [regex]::Match($text, 'ge (\S+) and')
+                $from = [datetime]::Parse($matched.Groups[1].Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal)
+                if ($from -le $global:TaTest.RecordStart) { return @{ value = @(@{ id = 'late' }) } }
+                return @{ value = @() }
+            }
+            New-MockCallRecord -Id 'late' -Start ($global:TaTest.RecordStart.ToString('yyyy-MM-ddTHH:mm:ssZ')) -Session @(New-MockSession -Id 'late-s')
+        }
+        Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 30; DelayMinutes = 180 }
 
-        [uri]::UnescapeDataString($global:TaTest.Requested[0]) | Should -Match 'startDateTime ge 2026-10-04T08:00:00Z'
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'call-records.csv')).CallRecordId | Should -Contain 'late'
+    }
+
+    It 'keeps both rows when one session id is repeated for two service identities' {
+        Mock Invoke-MgGraphRequest {
+            if ($Uri -like '*communications/callRecords[?]*') { return @{ value = @(@{ id = 'rec-1' }) } }
+            $first = New-MockSession -Id 'same' -Caller 'user-1' -Callee 'svc-1' -CalleePlatform 'unknown'
+            $second = New-MockSession -Id 'same' -Caller 'user-1' -Callee 'svc-2' -CalleePlatform 'unknown'
+            $second.endDateTime = '2026-10-07T14:20:00Z'
+            New-MockCallRecord -Id 'rec-1' -Session @($first, $second)
+        }
+        Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'call-records.csv'))
+        $rows.Count | Should -Be 2
+        ($rows.CalleeUserId | Sort-Object) -join ',' | Should -Be 'svc-1,svc-2'
+    }
+
+    It 'sends Prefer include-unknown-enum-members on the list and the record' {
+        $global:TaTest.Prefer = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-MgGraphRequest {
+            $global:TaTest.Prefer.Add([string]$Headers['Prefer'])
+            if ($Uri -like '*communications/callRecords[?]*') { return @{ value = @(@{ id = 'rec-1' }) } }
+            New-MockCallRecord -Id 'rec-1' -Session @(New-MockSession -Id 's-1')
+        }
+        Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $global:TaTest.Prefer.Count | Should -BeGreaterThan 1
+        @($global:TaTest.Prefer | Where-Object { $_ -ne 'include-unknown-enum-members' }).Count | Should -Be 0
     }
 
     It 'does not repeat a row it already has, and keeps a later version of the same record as its own rows' {
@@ -417,6 +532,14 @@ Describe 'Call records (source 6) are an event source that pages and resumes' {
         Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
         Get-HeaderText (Join-Path $script:Out 'call-records.csv') | Should -Be ($script:Schema.CallRecords -join ',')
         Get-LogText $script:Out | Should -Match 'application permission CallRecords.Read.All'
+    }
+
+    It 'throws when call records stay throttled instead of recording a missing permission' {
+        Mock Invoke-MgGraphRequest { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+        { Invoke-CollectorScript 'Get-CallRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true } } | Should -Throw '*429*'
+        if (Test-Path -LiteralPath (Join-Path $script:Out 'run.log')) {
+            Get-LogText $script:Out | Should -Not -Match 'application permission CallRecords\.Read\.All'
+        }
     }
 
     It 'retries a throttled page instead of keeping an empty file' {
@@ -571,7 +694,7 @@ Describe 'Run-All' {
 
         @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 7
         Test-Path -LiteralPath (Join-Path $script:Out 'team-activity.csv') | Should -BeTrue
-        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains 'Reports.Read.All' -and $Scopes -contains 'ReportSettings.Read.All' -and $Scopes -contains 'CallRecords.Read.All' }
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains 'Reports.Read.All' -and $Scopes -contains 'ReportSettings.Read.All' -and $Scopes -notcontains 'CallRecords.Read.All' }
         Should -Invoke Connect-ExchangeOnline -ModuleName M365ReportLibrary -Times 1 -Exactly
         Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
     }

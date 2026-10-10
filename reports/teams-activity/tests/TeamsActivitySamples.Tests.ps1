@@ -100,6 +100,12 @@ Describe 'The sample CSVs match the collectors' {
         ($rows.Version | Sort-Object -Unique).Count | Should -BeGreaterThan 1
     }
 
+    It 'keeps two rows for one session id when the endpoint or the times differ' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'call-records.csv') | Where-Object SessionId -EQ '6b2e0001-0000-0000-0000-000000000002')
+        $rows.Count | Should -Be 2
+        @($rows.CalleeUserId | Sort-Object -Unique).Count | Should -Be 2
+    }
+
     It 'covers every audited operation in teams-audit-events.csv' {
         $ops = (Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-audit-events.csv')).Operation | Sort-Object -Unique
         $ops | Should -Be (@($script:Schema.TeamsAuditOperations) | Sort-Object)

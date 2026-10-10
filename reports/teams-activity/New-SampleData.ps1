@@ -118,6 +118,14 @@ $rows = @(
         SessionId = '6b2e0001-0000-0000-0000-000000000002'; SessionStartDateTime = '2026-10-07T14:02:00Z'; SessionEndDateTime = '2026-10-07T14:44:00Z'
         CallerUserId = $people[1].Id; CallerPlatform = 'iOS'; CalleeUserId = ''; CalleePlatform = ''
     }
+    # The same session id again: a transfer can involve more than one service identity.
+    # https://learn.microsoft.com/graph/callrecords-api-faq
+    [pscustomobject]@{
+        CallRecordId = '5a1f0001-0000-0000-0000-000000000001'; Version = 1; Type = 'groupCall'; Modalities = 'audio;video'
+        StartDateTime = '2026-10-07T14:00:00Z'; EndDateTime = '2026-10-07T14:45:00Z'; LastModifiedDateTime = '2026-10-07T14:47:00Z'
+        SessionId = '6b2e0001-0000-0000-0000-000000000002'; SessionStartDateTime = '2026-10-07T14:02:00Z'; SessionEndDateTime = '2026-10-07T14:20:00Z'
+        CallerUserId = $people[1].Id; CallerPlatform = 'iOS'; CalleeUserId = '33333333-0000-0000-0000-000000000099'; CalleePlatform = 'unknown'
+    }
     [pscustomobject]@{
         CallRecordId = '5a1f0002-0000-0000-0000-000000000002'; Version = 2; Type = 'peerToPeer'; Modalities = 'audio'
         StartDateTime = '2026-10-08T09:30:00Z'; EndDateTime = '2026-10-08T09:40:00Z'; LastModifiedDateTime = '2026-10-08T09:43:00Z'

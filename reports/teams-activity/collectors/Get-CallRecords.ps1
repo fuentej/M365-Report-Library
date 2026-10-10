@@ -2,29 +2,32 @@
 
 <#
     .SYNOPSIS
-        Writes call-records.csv: Teams calls and meetings with the platform each session endpoint used, resuming from the last start time collected.
+        Writes call-records.csv: Teams calls and meetings with the platform each session endpoint used.
 
     .DESCRIPTION
         Source 6: Microsoft Graph GET /communications/callRecords
         (https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords), then each
-        record with its sessions expanded
+        record with sessions and segments expanded
         (https://learn.microsoft.com/graph/api/callrecords-callrecord-get). The list does not include
         sessions. Both the list and the session collection are followed through @odata.nextLink until it
-        is absent; the list page size is 60 by default, so one page is not the full set.
+        is absent; the list page size is 60 by default, so one page is not the full set. Each request
+        sends Prefer: include-unknown-enum-members so a value past the sentinel is not returned as unknown.
 
-        Event source. The query is startDateTime ge the latest StartDateTime already in the file and
-        startDateTime lt the end of the window, so a re-run resumes where the last one stopped. The first
-        run reaches back -LookbackDays; Graph keeps records for 30 days, and an older or not-yet-available
-        record answers 404, which is logged and skipped. The first version of a record can take 150
-        minutes to appear after the call ends
-        (https://learn.microsoft.com/graph/callrecords-api-faq), so the window ends -DelayMinutes before
-        now (default 180) to avoid advancing the resume point past calls that are not readable yet.
-        Later versions of a record carry the same id with a higher Version; Version is part of the row
-        key, so a re-read version appends its own rows and a reader keeps the highest Version per
+        Event source. Every run reads startDateTime from now minus -LookbackDays through now minus
+        -DelayMinutes. Graph keeps records for 30 days. The first version can take 150 minutes after the
+        call ends, and a later version can arrive after that
+        (https://learn.microsoft.com/graph/callrecords-api-faq). The list filter is startDateTime, so a
+        resume point of the latest start already stored would skip a call that started earlier and whose
+        record was not readable yet, and would skip a later version of that call. Rows already exported
+        are skipped by key. A session id can repeat when a transfer involves more than one service
+        identity, so the key also includes the session times and the endpoint ids. An older or
+        not-yet-available record answers 404, which is logged and skipped. Version is part of the row
+        key, so a later version appends its own rows and a reader keeps the highest Version per
         CallRecordId.
 
         Available in Commercial, GCC and GCC High. Needs CallRecords.Read.All as an APPLICATION
-        permission; delegated is not supported, so use -AppId and -CertificateThumbprint. This collector
+        permission; delegated is not supported, so use -AppId and -CertificateThumbprint. That permission
+        is not a delegated scope, so an interactive sign-in does not request it. This collector
         sees calls and meetings only, not chat or channel messages, and not live event streamers.
 
     .EXAMPLE
@@ -77,15 +80,20 @@ if (Test-TeamsSourceSkipped -Source 'CallRecords' -LogSource $source -CsvPath $c
 }
 
 if (-not $SkipConnect) {
+    # CallRecords.Read.All is application only. Connect-MgGraph -Scopes is the delegated
+    # list, and an application permission is not a valid delegated scope
+    # (https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords).
+    # App-only sign-in uses the permissions granted to the app, not -Scopes.
     Connect-M365Service -Service Graph -Environment $Environment -AppId $AppId `
-        -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
-        -Scopes (@(Get-DefaultGraphScope) + 'CallRecords.Read.All')
+        -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization
 }
 
 $now = [datetime]::UtcNow
 $end = $now.AddMinutes(-$DelayMinutes)
-$watermark = Get-CsvWatermark -Path $csvPath -Column 'StartDateTime'
-$start = if ($null -ne $watermark) { $watermark } else { $now.AddDays(-$LookbackDays) }
+# Do not resume from the latest StartDateTime. A record can appear up to 150 minutes after
+# the call ends, and a later version later still, while the filter is the call's start.
+# https://learn.microsoft.com/graph/callrecords-api-faq
+$start = $now.AddDays(-$LookbackDays)
 
 if ($end -le $start) {
     Write-CollectorLog -OutputPath $OutputPath -Source $source -Message 'Nothing new to collect: the window is empty.'
@@ -102,6 +110,9 @@ try {
     $listed = @(Get-GraphPagedValue -Uri ('/v1.0/communications/callRecords?$filter=' + [uri]::EscapeDataString($filter)) -OutputPath $OutputPath -LogSource $source)
 }
 catch {
+    # A 429 or 503 that is still failing after the wait is not "there were no calls".
+    # https://learn.microsoft.com/graph/throttling
+    if (Test-GraphThrottleStatus -ErrorRecord $_) { throw }
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
         'Call records are unavailable to this sign-in ({0}). They need the application permission CallRecords.Read.All. Writing the header only.' -f $_.Exception.Message)
     Export-AppendCsv -Path $csvPath -Column $columns
@@ -114,7 +125,10 @@ foreach ($item in $listed) {
     if (-not $id) { continue }
     try {
         $recordId = $id
-        $record = Invoke-GraphGet -Uri ('/v1.0/communications/callRecords/{0}?$expand=sessions' -f $recordId) -OutputPath $OutputPath -LogSource $source
+        # The documented expand is sessions($expand=segments). Caller and callee, including
+        # userAgent.platform, are on each session.
+        # https://learn.microsoft.com/graph/api/callrecords-callrecord-get
+        $record = Invoke-GraphGet -Uri ('/v1.0/communications/callRecords/{0}?$expand=sessions($expand=segments)' -f $recordId) -OutputPath $OutputPath -LogSource $source
         $sessions = @(Get-GraphJsonValue -Object $record -Name 'sessions')
         $more = [string](Get-GraphJsonValue -Object $record -Name 'sessions@odata.nextLink')
         if ($more) {
@@ -134,7 +148,10 @@ foreach ($item in $listed) {
     foreach ($row in (ConvertTo-CallRecordRow -Record $record -Session $sessions)) { $rows.Add($row) }
 }
 
+# A session id can repeat for one record when a transfer involves more than one service
+# identity. The times and endpoint ids tell those rows apart.
+# https://learn.microsoft.com/graph/callrecords-api-faq
 $result = Export-AppendCsv -Path $csvPath -Rows $rows.ToArray() -Column $columns `
-    -KeyColumn @('CallRecordId', 'Version', 'SessionId') -PassThru
+    -KeyColumn @('CallRecordId', 'Version', 'SessionId', 'SessionStartDateTime', 'SessionEndDateTime', 'CallerUserId', 'CalleeUserId') -PassThru
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'call-records.csv: {0} rows written, {1} skipped.' -f $result.Written, $result.Skipped)

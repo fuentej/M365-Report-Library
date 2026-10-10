@@ -67,13 +67,20 @@ if (Test-TeamsSourceSkipped -Source 'TeamsUserActivityUserDetail' -LogSource $so
     return
 }
 
+# The day asked for, or empty when the period form is used. Exactly one of -Date and -Period is sent.
+# The date form is the past 30 days. An out-of-range day throws here, before a failed call is
+# logged as a refused report.
+# https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail
+$activityDay = $null
+if ($PSBoundParameters.ContainsKey('Date')) {
+    $activityDay = Get-TeamsUsageReportDay -Value $Date -PastDays 30 -ReportName 'Teams user activity'
+}
+$queryDate = if ($null -ne $activityDay) { $activityDay.ToString('yyyy-MM-dd') } else { '' }
+
 if (-not $SkipConnect) {
     Connect-M365Service -Service Graph -Environment $Environment -AppId $AppId `
         -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization
 }
-
-# The day asked for, or empty when the period form is used. Exactly one of -Date and -Period is sent.
-$queryDate = if ($PSBoundParameters.ContainsKey('Date')) { $Date.ToString('yyyy-MM-dd') } else { '' }
 
 function Read-Column { param($Row, [string[]]$Header) Get-ReportColumnValue -Row $Row -Header $Header }
 
@@ -120,7 +127,7 @@ Invoke-UsageReportCollector -OutputPath $OutputPath -LogSource $source -CsvName 
     -KeyColumn @('RunDate', 'QueryDate', 'UserPrincipalName', 'ReportPeriod') -ReportName 'Teams user activity' -MapRow $map -Fetch {
         param($file)
         if ($queryDate) {
-            Get-MgReportTeamUserActivityUserDetail -Date $Date -OutFile $file -ErrorAction Stop
+            Get-MgReportTeamUserActivityUserDetail -Date $activityDay -OutFile $file -ErrorAction Stop
         }
         else {
             Get-MgReportTeamUserActivityUserDetail -Period $Period -OutFile $file -ErrorAction Stop
