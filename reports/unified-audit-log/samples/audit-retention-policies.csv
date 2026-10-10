@@ -1,0 +1,5 @@
+"RunDate","Priority","Name","RecordTypes","Operations","UserIds","RetentionDuration"
+"2026-10-01","100","Admin role changes, ten years","AzureActiveDirectory","Add member to role.;Remove member from role.","","TenYears"
+"2026-10-01","200","Sharing, three months","SharePointSharingOperation","","devon.diaz@example.com","ThreeMonths"
+"2026-10-08","100","Admin role changes, ten years","AzureActiveDirectory","Add member to role.;Remove member from role.","","TenYears"
+"2026-10-08","200","Sharing, three months","SharePointSharingOperation","","devon.diaz@example.com","ThreeMonths"

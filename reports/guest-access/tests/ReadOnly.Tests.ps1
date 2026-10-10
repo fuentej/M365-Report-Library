@@ -233,8 +233,10 @@ Describe 'Only read-only tenant commands are called' {
         # each follows @odata.nextLink as returned and sends headers the SDK page iterator
         # drops. The next Describe holds every -Method to GET, and each report's
         # ReadOnly.Tests.ps1 holds that helper file to one GET function.
+        # The unified audit log helpers (UnifiedAuditLogHelpers.ps1) also call it, for the Graph
+        # audit query GETs and for the one POST described in the next Describe.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1'))
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -270,6 +272,11 @@ Describe 'No Graph request uses a method other than GET' {
                 $value = if ($null -ne $element.Argument) { $element.Argument.Extent.Text }
                 elseif ($i + 1 -lt $elements.Count) { $elements[$i + 1].Extent.Text }
                 else { '<none>' }
+
+                # Decision D-007: the unified audit log helpers send the one POST that creates a Graph
+                # audit log query (a read, no tenant change). reports/unified-audit-log/tests/ReadOnly.Tests.ps1
+                # holds it to that one path and to the one function that sends it.
+                if ((Split-Path $call.Path -Leaf) -eq 'UnifiedAuditLogHelpers.ps1' -and ($value -replace "['`"]", '') -eq 'POST' -and $call.Name -eq 'Invoke-MgGraphRequest') { continue }
 
                 if (($value -replace "['`"]", '') -ne 'GET') {
                     '{0}:{1} {2} -Method {3}' -f (Split-Path $call.Path -Leaf), $element.Extent.StartLineNumber, $call.Name, $value
@@ -316,8 +323,16 @@ Describe 'No Graph request uses a method other than GET' {
         # The Entra activity report reads sign-ins and directory audits the same way, so
         # Prefer: include-unknown-enum-members is on every page, including each nextLink.
         # reports/entra-activity/tests/ReadOnly.Tests.ps1 holds that helper to one GET call.
+        #
+        # The unified audit log report reads the Graph Audit Search API through Invoke-MgGraphRequest
+        # and the Office 365 Management Activity API (which has no PowerShell cmdlet) through
+        # Invoke-WebRequest, both in UnifiedAuditLogHelpers.ps1. Between them they send two POSTs, each
+        # of which starts a read and changes no tenant data (decision D-007): the audit log query create
+        # and the subscription start. reports/unified-audit-log/tests/ReadOnly.Tests.ps1 pins each POST
+        # to its path and to the one function that sends it, holds every other call to GET, and checks
+        # that the token is read in two request functions only and never logged.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 
