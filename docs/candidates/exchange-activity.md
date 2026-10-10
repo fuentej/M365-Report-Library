@@ -1,0 +1,133 @@
+# Candidate: Exchange usage and activity
+
+Status: sources verified against Microsoft Learn; nothing built. Written for BRO-380 so the build issue can
+be written without guessing. Nothing here was run against a tenant. Pages read 2026-10-10.
+
+Cloud names follow the library: `Commercial`, `GCC`, `GCCHigh` (`-Environment`). Graph uses
+`https://graph.microsoft.com` for Commercial and GCC and `Connect-MgGraph -Environment USGov` for GCC High
+(`https://graph.microsoft.us`; [national cloud deployments](https://learn.microsoft.com/graph/deployments)).
+Every Graph page cited below carries a national-cloud table; "US Government L4" is the GCC High column, and
+GCC calls the global endpoint. Exchange Online PowerShell connects with no extra parameter in Commercial and
+GCC and with `-ExchangeEnvironmentName O365USGovGCCHigh` in GCC High
+([connect](https://learn.microsoft.com/powershell/exchange/connect-to-exchange-online-powershell),
+[app-only authentication](https://learn.microsoft.com/powershell/exchange/app-only-auth-powershell-v2)).
+
+## How to read the table
+
+* `Available` / `NotAvailable` appear only where a Microsoft page says so; the link is in the cell.
+* `UNVERIFIED` means no Microsoft page found says either way. The collector should ask for the data and
+  record a refusal in `run.log`, as the existing reports do.
+* **No Exchange PowerShell cmdlet page states cloud availability.** For sources 6 to 9 the Commercial cell
+  links the cmdlet page (it lists Exchange Online as applicable). GCC and GCC High are `UNVERIFIED` at cmdlet
+  level. The only evidence is service-level: the [Exchange Online for US government
+  environments](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments)
+  page says `Yes` for GCC and GCC High on "Remote Windows PowerShell access" and on "Message trace". It does
+  not name any cmdlet.
+* **The headline finding:** the four Graph usage report APIs the usage questions need (sources 1 to 4) are
+  marked `❌` for US Government L4 on their Learn pages, so they are `NotAvailable` through Graph in GCC High
+  (as BRO-364 found for the same family). **Learn disagrees with itself here.** The same service-description
+  page lists "Microsoft Graph Reports (GA release)" as `Yes` for GCC and GCC High, and its "Usage reporting"
+  row as `Yes` for GCC and GCC High. The per-API pages are the more specific statements, so the cells say
+  `NotAvailable`, but the build issue should have an operator probe it once in a GCC High tenant (read-only)
+  before the skip is relied on. The same reports exist in the Microsoft 365 admin center for GCC High (source
+  10), recorded as a manual fallback, not a collector. Source 5 is `UNVERIFIED` there because its own pages disagree.
+* Source 5 (`displayConcealedNames`) decides whether sources 1, 3 and 4 return names. Read it first.
+* The shared sign-in requests `User.Read.All`, `Directory.Read.All`, `GroupMember.Read.All` and
+  `AuditLog.Read.All`. The build still has to add `Reports.Read.All` and `ReportSettings.Read.All`. Sources 6
+  to 9 need a separate Exchange Online connection (`Exchange.ManageAsApp` plus a role, see the table).
+
+## Sources
+
+| # | Source | Endpoint or cmdlet | Least privileged role or permission | License | Event / state | Retention or period | Commercial | GCC | GCC High |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Per-mailbox storage, item counts, the three quotas, last activity, archive flag | [`GET /reports/getMailboxUsageDetail(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagedetail) (`Get-MgReportMailboxUsageDetail`). CSV via `302 Found` to a pre-authenticated URL valid "a few minutes". Columns: `Report Refresh Date`, `User Principal Name`, `Display Name`, `Is Deleted`, `Deleted Date`, `Created Date`, `Last Activity Date`, `Item Count`, `Storage Used (Byte)`, `Issue Warning Quota (Byte)`, `Prohibit Send Quota (Byte)`, `Prohibit Send/Receive Quota (Byte)`, `Deleted Item Count`, `Deleted Item Size (Byte)`, `Deleted Item Quota (Byte)`, `Has Archive`, `Report Period`. The CSV has no recipient-type column, so shared and user mailboxes cannot be told apart from this file alone. Quota status is derived with the admin center's four categories: Good, Warning, Can't send, Can't send/receive ([mailbox usage report](https://learn.microsoft.com/microsoft-365/admin/activity-reports/mailbox-usage)) | `Reports.Read.All` (application and delegated; no higher privilege listed). Delegated needs a signed-in Entra limited admin role: Company Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. Global Reader and Usage Summary Reports Reader are listed and "will only have access to tenant-level data, without visibility into detailed metrics" ([authorization](https://learn.microsoft.com/graph/reportroot-authorization)) | None named on the page | State | `period` D7, D30, D90 or D180. Reports "typically become available within 24 to 72 hours" ([overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports)); the mailbox usage page says data "usually covers up to the last 24 to 48 hours" | [Available](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagedetail) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagedetail) (US Government L4 `❌`; see the conflict in the notes above) |
+| 2 | Tenant-wide mailbox storage over time | [`GET /reports/getMailboxUsageStorage(period='D180')`](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage) (`Get-MgReportMailboxUsageStorage`). CSV via `302 Found`. Columns: `Report Refresh Date`, `Storage Used (Byte)`, `Report Date`, `Report Period`. The admin center storage chart does not include archive mailboxes ([mailbox usage report](https://learn.microsoft.com/microsoft-365/admin/activity-reports/mailbox-usage)) | `Reports.Read.All`, same roles as source 1 | None named on the page | State | `period` D7, D30, D90 or D180 | [Available](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage) (US Government L4 `❌`) |
+| 3 | Email activity per user: send, receive and read counts, meetings created and interacted with, last activity | [`GET /reports/getEmailActivityUserDetail(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getemailactivityuserdetail) or `(date=2026-10-01)`. CSV via `302 Found`. Columns: `Report Refresh Date`, `User Principal Name`, `Display Name`, `Is Deleted`, `Deleted Date`, `Last Activity Date`, `Send Count`, `Receive Count`, `Read Count`, `Meeting Created Count`, `Meeting Interacted Count`, `Assigned Products`, `Report Period`. Exactly one of `period` or `date` is set. A per-day figure comes from one `date` call per day | `Reports.Read.All`, same roles as source 1 | None named on the page | State | `period` D7, D30, D90 or D180; `date` form only the past 28 days. Running at least every 28 days would keep daily rows contiguous (inference, not a Learn statement) | [Available](https://learn.microsoft.com/graph/api/reportroot-getemailactivityuserdetail) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getemailactivityuserdetail) (US Government L4 `❌`) |
+| 4 | Email apps and clients each user connected with | [`GET /reports/getEmailAppUsageUserDetail(period='D30')`](https://learn.microsoft.com/graph/api/reportroot-getemailappusageuserdetail) or `(date=...)`. CSV via `302 Found`. Columns: `Report Refresh Date`, `User Principal Name`, `Display Name`, `Is Deleted`, `Deleted Date`, `Last Activity Date`, `Mail For Mac`, `Outlook For Mac`, `Outlook For Windows`, `Outlook For Mobile`, `Other For Mobile`, `Outlook For Web`, `POP3 App`, `IMAP4 App`, `SMTP App`, `Report Period`. No Outlook version column; the admin center "Versions" chart is not in this API ([email app usage](https://learn.microsoft.com/microsoft-365/admin/activity-reports/email-apps-usage-ww)) | `Reports.Read.All`, same roles as source 1 | None named on the page | State | `period` D7, D30, D90 or D180; `date` form only the past 30 days | [Available](https://learn.microsoft.com/graph/api/reportroot-getemailappusageuserdetail) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getemailappusageuserdetail) (US Government L4 `❌`) |
+| 5 | Whether usage reports show names or concealed identifiers: `displayConcealedNames` | [`GET /admin/reportSettings`](https://learn.microsoft.com/graph/api/adminreportsettings-get) (`Get-MgAdminReportSetting`). `true` means names are concealed. By default reports hide usernames, display names, groups and sites; the checkbox is Settings, Org settings, Services, Reports, "Conceal user, group, and site names in all reports". A change takes a few minutes and applies to the Graph usage reports ([overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports)) | `ReportSettings.Read.All`. Higher: `ReportSettings.ReadWrite.All`, not used (the library is read-only). Delegated needs an Entra limited admin role ([authorization](https://learn.microsoft.com/graph/reportroot-authorization)) | None named on the page | State | n/a | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | UNVERIFIED: [the Graph page](https://learn.microsoft.com/graph/api/adminreportsettings-get) marks US Government L4 `❌`, while [the overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) says "an API in all environments" changes this setting. Same disagreement as BRO-364 source 6 |
+| 6 | Mailbox list with recipient type, and the quotas as configured | `Get-EXOMailbox -PropertySets Minimum,Quota`. The Minimum set carries `UserPrincipalName`, `RecipientType`, `RecipientTypeDetails`, `ExternalDirectoryObjectId`; the Quota set carries `IssueWarningQuota`, `ProhibitSendQuota`, `ProhibitSendReceiveQuota`, `RecoverableItemsQuota`, `ArchiveQuota`, `UseDatabaseQuotaDefaults` ([property sets](https://learn.microsoft.com/powershell/exchange/cmdlet-property-sets)). Paging and `-ResultSize` follow [mailbox exfiltration risk](mailbox-exfiltration-risk.md) source 1 and were not re-read here | Not stated on the pages read. Cmdlet pages defer to [find the permissions required to run any Exchange cmdlet](https://learn.microsoft.com/powershell/exchange/find-exchange-cmdlet-permissions); the feature table lists Organization Management and Recipient Management for "Recipients" ([feature permissions](https://learn.microsoft.com/exchange/permissions-exo/feature-permissions)). App-only needs `Exchange.ManageAsApp` plus an Entra role or an Exchange role group | None named | State | n/a | [Available](https://learn.microsoft.com/powershell/exchange/cmdlet-property-sets) | UNVERIFIED (service-level `Yes` for remote PowerShell only) | UNVERIFIED (same) |
+| 7 | Per-mailbox size, item count, storage limit status and last logon, straight from Exchange | `Get-EXOMailboxStatistics -Identity <upn> -PropertySets All`. The Minimum set has `ItemCount`, `TotalItemSize`, `DeletedItemCount`, `TotalDeletedItemSize`; the All set adds `StorageLimitStatus`, `LastLogonTime`, `LastLogoffTime`, `LastLoggedOnUserAccount`, `IsArchiveMailbox`, `DatabaseIssueWarningQuota`, `DatabaseProhibitSendQuota`, `DatabaseProhibitSendReceiveQuota` ([property sets](https://learn.microsoft.com/powershell/exchange/cmdlet-property-sets), [cmdlet](https://learn.microsoft.com/powershell/module/exchangepowershell/get-exomailboxstatistics)). One mailbox per call (`-Identity`); the cmdlet page warns that a `$null` or non-existent `-Identity` returns all objects. `-Archive` returns the archive mailbox. **Do not use `LastUserActionTime`:** Learn says it is being deprecated and is not the last active time ([Get-MailboxStatistics](https://learn.microsoft.com/powershell/module/exchangepowershell/get-mailboxstatistics)). The cmdlet description says it returns "the last time it was accessed"; whether `LastLogonTime` equals the Graph `Last Activity Date` (send or read) is not stated, so the two are kept in separate columns | Not stated on the pages read (same deferral as source 6) | None named | State | n/a (current value only; history is the library's appended snapshots) | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-exomailboxstatistics) | UNVERIFIED (service-level `Yes` for remote PowerShell only) | UNVERIFIED (same) |
+| 8 | Messages sent and received per address, as a count the library makes itself (fallback for GCC High, send and receive only) | `Get-MessageTraceV2 -SenderAddress <addr> -StartDate <d> -EndDate <d> -ResultSize 5000` and `-RecipientAddress`. Searches the last 90 days; no parameters returns the last 48 hours; 10 days of data per query; default 1000 and maximum 5000 rows; no pagination, so the next query uses `-StartingRecipientAddress` and `-EndDate` from the last row; 100 requests per 5-minute window ([cmdlet](https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2)). It counts transport events, not reads, so it cannot give a read count | Not stated on the cmdlet page. The feature table lists Organization Management, Compliance Management and Help Desk for "Message trace" ([feature permissions](https://learn.microsoft.com/exchange/permissions-exo/feature-permissions)) | None named | Event | 90 days back, 10 days per query | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2) | UNVERIFIED for the V2 cmdlet. The service-level row ["Message trace"](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments) is `Yes` for GCC | UNVERIFIED for the V2 cmdlet. The same row is `Yes` for GCC High |
+| 9 | Mobile devices syncing to a mailbox (the only client-type read-only cmdlet found) | `Get-EXOMobileDeviceStatistics -Mailbox <upn> -ActiveSync` returns "a list of statistics about the mobile devices" configured to sync with the mailbox ([cmdlet](https://learn.microsoft.com/powershell/module/exchangepowershell/get-exomobiledevicestatistics)). The properties it returns were not on the pages read, so which fields identify the client or its last sync is UNVERIFIED. It covers mobile sync only, not Outlook for Windows, Mac or web | Not stated on the pages read. The feature table lists Organization Management and Recipient Management for "Mobile devices" ([feature permissions](https://learn.microsoft.com/exchange/permissions-exo/feature-permissions)) | None named | State | n/a | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-exomobiledevicestatistics) | UNVERIFIED (service-level `Yes` for Exchange ActiveSync only) | UNVERIFIED (same) |
+| 10 | Fallback for GCC High: the same Exchange usage reports in the Microsoft 365 admin center | Admin center **Reports > Usage > Exchange**: Email activity, Email app usage, Mailbox usage. Not a Graph call. The [usage reports overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) marks `Yes` for GCC-High on Email activity, Email apps usage and Mailbox usage. Each page has an **Export** button for a CSV ([mailbox usage](https://learn.microsoft.com/microsoft-365/admin/activity-reports/mailbox-usage), [email app usage](https://learn.microsoft.com/microsoft-365/admin/activity-reports/email-apps-usage-ww)). Whether the data can be read by a script in GCC High is not stated on the pages read | Global Administrator, Exchange Administrator, SharePoint Administrator, Reports Reader, Teams Administrator, Teams Communications Administrator or AI Administrator. Usage Summary Reports Reader and User Experience Success Manager see no user details ([overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports)) | None named | State | 7, 30, 90 and 180 days; a chosen day within 28 days | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) | Partly: [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) in the admin center for the three reports; scripted read UNVERIFIED |
+
+Consolidated notes:
+
+* **GCC High usage data.** Sources 1 to 4 return `NotAvailable` through Graph, with the service-description
+  conflict above. Source 5 is `UNVERIFIED` there. Under the library rule ("a source not
+  available in a cloud is skipped, and the README says why"), a GCC High run writes sources 6 and 7 (and 8 or 9
+  only if a probe shows the cmdlet works) and skips 1 to 4. Source 10 shows the data exists in the admin
+  center; turning it into a collector is an open item, not a claim.
+* **Usage reports are periods, not events.** The count columns aggregate 7, 30, 90 or 180 days. A daily run
+  appends a snapshot stamped with the run date. The last activity date is the most recent intentional
+  activity "regardless of the selected time period", so a snapshot can show inactivity older than 180 days.
+  Compare it with the period start. Usage data lags 24 to 72 hours and sometimes takes several days, so a gap
+  of a few days is not proof of no use. Usage reports don't include perpetual license models
+  ([overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports)).
+* **Deleted users.** A deleted user's usage data is removed within 30 days and the user leaves the User Details
+  table; a missing row is not a zero-activity row. `Is Deleted` and `Deleted Date` mark mailboxes deleted
+  during the period.
+* **Concealed names.** When `displayConcealedNames` is `true`, the user columns in sources 1, 3 and 4 hold
+  concealed identifiers and cannot be joined to sources 6 and 7 on `UserPrincipalName`. The report must show
+  "names concealed, not joined" instead of zero-activity mailboxes. Showing identifiable names is a logged
+  Purview audit event, and the library does not change the setting.
+* **What "activity" means.** The admin center defines last activity in the mailbox usage report as the last
+  email send or read; the "active mailbox" count also includes create appointment, send, accept, decline and
+  cancel meeting. The email app usage report defines last activity as the latest date the user read or sent an
+  email message ([mailbox usage](https://learn.microsoft.com/microsoft-365/admin/activity-reports/mailbox-usage),
+  [email app usage](https://learn.microsoft.com/microsoft-365/admin/activity-reports/email-apps-usage-ww)).
+* **Download mechanics.** The CSV reports return `302 Found` to a pre-authenticated URL that "is only valid for a
+  short period of time (a few minutes)". The collector must follow the redirect at once.
+* **Shared mailboxes.** The admin center mailbox usage report includes shared mailboxes in storage and quota
+  data and says shared mailboxes have no activity independent of a user mailbox. Graph source 1 has no
+  recipient-type column; join to source 6 (`RecipientTypeDetails`).
+* **Not read.** The unified audit log (`MailItemsAccessed` and mailbox audit actions) and the Exchange mail
+  traffic report cmdlets were not read for this candidate, so they are not sources here. They belong to the
+  mailbox exfiltration risk and audit log candidates.
+
+## Proposed report pages
+
+| # | Page | Reads | What it shows |
+| --- | --- | --- | --- |
+| 1 | Overview | 1, 2, 3, 6 | Headline counts: mailboxes, total storage, mailboxes near or over quota, mailboxes with no activity in the period; trend by snapshot date |
+| 2 | Storage and quota | 1, 6, 7 | Per mailbox: storage used, three quotas, derived status (Good, Warning, Can't send, Can't send/receive), item count, recoverable items, archive flag; Exchange `StorageLimitStatus` beside it in cloud where source 7 ran |
+| 3 | Storage trend | 2, snapshots of 1 | Tenant storage by day from source 2; per-mailbox storage by snapshot date from appended source 1 rows, so growth per mailbox is the library's history |
+| 4 | Email activity | 3 | Send, receive and read counts per user per day (one `date` call per day) and per period; top senders; meetings created and interacted with. Absent in GCC High (read counts not available there at all) |
+| 5 | Email apps and clients | 4 | Per user: Outlook for Windows, Mac, mobile, web, Mac Mail, other mobile, POP3, IMAP4 and SMTP use in the period; share of users per client. Absent in GCC High; source 9 may add a mobile-device count |
+| 6 | Inactive mailboxes | 1, 3, 6 | Mailboxes with `Last Activity Date` before the period start or blank, split user versus shared; names-concealed state shown instead when source 5 says `true` |
+| 7 | Coverage | 5, `run.log` | Which sources ran, which were skipped in this cloud and why, whether names were concealed, report refresh dates |
+
+## Starting questions
+
+| # | Question | Status |
+| --- | --- | --- |
+| 1 | Storage per mailbox, quota status, and change over time | Covered by source 1 (storage, three quotas, per mailbox), source 2 (tenant total over time) and sources 6 and 7 (Exchange). Quota status is derived with the admin center's four categories from source 1. Change over time per mailbox is the library's appended snapshots; Learn does not offer a per-mailbox history. Sources 1 and 2: Commercial and GCC `Available`, GCC High `NotAvailable`. Sources 6 and 7: Commercial `Available`, GCC and GCC High `UNVERIFIED`. |
+| 2 | Emails sent, received and read per user, per day | Covered by source 3 for send, receive and read (the `date` form gives a day, within 28 days). **Dropped for GCC High through Graph:** `NotAvailable`. **Read count dropped for GCC High entirely:** no read-only cmdlet found returns it. Send and receive could be counted from source 8 (`UNVERIFIED` in GCC High, row-capped and heavy), or taken manually from source 10. |
+| 3 | Which email apps and clients users connect with | Covered by source 4. **Dropped: Outlook version breakdown**, because the Graph columns carry no version (the admin center chart does). **Dropped for GCC High through Graph:** `NotAvailable`; source 10 is the manual route, source 9 gives mobile sync devices only and is `UNVERIFIED`. |
+| 4 | Mailboxes with no activity over a period | Derived: `Last Activity Date` from source 1 (or source 3) against the period start, and `LastLogonTime` from source 7 as a second signal. Not a Microsoft-provided report. Same cloud limits as sources 1 and 7. Do not use `LastUserActionTime`. |
+| 5 | For GCC High, whether a read-only Exchange Online PowerShell cmdlet gives the same answers | **Partly, and not verified at cmdlet level.** Storage, quotas and last logon: sources 6 and 7. Send and receive counts: source 8. Client types: source 9, mobile only. Read counts: none found. Every one of these is `UNVERIFIED` in GCC High because no page names the cmdlet for that cloud; only the service-level `Yes` for remote PowerShell and message trace exists. Needs one operator probe in a GCC High tenant before it is relied on. |
+
+Dropped: the Outlook version breakdown (all clouds), the read count in GCC High, and the Graph half of questions
+1 to 4 in GCC High (`NotAvailable`, see the conflict note). No other starting question is dropped.
+
+## Overlap with other candidates
+
+* Mailbox exfiltration risk (BRO-317, BRO-323, BRO-328; [mailbox-exfiltration-risk.md](mailbox-exfiltration-risk.md)):
+  shares `Get-EXOMailbox` and the Exchange connection; this report reads quotas and statistics, not forwarding,
+  delegation, rules or audit settings, and does not rebuild them.
+* License utilization (BRO-364, BRO-374; [license-utilization.md](license-utilization.md)): shares the
+  `getEmailActivityUserDetail` endpoint (its source 5b) and the `displayConcealedNames` check (its source 6);
+  this report is the Exchange-only view with mailbox storage and clients, and does not rebuild licences or the
+  other workloads.
+
+## Open items for the build issue
+
+* GCC High: one read-only operator probe of sources 1, 7 and 8 to settle the conflict between the Graph pages
+  (`❌`) and the service description (`Yes`). Until then the library rule skips sources 1 to 4 there.
+* Source 10: decide between skipping and a documented manual export. No page read says the admin center
+  reports can be read by script in GCC High.
+* Source 7 is one call per mailbox; size the run for the largest tenant, and decide whether source 1 is enough
+  where it is available.
+* Source 3 `date` calls reach back 28 days only. Decide the run cadence so daily rows have no gaps.
+* The Exchange roles for sources 6 to 9 are not stated on the cmdlet pages; confirm with `Get-ManagementRole`
+  or the permissions page before naming a least-privileged role in the README.
