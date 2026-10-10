@@ -124,6 +124,15 @@ try {
             -OutputPath $OutputPath -Source $source
     }
     catch {
+        $status = Get-GraphHttpStatus -ErrorRecord $_
+        if ($status -eq 429 -or $status -eq 503) {
+            # A throttle is not a missing role and not an empty log. Do not write a header
+            # and return, which would look like a finished run with nothing to collect.
+            # https://learn.microsoft.com/graph/throttling
+            Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+                'Search-UnifiedAuditLog is still throttled after retries ({0}). A 429 or 503 is not an empty audit result.' -f $_.Exception.Message)
+            throw
+        }
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
             'Search-UnifiedAuditLog is unavailable to this sign-in or cloud ({0}). It needs auditing turned on and the View-Only Audit Logs role. Writing the header only.' -f $_.Exception.Message)
         Export-AppendCsv -Path $csvPath -Column $columns

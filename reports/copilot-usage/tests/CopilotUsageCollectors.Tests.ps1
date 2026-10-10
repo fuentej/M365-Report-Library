@@ -713,6 +713,35 @@ Describe 'The audit events' {
         Get-LogText $script:Out | Should -Match 'matches 50,000 or more records'
     }
 
+    It 'retries a 429 from the audit search and does not call it a missing role' {
+        # https://learn.microsoft.com/graph/throttling
+        $global:CuTest.AuditTries = 0
+        Mock Search-UnifiedAuditLog {
+            $global:CuTest.AuditTries++
+            if ($global:CuTest.AuditTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            New-MockAuditRecord
+        }
+        Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' ($script:Range + @{ OutputPath = $script:Out }) 3>$null
+
+        $global:CuTest.AuditTries | Should -Be 2
+        Should -Invoke Start-Sleep -Times 1
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'copilot-audit-events.csv')).Count | Should -BeGreaterThan 0
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+        Get-LogText $script:Out | Should -Not -Match 'View-Only Audit Logs'
+    }
+
+    It 'does not report success when the audit search stays throttled' {
+        # https://learn.microsoft.com/graph/throttling
+        Mock Search-UnifiedAuditLog { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+
+        { Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' ($script:Range + @{ OutputPath = $script:Out }) 3>$null } |
+            Should -Throw '*429*'
+
+        Get-LogText $script:Out | Should -Match 'still throttled'
+        Get-LogText $script:Out | Should -Not -Match 'View-Only Audit Logs'
+        Test-Path -LiteralPath (Join-Path $script:Out 'copilot-audit-events.csv') | Should -BeFalse
+    }
+
     It 'writes the header only and logs the reason when the audit log is refused' {
         Mock Search-UnifiedAuditLog { throw 'The role is missing' }
         Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' ($script:Range + @{ OutputPath = $script:Out }) 3>$null

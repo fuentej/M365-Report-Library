@@ -126,10 +126,12 @@ dated copy.
   end of the UTC day; the Copilot reports overview says 72. Both figures are kept.
 * **The user table is everyone licensed at any point in the past 180 days** on the admin center;
   the API page says it returns users who have a Microsoft 365 Copilot licence.
-* **A 429 is a throttle, not an empty history.** Every Graph read waits `Retry-After` and
-  retries; if throttling persists the report or run is logged as throttled, not as empty.
-  The interaction export is limited to 1,500 requests per second per app and 30 per app per
-  tenant ([limits](https://learn.microsoft.com/graph/throttling-limits#microsoft-teams-service-limits)).
+* **A 429 is a throttle, not an empty history.** Every Graph read and the audit search
+  wait `Retry-After` and retry; if throttling persists the report is logged as throttled,
+  not as empty, and a search that stays throttled stops the run instead of writing a
+  header and returning. The interaction export is limited to 1,500 requests per second
+  per app and 30 per app per tenant
+  ([limits](https://learn.microsoft.com/graph/throttling-limits#microsoft-teams-service-limits)).
 * **The interaction resume bound includes the last exported second.** The file stores
   whole seconds, so the next read uses `ge` that second and skips rows already stored.
   A caller-supplied `-StartDate` stays `gt`, as the export page's range example does.

@@ -377,7 +377,11 @@ function Invoke-AuditSearch {
                 ErrorAction    = 'Stop'
             }
 
-            $raw = Search-UnifiedAuditLog @search
+            # A 429 or 503 is throttling, not an empty window and not a missing role.
+            # https://learn.microsoft.com/graph/throttling
+            $raw = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $Source -Action {
+                Search-UnifiedAuditLog @search
+            }
 
             # $null and an empty collection both mean "nothing this call". Retry briefly
             # at the start of a window, because the service often returns nothing while
