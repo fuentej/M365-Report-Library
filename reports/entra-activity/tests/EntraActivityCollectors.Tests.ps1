@@ -172,15 +172,6 @@ BeforeAll {
         }
     }
 
-    # One row per tenant-reading collector: the script, CSV, schema key, the cmdlet it
-    # reads through, and the builder for a mock object.
-    $script:EventCases = @(
-        @{ Script = 'Get-InteractiveSignIns.ps1'; Csv = 'signins-interactive.csv'; Key = 'SignIns'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn' }
-        @{ Script = 'Get-NonInteractiveSignIns.ps1'; Csv = 'signins-noninteractive.csv'; Key = 'SignIns'; Cmdlet = 'Get-MgBetaAuditLogSignIn'; Builder = 'New-MockSignIn' }
-        @{ Script = 'Get-SignInConditionalAccess.ps1'; Csv = 'signin-conditional-access.csv'; Key = 'SignInConditionalAccess'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn' }
-        @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Key = 'DirectoryAudits'; Cmdlet = 'Get-MgAuditLogDirectoryAudit'; Builder = 'New-MockAudit' }
-    )
-
     Mock Invoke-MgGraphRequest {
         if ($Method -ne 'GET') { throw "Graph read must be GET, not $Method" }
         $decoded = [uri]::UnescapeDataString([string]$Uri)
@@ -195,6 +186,18 @@ BeforeAll {
 
 AfterAll {
     Remove-Module M365ReportLibrary -Force -ErrorAction SilentlyContinue
+}
+
+# -ForEach is evaluated during Discovery, before BeforeAll. These cases have to
+# exist here or Pester generates none of the header checks.
+# https://pester.dev/docs/usage/data-driven-tests#beforediscovery
+BeforeDiscovery {
+    $script:EventCases = @(
+        @{ Script = 'Get-InteractiveSignIns.ps1'; Csv = 'signins-interactive.csv'; Key = 'SignIns'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn' }
+        @{ Script = 'Get-NonInteractiveSignIns.ps1'; Csv = 'signins-noninteractive.csv'; Key = 'SignIns'; Cmdlet = 'Get-MgBetaAuditLogSignIn'; Builder = 'New-MockSignIn' }
+        @{ Script = 'Get-SignInConditionalAccess.ps1'; Csv = 'signin-conditional-access.csv'; Key = 'SignInConditionalAccess'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn' }
+        @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Key = 'DirectoryAudits'; Cmdlet = 'Get-MgAuditLogDirectoryAudit'; Builder = 'New-MockAudit' }
+    )
 }
 
 Describe 'Each collector writes the columns of its sample file' {
@@ -220,6 +223,32 @@ Describe 'Each collector writes the columns of its sample file' {
         @(Import-Csv -LiteralPath $produced).Count | Should -BeGreaterThan 0
         Get-HeaderText -Path $produced | Should -Be (Get-HeaderText -Path (Join-Path $script:Samples $Csv))
         Get-HeaderText -Path $produced | Should -Be ($script:Schema[$Key] -join ',')
+    }
+
+    It 'discovers a header check for every event collector' {
+        # -ForEach is read during Discovery, before BeforeAll. A fresh process is
+        # required: this run's BeforeAll has already filled $script:EventCases, so a
+        # nested discovery would see those cases and pass while CI still drops them.
+        # https://pester.dev/docs/usage/data-driven-tests#beforediscovery
+        $probe = Join-Path $script:folder 'discover-headers.ps1'
+        $target = Join-Path $script:Root 'reports/entra-activity/tests/EntraActivityCollectors.Tests.ps1'
+        @"
+Import-Module Pester
+`$cfg = New-PesterConfiguration
+`$cfg.Run.Path = '$target'
+`$cfg.Run.SkipRun = `$true
+`$cfg.Run.PassThru = `$true
+`$cfg.Output.Verbosity = 'None'
+`$discovered = Invoke-Pester -Configuration `$cfg
+`$header = @(`$discovered.Tests | Where-Object { `$_.Name -eq '<Csv>' })
+if (`$header.Count -ne 4) { throw "Discovered `$(`$header.Count) header checks, expected 4." }
+`$names = @(`$header | ForEach-Object { `$_.Data.Csv } | Sort-Object) -join ','
+`$expected = 'directory-audits.csv,signin-conditional-access.csv,signins-interactive.csv,signins-noninteractive.csv'
+if (`$names -ne `$expected) { throw "Header checks were `$names" }
+"@ | Set-Content -LiteralPath $probe -Encoding utf8
+
+        pwsh -NoProfile -File $probe
+        $LASTEXITCODE | Should -Be 0
     }
 
     It 'retention-reference.csv' {
