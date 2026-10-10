@@ -122,16 +122,21 @@ function Invoke-UsageReportCollector {
     $download = Join-Path ([System.IO.Path]::GetTempPath()) ('sharepoint-onedrive-activity-' + [guid]::NewGuid().ToString('N') + '.csv')
     $report = $null
     try {
-        try {
-            & $Fetch $download
-            $report = if (Test-Path -LiteralPath $download) { @(Import-Csv -LiteralPath $download) } else { @() }
+        Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action { & $Fetch $download }
+        $report = if (Test-Path -LiteralPath $download) { @(Import-Csv -LiteralPath $download) } else { @() }
+    }
+    catch {
+        $status = Get-GraphHttpStatus -ErrorRecord $_
+        if ($status -eq 429 -or $status -eq 503) {
+            Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $LogSource -Message (
+                'The {0} report is still throttled after retries ({1}). A 429 or 503 is not an empty report. Writing the header only.' -f $ReportName, $_.Exception.Message)
         }
-        catch {
+        else {
             Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $LogSource -Message (
                 'The {0} report is unavailable to this sign-in or cloud ({1}). It needs Reports.Read.All and, for a delegated sign-in, a role such as Reports Reader. Writing the header only.' -f $ReportName, $_.Exception.Message)
-            Export-AppendCsv -Path $csvPath -Column $Column
-            return
         }
+        Export-AppendCsv -Path $csvPath -Column $Column
+        return
     }
     finally {
         Remove-Item -LiteralPath $download -Force -ErrorAction SilentlyContinue
@@ -243,6 +248,163 @@ function Get-GraphJsonValue {
     return $null
 }
 
+function Get-GraphHttpStatus {
+    <#
+        .SYNOPSIS
+            The HTTP status on a failed Graph read, or $null.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord
+    )
+
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $status = $response.Value.PSObject.Properties['StatusCode']
+        if ($status -and $null -ne $status.Value) { return [int]$status.Value }
+    }
+
+    # PowerShell 7 and the Graph SDK: "Response status code does not indicate success: 429 (Too Many Requests)."
+    if ($ErrorRecord.Exception.Message -match '\b(429|503)\b') {
+        return [int]$Matches[1]
+    }
+    return $null
+}
+
+function Test-GraphThrottleStatus {
+    <#
+        .SYNOPSIS
+            True when a failed read is HTTP 429 or 503.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord
+    )
+
+    $status = Get-GraphHttpStatus -ErrorRecord $ErrorRecord
+    return ($status -eq 429 -or $status -eq 503)
+}
+
+function Get-GraphRetryDelaySeconds {
+    <#
+        .SYNOPSIS
+            Seconds to wait after HTTP 429 or 503.
+
+        .DESCRIPTION
+            SharePoint returns Retry-After on 429 and 503
+            (https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online).
+            When the header is absent, wait doubles each attempt
+            (https://learn.microsoft.com/graph/throttling-limits).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord,
+
+        [Parameter(Mandatory)]
+        [int]$Attempt
+    )
+
+    $delay = [int][math]::Min(60, [math]::Pow(2, $Attempt - 1))
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $headers = $response.Value.PSObject.Properties['Headers']
+        if (-not $headers -or $null -eq $headers.Value) { continue }
+
+        $retryAfter = $headers.Value.PSObject.Properties['RetryAfter']
+        if ($retryAfter -and $retryAfter.Value) {
+            $delta = $retryAfter.Value.PSObject.Properties['Delta']
+            if ($delta -and $null -ne $delta.Value) {
+                $delay = [int][math]::Ceiling($delta.Value.TotalSeconds)
+                break
+            }
+        }
+
+        $named = $null
+        if ($headers.Value -is [System.Collections.IDictionary] -and $headers.Value.Contains('Retry-After')) {
+            $named = [string]$headers.Value['Retry-After']
+        }
+        if (-not [string]::IsNullOrWhiteSpace($named)) {
+            $seconds = 0
+            if ([int]::TryParse($named, [ref]$seconds) -and $seconds -gt 0) { $delay = $seconds }
+        }
+    }
+
+    if ($delay -lt 1) { return 1 }
+    return $delay
+}
+
+function Invoke-ReadWithThrottleRetry {
+    <#
+        .SYNOPSIS
+            Runs a read, and on HTTP 429 or 503 waits and tries again.
+
+        .DESCRIPTION
+            A 429 or 503 is throttling, not an empty result and not a refused permission.
+            Four attempts, then the error is rethrown. 401 and 403 are not retried.
+            https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online
+            https://learn.microsoft.com/graph/throttling-limits
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][scriptblock]$Action,
+        [string]$OutputPath,
+        [string]$Source,
+        [int]$MaxAttempts = 4
+    )
+
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            return (& $Action)
+        }
+        catch {
+            $status = Get-GraphHttpStatus -ErrorRecord $_
+            if (($status -ne 429 -and $status -ne 503) -or $attempt -ge $MaxAttempts) { throw }
+            $delay = Get-GraphRetryDelaySeconds -ErrorRecord $_ -Attempt $attempt
+            if ($OutputPath -and $Source) {
+                Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $Source -Message (
+                    'HTTP {0}. Waiting {1} seconds before attempt {2}.' -f $status, $delay, ($attempt + 1))
+            }
+            Start-Sleep -Seconds $delay
+        }
+    }
+}
+
+function Get-ActivityReportDay {
+    <#
+        .SYNOPSIS
+            The calendar day for an activity report's date form, or a throw when it is out of range.
+
+        .DESCRIPTION
+            getSharePointActivityUserDetail and getOneDriveActivityUserDetail take
+            date=YYYY-MM-DD, and that form is only available for the past 30 days.
+            https://learn.microsoft.com/graph/api/reportroot-getsharepointactivityuserdetail
+            The day is the year, month and day the caller passed. ToUniversalTime on an
+            Unspecified value would treat it as local and move the day.
+    #>
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param([Parameter(Mandatory)][datetime]$Value)
+
+    $day = [datetime]::new($Value.Year, $Value.Month, $Value.Day, 0, 0, 0, [DateTimeKind]::Utc)
+    $today = [datetime]::SpecifyKind([datetime]::UtcNow.Date, [DateTimeKind]::Utc)
+    $earliest = $today.AddDays(-30)
+    if ($day -lt $earliest -or $day -gt $today) {
+        throw ('The activity report date form covers the past 30 days ({0} through {1}). {2} is outside that range.' -f `
+                $earliest.ToString('yyyy-MM-dd'), $today.ToString('yyyy-MM-dd'), $day.ToString('yyyy-MM-dd'))
+    }
+    return $day
+}
+
 function Get-GraphPagedValue {
     <#
         .SYNOPSIS
@@ -254,9 +416,15 @@ function Get-GraphPagedValue {
             rebuilding /sites/getAllSites from a skiptoken would ask for the wrong page.
             The host must be graph.microsoft.com or graph.microsoft.us
             (https://learn.microsoft.com/graph/deployments). Only GET is sent.
+            HTTP 429 and 503 are retried. SharePoint sends Retry-After on both
+            (https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online).
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Uri)
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [string]$OutputPath,
+        [string]$LogSource
+    )
 
     $next = $Uri
     $visited = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
@@ -267,7 +435,10 @@ function Get-GraphPagedValue {
         if (-not $visited.Add($next)) {
             throw "Graph returned a nextLink that was already requested: $next"
         }
-        $page = Invoke-MgGraphRequest -Method GET -Uri $next -ErrorAction Stop
+        $pageUri = $next
+        $page = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $LogSource -Action {
+            Invoke-MgGraphRequest -Method GET -Uri $pageUri -ErrorAction Stop
+        }
         foreach ($item in @(Get-GraphJsonValue -Object $page -Name 'value')) {
             if ($null -ne $item) { $item }
         }
@@ -304,9 +475,12 @@ function Get-SiteRow {
             Sites.Read.All; delegated is not supported.
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [string]$OutputPath,
+        [string]$LogSource
+    )
 
-    Get-GraphPagedValue -Uri '/v1.0/sites/getAllSites'
+    Get-GraphPagedValue -Uri '/v1.0/sites/getAllSites' -OutputPath $OutputPath -LogSource $LogSource
 }
 
 function Get-SiteDriveRow {
@@ -316,19 +490,24 @@ function Get-SiteDriveRow {
 
         .DESCRIPTION
             https://learn.microsoft.com/graph/api/drive-list. Follows @odata.nextLink. Drives
-            with the system facet are hidden unless $select includes system, and this report does
-            not ask for them. quota is in bytes
+            with the system facet are hidden unless $select includes system, so the request
+            selects system together with the quota fields this CSV stores. quota is in bytes
             (https://learn.microsoft.com/graph/api/resources/quota).
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$Site,
-        [Parameter(Mandatory)][string]$RunDate
+        [Parameter(Mandatory)][string]$RunDate,
+        [string]$OutputPath,
+        [string]$LogSource
     )
 
     $siteId = [string](Get-GraphJsonValue -Object $Site -Name 'id')
     $personal = Get-CsvBoolean (Get-GraphJsonValue -Object $Site -Name 'isPersonalSite')
-    foreach ($drive in Get-GraphPagedValue -Uri ('/v1.0/sites/{0}/drives' -f [uri]::EscapeDataString($siteId))) {
+    # $select is literal. A double-quoted string would expand it as a variable.
+    # system is required or SharePoint hides drives that carry the system facet.
+    $driveUri = '/v1.0/sites/{0}/drives?$select=id,name,driveType,webUrl,quota,lastModifiedDateTime,system' -f [uri]::EscapeDataString($siteId)
+    foreach ($drive in Get-GraphPagedValue -Uri $driveUri -OutputPath $OutputPath -LogSource $LogSource) {
         [pscustomobject]@{
             RunDate              = $RunDate
             SiteId               = $siteId

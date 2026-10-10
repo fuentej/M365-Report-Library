@@ -81,7 +81,8 @@ return data only on an app-only sign-in (`-AppId` and `-CertificateThumbprint`).
 `tenant-storage.csv` and `spo-sites.csv` are header-only. A collector whose source is refused or
 unavailable leaves a header-only CSV and a line in `run.log`; the others still run. Pass `-Period`
 (`D7`, `D30`, `D90`, `D180`) to the usage reports, `-Date` to the two activity reports for a single
-day, `-LookbackDays` to the two event collectors and `-SiteLimit` for a trial run.
+day within the past 30 days, `-LookbackDays` (up to 365 for the audit log; site activity
+stays under 90 days) and `-SiteLimit` for a trial run.
 
 ## What each collector needs
 
@@ -139,13 +140,14 @@ of each.
 | `report-settings.csv` | State | run | `DisplayConcealedNames` |
 | `tenant-storage.csv` | State | run | The properties `Get-SPOTenant` returns; one it does not return is empty and `run.log` names it |
 | `spo-sites.csv` | State | site per run | `StorageUsageCurrent`, `ResourceUsageCurrent` and `WebsCount` are empty unless the cmdlet returns them without the deprecated `-Detailed` |
-| `drive-quota.csv` | State | drive per run | Bytes. `QuotaState` is `normal`, `nearing` (under 10% left), `critical` (under 1%) or `exceeded`. No file count. `LastModifiedDateTime` is when the drive was modified, not the usage report's last activity |
+| `drive-quota.csv` | State | drive per run | Bytes. `QuotaState` is `normal`, `nearing` (under 10% left), `critical` (under 1%) or `exceeded`. No file count. `LastModifiedDateTime` is when the drive was modified, not the usage report's last activity. Drives with the system facet are included because the request `$select`s `system`; without that they are hidden |
 | `file-events.csv` | Event | UTC day, workload, user and operation | `EventCount` is counted by the library from the audit log and will not match sources 5 and 6. Operations: `FileAccessed`, `FileModified`, `FileDownloaded`, `FileUploaded`, `FileSyncDownloadedFull`, `FileSyncUploadedFull`, `PageViewed`, `SharingSet`, `AnonymousLinkCreated`, `SecureLinkCreated`. `FileAccessed` and `FileModified` are not logged again for the same user and file for five minutes. Only whole UTC days before today are written |
 | `site-activity.csv` | State, interval aggregate | site and day per run | Site action counts, not file counts and not per-user counts. An action an interval does not carry is empty, not zero. `IncompleteData` is `True` when Graph says the interval is based on incomplete data; a zero there is not "no activity" |
 
 Retention at the source: the `date` form of the activity reports reaches back 30 days on the Graph
 page (the admin center selected-day table, 28); the audit log keeps Audit (Standard) records for 180
-days, and one year for E5 users of SharePoint and OneDrive. Usage reports are typically available
+days, and one year for E5 users of SharePoint and OneDrive, so `-LookbackDays` accepts 365.
+Usage reports are typically available
 within 24 to 72 hours and sometimes take several days, so the newest days are missing, and a missing
 day is not zero activity.
 

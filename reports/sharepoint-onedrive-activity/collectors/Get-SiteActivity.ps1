@@ -94,29 +94,34 @@ $endText = $end.ToString('yyyy-MM-dd')
 $rows = [System.Collections.Generic.List[object]]::new()
 $skipped = 0
 try {
-    $count = 0
-    foreach ($site in Get-SiteRow) {
-        if ($SiteLimit -gt 0 -and $count -ge $SiteLimit) { break }
-        $count++
-        $siteId = [string](Get-GraphJsonValue -Object $site -Name 'id')
-        $siteUrl = [string](Get-GraphJsonValue -Object $site -Name 'webUrl')
-        $uri = "/v1.0/sites/{0}/getActivitiesByInterval(startDateTime='{1}',endDateTime='{2}',interval='day')" -f [uri]::EscapeDataString($siteId), $startText, $endText
-        try {
-            foreach ($interval in Get-GraphPagedValue -Uri $uri) {
-                $rows.Add((ConvertTo-SiteActivityRow -Interval $interval -SiteId $siteId -SiteWebUrl $siteUrl -RunDate $runDate))
-            }
-        }
-        catch {
-            $skipped++
-            Write-Verbose ('Activity of site {0} not read: {1}' -f $siteId, $_.Exception.Message)
-        }
-    }
+    $sites = @(Get-SiteRow -OutputPath $OutputPath -LogSource $source)
 }
 catch {
+    if (Test-GraphThrottleStatus -ErrorRecord $_) { throw }
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
         'The site list is unavailable to this sign-in ({0}). getAllSites needs the application permission Sites.Read.All. Writing the header only.' -f $_.Exception.Message)
     Export-AppendCsv -Path $csvPath -Column $columns
     return
+}
+
+$count = 0
+foreach ($site in $sites) {
+    if ($SiteLimit -gt 0 -and $count -ge $SiteLimit) { break }
+    $count++
+    $siteId = [string](Get-GraphJsonValue -Object $site -Name 'id')
+    $siteUrl = [string](Get-GraphJsonValue -Object $site -Name 'webUrl')
+    $uri = "/v1.0/sites/{0}/getActivitiesByInterval(startDateTime='{1}',endDateTime='{2}',interval='day')" -f [uri]::EscapeDataString($siteId), $startText, $endText
+    try {
+        foreach ($interval in Get-GraphPagedValue -Uri $uri -OutputPath $OutputPath -LogSource $source) {
+            $rows.Add((ConvertTo-SiteActivityRow -Interval $interval -SiteId $siteId -SiteWebUrl $siteUrl -RunDate $runDate))
+        }
+    }
+    catch {
+        # A 429 or 503 that is still failing after the wait is not "this site has no activity".
+        if (Test-GraphThrottleStatus -ErrorRecord $_) { throw }
+        $skipped++
+        Write-Verbose ('Activity of site {0} not read: {1}' -f $siteId, $_.Exception.Message)
+    }
 }
 
 if ($skipped -gt 0) {

@@ -55,7 +55,9 @@ param(
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
     [string]$Period = 'D30',
 
-    [ValidateRange(1, 180)]
+    # File events can look back a year (E5 SharePoint and OneDrive retention). Site activity
+    # still asks for at most 89 days, the getActivitiesByInterval daily limit.
+    [ValidateRange(1, 365)]
     [int]$LookbackDays = 30,
 
     [int]$SiteLimit = 0

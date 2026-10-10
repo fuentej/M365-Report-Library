@@ -71,11 +71,19 @@ if (-not $SkipConnect) {
 }
 
 try {
-    $settings = Get-MgAdminReportSetting -ErrorAction Stop
+    $settings = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $source -Action {
+        Get-MgAdminReportSetting -ErrorAction Stop
+    }
 }
 catch {
-    Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
-        'The report settings are unavailable to this sign-in or cloud ({0}). They need ReportSettings.Read.All. Writing the header only.' -f $_.Exception.Message)
+    if (Test-GraphThrottleStatus -ErrorRecord $_) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+            'The report settings are still throttled after retries ({0}). A 429 or 503 is not an empty report. Writing the header only.' -f $_.Exception.Message)
+    }
+    else {
+        Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
+            'The report settings are unavailable to this sign-in or cloud ({0}). They need ReportSettings.Read.All. Writing the header only.' -f $_.Exception.Message)
+    }
     Export-AppendCsv -Path $csvPath -Column $columns
     return
 }

@@ -26,6 +26,9 @@
         50,000-record session cap is incomplete and unsorted: that day and every later one are not
         written, an error is logged, and the run stops so the resume point never moves past events
         that were not returned. Re-run it with -StartDate, -EndDate and a smaller -WindowHours.
+        -LookbackDays accepts up to 365 so a first run can cover the one-year retention for E5
+        users of SharePoint and OneDrive. -HighCompleteness is preview and not in every tenant,
+        so it is not used; without it the cmdlet page says results can be missing.
 
         Needs the View-Only Audit Logs (or Audit Logs) role and auditing turned on; Audit (Standard)
         keeps records for 180 days (one year for E5 users of SharePoint and OneDrive). Available in
@@ -50,7 +53,9 @@ param(
     [datetime]$StartDate,
     [datetime]$EndDate,
 
-    [ValidateRange(1, 180)]
+    # One year is the E5 retention for SharePoint and OneDrive audit records. 180 would drop that year.
+    # https://learn.microsoft.com/purview/audit-log-retention-policies
+    [ValidateRange(1, 365)]
     [int]$LookbackDays = 30,
 
     [ValidateRange(1, 24)]

@@ -117,7 +117,7 @@ Describe 'Each collector writes the columns of its sample' {
         Mock Get-SPOSite { [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/finance'; Title = 'Finance'; Template = 'GROUP#0'; StorageUsageCurrent = 1024; ResourceUsageCurrent = 0; WebsCount = 1 } }
         Mock Invoke-MgGraphRequest {
             if ($Uri -like '*getAllSites*') { @{ value = @(New-MockSite -Id 'site-1') } }
-            elseif ($Uri -like '*/drives') { @{ value = @(New-MockDrive -Id 'drive-1') } }
+            elseif ($Uri -like '*/drives*') { @{ value = @(New-MockDrive -Id 'drive-1') } }
             elseif ($Uri -like '*getActivitiesByInterval*') {
                 @{ value = @(@{ startDateTime = '2026-10-05T00:00:00Z'; endDateTime = '2026-10-06T00:00:00Z'; access = @{ actionCount = 5; actorCount = 3 }; edit = @{ actionCount = 2; actorCount = 1 } }) }
             }
@@ -337,6 +337,48 @@ Describe 'State sources stamp the run date and append' {
         Should -Invoke Get-MgReportOneDriveActivityUserDetail -Times 1 -Exactly -ParameterFilter { $Date -eq [datetime]'2026-10-05' -and -not $Period }
     }
 
+    It 'sends the calendar day as UTC midnight, not a local conversion of the clock time' {
+        # https://learn.microsoft.com/graph/api/reportroot-getsharepointactivityuserdetail
+        Set-UsageMock 'Get-MgReportSharePointActivityUserDetail' 'SharePointUser'
+        $stamp = [datetime]::new(2026, 10, 5, 23, 30, 0, [DateTimeKind]::Unspecified)
+        Invoke-CollectorScript 'Get-SharePointActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $stamp }
+
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'sharepoint-activity-user-detail.csv')).QueryDate | Should -Be '2026-10-05'
+        Should -Invoke Get-MgReportSharePointActivityUserDetail -Times 1 -Exactly -ParameterFilter {
+            $Date.Kind -eq [DateTimeKind]::Utc -and $Date.Hour -eq 0 -and $Date.ToString('yyyy-MM-dd') -eq '2026-10-05'
+        }
+    }
+
+    It 'rejects an activity date outside the past 30 days instead of calling the report' {
+        # The date form is only the past 30 days. A refusal log would be the wrong result.
+        Set-UsageMock 'Get-MgReportOneDriveActivityUserDetail' 'OneDriveUser'
+        $tooOld = [datetime]::UtcNow.Date.AddDays(-31)
+        { Invoke-CollectorScript 'Get-OneDriveActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $tooOld } } | Should -Throw '*past 30 days*'
+        Should -Invoke Get-MgReportOneDriveActivityUserDetail -Times 0 -Exactly
+
+        Set-UsageMock 'Get-MgReportSharePointActivityUserDetail' 'SharePointUser'
+        $oldest = [datetime]::UtcNow.Date.AddDays(-30)
+        Invoke-CollectorScript 'Get-SharePointActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Date = $oldest }
+        Should -Invoke Get-MgReportSharePointActivityUserDetail -Times 1 -Exactly -ParameterFilter { $Date.ToString('yyyy-MM-dd') -eq $oldest.ToString('yyyy-MM-dd') }
+    }
+
+    It 'retries a usage report 429 and does not record it as a refused report' {
+        # https://learn.microsoft.com/graph/throttling-limits
+        Mock Start-Sleep { }
+        $global:SpoTest.UsageTries = 0
+        Mock Get-MgReportSharePointSiteUsageDetail {
+            $global:SpoTest.UsageTries++
+            if ($global:SpoTest.UsageTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value ($global:SpoTest.Headers.SiteDetail + "`n" + $global:SpoTest.Rows.SiteDetail)
+        }
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'sharepoint-site-usage-detail.csv')).SiteId | Should -Be 'site-1'
+        $global:SpoTest.UsageTries | Should -Be 2
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+        Get-LogText $script:Out | Should -Not -Match 'unavailable to this sign-in'
+    }
+
     It 'sends -Period and records no query date for a period activity report' {
         Set-UsageMock 'Get-MgReportSharePointActivityUserDetail' 'SharePointUser'
         Invoke-CollectorScript 'Get-SharePointActivityUserDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Period = 'D30' }
@@ -360,6 +402,23 @@ Describe 'State sources stamp the run date and append' {
         $row.RunDate | Should -Be $script:RunDate
         $row.DisplayConcealedNames | Should -Be 'True'
         Get-LogText $script:Out | Should -Match 'conceal names'
+    }
+
+    It 'retries report settings on 429 and does not record throttle as a missing permission' {
+        # https://learn.microsoft.com/graph/throttling-limits
+        Mock Start-Sleep { }
+        $global:SpoTest.SettingsTries = 0
+        Mock Get-MgAdminReportSetting {
+            $global:SpoTest.SettingsTries++
+            if ($global:SpoTest.SettingsTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            [pscustomobject]@{ AdditionalProperties = @{ displayConcealedNames = $false } }
+        }
+        Invoke-CollectorScript 'Get-ReportSettings.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'report-settings.csv')).DisplayConcealedNames | Should -Be 'False'
+        $global:SpoTest.SettingsTries | Should -Be 2
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+        Get-LogText $script:Out | Should -Not -Match 'ReportSettings.Read.All'
     }
 
     It 'stamps the tenant storage and the site list with the run date' {
@@ -414,13 +473,25 @@ Describe 'Paged sources follow @odata.nextLink as returned' {
             switch -Wildcard ($Uri) {
                 '/v1.0/sites/getAllSites' {
                     @{ value = @(New-MockSite -Id 'site-1'); '@odata.nextLink' = 'https://graph.microsoft.com/v1.0/sites/microsoft.graph.oneDrive.getAllSites?$skiptoken=abc' }
+                    break
                 }
-                '*oneDrive.getAllSites*' { @{ value = @(New-MockSite -Id 'site-2' -Url 'https://contoso-my.sharepoint.example.com/personal/avery' -Personal $true) } }
-                '*sites/site-1/drives' {
+                '*oneDrive.getAllSites*' {
+                    @{ value = @(New-MockSite -Id 'site-2' -Url 'https://contoso-my.sharepoint.example.com/personal/avery' -Personal $true) }
+                    break
+                }
+                # The first page's address also contains /drives, so the skiptoken case has to win.
+                '*sites/site-1/drives*skiptoken=d2*' {
+                    @{ value = @(New-MockDrive -Id 'drive-1b') }
+                    break
+                }
+                '*sites/site-1/drives*' {
                     @{ value = @(New-MockDrive -Id 'drive-1'); '@odata.nextLink' = 'https://graph.microsoft.com/v1.0/sites/site-1/drives?$skiptoken=d2' }
+                    break
                 }
-                '*sites/site-1/drives?$skiptoken=d2' { @{ value = @(New-MockDrive -Id 'drive-1b') } }
-                '*sites/site-2/drives' { @{ value = @(New-MockDrive -Id 'drive-2' -Used 4096) } }
+                '*sites/site-2/drives*' {
+                    @{ value = @(New-MockDrive -Id 'drive-2' -Used 4096) }
+                    break
+                }
             }
         }
         Invoke-CollectorScript 'Get-DriveQuota.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
@@ -432,6 +503,48 @@ Describe 'Paged sources follow @odata.nextLink as returned' {
         $global:SpoTest.Requested | Should -Not -Contain '/v1.0/sites/getAllSites?$skiptoken=abc'
         $global:SpoTest.Requested | Should -Contain 'https://graph.microsoft.com/v1.0/sites/site-1/drives?$skiptoken=d2'
         Should -Invoke Invoke-MgGraphRequest -Times 5 -Exactly
+    }
+
+    It 'selects system so drives with that facet are not hidden' {
+        # https://learn.microsoft.com/graph/api/drive-list
+        Mock Invoke-MgGraphRequest {
+            $global:SpoTest.Requested.Add($Uri)
+            if ($Uri -like '*getAllSites*') { return @{ value = @(New-MockSite -Id 'site-1') } }
+            @{ value = @(New-MockDrive -Id 'drive-1' -Used 3900) }
+        }
+        Invoke-CollectorScript 'Get-DriveQuota.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $driveCall = @($global:SpoTest.Requested | Where-Object { $_ -like '*/drives*' })
+        $driveCall.Count | Should -Be 1
+        $driveCall[0] | Should -Match '\$select=id,name,driveType,webUrl,quota,lastModifiedDateTime,system'
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'drive-quota.csv')).QuotaUsed | Should -Be '3900'
+    }
+
+    It 'retries a drive-list 429 and then writes the drive' {
+        # https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online
+        Mock Start-Sleep { }
+        $global:SpoTest.DriveTries = 0
+        Mock Invoke-MgGraphRequest {
+            if ($Uri -like '*getAllSites*') { return @{ value = @(New-MockSite -Id 'site-1') } }
+            $global:SpoTest.DriveTries++
+            if ($global:SpoTest.DriveTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            @{ value = @(New-MockDrive -Id 'drive-1') }
+        }
+        Invoke-CollectorScript 'Get-DriveQuota.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        (Import-Csv -LiteralPath (Join-Path $script:Out 'drive-quota.csv')).DriveId | Should -Be 'drive-1'
+        $global:SpoTest.DriveTries | Should -Be 2
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+    }
+
+    It 'does not write a partial snapshot when a drive list stays throttled' {
+        Mock Start-Sleep { }
+        Mock Invoke-MgGraphRequest {
+            if ($Uri -like '*getAllSites*') { return @{ value = @((New-MockSite -Id 'site-1'), (New-MockSite -Id 'site-2')) } }
+            throw 'Response status code does not indicate success: 429 (Too Many Requests).'
+        }
+        { Invoke-CollectorScript 'Get-DriveQuota.ps1' @{ OutputPath = $script:Out; SkipConnect = $true } } | Should -Throw '*429*'
+        Test-Path -LiteralPath (Join-Path $script:Out 'drive-quota.csv') | Should -BeFalse
     }
 
     It 'writes the quota in bytes, its state and the drive-modified time' {
@@ -462,7 +575,7 @@ Describe 'Paged sources follow @odata.nextLink as returned' {
     It 'skips a site whose drives cannot be read and warns' {
         Mock Invoke-MgGraphRequest {
             if ($Uri -like '*getAllSites*') { @{ value = @((New-MockSite -Id 'site-1'), (New-MockSite -Id 'site-2')) } }
-            elseif ($Uri -like '*site-1/drives') { throw 'Forbidden' }
+            elseif ($Uri -like '*site-1/drives*') { throw 'Forbidden' }
             else { @{ value = @(New-MockDrive -Id 'drive-2') } }
         }
         Invoke-CollectorScript 'Get-DriveQuota.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
@@ -530,6 +643,17 @@ Describe 'Site activity (source 13)' {
         Invoke-CollectorScript 'Get-SiteActivity.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Environment = 'GCCHigh' }
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'site-activity.csv')).Count | Should -Be 0
         Get-LogText $script:Out | Should -Match 'itemAnalytics is not yet available'
+    }
+
+    It 'does not write a partial snapshot when site activity stays throttled' {
+        # https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online
+        Mock Start-Sleep { }
+        Mock Invoke-MgGraphRequest {
+            if ($Uri -like '*getAllSites*') { return @{ value = @((New-MockSite -Id 'site-1'), (New-MockSite -Id 'site-2')) } }
+            throw 'Response status code does not indicate success: 429 (Too Many Requests).'
+        }
+        { Invoke-CollectorScript 'Get-SiteActivity.ps1' @{ OutputPath = $script:Out; SkipConnect = $true } } | Should -Throw '*429*'
+        Test-Path -LiteralPath (Join-Path $script:Out 'site-activity.csv') | Should -BeFalse
     }
 }
 
@@ -640,6 +764,14 @@ Describe 'File events (source 12) resume from the last day collected' {
     It 'rejects an empty explicit range' {
         { Invoke-CollectorScript 'Get-FileEvents.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; StartDate = [datetime]'2026-10-06T00:00:00Z'; EndDate = [datetime]'2026-10-05T00:00:00Z' } } | Should -Throw '*requested range is empty*'
     }
+
+    It 'accepts a 365-day lookback so the E5 year is not cut off' {
+        # https://learn.microsoft.com/purview/audit-log-retention-policies
+        Mock Search-UnifiedAuditLog { $global:SpoTest.Windows.Add($StartDate.ToUniversalTime()); throw 'stop' }
+        Invoke-CollectorScript 'Get-FileEvents.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 365; WindowHours = 24 }
+        $global:SpoTest.Windows[0].Date | Should -Be ([datetime]::UtcNow.Date.AddDays(-365))
+        { Invoke-CollectorScript 'Get-FileEvents.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 366 } } | Should -Throw
+    }
 }
 
 Describe 'Run-All' {
@@ -703,5 +835,13 @@ Describe 'Run-All' {
         Mock Get-MgAdminReportSetting { throw 'Forbidden' }
         & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -AdminUrl 'https://contoso-admin.sharepoint.example.com'
         @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 12
+    }
+
+    It 'passes a 365-day lookback through to the audit search' {
+        $global:SpoTest.Windows = [System.Collections.Generic.List[datetime]]::new()
+        Mock Search-UnifiedAuditLog { $global:SpoTest.Windows.Add($StartDate.ToUniversalTime()); throw 'stop' }
+        & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -LookbackDays 365
+        $global:SpoTest.Windows[0].Date | Should -Be ([datetime]::UtcNow.Date.AddDays(-365))
+        { & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -LookbackDays 366 } | Should -Throw
     }
 }

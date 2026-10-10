@@ -81,24 +81,30 @@ if (-not $SkipConnect) {
 $rows = [System.Collections.Generic.List[object]]::new()
 $skipped = 0
 try {
-    $count = 0
-    foreach ($site in Get-SiteRow) {
-        if ($SiteLimit -gt 0 -and $count -ge $SiteLimit) { break }
-        $count++
-        try {
-            foreach ($row in Get-SiteDriveRow -Site $site -RunDate $runDate) { $rows.Add($row) }
-        }
-        catch {
-            $skipped++
-            Write-Verbose ('Drives of site {0} not read: {1}' -f (Get-GraphJsonValue -Object $site -Name 'id'), $_.Exception.Message)
-        }
-    }
+    $sites = @(Get-SiteRow -OutputPath $OutputPath -LogSource $source)
 }
 catch {
+    if (Test-GraphThrottleStatus -ErrorRecord $_) { throw }
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
         'The site list is unavailable to this sign-in ({0}). getAllSites needs the application permission Sites.Read.All. Writing the header only.' -f $_.Exception.Message)
     Export-AppendCsv -Path $csvPath -Column $columns
     return
+}
+
+$count = 0
+foreach ($site in $sites) {
+    if ($SiteLimit -gt 0 -and $count -ge $SiteLimit) { break }
+    $count++
+    try {
+        foreach ($row in Get-SiteDriveRow -Site $site -RunDate $runDate -OutputPath $OutputPath -LogSource $source) { $rows.Add($row) }
+    }
+    catch {
+        # A 429 or 503 that is still failing after the wait is not "this site has no drives".
+        # Writing the other sites would stamp a partial snapshot for this RunDate.
+        if (Test-GraphThrottleStatus -ErrorRecord $_) { throw }
+        $skipped++
+        Write-Verbose ('Drives of site {0} not read: {1}' -f (Get-GraphJsonValue -Object $site -Name 'id'), $_.Exception.Message)
+    }
 }
 
 if ($skipped -gt 0) {
