@@ -499,6 +499,36 @@ function Test-ActivityDataCollection {
         "The data collection status for $ReportEntity could not be read ({0}). Which -ReportEntity string Get-SPOAuditDataCollectionStatusForActivityInsights accepts is UNVERIFIED." -f $lastError.Exception.Message)
 }
 
+function Write-DagExportCap {
+    <#
+        .SYNOPSIS
+            Warns when an exported report has as many rows as a documented cap.
+
+        .DESCRIPTION
+            The site permissions download stops at 1 million sites and the Everyone and
+            EEEU item download stops at 1 million rows. Activity reports for Microsoft 365
+            E5 without SharePoint Advanced Management return at most 10,000 sites. A file
+            that reaches the cap is not a complete export.
+            https://learn.microsoft.com/sharepoint/data-access-governance-reports
+            https://learn.microsoft.com/sharepoint/data-access-governance-site-permissions-report
+            https://learn.microsoft.com/sharepoint/data-access-governance-detailed-eeeu-everyone-permissions-report
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][int]$Count,
+        [Parameter(Mandatory)][int]$Cap,
+        [Parameter(Mandatory)][string]$OutputPath,
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$ReportName,
+        [Parameter(Mandatory)][string]$Reference
+    )
+
+    if ($Count -lt $Cap) { return }
+
+    Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $Source -Message (
+        "The $ReportName export has $Count rows, the documented cap of $Cap. Rows past that cap are not in the file. $Reference")
+}
+
 function Invoke-DagReport {
     <#
         .SYNOPSIS

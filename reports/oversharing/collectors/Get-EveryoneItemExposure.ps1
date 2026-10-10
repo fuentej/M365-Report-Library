@@ -125,7 +125,7 @@ try {
         if ($report.State -ne 'Exported') { continue }
         $exported++
 
-        $rows = foreach ($row in $report.Rows) {
+        $rows = @(foreach ($row in $report.Rows) {
             [pscustomobject]@{
                 RunDate         = $runDate
                 ReportEntity    = $entity
@@ -149,9 +149,13 @@ try {
                 ParentGroupType = Get-CsvField -Row $row -Name 'ParentGroupType'
                 TotalUserCount  = Get-CsvField -Row $row -Name 'TotalUserCount'
             }
-        }
+        })
 
-        $result = Export-AppendCsv -Path $csvPath -Rows @($rows) -Column $columns `
+        Write-DagExportCap -Count $rows.Count -Cap 1000000 -OutputPath $OutputPath -Source $source `
+            -ReportName "Everyone and EEEU items ($entity)" `
+            -Reference 'https://learn.microsoft.com/sharepoint/data-access-governance-detailed-eeeu-everyone-permissions-report'
+
+        $result = Export-AppendCsv -Path $csvPath -Rows $rows -Column $columns `
             -KeyColumn @('ReportId', 'ReportEntity', 'SiteId', 'WebId', 'ListId', 'ScopeId', 'UniqueId', 'LinkId', 'ParentObjectId', 'RoleDefinition', 'Recipient') -PassThru
         Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
             'everyone-item-exposure.csv ({0}): {1} rows written, {2} skipped.' -f $entity, $result.Written, $result.Skipped)

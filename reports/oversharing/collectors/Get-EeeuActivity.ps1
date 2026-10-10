@@ -133,7 +133,7 @@ try {
         $start = ConvertTo-CsvTimestamp (Get-JsonProperty -Object $report.Report -Name 'ReportStartTime')
         $end = ConvertTo-CsvTimestamp (Get-JsonProperty -Object $report.Report -Name 'ReportEndTime')
 
-        $rows = foreach ($row in $report.Rows) {
+        $rows = @(foreach ($row in $report.Rows) {
             [pscustomobject]@{
                 RunDate         = $runDate
                 ReportEntity    = $entity
@@ -145,9 +145,13 @@ try {
                 SiteUrl         = Get-CsvField -Row $row -Name 'Site URL', 'SiteUrl'
                 ReportRow       = ConvertTo-ReportRowJson -Row $row
             }
-        }
+        })
 
-        $result = Export-AppendCsv -Path $csvPath -Rows @($rows) -Column $columns -KeyColumn @('ReportId', 'ReportEntity', 'Workload', 'ReportRow') -PassThru
+        Write-DagExportCap -Count $rows.Count -Cap 10000 -OutputPath $OutputPath -Source $source `
+            -ReportName "$entity ($workload)" `
+            -Reference 'https://learn.microsoft.com/sharepoint/data-access-governance-reports'
+
+        $result = Export-AppendCsv -Path $csvPath -Rows $rows -Column $columns -KeyColumn @('ReportId', 'ReportEntity', 'Workload', 'ReportRow') -PassThru
         Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
             'eeeu-activity.csv ({0}, {1}): {2} rows written, {3} skipped.' -f $entity, $workload, $result.Written, $result.Skipped)
     }

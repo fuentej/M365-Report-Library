@@ -589,6 +589,37 @@ exit 0
         Should -Invoke Start-SPOAuditDataCollectionForActivityInsights -Times 0 -Exactly
     }
 
+    It 'warns when a sharing link activity export reaches the 10,000-row cap and stays quiet below it' {
+        $savedCsv = $global:OversharingTestCsv
+        try {
+            Write-DagExportCap -Count 9999 -Cap 10000 -OutputPath $script:folder -Source 'sharing-link-activity' `
+                -ReportName 'under' -Reference 'https://learn.microsoft.com/sharepoint/data-access-governance-reports'
+            Get-LogText -Folder $script:folder | Should -Not -Match 'documented cap'
+
+            $lines = foreach ($i in 1..10000) { '"s{0}","https://contoso.sharepoint.com/sites/s{0}"' -f $i }
+            $global:OversharingTestCsv = (@('"Site ID","Site URL"') + $lines) -join "`n"
+            Set-DagMock
+
+            Invoke-CollectorScript 'Get-SharingLinkActivity.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue' }
+
+            Get-LogText -Folder $script:folder | Should -Match 'documented cap of 10000'
+            Get-LogText -Folder $script:folder | Should -Match 'data-access-governance-reports'
+        }
+        finally {
+            $global:OversharingTestCsv = $savedCsv
+        }
+    }
+
+    It 'warns when a snapshot export reaches the 1 million row cap' {
+        Write-DagExportCap -Count 1000000 -Cap 1000000 -OutputPath $script:folder -Source 'site-permission-breadth' `
+            -ReportName 'site permissions' -Reference 'https://learn.microsoft.com/sharepoint/data-access-governance-site-permissions-report'
+
+        Get-LogText -Folder $script:folder | Should -Match 'documented cap of 1000000'
+        (Get-Content -LiteralPath (Join-Path $script:Collectors 'Get-SitePermissionBreadth.ps1') -Raw) | Should -Match '-Cap 1000000'
+        (Get-Content -LiteralPath (Join-Path $script:Collectors 'Get-EveryoneItemExposure.ps1') -Raw) | Should -Match '-Cap 1000000'
+        (Get-Content -LiteralPath (Join-Path $script:Collectors 'Get-EeeuActivity.ps1') -Raw) | Should -Match '-Cap 10000'
+    }
+
     It 'warns when data collection is not InProgress' {
         Mock Get-SPOAuditDataCollectionStatusForActivityInsights -MockWith { [pscustomobject]@{ Status = 'NotInitiated' } }
 

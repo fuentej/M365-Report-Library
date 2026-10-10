@@ -137,7 +137,7 @@ try {
         if ($report.State -ne 'Exported') { continue }
         $exported++
 
-        $rows = foreach ($row in $report.Rows) {
+        $rows = @(foreach ($row in $report.Rows) {
             [pscustomobject]@{
                 RunDate                        = $runDate
                 Workload                       = $workload
@@ -163,9 +163,13 @@ try {
                 EeeuPermissions                = Get-CsvField -Row $row -Name 'EEEU permission count'
                 EveryonePermissions            = Get-CsvField -Row $row -Name 'Everyone permission count'
             }
-        }
+        })
 
-        $result = Export-AppendCsv -Path $csvPath -Rows @($rows) -Column $columns -KeyColumn @('ReportId', 'SiteId') -PassThru
+        Write-DagExportCap -Count $rows.Count -Cap 1000000 -OutputPath $OutputPath -Source $source `
+            -ReportName "site permissions ($workload)" `
+            -Reference 'https://learn.microsoft.com/sharepoint/data-access-governance-site-permissions-report'
+
+        $result = Export-AppendCsv -Path $csvPath -Rows $rows -Column $columns -KeyColumn @('ReportId', 'SiteId') -PassThru
         Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
             'site-permission-breadth.csv ({0}): {1} rows written, {2} skipped.' -f $workload, $result.Written, $result.Skipped)
     }

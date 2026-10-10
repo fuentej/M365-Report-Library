@@ -102,7 +102,8 @@ open item in the contract: those clouds log a warning and try anyway.
 * **Data access governance reports (3a to 3e)** are asynchronous: the first site permissions report takes up to five
   days, later ones within 24 hours, data can be 48 hours old, and a report can be re-run once every 30 days. Reports
   3c and 3d cover a rolling 28 days; a gap longer than 28 days between runs loses events, and the audit log is the
-  longer record.
+  longer record. An activity export of 10,000 rows, or a site permissions or Everyone/EEEU export of 1 million
+  rows, is the documented cap: the collector logs it, and rows past the cap are not in the file.
 * **Column names.** The columns of the site permissions report (3a) and the Everyone/EEEU item report (3b) are the
   ones on their Learn pages. Learn does not list the CSV columns of 3c, 3d and 3e, so those files keep the whole
   exported row as JSON in `ReportRow` and copy `SiteId` and `SiteUrl` out when present: their inner column names are
