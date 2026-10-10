@@ -33,6 +33,8 @@ Describe 'unified audit log sources' {
         $source3 | Should -Match 'no more than 7 days'
         $source3 | Should -Match 'AF20051'
         $source3 | Should -Match 'not the 180-day or one-year search'
+        $source3 | Should -Match 'Read activity data for an organization'
+        $source3 | Should -Not -Match 'Read activity data for your organization'
         $script:Doc | Should -Not -Match 'How far back content stays listable was not found'
         $script:Doc | Should -Not -Match 'Content types seen on the pages read'
     }
