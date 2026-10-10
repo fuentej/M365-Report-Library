@@ -228,12 +228,13 @@ Describe 'The shared module is never imported with -Force' {
 
 Describe 'Only read-only tenant commands are called' {
     It 'calls no Graph, Exchange Online or Security & Compliance cmdlet outside <AllowedVerbs>' {
-        # Invoke-MgGraphRequest in the license utilization helper is the one Invoke-verb
-        # call here: the usage reports have no SDK cmdlet. The next Describe holds every
-        # -Method to GET, and reports/license-utilization/tests/ReadOnly.Tests.ps1 holds
-        # that helper file to GET in two named functions.
+        # Invoke-MgGraphRequest in the oversharing, Exchange activity and SharePoint and OneDrive activity helpers is the one Invoke-verb call here:
+        # the site list and drive walk are read with GET, and there is no SDK cmdlet that
+        # follows a getAllSites nextLink as returned. The next Describe holds every
+        # -Method to GET, and reports/oversharing/tests/ReadOnly.Tests.ps1 holds that helper
+        # file to one GET function.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -eq 'LicenseUtilizationHelpers.ps1')
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -289,12 +290,26 @@ Describe 'No Graph request uses a method other than GET' {
         # reports/copilot-studio-agents/tests/ReadOnly.Tests.ps1 (GET everywhere, and one
         # POST that carries an inventory query specification).
         #
-        # The license utilization usage reports (Microsoft Graph reports and copilot
-        # functions) are read with GET through Invoke-MgGraphRequest; their helper file
-        # is exempt here and held to GET in two named functions in
-        # reports/license-utilization/tests/ReadOnly.Tests.ps1.
+        # The oversharing report reads Microsoft Graph sites, drives and item permissions
+        # with GET through Invoke-MgGraphRequest; its helper file is exempt here and held
+        # to one GET function in reports/oversharing/tests/ReadOnly.Tests.ps1.
+        #
+        # The Exchange activity report reads the Graph message trace (/beta, paged by the
+        # @odata.nextLink as returned) with GET through the one Invoke-MgGraphRequest call in
+        # its helper file, which reports/exchange-activity/tests/ReadOnly.Tests.ps1 holds to
+        # one GET call.
+        #
+        # The SharePoint and OneDrive activity report reads getAllSites, the drive lists and the
+        # site activity intervals with GET through the one Invoke-MgGraphRequest call in its
+        # helper file, which reports/sharepoint-onedrive-activity/tests/ReadOnly.Tests.ps1 holds
+        # to one GET call.
+        #
+        # The Teams activity report reads call records (list, record with sessions, and their
+        # nextLinks) with GET through the one Invoke-MgGraphRequest call in its helper file
+        # (Invoke-GraphGet), which reports/teams-activity/tests/ReadOnly.Tests.ps1 holds to one
+        # GET call.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 

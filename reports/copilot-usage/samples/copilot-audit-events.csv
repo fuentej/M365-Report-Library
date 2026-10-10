@@ -1,0 +1,4 @@
+"CreationTime","Id","UserId","Operation","RecordType","Workload","AppHost","AppIdentity","AgentId","AgentName","MessageCount","PromptMessageCount","AccessedResourceCount","PluginIds"
+"2026-09-28T14:02:11Z","bbbbbbbb-0000-4000-8000-000000000001","avery.abara@example.com","CopilotInteraction","CopilotInteraction","Copilot","Teams","Copilot.MicrosoftCopilot.BizChat","","","2","1","3","BingWebSearch"
+"2026-09-28T15:30:40Z","bbbbbbbb-0000-4000-8000-000000000002","avery.abara@example.com","CopilotInteraction","CopilotInteraction","Copilot","Word","Copilot.MicrosoftCopilot.Microsoft365Copilot","","","3","1","1",""
+"2026-09-29T08:12:05Z","bbbbbbbb-0000-4000-8000-000000000003","devon.dube@example.com","CopilotInteraction","CopilotInteraction","Copilot","Teams","Copilot.Studio.f4d97b45-1deb-40ce-9004-b473b79eab85","CopilotStudio.Declarative.8ad83f3e-b424-4d54-8ddb-15dc19247088","SalesAgent","2","1","0",""

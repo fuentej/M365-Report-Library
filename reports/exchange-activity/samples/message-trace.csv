@@ -1,0 +1,5 @@
+"Received","MessageTraceId","SenderAddress","RecipientAddress","Status"
+"2026-10-07T14:03:11Z","aaaaaaaa-0000-0000-0000-000000000001","avery.abara@example.com","blake.bishop@example.com","Delivered"
+"2026-10-07T14:03:11Z","aaaaaaaa-0000-0000-0000-000000000001","avery.abara@example.com","emery.ellis@example.com","Delivered"
+"2026-10-07T16:20:45Z","aaaaaaaa-0000-0000-0000-000000000002","partner@fabrikam.example.com","avery.abara@example.com","Delivered"
+"2026-10-08T08:41:09Z","aaaaaaaa-0000-0000-0000-000000000003","emery.ellis@example.com","partner@fabrikam.example.com","Delivered"
