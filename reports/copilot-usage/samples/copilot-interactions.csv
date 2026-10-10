@@ -1,0 +1,4 @@
+"CreatedDateTime","Id","UserId","SessionId","RequestId","AppClass","InteractionType","ConversationType","Locale","ContextCount","ContextTypes"
+"2026-09-24T18:29:54Z","1764008994427","aaaaaaaa-0000-4000-8000-000000000001","19:sample-session@thread.v2","79699122-d834-6cc2-c1df-0332a0bd982d","IPM.SkypeTeams.Message.Copilot.BizChat","userPrompt","bizchat","en-us","0",""
+"2026-09-24T18:29:56Z","1764008996100","aaaaaaaa-0000-4000-8000-000000000001","19:sample-session@thread.v2","79699122-d834-6cc2-c1df-0332a0bd982d","IPM.SkypeTeams.Message.Copilot.BizChat","aiResponse","bizchat","en-us","0",""
+"2026-09-25T10:00:00Z","1764095000000","aaaaaaaa-0000-4000-8000-000000000002","19:sample-session@thread.v2","7336770c-fb25-48ac-8303-4493ad11ed71","IPM.SkypeTeams.Message.Copilot.Teams","aiResponse","appchat","en-us","1","TeamsMeeting"
