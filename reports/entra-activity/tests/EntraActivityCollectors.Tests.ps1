@@ -82,11 +82,16 @@ BeforeAll {
             [bool]$Interactive = $true,
             [int]$ErrorCode = 0,
             [bool]$WithPolicies = $true,
+            [switch]$OmitPolicies,
             [string]$UserId = 'user-1',
             [string]$Upn = 'casey.chaudhry@example.com'
         )
 
-        $policies = if ($WithPolicies) {
+        # The list omits appliedConditionalAccessPolicies, without an error, when the
+        # caller cannot read Conditional Access. An empty array is a readable response.
+        # https://learn.microsoft.com/graph/api/signin-list#permissions
+        $policies = if ($OmitPolicies) { $null }
+        elseif ($WithPolicies) {
             @(
                 [pscustomobject]@{
                     Id                      = 'policy-1'
@@ -368,7 +373,7 @@ Describe 'Paging is followed' {
         Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Uri -eq $pageLink -and $Method -eq 'GET' -and $Headers['Prefer'] -eq 'include-unknown-enum-members' }
     }
 
-    It 'reads every page of the non-interactive stream too when the Conditional Access collector is asked to' {
+    It 'reads every page of the non-interactive stream for Conditional Access by default' {
         $global:EntraSignInHandler = {
             param($Uri)
             if ($Uri -match 'skiptoken') { return (New-GraphPage (1001..1100 | ForEach-Object { New-MockSignIn -Id "i-$_" -WithPolicies $false })) }
@@ -380,17 +385,17 @@ Describe 'Paging is followed' {
             New-GraphPage (1..1000 | ForEach-Object { New-MockSignIn -Id "n-$_" -Interactive $false -WithPolicies $false }) 'https://graph.microsoft.com/beta/auditLogs/signIns?$skiptoken=beta'
         }
 
-        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder; IncludeNonInteractive = $true })
+        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'signin-conditional-access.csv')).Count | Should -Be 2200
         Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Uri -eq 'https://graph.microsoft.com/beta/auditLogs/signIns?$skiptoken=beta' }
     }
 
-    It 'does not call the beta API from the Conditional Access collector unless asked' {
+    It 'skips the beta sign-in log when Conditional Access is limited to interactive sign-ins' {
         $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
         $global:EntraBetaHandler = { throw 'beta must not be called' }
 
-        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder; InteractiveOnly = $true })
 
         Should -Invoke Invoke-MgGraphRequest -Times 0 -Exactly -ParameterFilter { ([uri]::UnescapeDataString([string]$Uri)) -match '/beta/' }
     }
@@ -560,7 +565,7 @@ Describe 'What each collector keeps' {
         # With AuditLog.Read.All alone appliedConditionalAccessPolicies is omitted without
         # an error. https://learn.microsoft.com/graph/api/signin-list#permissions
         Mock Get-MgContext -MockWith { [pscustomobject]@{ Scopes = @('AuditLog.Read.All') } }
-        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -WithPolicies $false)) }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -OmitPolicies)) }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -571,8 +576,23 @@ Describe 'What each collector keeps' {
         $rows[0].PolicyDetailReadable | Should -Be 'False'
     }
 
+    It 'records policy detail as readable when the response includes it and the token lists only .default' {
+        # App-only Graph context often exposes .default rather than Policy.Read.All.
+        # A present appliedConditionalAccessPolicies property is the proof it was readable.
+        # https://learn.microsoft.com/graph/api/signin-list#permissions
+        Mock Get-MgContext -MockWith { [pscustomobject]@{ Scopes = @('.default') } }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
+        $global:EntraBetaHandler = { param($Uri) @{ value = @() } }
+
+        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'signin-conditional-access.csv'))
+        $rows.Count | Should -BeGreaterThan 0
+        $rows.PolicyDetailReadable | Should -Not -Contain 'False'
+    }
+
     It 'treats an unreadable session as detail not readable' {
-        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -WithPolicies $false)) }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -OmitPolicies)) }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 

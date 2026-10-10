@@ -12,8 +12,9 @@
         source is refused leaves a header-only CSV and a line in run.log without stopping
         the others.
 
-        The sign-in log is read three times (interactive, non-interactive, and the
-        Conditional Access detail) because each source is its own CSV. Graph throttles the
+        The sign-in log is read four times (interactive, non-interactive, and both of
+        those again for the Conditional Access detail) because each source is its own
+        CSV. Graph throttles the
         identity and access reports to five requests per 10 seconds per app per tenant
         (https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits).
         A 429 waits Retry-After and retries that same request. If it persists, the window

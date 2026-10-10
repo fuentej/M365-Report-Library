@@ -6,20 +6,22 @@
         each sign-in, one row per applied policy. Appended from the last exported timestamp.
 
     .DESCRIPTION
-        Source 3 of docs/candidates/entra-activity.md. There is no separate Graph call:
-        conditionalAccessStatus and appliedConditionalAccessPolicies are properties of the
-        sign-in (https://learn.microsoft.com/graph/api/signin-list). This collector reads
-        the v1.0 sign-in log, the same endpoint as Get-InteractiveSignIns.ps1, and keeps
-        only the Conditional Access part. -IncludeNonInteractive adds the beta
-        non-interactive stream (source 2).
+        Source 3 of docs/candidates/entra-activity.md. There is no separate Conditional
+        Access call: conditionalAccessStatus and appliedConditionalAccessPolicies are
+        properties of the sign-in (https://learn.microsoft.com/graph/api/signin-list).
+        The contract reads them from the source 1 and source 2 responses, so this collector
+        reads the v1.0 sign-in log and the beta non-interactive stream and keeps only the
+        Conditional Access part. -InteractiveOnly skips the beta stream.
 
         appliedConditionalAccessPolicies comes back only when the caller holds
         Policy.Read.All, Policy.Read.ConditionalAccess or Policy.ReadWrite.ConditionalAccess
         (https://learn.microsoft.com/graph/api/signin-list#permissions). With
         AuditLog.Read.All alone the status is still returned and the policy list is
         dropped WITHOUT an error, so an empty list is not proof that no policy applied.
-        This collector asks for Policy.Read.All when it signs in interactively, and each
-        row records PolicyDetailReadable from the permissions the session holds.
+        This collector asks for Policy.Read.All when it signs in interactively. Each row
+        records PolicyDetailReadable when the session holds that permission, or when the
+        response included appliedConditionalAccessPolicies. An app-only token often lists
+        only .default in Get-MgContext even when the policies are present.
 
         The report-only results (reportOnlySuccess, reportOnlyFailure, reportOnlyNotApplied
         and reportOnlyInterrupted) are returned only with the header
@@ -57,8 +59,9 @@ param(
     [ValidateRange(1, 24)]
     [int]$WindowHours = 24,
 
-    # Also read the beta non-interactive stream.
-    [switch]$IncludeNonInteractive,
+    # Skip the beta non-interactive stream. The default reads it, because source 3 is
+    # the Conditional Access result on source 1 and source 2.
+    [switch]$InteractiveOnly,
 
     [switch]$SkipConnect
 )
@@ -76,7 +79,7 @@ if ($PSBoundParameters.ContainsKey('StartDate')) { $range['StartDate'] = $StartD
 if ($PSBoundParameters.ContainsKey('EndDate')) { $range['EndDate'] = $EndDate }
 
 $eventType = (Import-PowerShellDataFile -LiteralPath $SchemaPath).NonInteractiveEventType
-$includeBeta = [bool]$IncludeNonInteractive
+$includeBeta = -not $InteractiveOnly
 
 Invoke-EntraActivityEventCollector -Source SignInConditionalAccess -CsvName 'signin-conditional-access.csv' `
     -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
@@ -100,16 +103,22 @@ Invoke-EntraActivityEventCollector -Source SignInConditionalAccess -CsvName 'sig
     -Map {
         param($signIn, $readable)
 
+        # Omitted means the caller could not read Conditional Access. Present, even
+        # when empty, means the detail was returned.
+        # https://learn.microsoft.com/graph/api/signin-list#permissions
+        $policyField = Get-EntraField -Object $signIn -Name 'appliedConditionalAccessPolicies'
+        $detailReadable = [bool]$readable -or ($null -ne $policyField)
+
         $base = [ordered]@{
             CreatedDateTime         = ConvertTo-CsvTimestamp (Get-EntraField -Object $signIn -Name 'createdDateTime')
             SignInId                = Get-PropertyValue $signIn 'id'
             UserId                  = Get-PropertyValue $signIn 'userId'
             IsInteractive           = Get-PropertyValue $signIn 'isInteractive'
             ConditionalAccessStatus = Get-PropertyValue $signIn 'conditionalAccessStatus'
-            PolicyDetailReadable    = [bool]$readable
+            PolicyDetailReadable    = $detailReadable
         }
 
-        $policies = @(Get-EntraField -Object $signIn -Name 'appliedConditionalAccessPolicies' | Where-Object { $null -ne $_ })
+        $policies = @($policyField | Where-Object { $null -ne $_ })
         if ($policies.Count -eq 0) {
             # Keep the status. Whether "no policies" means none applied depends on
             # PolicyDetailReadable.

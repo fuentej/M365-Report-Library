@@ -19,7 +19,7 @@ Nothing here has been run against a tenant. Every tenant call is mocked in `test
 | --- | --- |
 | `collectors/Get-InteractiveSignIns.ps1` | `signins-interactive.csv` — source 1, v1.0 sign-in log |
 | `collectors/Get-NonInteractiveSignIns.ps1` | `signins-noninteractive.csv` — source 2, **beta** sign-in log filtered to `nonInteractiveUser` |
-| `collectors/Get-SignInConditionalAccess.ps1` | `signin-conditional-access.csv` — source 3, the Conditional Access result on each sign-in, one row per applied policy |
+| `collectors/Get-SignInConditionalAccess.ps1` | `signin-conditional-access.csv` — source 3, the Conditional Access result on each interactive and non-interactive sign-in, one row per applied policy. `-InteractiveOnly` skips the beta stream |
 | `collectors/Get-DirectoryAudits.ps1` | `directory-audits.csv` — source 4, directory audit events |
 | `collectors/Get-RetentionReference.ps1` | `retention-reference.csv` — source 5, log retention by licence level (no tenant call) |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all five of the above |
@@ -119,9 +119,12 @@ does not affect this report. If a page later reads it, treat GCC High as `UNVERI
   used because it also returns service principal and managed identity sign-ins.
 * **Conditional Access detail depends on a permission.** With `AuditLog.Read.All` alone
   `conditionalAccessStatus` is returned but `appliedConditionalAccessPolicies` is dropped
-  without an error. `PolicyDetailReadable` in `signin-conditional-access.csv` says whether the
-  run held a Conditional Access read permission, so an empty policy list is not read as "no
-  policy applied". Report-only results (`reportOnlySuccess`, `reportOnlyFailure`,
+  without an error. Source 3 is that result on the interactive and the non-interactive
+  sign-in, so the collector reads both unless `-InteractiveOnly` is set.
+  `PolicyDetailReadable` is true when the session holds a Conditional Access read
+  permission, or when the response included `appliedConditionalAccessPolicies` (an
+  app-only token often lists only `.default`). An empty list with the flag false is not
+  "no policy applied". Report-only results (`reportOnlySuccess`, `reportOnlyFailure`,
   `reportOnlyNotApplied`, `reportOnlyInterrupted`) are returned only when the request sends
   `Prefer: include-unknown-enum-members`
   ([appliedConditionalAccessPolicy](https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy)).
@@ -169,7 +172,7 @@ Key `SignInId`, `PolicyId`, `PolicyDisplayName`.
 | `ConditionalAccessStatus` | The sign-in's overall result |
 | `PolicyId`, `PolicyDisplayName`, `PolicyResult` | An applied policy and its result; empty when the sign-in carried no policy detail |
 | `EnforcedGrantControls`, `EnforcedSessionControls` | What the policy enforced |
-| `PolicyDetailReadable` | Whether the run held a Conditional Access read permission |
+| `PolicyDetailReadable` | True when the session could read Conditional Access, or the response included the policy list |
 
 ### `directory-audits.csv`
 
