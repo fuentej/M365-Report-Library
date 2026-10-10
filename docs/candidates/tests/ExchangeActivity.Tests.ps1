@@ -55,4 +55,19 @@ Describe 'exchange activity sources' {
         $source5 | Should -Match 'do not read `\.value`'
         $script:Doc | Should -Match 'up to 28 days from the'
     }
+
+    It 'pages Graph message trace until nextLink is absent' {
+        # The list is beta, defaults to 1000, and the next page is the nextLink URL.
+        # A 401 while the service principal is provisioning is not an empty result.
+        $source11 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 11 \|' })
+        $source11.Count | Should -Be 1
+        $source11 | Should -Match '/beta/admin/exchange/tracing/messageTraces'
+        $source11 | Should -Match 'Follow `@odata.nextLink` until it is absent'
+        $source11 | Should -Match 'do not invent `\$skiptoken`'
+        $source11 | Should -Match 'ExchangeMessageTrace.Read.All'
+        $source11 | Should -Match '401 is not an empty trace'
+        $source11 | Should -Match 'UNVERIFIED \(no national-cloud table'
+        $page4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Email activity' })
+        $page4 | Should -Match '3, 8, 11'
+    }
 }
