@@ -35,4 +35,23 @@ Describe 'copilot usage sources' {
         $script:Doc | Should -Match '11 December 2025'
         $script:Doc | Should -Match 'Edit with Excel and Edit with PowerPoint do not'
     }
+
+    It 'reads Copilot audit fields from CopilotEventData and the record-type enum' {
+        # Record type 261 is CopilotInteraction. The schema nests the app host under CopilotEventData.
+        # The Graph enum does not include copilotInteraction.
+        $source6 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 6 \| Copilot interactions in the unified' })
+        $source7 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 7 \| Copilot interactions through the Graph' })
+        $source6 | Should -Match 'record type 261'
+        $source6 | Should -Match 'CopilotEventData'
+        $source6 | Should -Match 'ConnectedAIAppInteraction` as 328'
+        $source6 | Should -Match 'TeamCopilotInteraction` as 334'
+        $source6 | Should -Match 'Audit.General'
+        $source6 | Should -Match 'does not return `TeamCopilotInteraction`'
+        $source6 | Should -Not -Match 'is not stated on the pages read'
+        $source7 | Should -Match 'does not include `copilotInteraction`'
+        $source7 | Should -Match 'operationFilters'
+        $source7 | Should -Match 'copilotSessionSharing'
+        $source7 | Should -Match 'AuditLogsQuery-Entra.Read.All'
+        $script:Doc | Should -Not -Match 'record type filter includes Copilot. Neither is stated'
+    }
 }
