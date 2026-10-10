@@ -15,6 +15,8 @@
         the full slice, so it is read again as two halves. A slice that is still capped at two
         minutes is not written. A slice is written only when it has been read completely, so the
         file's newest CreationTime never runs ahead of a slice that failed.
+        -HighCompleteness is in preview and is not in every tenant, so it is not used; without it
+        the cmdlet page says results can be missing.
 
         Start and end are UTC dates with a time. Records can take hours to become searchable
         (https://learn.microsoft.com/purview/audit-log-enable-disable); a record that appears after
@@ -80,6 +82,10 @@ if (Test-AuditSourceSkipped -Source 'AuditSearchCmdlet' -LogSource $source -CsvP
         -OutputPath $OutputPath -Environment $Environment -Schema $schema) {
     return
 }
+
+# https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+    'Search-UnifiedAuditLog is run without -HighCompleteness. That switch is in preview and is not in every tenant; without it the cmdlet page says results can be missing.')
 
 $connectedHere = -not $SkipConnect
 if ($connectedHere) {

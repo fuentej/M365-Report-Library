@@ -350,6 +350,14 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv')).RecordId | Should -Contain 'late'
     }
 
+    It 'logs that results can be missing without -HighCompleteness and does not pass the switch' {
+        Mock Search-UnifiedAuditLog { $global:AuTest.Calls.Add($PSBoundParameters.ContainsKey('HighCompleteness')) }
+        Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1; SliceMinutes = 1440 }
+        $global:AuTest.Calls | Should -Not -Contain $true
+        Get-LogText $script:Out | Should -Match 'without -HighCompleteness'
+        Get-LogText $script:Out | Should -Match 'results can be missing'
+    }
+
     It 'accepts a lookback of 365 days so a first run can cover one-year retention' {
         Mock Search-UnifiedAuditLog { $global:AuTest.Calls.Add($StartDate); throw 'stop after the first window' }
         { Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 365; SliceMinutes = 1440 } } |
