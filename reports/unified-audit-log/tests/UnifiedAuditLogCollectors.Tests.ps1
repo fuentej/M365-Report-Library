@@ -295,9 +295,40 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
             $global:AuTest.Bulk
         }
         $start = [datetime]::new(2026, 10, 8, 9, 0, 0, [DateTimeKind]::Utc)
-        $records = @(Get-AuditSearchSlice -Start $start -End $start.AddMinutes(2) -OutputPath $script:Out)
-        $records.Count | Should -Be 50000
+        { Get-AuditSearchSlice -Start $start -End $start.AddMinutes(2) -OutputPath $script:Out } | Should -Throw '*50,000*'
         Get-LogText $script:Out | Should -Match 'Its rows are incomplete'
+    }
+
+    It 'does not keep a short page whose ResultCount is 50,000 when moreRecordsAvailable is false' {
+        $global:AuTest.Served = @{}
+        Mock Search-UnifiedAuditLog {
+            $span = ($EndDate - $StartDate).TotalMinutes
+            if ($span -gt 30) {
+                $record = New-SearchRecord -Id 'capped'
+                $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 50000
+                $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $false })
+                return $record
+            }
+            if ($global:AuTest.Served.ContainsKey($SessionId)) { return }
+            $global:AuTest.Served[$SessionId] = $true
+            New-SearchRecord -Id ('half-{0:HHmm}' -f $StartDate) -At $StartDate
+        }
+        $start = [datetime]::new(2026, 10, 8, 9, 0, 0, [DateTimeKind]::Utc)
+        $records = @(Get-AuditSearchSlice -Start $start -End $start.AddMinutes(60) -OutputPath $script:Out)
+        $records.Identity | Should -Not -Contain 'capped'
+        ($records.Identity | Sort-Object) | Should -Be @('half-0900', 'half-0930')
+    }
+
+    It 'does not write a two-minute slice that is still at the 50,000-record cap' {
+        Mock Search-UnifiedAuditLog {
+            $record = New-SearchRecord -Id 'capped'
+            $record | Add-Member -NotePropertyName ResultCount -NotePropertyValue 50000
+            $record | Add-Member -NotePropertyName AuditSearchRequestMetadata -NotePropertyValue ([pscustomobject]@{ moreRecordsAvailable = $false })
+            $record
+        }
+        { Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1; SliceMinutes = 2 } } |
+            Should -Throw '*50,000*'
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv')).Count | Should -Be 0
     }
 
     It 'resumes from the latest CreationTime already in the file' {
@@ -347,7 +378,8 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
             $global:AuTest.Served[$SessionId] = $true
             New-SearchRecord -Id ('s-{0:yyyyMMddHHmm}' -f $StartDate) -At $StartDate.AddMinutes(5)
         }
-        Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; SliceMinutes = 60 }
+        { Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; SliceMinutes = 60 } } |
+            Should -Throw '*timed out*'
 
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-search-cmdlet.csv'))
         $rows.Count | Should -Be 3
@@ -358,7 +390,8 @@ Describe 'Search-UnifiedAuditLog (source 1)' {
 
     It 'logs the failure and keeps the header when the cmdlet is refused' {
         Mock Search-UnifiedAuditLog { throw 'The term Search-UnifiedAuditLog is not recognized' }
-        Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Environment = 'GCC'; LookbackDays = 1 }
+        { Invoke-CollectorScript 'Get-AuditSearchCmdlet.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Environment = 'GCC'; LookbackDays = 1 } } |
+            Should -Throw '*not recognized*'
         Get-HeaderText (Join-Path $script:Out 'audit-search-cmdlet.csv') | Should -Be ($script:Schema.AuditSearchCmdlet -join ',')
         Get-LogText $script:Out | Should -Match 'Search-UnifiedAuditLog failed'
     }

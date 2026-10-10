@@ -255,6 +255,31 @@ function ConvertTo-AuditSearchRow {
     [pscustomobject]$row
 }
 
+function Test-AuditSearchCapped {
+    <#
+        .SYNOPSIS
+            True when a Search-UnifiedAuditLog page says the session already hit 50,000 hits.
+
+        .DESCRIPTION
+            ResultCount is the hit count across every iteration of the session, not the size
+            of this page. ReturnLargeSet stops at 50,000, so a count of 50,000 means the
+            records past the cap were never returned.
+            https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)]$Records)
+
+    foreach ($record in @($Records)) {
+        if ($null -eq $record) { continue }
+        $property = $record.PSObject.Properties['ResultCount']
+        if (-not $property -or $null -eq $property.Value) { continue }
+        $matched = 0
+        if ([int]::TryParse([string]$property.Value, [ref]$matched) -and $matched -ge 50000) { return $true }
+    }
+    return $false
+}
+
 function Get-AuditSearchSession {
     <#
         .SYNOPSIS
@@ -265,6 +290,8 @@ function Get-AuditSearchSession {
             for every call of the session, because switching commands lowers the limit to 10,000.
             A call that returns nothing ends the session; so does a record whose
             AuditSearchRequestMetadata.moreRecordsAvailable is false.
+            A page whose ResultCount is 50,000 or more is a capped session even when the page
+            is short and moreRecordsAvailable is false: the cap is not a complete result.
             https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
             https://learn.microsoft.com/purview/audit-log-search-script
     #>
@@ -276,17 +303,25 @@ function Get-AuditSearchSession {
 
     $sessionId = [guid]::NewGuid().ToString()
     $records = [System.Collections.Generic.List[object]]::new()
+    $capped = $false
     while ($true) {
         $batch = @(Search-UnifiedAuditLog -StartDate $Start -EndDate $End -SessionId $sessionId `
                 -SessionCommand ReturnLargeSet -ResultSize 5000 -Formatted -ErrorAction Stop | Where-Object { $null -ne $_ })
         if ($batch.Count -eq 0) { break }
+
+        # Do not keep a page that already reports the cap. The objects in hand are
+        # unsorted and are not the full window.
+        if ((Test-AuditSearchCapped -Records $batch) -or (($records.Count + $batch.Count) -ge 50000)) {
+            $capped = $true
+            break
+        }
         $records.AddRange($batch)
 
         $metadata = Get-ObjectValue -Object $batch[-1] -Name 'AuditSearchRequestMetadata'
         $more = Get-ObjectValue -Object $metadata -Name 'moreRecordsAvailable'
         if ($null -ne $more -and -not [System.Convert]::ToBoolean($more)) { break }
     }
-    $records.ToArray()
+    [pscustomobject]@{ Records = $records.ToArray(); Capped = $capped }
 }
 
 function Get-AuditSearchSlice {
@@ -296,10 +331,11 @@ function Get-AuditSearchSlice {
             50,000-record cap.
 
         .DESCRIPTION
-            ReturnLargeSet pages up to 50,000 unsorted records. A session that gets there is not
-            the full window, so its result is dropped and each half is read instead. A range down
-            to -MinimumMinutes that still reaches 50,000 is returned with a warning in run.log.
-            A record on a boundary can come back from both halves; the CSV key removes it.
+            ReturnLargeSet pages up to 50,000 unsorted records. A session that gets there, or
+            whose ResultCount says it did, is not the full window, so its result is dropped and
+            each half is read instead. A range down to -MinimumMinutes that is still capped is
+            not returned: writing it would move the resume point past events that were never
+            returned. A record on a boundary can come back from both halves; the CSV key removes it.
     #>
     [CmdletBinding()]
     param(
@@ -310,14 +346,14 @@ function Get-AuditSearchSlice {
         [int]$MinimumMinutes = 2
     )
 
-    $records = @(Get-AuditSearchSession -Start $Start -End $End)
-    if ($records.Count -lt 50000) { return $records }
+    $session = Get-AuditSearchSession -Start $Start -End $End
+    if (-not $session.Capped) { return $session.Records }
 
     $minutes = ($End - $Start).TotalMinutes
     if ($minutes -le $MinimumMinutes) {
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (
-            'The range {0:yyyy-MM-ddTHH:mm:ssZ} to {1:yyyy-MM-ddTHH:mm:ssZ} still reached the 50,000-record limit at {2} minutes. Its rows are incomplete.' -f $Start, $End, $minutes)
-        return $records
+            'The range {0:yyyy-MM-ddTHH:mm:ssZ} to {1:yyyy-MM-ddTHH:mm:ssZ} still reached the 50,000-record limit at {2} minutes. Its rows are incomplete and were not written.' -f $Start, $End, $minutes)
+        throw ('The range {0:yyyy-MM-ddTHH:mm:ssZ} to {1:yyyy-MM-ddTHH:mm:ssZ} reached the 50,000-record limit. Its rows were not written.' -f $Start, $End)
     }
     $middle = $Start.AddTicks([long](($End - $Start).Ticks / 2))
     Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (

@@ -11,9 +11,10 @@
         Event source. A run starts at the latest CreationTime already in the file, or -LookbackDays
         back on the first run, and reads the range in -SliceMinutes slices, oldest first. Each slice
         is one ReturnLargeSet session (-ResultSize 5000, one SessionId, the same command for every
-        call) read until a call returns nothing. A slice that reaches the 50,000-record cap is not
-        the full slice, so it is read again as two halves. A slice is written only when it has been
-        read completely, so the file's newest CreationTime never runs ahead of a slice that failed.
+        call) read until a call returns nothing. A slice whose ResultCount reaches 50,000 is not
+        the full slice, so it is read again as two halves. A slice that is still capped at two
+        minutes is not written. A slice is written only when it has been read completely, so the
+        file's newest CreationTime never runs ahead of a slice that failed.
 
         Start and end are UTC dates with a time. Records can take hours to become searchable
         (https://learn.microsoft.com/purview/audit-log-enable-disable); a record that appears after
@@ -103,6 +104,7 @@ try {
     catch {
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
             'Search-UnifiedAuditLog failed ({0}). It needs the View-Only Audit Logs or Audit Logs role, and auditing must be on. Slices already written are kept; the next run resumes from the latest CreationTime.' -f $_.Exception.Message)
+        throw
     }
 }
 finally {
