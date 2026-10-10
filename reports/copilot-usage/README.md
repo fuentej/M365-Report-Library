@@ -139,8 +139,10 @@ dated copy.
 * **Audit records can arrive late.** A record ingested after a run, with a time before the
   newest record already exported, is not collected by the next one. A window that reaches the
   50,000-record session cap is not written; re-run it with a smaller `-WindowHours`.
-* **Audit (Standard) keeps Copilot records for 180 days.** Copilot is not one of the workloads
-  the one-year default policy covers, so these records stay at 180 days.
+* **Audit (Standard) keeps Copilot records for 180 days by default.** Copilot is not one of
+  the workloads the one-year default policy covers. A custom retention policy can keep them
+  for up to 10 years, and `-LookbackDays` accepts that span (3653 days). The default
+  lookback stays 30 days.
 * **The interaction export supports six `appClass` values** (Word, Excel, Teams, BizChat, WebChat,
   CoworkChat). Outlook, PowerPoint, OneNote and Loop are not in it, so it is not the per-app count
   of the usage reports. It does not retrieve Copilot Studio agent interactions.

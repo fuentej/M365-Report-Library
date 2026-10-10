@@ -29,9 +29,10 @@
 
         Available in Commercial; UNVERIFIED in GCC and GCC High (no page names the cmdlet for
         those clouds), where the collector asks anyway, warns, and logs any refusal. Needs the
-        View-Only Audit Logs or Audit Logs role and auditing turned on. Audit (Standard) keeps
-        Copilot records for 180 days. Records can arrive late, so a record older than the
-        watermark that is ingested after a run is not collected by the next one.
+        View-Only Audit Logs or Audit Logs role and auditing turned on. Copilot records
+        stay at 180 days by default. A custom retention policy can keep them for up to
+        10 years, so -LookbackDays accepts that span. Records can arrive late, so a record
+        older than the watermark that is ingested after a run is not collected by the next one.
 
     .EXAMPLE
         ./Get-CopilotAuditEvents.ps1 -OutputPath ./out -LookbackDays 7
@@ -52,9 +53,10 @@ param(
     [datetime]$StartDate,
     [datetime]$EndDate,
 
-    # 180 days is the Audit (Standard) retention for Copilot records.
+    # Copilot stays at 180 days unless a custom policy says otherwise. A custom
+    # policy can retain the record for up to 10 years (3653 days covers leap days).
     # https://learn.microsoft.com/purview/audit-log-retention-policies
-    [ValidateRange(1, 180)]
+    [ValidateRange(1, 3653)]
     [int]$LookbackDays = 30,
 
     [ValidateRange(1, 24)]

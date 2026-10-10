@@ -749,9 +749,18 @@ Describe 'The audit events' {
         Get-LogText $script:Out | Should -Match 'View-Only Audit Logs'
     }
 
-    It 'rejects an empty explicit range and a lookback past the 180-day retention' {
+    It 'rejects an empty explicit range and a lookback past ten years' {
         { Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' @{ OutputPath = $script:Out; StartDate = [datetime]'2026-10-06T00:00:00Z'; EndDate = [datetime]'2026-10-05T00:00:00Z' } } | Should -Throw '*requested range is empty*'
-        { Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' @{ OutputPath = $script:Out; LookbackDays = 181 } } | Should -Throw
+        { Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' @{ OutputPath = $script:Out; LookbackDays = 3654 } } | Should -Throw
+    }
+
+    It 'accepts a lookback longer than the 180-day default' {
+        # A custom retention policy can keep Copilot records for up to 10 years.
+        # The default is 180 days; that is not the longest a run may ask for.
+        # https://learn.microsoft.com/purview/audit-log-retention-policies
+        Mock Search-UnifiedAuditLog { $global:CuTest.Windows.Add($StartDate.ToUniversalTime()) }
+        { Invoke-CollectorScript 'Get-CopilotAuditEvents.ps1' @{ OutputPath = $script:Out; LookbackDays = 181; WindowHours = 24 } } | Should -Not -Throw
+        $global:CuTest.Windows.Count | Should -BeGreaterThan 180
     }
 }
 
