@@ -4,3 +4,4 @@ model Model
     sourceQueryCulture: en-US
 
 ref table Guests
+ref table Users
