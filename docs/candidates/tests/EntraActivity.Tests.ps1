@@ -68,4 +68,21 @@ Describe 'entra activity sources' {
         $source2 | Should -Match 'isInteractive eq false'
         $script:Doc | Should -Match "signInEventTypes/any\(t: t eq 'nonInteractiveUser'\)"
     }
+
+    It 'does not treat Purview retention as sign-in history' {
+        # Purview Audit Premium retains Entra audit logs, not sign-ins.
+        # The 7/30-day table names no cloud. An empty free tenant can take three days after upgrade.
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Interactive' })
+        $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Non-interactive' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit' })
+        $source5 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5 \| How far back' })
+        $script:Doc | Should -Not -Match 'or, for organizations with Microsoft 365 E5'
+        $script:Doc | Should -Match 'retains Microsoft Entra ID audit logs only'
+        $script:Doc | Should -Match 'does not extend sign-in retention'
+        $script:Doc | Should -Match 'up to three days'
+        $source1 | Should -Match 'GCC and GCC High retention is UNVERIFIED'
+        $source2 | Should -Match 'UNVERIFIED GCC and GCC High retention'
+        $source4 | Should -Match 'GCC and GCC High retention is UNVERIFIED'
+        $source5 | Should -Match 'UNVERIFIED \(the page names no cloud\)'
+    }
 }
