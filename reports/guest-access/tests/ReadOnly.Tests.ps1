@@ -234,7 +234,7 @@ Describe 'Only read-only tenant commands are called' {
         # -Method to GET, and reports/oversharing/tests/ReadOnly.Tests.ps1 holds that helper
         # file to one GET function.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1'))
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'LicenseUtilizationHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -308,8 +308,12 @@ Describe 'No Graph request uses a method other than GET' {
         # nextLinks) with GET through the one Invoke-MgGraphRequest call in its helper file
         # (Invoke-GraphGet), which reports/teams-activity/tests/ReadOnly.Tests.ps1 holds to one
         # GET call.
+        #
+        # The license utilization usage reports are read with GET through Invoke-MgGraphRequest.
+        # That helper file is exempt here and held to GET in two functions in
+        # reports/license-utilization/tests/ReadOnly.Tests.ps1.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 

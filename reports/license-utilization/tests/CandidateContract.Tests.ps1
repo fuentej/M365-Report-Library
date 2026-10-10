@@ -45,6 +45,13 @@ Describe 'The collectors follow the contract doc' {
         $readme | Should -Match 'does not list Global Reader'
     }
 
+    It 'is on the CI Pester path, so a failure in this report fails the workflow' {
+        # tests.yml lists paths explicitly. A merge that drops this folder leaves the
+        # collectors untested while the workflow stays green.
+        $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../../.github/workflows/tests.yml') -Raw
+        $workflow | Should -Match '\./reports/license-utilization/tests'
+    }
+
     It 'leaves out the two doc rows that are not tenant calls (7 and 8)' {
         $script:Doc | Should -Match '(?m)^\| 7 \| Product names'
         $script:Doc | Should -Match '(?m)^\| 8 \| Fallback for GCC High'
