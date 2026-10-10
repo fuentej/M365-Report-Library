@@ -14,6 +14,16 @@ BeforeAll {
         param([switch]$All, [string]$Filter, [int]$Top)
         throw 'Get-MgBetaAuditLogSignIn was called for real. Mock it in the test.'
     }
+    function global:Invoke-MgGraphRequest {
+        [CmdletBinding()]
+        param(
+            [string]$Method,
+            [string]$Uri,
+            [hashtable]$Headers,
+            [string]$OutputType
+        )
+        throw 'Invoke-MgGraphRequest was called for real. Mock it in the test.'
+    }
     function global:Get-MgContext {
         [CmdletBinding()]
         param()
@@ -45,6 +55,20 @@ BeforeAll {
     function Invoke-CollectorScript {
         param([Parameter(Mandatory)][string]$Name, [hashtable]$Arguments = @{})
         & (Join-Path $script:Collectors $Name) @Arguments
+    }
+
+    function New-GraphPage {
+        param($Items, [string]$NextLink)
+        $page = @{ value = @($Items) }
+        if ($NextLink) { $page['@odata.nextLink'] = $NextLink }
+        return $page
+    }
+
+    # Routes the one Graph GET to the sign-in, beta or directory-audit handler for this test.
+    function Reset-GraphHandlers {
+        $global:EntraSignInHandler = $null
+        $global:EntraBetaHandler = $null
+        $global:EntraAuditHandler = $null
     }
 
     # signIn: https://learn.microsoft.com/graph/api/resources/signin#properties
@@ -151,6 +175,17 @@ BeforeAll {
         @{ Script = 'Get-SignInConditionalAccess.ps1'; Csv = 'signin-conditional-access.csv'; Key = 'SignInConditionalAccess'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn' }
         @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Key = 'DirectoryAudits'; Cmdlet = 'Get-MgAuditLogDirectoryAudit'; Builder = 'New-MockAudit' }
     )
+
+    Mock Invoke-MgGraphRequest {
+        if ($Method -ne 'GET') { throw "Graph read must be GET, not $Method" }
+        $decoded = [uri]::UnescapeDataString([string]$Uri)
+        $handler = $global:EntraSignInHandler
+        if ($decoded -match '/beta/') { $handler = $global:EntraBetaHandler }
+        elseif ($decoded -match 'directoryAudits') { $handler = $global:EntraAuditHandler }
+        if ($null -eq $handler) { return @{ value = @() } }
+        return (& $handler $decoded)
+    }
+    Reset-GraphHandlers
 }
 
 AfterAll {
@@ -160,6 +195,7 @@ AfterAll {
 Describe 'Each collector writes the columns of its sample file' {
     BeforeEach {
         $script:folder = New-TestFolder
+        Reset-GraphHandlers
         Mock Connect-M365Service -MockWith { }
     }
     AfterEach {
@@ -168,7 +204,10 @@ Describe 'Each collector writes the columns of its sample file' {
 
     It '<Csv>' -ForEach $script:EventCases {
         $builder = $Builder
-        Mock -CommandName $Cmdlet -MockWith { & $builder }
+        $handler = { param($Uri) (New-GraphPage (& $builder)) }
+        if ($Cmdlet -eq 'Get-MgBetaAuditLogSignIn') { $global:EntraBetaHandler = $handler }
+        elseif ($Cmdlet -eq 'Get-MgAuditLogDirectoryAudit') { $global:EntraAuditHandler = $handler }
+        else { $global:EntraSignInHandler = $handler }
 
         Invoke-CollectorScript $Script @{ OutputPath = $script:folder; LookbackDays = 1 }
 
@@ -213,9 +252,7 @@ Describe 'Each connection targets the endpoints of its -Environment' {
     BeforeEach {
         $script:folder = New-TestFolder
         Mock Connect-MgGraph -ModuleName M365ReportLibrary -MockWith { }
-        Mock Get-MgAuditLogSignIn -MockWith { @() }
-        Mock Get-MgBetaAuditLogSignIn -MockWith { @() }
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { @() }
+        Reset-GraphHandlers
     }
     AfterEach {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
@@ -284,6 +321,7 @@ Describe 'Each connection targets the endpoints of its -Environment' {
 Describe 'Paging is followed' {
     BeforeEach {
         $script:folder = New-TestFolder
+        Reset-GraphHandlers
         Mock Connect-M365Service -MockWith { }
         $script:oneDay = @{ StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-11T00:00:00Z' }
     }
@@ -291,92 +329,160 @@ Describe 'Paging is followed' {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    # 1,250 objects is more than the 1,000-row sign-in page. Without -All the mock
-    # returns the first 100, which is what a single request returns.
+    # The sign-in page holds at most 1,000 rows. The nextLink is requested as returned.
     # https://learn.microsoft.com/graph/paging
-    It '<Cmdlet> keeps every object when the service returns more than one page (<Csv>)' -ForEach @(
-        @{ Script = 'Get-InteractiveSignIns.ps1'; Csv = 'signins-interactive.csv'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn'; Rows = 1250 }
-        @{ Script = 'Get-NonInteractiveSignIns.ps1'; Csv = 'signins-noninteractive.csv'; Cmdlet = 'Get-MgBetaAuditLogSignIn'; Builder = 'New-MockSignIn'; Rows = 1250 }
-        @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Cmdlet = 'Get-MgAuditLogDirectoryAudit'; Builder = 'New-MockAudit'; Rows = 1250 }
-        @{ Script = 'Get-SignInConditionalAccess.ps1'; Csv = 'signin-conditional-access.csv'; Cmdlet = 'Get-MgAuditLogSignIn'; Builder = 'New-MockSignIn'; Rows = 2500 }
+    # https://learn.microsoft.com/graph/api/signin-list
+    It 'keeps every object when the service returns a nextLink (<Csv>)' -ForEach @(
+        @{ Script = 'Get-InteractiveSignIns.ps1'; Csv = 'signins-interactive.csv'; Kind = 'signIn'; Builder = 'New-MockSignIn'; Rows = 1250 }
+        @{ Script = 'Get-NonInteractiveSignIns.ps1'; Csv = 'signins-noninteractive.csv'; Kind = 'beta'; Builder = 'New-MockSignIn'; Rows = 1250 }
+        @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Kind = 'audit'; Builder = 'New-MockAudit'; Rows = 1250 }
+        @{ Script = 'Get-SignInConditionalAccess.ps1'; Csv = 'signin-conditional-access.csv'; Kind = 'signIn'; Builder = 'New-MockSignIn'; Rows = 2500 }
     ) {
-        $builder = $Builder
-        Mock -CommandName $Cmdlet -MockWith {
-            $limit = if ($All) { 1250 } else { 100 }
-            1..$limit | ForEach-Object { & $builder -Id "id-$_" }
+        $global:EntraBuilder = $Builder
+        $pageLink = switch ($Kind) {
+            'beta' { 'https://graph.microsoft.com/beta/auditLogs/signIns?$top=1000&$skiptoken=page2' }
+            'audit' { 'https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$skiptoken=page2' }
+            default { 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$top=1000&$skiptoken=page2' }
         }
+        $global:EntraPageLink = $pageLink
+        # The collector's loop variable is also named $next, so this handler reads globals.
+        $handler = {
+            param($Uri)
+            if ($Uri -notmatch 'skiptoken=page2') {
+                @{
+                    value = @(1..1000 | ForEach-Object { & $global:EntraBuilder -Id "id-$_" })
+                    '@odata.nextLink' = $global:EntraPageLink
+                }
+            }
+            else {
+                @{ value = @(1001..1250 | ForEach-Object { & $global:EntraBuilder -Id "id-$_" }) }
+            }
+        }
+        if ($Kind -eq 'beta') { $global:EntraBetaHandler = $handler }
+        elseif ($Kind -eq 'audit') { $global:EntraAuditHandler = $handler }
+        else { $global:EntraSignInHandler = $handler }
 
         Invoke-CollectorScript $Script ($script:oneDay + @{ OutputPath = $script:folder })
 
         @(Import-Csv -LiteralPath (Join-Path $script:folder $Csv)).Count | Should -Be $Rows
-        Should -Invoke -CommandName $Cmdlet -Times 1 -Exactly -ParameterFilter { $All }
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Uri -eq $pageLink -and $Method -eq 'GET' -and $Headers['Prefer'] -eq 'include-unknown-enum-members' }
     }
 
     It 'reads every page of the non-interactive stream too when the Conditional Access collector is asked to' {
-        Mock Get-MgAuditLogSignIn -MockWith {
-            $limit = if ($All) { 1100 } else { 100 }
-            1..$limit | ForEach-Object { New-MockSignIn -Id "i-$_" -WithPolicies $false }
+        $global:EntraSignInHandler = {
+            param($Uri)
+            if ($Uri -match 'skiptoken') { return (New-GraphPage (1001..1100 | ForEach-Object { New-MockSignIn -Id "i-$_" -WithPolicies $false })) }
+            New-GraphPage (1..1000 | ForEach-Object { New-MockSignIn -Id "i-$_" -WithPolicies $false }) 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=ca'
         }
-        Mock Get-MgBetaAuditLogSignIn -MockWith {
-            $limit = if ($All) { 1100 } else { 100 }
-            1..$limit | ForEach-Object { New-MockSignIn -Id "n-$_" -Interactive $false -WithPolicies $false }
+        $global:EntraBetaHandler = {
+            param($Uri)
+            if ($Uri -match 'skiptoken') { return (New-GraphPage (1001..1100 | ForEach-Object { New-MockSignIn -Id "n-$_" -Interactive $false -WithPolicies $false })) }
+            New-GraphPage (1..1000 | ForEach-Object { New-MockSignIn -Id "n-$_" -Interactive $false -WithPolicies $false }) 'https://graph.microsoft.com/beta/auditLogs/signIns?$skiptoken=beta'
         }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder; IncludeNonInteractive = $true })
 
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'signin-conditional-access.csv')).Count | Should -Be 2200
-        Should -Invoke Get-MgBetaAuditLogSignIn -Times 1 -Exactly -ParameterFilter { $All }
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Uri -eq 'https://graph.microsoft.com/beta/auditLogs/signIns?$skiptoken=beta' }
     }
 
     It 'does not call the beta API from the Conditional Access collector unless asked' {
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
-        Mock Get-MgBetaAuditLogSignIn -MockWith { throw 'beta must not be called' }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
+        $global:EntraBetaHandler = { throw 'beta must not be called' }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
-        Should -Invoke Get-MgBetaAuditLogSignIn -Times 0 -Exactly
+        Should -Invoke Invoke-MgGraphRequest -Times 0 -Exactly -ParameterFilter { ([uri]::UnescapeDataString([string]$Uri)) -match '/beta/' }
     }
 
     It 'filters each sign-in window on createdDateTime and each audit window on activityDateTime' {
-        Mock Get-MgAuditLogSignIn -MockWith { @() }
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { @() }
-
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
         Invoke-CollectorScript 'Get-DirectoryAudits.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
-        Should -Invoke Get-MgAuditLogSignIn -Times 1 -Exactly -ParameterFilter {
-            $Filter -eq 'createdDateTime ge 2026-09-10T00:00:00Z and createdDateTime lt 2026-09-11T00:00:00Z'
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter {
+            ([uri]::UnescapeDataString([string]$Uri)) -eq '/v1.0/auditLogs/signIns?$filter=createdDateTime ge 2026-09-10T00:00:00Z and createdDateTime lt 2026-09-11T00:00:00Z' -and
+            $Uri -notmatch '\$skip=' -and $Uri -notmatch '\$select=' -and $Uri -notmatch '\$top='
         }
-        Should -Invoke Get-MgAuditLogDirectoryAudit -Times 1 -Exactly -ParameterFilter {
-            $Filter -eq 'activityDateTime ge 2026-09-10T00:00:00Z and activityDateTime lt 2026-09-11T00:00:00Z'
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter {
+            ([uri]::UnescapeDataString([string]$Uri)) -eq '/v1.0/auditLogs/directoryAudits?$filter=activityDateTime ge 2026-09-10T00:00:00Z and activityDateTime lt 2026-09-11T00:00:00Z'
         }
     }
 
     It 'filters the beta stream to nonInteractiveUser and never to ne interactiveUser' {
-        Mock Get-MgBetaAuditLogSignIn -MockWith { @() }
-
         Invoke-CollectorScript 'Get-NonInteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
-        Should -Invoke Get-MgBetaAuditLogSignIn -Times 1 -Exactly -ParameterFilter {
-            $Filter -eq "(createdDateTime ge 2026-09-10T00:00:00Z and createdDateTime lt 2026-09-11T00:00:00Z) and signInEventTypes/any(t: t eq 'nonInteractiveUser')" -and
-            $Filter -notmatch "ne 'interactiveUser'"
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter {
+            $decoded = [uri]::UnescapeDataString([string]$Uri)
+            $decoded -eq "/beta/auditLogs/signIns?`$filter=(createdDateTime ge 2026-09-10T00:00:00Z and createdDateTime lt 2026-09-11T00:00:00Z) and signInEventTypes/any(t: t eq 'nonInteractiveUser')" -and
+            $decoded -notmatch "ne 'interactiveUser'"
         }
     }
 
     It 'queries one window per day so no request asks for an unbounded span' {
-        Mock Get-MgAuditLogSignIn -MockWith { @() }
-
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{
             OutputPath = $script:folder; StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-13T00:00:00Z'
         }
 
-        Should -Invoke Get-MgAuditLogSignIn -Times 3 -Exactly
+        Should -Invoke Invoke-MgGraphRequest -Times 3 -Exactly -ParameterFilter { ([uri]::UnescapeDataString([string]$Uri)) -match '/v1.0/auditLogs/signIns' }
+    }
+
+    It 'sends Prefer on the first page and on the nextLink page' {
+        # Report-only Conditional Access results need this header on every page.
+        # https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy
+        # https://learn.microsoft.com/graph/sdks/paging
+        $global:EntraSignInHandler = {
+            param($Uri)
+            if ($Uri -match 'skiptoken') { return (New-GraphPage (New-MockSignIn -Id 'page-2')) }
+            New-GraphPage (New-MockSignIn -Id 'page-1') 'https://graph.microsoft.us/v1.0/auditLogs/signIns?$skiptoken=gov'
+        }
+
+        Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+
+        Should -Invoke Invoke-MgGraphRequest -Times 2 -Exactly -ParameterFilter { $Headers['Prefer'] -eq 'include-unknown-enum-members' -and $Method -eq 'GET' }
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Uri -eq 'https://graph.microsoft.us/v1.0/auditLogs/signIns?$skiptoken=gov' }
+    }
+
+    It 'refuses a nextLink that is not a Microsoft Graph host and does not keep the partial page' {
+        $global:EntraSignInHandler = {
+            param($Uri)
+            New-GraphPage (New-MockSignIn -Id 'dropped') 'https://evil.example/auditLogs/signIns?$skiptoken=1'
+        }
+
+        { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder }) } | Should -Throw '*outside Microsoft Graph*'
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Count | Should -Be 0
+        Should -Invoke Invoke-MgGraphRequest -Times 0 -Exactly -ParameterFilter { $Uri -match 'evil.example' }
+    }
+
+    It 'throws when a nextLink repeats and does not keep the partial page' {
+        $global:EntraSignInHandler = {
+            param($Uri)
+            New-GraphPage (New-MockSignIn) 'https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=same'
+        }
+
+        { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder }) } | Should -Throw '*already requested*'
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Count | Should -Be 0
+    }
+
+    It 'does not request a nextLink carried on DirectoryPageTokenNotFoundException' {
+        # A nextLink from a failed page is not the next page.
+        # https://learn.microsoft.com/graph/paging
+        $global:EntraSignInHandler = {
+            param($Uri)
+            if ($Uri -match 'from-the-error') { throw 'followed the nextLink from the error' }
+            throw 'DirectoryPageTokenNotFoundException nextLink=https://graph.microsoft.com/v1.0/auditLogs/signIns?$skiptoken=from-the-error'
+        }
+
+        { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder }) } |
+            Should -Throw '*DirectoryPageTokenNotFoundException*'
+        Should -Invoke Invoke-MgGraphRequest -Times 0 -Exactly -ParameterFilter { $Uri -match 'from-the-error' }
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Count | Should -Be 0
     }
 }
 
 Describe 'What each collector keeps' {
     BeforeEach {
         $script:folder = New-TestFolder
+        Reset-GraphHandlers
         Mock Connect-M365Service -MockWith { }
         $script:oneDay = @{ StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-11T00:00:00Z' }
     }
@@ -385,10 +491,13 @@ Describe 'What each collector keeps' {
     }
 
     It 'keeps every error code, including 0 and codes that are not 5 or 6 digits, and the failure text' {
-        Mock Get-MgAuditLogSignIn -MockWith {
-            New-MockSignIn -Id 'ok' -ErrorCode 0
-            New-MockSignIn -Id 'odd' -ErrorCode 1024
-            New-MockSignIn -Id 'mfa' -ErrorCode 50058
+        $global:EntraSignInHandler = {
+            param($Uri)
+            New-GraphPage @(
+                (New-MockSignIn -Id 'ok' -ErrorCode 0)
+                (New-MockSignIn -Id 'odd' -ErrorCode 1024)
+                (New-MockSignIn -Id 'mfa' -ErrorCode 50058)
+            )
         }
 
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
@@ -400,7 +509,7 @@ Describe 'What each collector keeps' {
     }
 
     It 'does not drop a sign-in that has no user, such as a 50058' {
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn -Id 'nouser' -ErrorCode 50058 -UserId '' -Upn '' }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -Id 'nouser' -ErrorCode 50058 -UserId '' -Upn '')) }
 
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -410,7 +519,7 @@ Describe 'What each collector keeps' {
     }
 
     It 'flattens location, device and status, and writes the timestamp as UTC' {
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
 
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -424,7 +533,7 @@ Describe 'What each collector keeps' {
     }
 
     It 'tags non-interactive rows with their event type' {
-        Mock Get-MgBetaAuditLogSignIn -MockWith { New-MockSignIn -Interactive $false }
+        $global:EntraBetaHandler = { param($Uri) (New-GraphPage (New-MockSignIn -Interactive $false)) }
 
         Invoke-CollectorScript 'Get-NonInteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -435,7 +544,7 @@ Describe 'What each collector keeps' {
 
     It 'writes one Conditional Access row per applied policy and records that the detail was readable' {
         Mock Get-MgContext -MockWith { [pscustomobject]@{ Scopes = @('AuditLog.Read.All', 'Policy.Read.All') } }
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -451,7 +560,7 @@ Describe 'What each collector keeps' {
         # With AuditLog.Read.All alone appliedConditionalAccessPolicies is omitted without
         # an error. https://learn.microsoft.com/graph/api/signin-list#permissions
         Mock Get-MgContext -MockWith { [pscustomobject]@{ Scopes = @('AuditLog.Read.All') } }
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn -WithPolicies $false }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -WithPolicies $false)) }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -463,7 +572,7 @@ Describe 'What each collector keeps' {
     }
 
     It 'treats an unreadable session as detail not readable' {
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn -WithPolicies $false }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn -WithPolicies $false)) }
 
         Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
 
@@ -471,10 +580,13 @@ Describe 'What each collector keeps' {
     }
 
     It 'keeps every directory audit category, operation type and result as returned, including Policy and a non-GUID id' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith {
-            New-MockAudit -Id 'SSGM_b662f17a-4e4d-4e1c-9248-cdec180024b2_MCDC4_88453290' -Category 'Policy'
-            New-MockAudit -Id 'a2' -Category 'SomeNewCategory' -Operation 'Reset' -Result 'timeout'
-            New-MockAudit -Id 'a3' -Category 'UserManagement' -Operation 'Add' -Result 'failure'
+        $global:EntraAuditHandler = {
+            param($Uri)
+            New-GraphPage @(
+                (New-MockAudit -Id 'SSGM_b662f17a-4e4d-4e1c-9248-cdec180024b2_MCDC4_88453290' -Category 'Policy')
+                (New-MockAudit -Id 'a2' -Category 'SomeNewCategory' -Operation 'Reset' -Result 'timeout')
+                (New-MockAudit -Id 'a3' -Category 'UserManagement' -Operation 'Add' -Result 'failure')
+            )
         }
 
         Invoke-CollectorScript 'Get-DirectoryAudits.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
@@ -488,11 +600,94 @@ Describe 'What each collector keeps' {
         $rows[0].InitiatedByUserPrincipalName | Should -Be 'admin.alvarez@example.com'
         $rows[0].ModifiedProperties | Should -Match 'State'
     }
+
+    It 'reads a Graph JSON sign-in, including errorCode 0, a home UPN and reportOnlySuccess' {
+        # The list response is JSON. Invoke-MgGraphRequest returns that shape, not a simplified object.
+        # https://learn.microsoft.com/graph/api/signin-list
+        # https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy
+        $global:EntraSignInHandler = {
+            param($Uri)
+            New-GraphPage @{
+                id                      = 'json-1'
+                createdDateTime         = '2026-09-10T06:05:00Z'
+                userId                  = '00000000-0000-0000'
+                userPrincipalName       = 'adelev@example.com'
+                appId                   = '00000002-0000-0ff1-ce00-000000000000'
+                appDisplayName          = 'Graph explorer'
+                resourceDisplayName     = 'Microsoft Graph'
+                ipAddress               = '203.0.113.20'
+                clientAppUsed           = 'Browser'
+                isInteractive           = $true
+                conditionalAccessStatus = 'success'
+                riskDetail              = 'none'
+                riskLevelAggregated     = 'hidden'
+                riskLevelDuringSignIn   = 'hidden'
+                riskState               = 'none'
+                signInEventTypes        = @('interactiveUser')
+                location                = @{ city = 'Redmond'; state = 'Washington'; countryOrRegion = 'US' }
+                deviceDetail            = @{ operatingSystem = 'Windows 10'; browser = 'Edge 80.0.361'; isCompliant = $false; isManaged = $false }
+                status                  = @{ errorCode = 0; failureReason = $null; additionalDetails = $null }
+                appliedConditionalAccessPolicies = @(
+                    @{ id = 'policy-json'; displayName = 'Report-only compliant device'; result = 'reportOnlySuccess'; enforcedGrantControls = @('compliantDevice'); enforcedSessionControls = @() }
+                )
+            }
+        }
+        Mock Get-MgContext -MockWith { [pscustomobject]@{ Scopes = @('Policy.Read.ConditionalAccess') } }
+
+        Invoke-CollectorScript 'Get-SignInConditionalAccess.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+        Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = (Join-Path $script:folder 'signins') })
+
+        $signIn = Import-Csv -LiteralPath (Join-Path $script:folder 'signins/signins-interactive.csv')
+        $signIn.ErrorCode | Should -Be '0'
+        $signIn.UserPrincipalName | Should -Be 'adelev@example.com'
+        $signIn.UserId | Should -Be '00000000-0000-0000'
+        $signIn.City | Should -Be 'Redmond'
+        $signIn.DeviceIsCompliant | Should -Be 'False'
+        $signIn.IpAddress | Should -Be '203.0.113.20'
+        $policy = Import-Csv -LiteralPath (Join-Path $script:folder 'signin-conditional-access.csv')
+        $policy.PolicyResult | Should -Be 'reportOnlySuccess'
+        $policy.EnforcedGrantControls | Should -Be 'compliantDevice'
+        $policy.PolicyDetailReadable | Should -Be 'True'
+    }
+
+    It 'keeps a directory-audit target type of Application and does not rewrite it to App' {
+        # https://learn.microsoft.com/graph/api/resources/targetresource
+        $global:EntraAuditHandler = {
+            param($Uri)
+            New-GraphPage @{
+                id                  = 'SSGM_b662f17a-4e4d-4e1c-9248-cdec180024b2_MCDC4_88453290'
+                activityDateTime    = '2026-09-10T09:00:00Z'
+                activityDisplayName = 'Add application'
+                category            = 'ApplicationManagement'
+                operationType       = 'Add'
+                result              = 'success'
+                resultReason        = $null
+                loggedByService     = 'Core Directory'
+                correlationId       = 'dddddddd-0000-4000-8000-000000000099'
+                initiatedBy         = @{
+                    app = @{ appId = 'ffffffff-0000-4000-8000-000000000001'; displayName = 'Provisioning Sample App' }
+                    user = $null
+                }
+                targetResources     = @(
+                    @{ id = 'app-1'; type = 'Application'; displayName = 'Sample App'; userPrincipalName = $null; modifiedProperties = @() }
+                )
+            }
+        }
+
+        Invoke-CollectorScript 'Get-DirectoryAudits.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'directory-audits.csv')
+        $row.TargetResourceTypes | Should -Be 'Application'
+        $row.Id | Should -Be 'SSGM_b662f17a-4e4d-4e1c-9248-cdec180024b2_MCDC4_88453290'
+        $row.InitiatedByAppDisplayName | Should -Be 'Provisioning Sample App'
+        $row.OperationType | Should -Be 'Add'
+    }
 }
 
 Describe 'An event collector resumes from its watermark' {
     BeforeEach {
         $script:folder = New-TestFolder
+        Reset-GraphHandlers
         Mock Connect-M365Service -MockWith { }
     }
     AfterEach {
@@ -506,19 +701,27 @@ Describe 'An event collector resumes from its watermark' {
         @{ Script = 'Get-DirectoryAudits.ps1'; Csv = 'directory-audits.csv'; Cmdlet = 'Get-MgAuditLogDirectoryAudit'; Builder = 'New-MockAudit'; Column = 'ActivityDateTime'; Name = 'activityDateTime' }
     ) {
         $builder = $Builder
-        Mock -CommandName $Cmdlet -MockWith { & $builder -Id 'row-1' -At ([datetime]'2026-09-10T06:05:00Z') }
+        $assign = {
+            param([object[]]$Rows)
+            $global:EntraRows = @($Rows)
+            $handler = { param($Uri) @{ value = @($global:EntraRows) } }
+            if ($Cmdlet -eq 'Get-MgBetaAuditLogSignIn') { $global:EntraBetaHandler = $handler }
+            elseif ($Cmdlet -eq 'Get-MgAuditLogDirectoryAudit') { $global:EntraAuditHandler = $handler }
+            else { $global:EntraSignInHandler = $handler }
+        }
+        & $assign (& $builder -Id 'row-1' -At ([datetime]'2026-09-10T06:05:00Z'))
         Invoke-CollectorScript $Script @{
             OutputPath = $script:folder; StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-10T12:00:00Z'
         }
 
-        Mock -CommandName $Cmdlet -MockWith {
-            & $builder -Id 'row-1' -At ([datetime]'2026-09-10T06:05:00Z')
-            & $builder -Id 'row-2' -At ([datetime]'2026-09-10T08:00:00Z')
-        }
+        & $assign @(
+            (& $builder -Id 'row-1' -At ([datetime]'2026-09-10T06:05:00Z'))
+            (& $builder -Id 'row-2' -At ([datetime]'2026-09-10T08:00:00Z'))
+        )
         Invoke-CollectorScript $Script @{ OutputPath = $script:folder; EndDate = [datetime]'2026-09-10T12:00:00Z' }
 
         $expected = "$Name ge 2026-09-10T06:05:00Z"
-        Should -Invoke -CommandName $Cmdlet -ParameterFilter { $Filter.Contains($expected) }
+        Should -Invoke Invoke-MgGraphRequest -ParameterFilter { ([uri]::UnescapeDataString([string]$Uri)).Contains($expected) }
         $csv = Join-Path $script:folder $Csv
         @(Import-Csv -LiteralPath $csv | Where-Object { $_.$Column -eq '2026-09-10T06:05:00Z' }).Count | Should -BeGreaterThan 0
         $keys = @(Import-Csv -LiteralPath $csv | ForEach-Object { if ($_.PSObject.Properties['SignInId']) { $_.SignInId } else { $_.Id } }) | Sort-Object -Unique
@@ -526,9 +729,10 @@ Describe 'An event collector resumes from its watermark' {
     }
 
     It 'keeps complete windows and stops, with an error, when a later window fails' {
-        Mock Get-MgAuditLogSignIn -MockWith {
-            if ($Filter -match 'createdDateTime ge 2026-09-11') { throw 'Request timed out.' }
-            New-MockSignIn -Id 'signin-1'
+        $global:EntraSignInHandler = {
+            param($Uri)
+            if (([uri]::UnescapeDataString($Uri)) -match 'createdDateTime ge 2026-09-11') { throw 'Request timed out.' }
+            New-GraphPage (New-MockSignIn -Id 'signin-1')
         }
 
         { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{
@@ -540,7 +744,6 @@ Describe 'An event collector resumes from its watermark' {
     }
 
     It 'rejects an empty range that was asked for explicitly' {
-        Mock Get-MgAuditLogSignIn -MockWith { @() }
         { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{
                 OutputPath = $script:folder; StartDate = [datetime]'2026-09-12T00:00:00Z'; EndDate = [datetime]'2026-09-10T00:00:00Z'
             } } | Should -Throw '*range is empty*'
@@ -560,10 +763,11 @@ Describe 'An event collector resumes from its watermark' {
 function global:Get-MgBetaAuditLogSignIn { throw 'beta' }
 function global:Get-MgContext { throw 'context' }
 `$global:EntraFilters = [System.Collections.Generic.List[string]]::new()
-function global:Get-MgAuditLogSignIn {
+function global:Invoke-MgGraphRequest {
     [CmdletBinding()]
-    param([switch]`$All, [string]`$Filter, [int]`$Top, [hashtable]`$Headers)
-    `$global:EntraFilters.Add(`$Filter)
+    param([string]`$Method, [string]`$Uri, [hashtable]`$Headers, [string]`$OutputType)
+    `$global:EntraFilters.Add([uri]::UnescapeDataString([string]`$Uri))
+    return @{ value = @() }
 }
 & '$collector' -OutputPath '$out' -SkipConnect ``
     -StartDate ([datetime]::SpecifyKind([datetime]'2026-09-10T00:00:00', [DateTimeKind]::Unspecified)) ``
@@ -578,12 +782,12 @@ function global:Get-MgAuditLogSignIn {
     }
 
     It 'looks back -LookbackDays on a first run' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { @() }
-
         Invoke-CollectorScript 'Get-DirectoryAudits.ps1' @{ OutputPath = $script:folder; LookbackDays = 2 }
 
         $first = [datetime]::UtcNow.AddDays(-2).ToString('yyyy-MM-dd')
-        Should -Invoke Get-MgAuditLogDirectoryAudit -ParameterFilter { $Filter.StartsWith("activityDateTime ge $first") }
+        Should -Invoke Invoke-MgGraphRequest -ParameterFilter {
+            ([uri]::UnescapeDataString([string]$Uri)).Contains("activityDateTime ge $first")
+        }
     }
 }
 
@@ -628,9 +832,10 @@ Describe 'A source Microsoft documents as NotAvailable writes the header only' {
         $changed = $text -replace "Status = '(Available|Unverified)'", "Status = 'NotAvailable'"
         Set-Content -LiteralPath $script:notAvailable -Value $changed -Encoding utf8
         Mock Connect-MgGraph -ModuleName M365ReportLibrary -MockWith { }
-        Mock Get-MgAuditLogSignIn -MockWith { throw 'Get-MgAuditLogSignIn must not be called' }
-        Mock Get-MgBetaAuditLogSignIn -MockWith { throw 'Get-MgBetaAuditLogSignIn must not be called' }
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { throw 'Get-MgAuditLogDirectoryAudit must not be called' }
+        Reset-GraphHandlers
+        $global:EntraSignInHandler = { throw 'Get-MgAuditLogSignIn must not be called' }
+        $global:EntraBetaHandler = { throw 'Get-MgBetaAuditLogSignIn must not be called' }
+        $global:EntraAuditHandler = { throw 'Get-MgAuditLogDirectoryAudit must not be called' }
     }
     AfterEach {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
@@ -660,20 +865,23 @@ Describe 'An UNVERIFIED source is attempted with a warning' {
         $script:unverified = Join-Path $script:folder 'schema.psd1'
         Set-Content -LiteralPath $script:unverified -Value ($text -replace "Status = 'Available'", "Status = 'Unverified'") -Encoding utf8
         Mock Connect-M365Service -MockWith { }
+        Reset-GraphHandlers
     }
     AfterEach {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     It 'attempts an unverified sign-in source and warns' {
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
 
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{
             OutputPath = $script:folder; SchemaPath = $script:unverified
             StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-11T00:00:00Z'
         } 3>$null
 
-        Should -Invoke Get-MgAuditLogSignIn -Times 1 -Exactly -ParameterFilter { $All }
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter {
+            $Method -eq 'GET' -and $Headers['Prefer'] -eq 'include-unknown-enum-members'
+        }
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Count | Should -Be 1
         Get-LogText -Folder $script:folder | Should -Match 'UNVERIFIED'
     }
@@ -693,7 +901,7 @@ Describe 'An UNVERIFIED source is attempted with a warning' {
     }
 
     It 'does not warn about an Available source' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { New-MockAudit }
+        $global:EntraAuditHandler = { param($Uri) (New-GraphPage (New-MockAudit)) }
 
         Invoke-CollectorScript 'Get-DirectoryAudits.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 }
 
@@ -705,13 +913,15 @@ Describe 'A refusal is logged, not hidden' {
     BeforeEach {
         $script:folder = New-TestFolder
         Mock Connect-M365Service -MockWith { }
+        Reset-GraphHandlers
+        $script:oneDay = @{ StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-11T00:00:00Z' }
     }
     AfterEach {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     It 'a missing licence is a logged skip with the header only, saying "not licensed"' {
-        Mock Get-MgAuditLogSignIn -MockWith { throw 'Neither tenant is B2C or tenant doesn''t have premium license' }
+        $global:EntraSignInHandler = { throw 'Neither tenant is B2C or tenant doesn''t have premium license' }
 
         Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 } 3>$null
 
@@ -720,12 +930,81 @@ Describe 'A refusal is logged, not hidden' {
     }
 
     It 'any other failure is logged and does not report success' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { throw 'Insufficient privileges to complete the operation.' }
+        $global:EntraAuditHandler = { throw 'Insufficient privileges to complete the operation.' }
 
         { Invoke-CollectorScript 'Get-DirectoryAudits.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 } 3>$null } |
             Should -Throw '*failed*'
 
         Get-LogText -Folder $script:folder | Should -Match 'Insufficient privileges'
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly
+    }
+
+    It 'retries a 429 on the same URL, waits Retry-After, and does not call it a missing licence' {
+        # https://learn.microsoft.com/graph/throttling
+        # https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits
+        $global:EntraTries = 0
+        $global:EntraSlept = @()
+        Mock Start-Sleep { $global:EntraSlept += $Seconds }
+        $global:EntraSignInHandler = {
+            param($Uri)
+            $global:EntraTries++
+            if ($global:EntraTries -eq 1) {
+                throw 'Response status code does not indicate success: 429 (Too Many Requests). Retry-After: 12 nextLink=https://evil.example/retry'
+            }
+            New-GraphPage (New-MockSignIn -Id 'after-throttle')
+        }
+
+        Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+
+        $global:EntraSlept | Should -Be @(12)
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Id | Should -Be 'after-throttle'
+        Get-LogText -Folder $script:folder | Should -Match 'HTTP 429'
+        Get-LogText -Folder $script:folder | Should -Not -Match 'not licensed'
+        Should -Invoke Invoke-MgGraphRequest -Times 0 -Exactly -ParameterFilter { $Uri -match 'evil.example' }
+        Should -Invoke Invoke-MgGraphRequest -Times 2 -Exactly
+    }
+
+    It 'does not retry HTTP 401' {
+        $global:EntraSignInHandler = { throw 'Response status code does not indicate success: 401 (Unauthorized).' }
+
+        { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{ OutputPath = $script:folder; LookbackDays = 1 } } |
+            Should -Throw '*401*'
+        Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly
+        Get-LogText -Folder $script:folder | Should -Not -Match 'not licensed'
+    }
+
+    It 'halves a window that stays throttled and keeps both halves' {
+        # If the 429 continues, shorten the timespan. Windows here are at most 24 hours.
+        # https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits
+        Mock Start-Sleep { }
+        $global:EntraHalf = 0
+        $global:EntraSignInHandler = {
+            param($Uri)
+            $decoded = [uri]::UnescapeDataString($Uri)
+            if ($decoded -match '2026-09-10T00:00:00Z' -and $decoded -match '2026-09-11T00:00:00Z') {
+                throw 'Response status code does not indicate success: 429 (Too Many Requests). Retry-After: 1'
+            }
+            $global:EntraHalf++
+            New-GraphPage (New-MockSignIn -Id "half-$global:EntraHalf")
+        }
+
+        Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' ($script:oneDay + @{ OutputPath = $script:folder })
+
+        $ids = @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv') | ForEach-Object Id | Sort-Object)
+        $ids | Should -Be @('half-1', 'half-2')
+        Get-LogText -Folder $script:folder | Should -Match 'Shortening the window'
+    }
+
+    It 'fails a one-hour window that stays throttled instead of writing it as empty' {
+        Mock Start-Sleep { }
+        $global:EntraSignInHandler = { throw 'Response status code does not indicate success: 429 (Too Many Requests). Retry-After: 1' }
+
+        { Invoke-CollectorScript 'Get-InteractiveSignIns.ps1' @{
+                OutputPath = $script:folder
+                StartDate  = [datetime]'2026-09-10T00:00:00Z'
+                EndDate    = [datetime]'2026-09-10T01:00:00Z'
+            } } | Should -Throw '*429*'
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'signins-interactive.csv')).Count | Should -Be 0
     }
 }
 
@@ -737,9 +1016,10 @@ Describe 'Run-All.ps1' {
         Mock Connect-MgGraph -ModuleName M365ReportLibrary -MockWith { }
         Mock Get-MgUser -ModuleName M365ReportLibrary -MockWith { @() }
         Mock Get-MgContext -MockWith { $null }
-        Mock Get-MgAuditLogSignIn -MockWith { New-MockSignIn }
-        Mock Get-MgBetaAuditLogSignIn -MockWith { New-MockSignIn -Interactive $false }
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { New-MockAudit }
+        Reset-GraphHandlers
+        $global:EntraSignInHandler = { param($Uri) (New-GraphPage (New-MockSignIn)) }
+        $global:EntraBetaHandler = { param($Uri) (New-GraphPage (New-MockSignIn -Interactive $false)) }
+        $global:EntraAuditHandler = { param($Uri) (New-GraphPage (New-MockAudit)) }
     }
     AfterEach {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
@@ -755,7 +1035,7 @@ Describe 'Run-All.ps1' {
     }
 
     It 'continues past a failing collector and then fails the run' {
-        Mock Get-MgAuditLogDirectoryAudit -MockWith { throw 'Insufficient privileges to complete the operation.' }
+        $global:EntraAuditHandler = { throw 'Insufficient privileges to complete the operation.' }
 
         { Invoke-CollectorScript 'Run-All.ps1' @{ OutputPath = $script:folder; StartDate = [datetime]'2026-09-10T00:00:00Z'; EndDate = [datetime]'2026-09-11T00:00:00Z' } 3>$null } |
             Should -Throw '*1 collector(s) stopped*'

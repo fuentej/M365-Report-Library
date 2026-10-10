@@ -15,9 +15,9 @@
         The sign-in log is read three times (interactive, non-interactive, and the
         Conditional Access detail) because each source is its own CSV. Graph throttles the
         identity and access reports to five requests per 10 seconds per app per tenant
-        (https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits);
-        the SDK waits the Retry-After seconds on a 429. If throttling persists, shorten
-        -StartDate/-EndDate.
+        (https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits).
+        A 429 waits Retry-After and retries that same request. If it persists, the window
+        is halved down to one hour. A window that still fails is not written.
 
     .EXAMPLE
         ./Run-All.ps1 -OutputPath ./out

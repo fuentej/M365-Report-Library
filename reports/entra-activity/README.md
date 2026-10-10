@@ -37,11 +37,11 @@ report ships its own collectors rather than sharing one.
 ## Before you run it
 
 ```powershell
-Install-Module Microsoft.Graph.Authentication, Microsoft.Graph.Reports, Microsoft.Graph.Beta.Reports -Scope CurrentUser
+Install-Module Microsoft.Graph.Authentication, Microsoft.Graph.Users -Scope CurrentUser
 ```
 
-`Microsoft.Graph.Beta.Reports` is needed only for `Get-NonInteractiveSignIns.ps1` (and
-`-IncludeNonInteractive`).
+Non-interactive sign-ins call `GET /beta/auditLogs/signIns` on the signed-in Graph
+host. That does not load `Microsoft.Graph.Beta.Reports`.
 
 ### Role and licence each collector needs
 
@@ -89,15 +89,30 @@ does not affect this report. If a page later reads it, treat GCC High as `UNVERI
 * **Not complete history.** Sign-in and audit logs hold 7 days on Free and 30 on P1 and P2.
   A first run reads at most that window; a daily run then builds more history than the
   source holds. After an upgrade from Free only the data still in the 7-day window is kept.
-* **Paging.** A sign-in page holds at most 1,000 rows; the audit page size is not stated.
-  Every collector follows `@odata.nextLink` to the end (`-All`). Each run is walked in
-  `-WindowHours` windows (default 24) filtered on `createdDateTime` or `activityDateTime`,
-  as the list pages advise.
-* **A 429 is a throttle, not an empty log.** Identity and access reports allow five
-  requests per 10 seconds per app per tenant ([limits](https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits)).
-  The Graph SDK waits the `Retry-After` seconds and retries. If throttling persists, pass a
-  shorter `-StartDate`/`-EndDate` range. A window that fails is not written; earlier
-  windows are kept and the next run resumes at the watermark.
+  If the free licence had no activity data, it can take up to three days to show after the
+  upgrade. Purview Audit (Premium) retains Entra audit logs only and does not extend
+  sign-in retention. Routing both logs to an Azure Monitor storage account is what lengthens
+  them
+  ([data retention](https://learn.microsoft.com/entra/identity/monitoring-health/reference-reports-data-retention)).
+* **Paging.** A sign-in page holds at most 1,000 rows (the maximum and the default), so the
+  request does not send `$top`. The list pages do not take `$skip` or `$select`. The audit
+  page size is not stated. Every page follows the full `@odata.nextLink` until it is absent
+  ([paging](https://learn.microsoft.com/graph/paging)). A repeated nextLink, or a nextLink
+  that is not on `graph.microsoft.com` or `graph.microsoft.us`, fails the window. Each run
+  is walked in `-WindowHours` windows (default 24) filtered on `createdDateTime` or
+  `activityDateTime`, as the list pages advise. Every page sends
+  `Prefer: include-unknown-enum-members`, including each nextLink page
+  ([SDK paging](https://learn.microsoft.com/graph/sdks/paging) does not forward that header).
+* **A 429 is a throttle, not an empty log.** Identity and access reports allow 122 requests
+  per 10 seconds per app and five per 10 seconds per app per tenant
+  ([limits](https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits)).
+  The collector waits the `Retry-After` seconds and retries that same request
+  ([throttling](https://learn.microsoft.com/graph/throttling)). It does not follow a
+  nextLink from the error, and a `DirectoryPageTokenNotFoundException` is not retried with
+  a different link. If the 429 continues, the window is halved down to one hour
+  (the reports guidance starts at three days and then shortens the span). A window that
+  still fails is not written; earlier windows are kept and the next run resumes at the
+  watermark. HTTP 401 and 403 are not retried.
 * **Source 2 is beta**, which Microsoft does not support for production applications. Ship
   `signins-interactive.csv` alone and say the report covers interactive sign-ins only if
   that is not acceptable. The filter is `nonInteractiveUser`; `ne 'interactiveUser'` is not
@@ -106,8 +121,11 @@ does not affect this report. If a page later reads it, treat GCC High as `UNVERI
   `conditionalAccessStatus` is returned but `appliedConditionalAccessPolicies` is dropped
   without an error. `PolicyDetailReadable` in `signin-conditional-access.csv` says whether the
   run held a Conditional Access read permission, so an empty policy list is not read as "no
-  policy applied". The report-only results need the `Prefer: include-unknown-enum-members`
-  header, which the SDK call does not send, so they can read `unknownFutureValue`.
+  policy applied". Report-only results (`reportOnlySuccess`, `reportOnlyFailure`,
+  `reportOnlyNotApplied`, `reportOnlyInterrupted`) are returned only when the request sends
+  `Prefer: include-unknown-enum-members`
+  ([appliedConditionalAccessPolicy](https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy)).
+  Every sign-in page sends that header. `unknownFutureValue` is kept when the service sends it.
 * **Error codes are kept as returned.** `ErrorCode` `0` is success; `1024` and other codes
   that are not 5 or 6 digits are kept. A `50058` may have no user, so a row with an empty
   `UserId` is a sign-in, not a gap. `UserPrincipalName` is lowercase and a guest is the home

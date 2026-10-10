@@ -9,9 +9,10 @@
         Source 1 of docs/candidates/entra-activity.md: Microsoft Graph list signIns, v1.0
         (https://learn.microsoft.com/graph/api/signin-list), available in all three clouds.
         v1.0 returns sign-ins that are interactive in nature plus successful federated
-        sign-ins; non-interactive history is Get-NonInteractiveSignIns.ps1. -All follows
-        @odata.nextLink; a page holds at most 1,000 sign-ins, so stopping after the first
-        page would drop the rest.
+        sign-ins; non-interactive history is Get-NonInteractiveSignIns.ps1. Each page is
+        read with Invoke-MgGraphRequest and the full @odata.nextLink is followed. A page
+        holds at most 1,000 sign-ins, so stopping after the first page would drop the rest.
+        The request sends Prefer: include-unknown-enum-members on every page.
 
         Each window is filtered on createdDateTime (UTC), as the list page advises, so no
         request asks for an unbounded span. Retention is 7 days (Free) or 30 days (P1, P2)
@@ -76,7 +77,9 @@ Invoke-EntraActivityEventCollector -Source InteractiveSignIns -CsvName 'signins-
     -License 'Microsoft Entra ID P1 or P2, the AuditLog.Read.All permission and the Reports Reader role' `
     -Fetch {
         param($from, $to)
-        Get-MgAuditLogSignIn -All -Filter "createdDateTime ge $from and createdDateTime lt $to" -ErrorAction Stop
+        Get-EntraActivityPagedValues -Version 'v1.0' -RelativePath 'auditLogs/signIns' `
+            -Filter "createdDateTime ge $from and createdDateTime lt $to" `
+            -OutputPath $OutputPath -LogSource 'signins-interactive'
     } `
     -Map { param($signIn) ConvertTo-SignInRow -SignIn $signIn } `
     @range

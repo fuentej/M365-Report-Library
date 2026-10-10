@@ -91,9 +91,29 @@ function Get-PropertyValue {
     param([AllowNull()]$Object, [Parameter(Mandatory)][string]$Name)
 
     if ($null -eq $Object) { return '' }
-    $value = Get-GraphAdditionalProperty -Object $Object -Name $Name
+    $value = Get-EntraField -Object $Object -Name $Name
     if ($null -eq $value) { return '' }
     return [string]$value
+}
+
+function Get-EntraField {
+    <#
+        .SYNOPSIS
+            One Graph property from a SDK object or from the hashtable Invoke-MgGraphRequest returns.
+    #>
+    [CmdletBinding()]
+    param([AllowNull()]$Object, [Parameter(Mandatory)][string]$Name)
+
+    if ($null -eq $Object) { return $null }
+    $value = Get-GraphAdditionalProperty -Object $Object -Name $Name
+    if ($null -ne $value) { return $value }
+    if ($Object -isnot [System.Collections.IDictionary]) { return $null }
+    foreach ($key in @($Object.Keys)) {
+        if ([string]::Equals([string]$key, $Name, [StringComparison]::OrdinalIgnoreCase)) {
+            return $Object[$key]
+        }
+    }
+    return $null
 }
 
 function Test-ConditionalAccessReadable {
@@ -145,6 +165,285 @@ function ConvertTo-EntraActivityUtc {
         return [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
     }
     return $Value.ToUniversalTime()
+}
+
+function Test-EntraGraphReadUri {
+    <#
+        .SYNOPSIS
+            True for a relative Graph URL or an absolute URL on a Microsoft Graph host.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][string]$Uri)
+
+    # Relative URLs use the signed-in host: graph.microsoft.com or graph.microsoft.us.
+    # https://learn.microsoft.com/graph/deployments
+    if ($Uri -notmatch '^[a-z][a-z0-9+.-]*://') { return $true }
+
+    $parsed = $null
+    if (-not [uri]::TryCreate($Uri, [UriKind]::Absolute, [ref]$parsed)) { return $false }
+    if ($parsed.Scheme -ne 'https') { return $false }
+    return $parsed.Host -eq 'graph.microsoft.com' -or $parsed.Host -eq 'graph.microsoft.us'
+}
+
+function Get-EntraGraphJsonValue {
+    <#
+        .SYNOPSIS
+            One key from a Graph page. The name is not a dotted path, so @odata.nextLink works.
+    #>
+    [CmdletBinding()]
+    param([AllowNull()]$Object, [Parameter(Mandatory)][string]$Name)
+
+    if ($null -eq $Object) { return $null }
+    if ($Object -is [System.Collections.IDictionary]) {
+        foreach ($key in @($Object.Keys)) {
+            if ([string]::Equals([string]$key, $Name, [StringComparison]::OrdinalIgnoreCase)) {
+                return $Object[$key]
+            }
+        }
+        return $null
+    }
+    $property = $Object.PSObject.Properties[$Name]
+    if ($property) { return $property.Value }
+    return $null
+}
+
+function Get-EntraGraphHttpStatus {
+    <#
+        .SYNOPSIS
+            The HTTP status on a failed Graph read, or $null.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$ErrorRecord)
+
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $status = $response.Value.PSObject.Properties['StatusCode']
+        if ($status -and $null -ne $status.Value) { return [int]$status.Value }
+    }
+    if ($ErrorRecord.Exception.Message -match '\b(401|403|404|429|503)\b') {
+        return [int]$Matches[1]
+    }
+    return $null
+}
+
+function Get-EntraGraphRetryDelaySeconds {
+    <#
+        .SYNOPSIS
+            Seconds to wait before repeating the same throttled request.
+
+        .DESCRIPTION
+            Wait the Retry-After seconds. Do not retry immediately.
+            https://learn.microsoft.com/graph/throttling
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$ErrorRecord, [Parameter(Mandatory)][int]$Attempt)
+
+    $delay = [int][math]::Min(60, [math]::Pow(2, $Attempt - 1))
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $headers = $response.Value.PSObject.Properties['Headers']
+        if (-not $headers -or $null -eq $headers.Value) { continue }
+
+        $retryAfter = $headers.Value.PSObject.Properties['RetryAfter']
+        if ($retryAfter -and $retryAfter.Value) {
+            $delta = $retryAfter.Value.PSObject.Properties['Delta']
+            if ($delta -and $null -ne $delta.Value) {
+                $delay = [int][math]::Ceiling($delta.Value.TotalSeconds)
+                break
+            }
+        }
+
+        $named = $null
+        if ($headers.Value -is [System.Collections.IDictionary] -and $headers.Value.Contains('Retry-After')) {
+            $named = [string]$headers.Value['Retry-After']
+        }
+        if (-not [string]::IsNullOrWhiteSpace($named)) {
+            $seconds = 0
+            if ([int]::TryParse($named, [ref]$seconds) -and $seconds -gt 0) { $delay = $seconds }
+        }
+    }
+
+    if ($ErrorRecord.Exception.Message -match 'Retry-After:\s*(\d+)') {
+        $stated = [int]$Matches[1]
+        if ($stated -gt $delay) { $delay = $stated }
+    }
+
+    if ($delay -lt 1) { return 1 }
+    return $delay
+}
+
+function Test-EntraActivityThrottle {
+    <#
+        .SYNOPSIS
+            True when a failed read is HTTP 429 or 503, which is throttling, not an empty log.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)]$ErrorRecord)
+
+    $status = Get-EntraGraphHttpStatus -ErrorRecord $ErrorRecord
+    return ($status -eq 429 -or $status -eq 503)
+}
+
+function Invoke-EntraGraphGet {
+    <#
+        .SYNOPSIS
+            One Graph GET. HTTP 429 and 503 retry the same URL. A page token error does not.
+
+        .DESCRIPTION
+            Prefer: include-unknown-enum-members is sent on this request. Callers that follow
+            @odata.nextLink call this again so the header is on every page. The SDK page
+            iterator does not forward extra headers
+            (https://learn.microsoft.com/graph/sdks/paging).
+            A 429 waits Retry-After and retries this URL. It does not follow a nextLink
+            taken from the error. DirectoryPageTokenNotFoundException is not retried with
+            a different link (https://learn.microsoft.com/graph/paging).
+            401 and 403 are not retried.
+            https://learn.microsoft.com/graph/throttling
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [string]$OutputPath,
+        [string]$LogSource,
+        [int]$MaxAttempts = 4
+    )
+
+    if (-not (Test-EntraGraphReadUri -Uri $Uri)) {
+        throw "Refusing to request a page outside Microsoft Graph: $Uri"
+    }
+
+    $headers = @{ Prefer = 'include-unknown-enum-members' }
+    for ($attempt = 1; ; $attempt++) {
+        try {
+            return Invoke-MgGraphRequest -Method GET -Uri $Uri -Headers $headers -OutputType Hashtable -ErrorAction Stop
+        }
+        catch {
+            if ($_.Exception.Message -match 'DirectoryPageTokenNotFoundException') { throw }
+            $status = Get-EntraGraphHttpStatus -ErrorRecord $_
+            if (($status -ne 429 -and $status -ne 503) -or $attempt -ge $MaxAttempts) { throw }
+            $delay = Get-EntraGraphRetryDelaySeconds -ErrorRecord $_ -Attempt $attempt
+            if ($OutputPath -and $LogSource) {
+                Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (
+                    'HTTP {0}. Waiting {1} seconds before attempt {2} of the same request.' -f $status, $delay, ($attempt + 1))
+            }
+            Start-Sleep -Seconds $delay
+        }
+    }
+}
+
+function New-EntraActivityListUri {
+    <#
+        .SYNOPSIS
+            The first-page URL for a sign-in or directory-audit window.
+
+        .DESCRIPTION
+            Sign-in optional parameters are `$top`, `$skiptoken` and `$filter`. The page
+            size maximum and default is 1,000, so this URL does not send `$top`. It does
+            not send `$skip` or `$select`. Directory audits also do not list `$skip`.
+            https://learn.microsoft.com/graph/api/signin-list
+            https://learn.microsoft.com/graph/api/directoryaudit-list
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][ValidateSet('v1.0', 'beta')][string]$Version,
+        [Parameter(Mandatory)][string]$RelativePath,
+        [Parameter(Mandatory)][string]$Filter
+    )
+
+    if ($RelativePath -notin @('auditLogs/signIns', 'auditLogs/directoryAudits')) {
+        throw "Unsupported Entra activity path '$RelativePath'."
+    }
+    if ([string]::IsNullOrWhiteSpace($Filter)) {
+        throw 'A time-range filter is required so the list request cannot time out.'
+    }
+
+    $encoded = [uri]::EscapeDataString($Filter)
+    return "/$Version/$RelativePath`?`$filter=$encoded"
+}
+
+function Get-EntraActivityPagedValues {
+    <#
+        .SYNOPSIS
+            Every object in a sign-in or directory-audit window, following @odata.nextLink.
+
+        .DESCRIPTION
+            The nextLink URL is requested as returned. A repeated nextLink throws. A host
+            other than graph.microsoft.com or graph.microsoft.us throws.
+            https://learn.microsoft.com/graph/paging
+            https://learn.microsoft.com/graph/deployments
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Version,
+        [Parameter(Mandatory)][string]$RelativePath,
+        [Parameter(Mandatory)][string]$Filter,
+        [string]$OutputPath,
+        [string]$LogSource
+    )
+
+    $next = New-EntraActivityListUri -Version $Version -RelativePath $RelativePath -Filter $Filter
+    $visited = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    while (-not [string]::IsNullOrWhiteSpace($next)) {
+        if (-not (Test-EntraGraphReadUri -Uri $next)) {
+            throw "Refusing to request a page outside Microsoft Graph: $next"
+        }
+        if (-not $visited.Add($next)) {
+            throw "Graph returned a nextLink that was already requested: $next"
+        }
+        $page = Invoke-EntraGraphGet -Uri $next -OutputPath $OutputPath -LogSource $LogSource
+        foreach ($item in @(Get-EntraGraphJsonValue -Object $page -Name 'value')) {
+            if ($null -ne $item) { , $item }
+        }
+        $next = [string](Get-EntraGraphJsonValue -Object $page -Name '@odata.nextLink')
+    }
+}
+
+function Get-EntraActivityWindowItems {
+    <#
+        .SYNOPSIS
+            Reads one time window, and halves it when throttling persists.
+
+        .DESCRIPTION
+            Identity and access reports are limited to five requests per 10 seconds per
+            app per tenant. If a 429 continues, shorten the timespan. The reports page
+            starts at three days; these collectors already use windows of at most 24 hours
+            and halve a throttled window down to one hour.
+            https://learn.microsoft.com/graph/throttling-limits#identity-and-access-reports-service-limits
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][scriptblock]$Fetch,
+        [Parameter(Mandatory)][datetime]$Start,
+        [Parameter(Mandatory)][datetime]$End,
+        [string]$OutputPath,
+        [string]$LogSource
+    )
+
+    try {
+        return @(& $Fetch (ConvertTo-CsvTimestamp $Start) (ConvertTo-CsvTimestamp $End))
+    }
+    catch {
+        $span = ($End - $Start).TotalMinutes
+        if (-not (Test-EntraActivityThrottle -ErrorRecord $_) -or $span -le 60) { throw }
+        $mid = $Start.AddMinutes($span / 2)
+        if ($OutputPath -and $LogSource) {
+            Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (
+                'HTTP 429 persisted for {0} to {1}. Shortening the window and reading each half.' -f
+                (ConvertTo-CsvTimestamp $Start), (ConvertTo-CsvTimestamp $End))
+        }
+        $left = @(Get-EntraActivityWindowItems -Fetch $Fetch -Start $Start -End $mid -OutputPath $OutputPath -LogSource $LogSource)
+        $right = @(Get-EntraActivityWindowItems -Fetch $Fetch -Start $mid -End $End -OutputPath $OutputPath -LogSource $LogSource)
+        return @($left + $right)
+    }
 }
 
 function Invoke-EntraActivityEventCollector {
@@ -264,7 +563,7 @@ function Invoke-EntraActivityEventCollector {
 
     foreach ($window in Split-DateRange -Start $start -End $end -WindowMinutes ($WindowHours * 60)) {
         try {
-            $items = @(& $Fetch (ConvertTo-CsvTimestamp $window.Start) (ConvertTo-CsvTimestamp $window.End))
+            $items = @(Get-EntraActivityWindowItems -Fetch $Fetch -Start $window.Start -End $window.End -OutputPath $OutputPath -LogSource $log)
         }
         catch {
             $failure = $_.Exception.Message
@@ -305,47 +604,43 @@ function ConvertTo-SignInRow {
 
         .DESCRIPTION
             Property names follow https://learn.microsoft.com/graph/api/resources/signin#properties.
-            Nested objects (location, deviceDetail, status) are read through
-            Get-GraphAdditionalProperty because the SDK may place them in AdditionalProperties.
+            Invoke-MgGraphRequest returns a hashtable of the JSON, so nested objects are
+            read by their Graph names. errorCode is kept as returned, including 0.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)]$SignIn)
 
-    $location = $SignIn.PSObject.Properties['Location']
-    $device = $SignIn.PSObject.Properties['DeviceDetail']
-    $status = $SignIn.PSObject.Properties['Status']
-    $locationValue = if ($location) { $location.Value } else { $null }
-    $deviceValue = if ($device) { $device.Value } else { $null }
-    $statusValue = if ($status) { $status.Value } else { $null }
-
-    $eventTypes = Get-GraphAdditionalProperty -Object $SignIn -Name 'signInEventTypes'
+    $locationValue = Get-EntraField -Object $SignIn -Name 'location'
+    $deviceValue = Get-EntraField -Object $SignIn -Name 'deviceDetail'
+    $statusValue = Get-EntraField -Object $SignIn -Name 'status'
+    $eventTypes = Get-EntraField -Object $SignIn -Name 'signInEventTypes'
 
     [pscustomobject]@{
-        CreatedDateTime         = ConvertTo-CsvTimestamp $SignIn.CreatedDateTime
-        Id                      = $SignIn.Id
-        UserId                  = $SignIn.UserId
-        UserPrincipalName       = $SignIn.UserPrincipalName
-        AppId                   = $SignIn.AppId
-        AppDisplayName          = $SignIn.AppDisplayName
-        ResourceDisplayName     = $SignIn.ResourceDisplayName
-        IpAddress               = $SignIn.IPAddress
+        CreatedDateTime         = ConvertTo-CsvTimestamp (Get-EntraField -Object $SignIn -Name 'createdDateTime')
+        Id                      = Get-PropertyValue $SignIn 'id'
+        UserId                  = Get-PropertyValue $SignIn 'userId'
+        UserPrincipalName       = Get-PropertyValue $SignIn 'userPrincipalName'
+        AppId                   = Get-PropertyValue $SignIn 'appId'
+        AppDisplayName          = Get-PropertyValue $SignIn 'appDisplayName'
+        ResourceDisplayName     = Get-PropertyValue $SignIn 'resourceDisplayName'
+        IpAddress               = Get-PropertyValue $SignIn 'ipAddress'
         City                    = Get-PropertyValue $locationValue 'city'
         State                   = Get-PropertyValue $locationValue 'state'
         CountryOrRegion         = Get-PropertyValue $locationValue 'countryOrRegion'
-        ClientAppUsed           = $SignIn.ClientAppUsed
+        ClientAppUsed           = Get-PropertyValue $SignIn 'clientAppUsed'
         DeviceOperatingSystem   = Get-PropertyValue $deviceValue 'operatingSystem'
         DeviceBrowser           = Get-PropertyValue $deviceValue 'browser'
         DeviceIsCompliant       = Get-PropertyValue $deviceValue 'isCompliant'
         DeviceIsManaged         = Get-PropertyValue $deviceValue 'isManaged'
-        IsInteractive           = $SignIn.IsInteractive
+        IsInteractive           = Get-PropertyValue $SignIn 'isInteractive'
         SignInEventTypes        = Join-ListValue $eventTypes
         ErrorCode               = Get-PropertyValue $statusValue 'errorCode'
         FailureReason           = Get-PropertyValue $statusValue 'failureReason'
         AdditionalDetails       = Get-PropertyValue $statusValue 'additionalDetails'
-        ConditionalAccessStatus = [string]$SignIn.ConditionalAccessStatus
-        RiskDetail              = [string]$SignIn.RiskDetail
-        RiskLevelAggregated     = [string]$SignIn.RiskLevelAggregated
-        RiskLevelDuringSignIn   = [string]$SignIn.RiskLevelDuringSignIn
-        RiskState               = [string]$SignIn.RiskState
+        ConditionalAccessStatus = Get-PropertyValue $SignIn 'conditionalAccessStatus'
+        RiskDetail              = Get-PropertyValue $SignIn 'riskDetail'
+        RiskLevelAggregated     = Get-PropertyValue $SignIn 'riskLevelAggregated'
+        RiskLevelDuringSignIn   = Get-PropertyValue $SignIn 'riskLevelDuringSignIn'
+        RiskState               = Get-PropertyValue $SignIn 'riskState'
     }
 }

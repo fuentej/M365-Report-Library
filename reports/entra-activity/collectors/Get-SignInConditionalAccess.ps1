@@ -21,11 +21,12 @@
         This collector asks for Policy.Read.All when it signs in interactively, and each
         row records PolicyDetailReadable from the permissions the session holds.
 
-        The report-only results (reportOnlySuccess and three more) are returned only with
-        the header "Prefer: include-unknown-enum-members"
-        (https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy);
-        the SDK cmdlet call here does not send it, so a report-only result can read as
-        unknownFutureValue. Conditional Access itself needs Entra ID P1.
+        The report-only results (reportOnlySuccess, reportOnlyFailure, reportOnlyNotApplied
+        and reportOnlyInterrupted) are returned only with the header
+        "Prefer: include-unknown-enum-members"
+        (https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy).
+        Every page sends that header, including each @odata.nextLink page. Conditional
+        Access itself needs Entra ID P1.
 
     .EXAMPLE
         ./Get-SignInConditionalAccess.ps1 -OutputPath ./out -LookbackDays 7
@@ -87,25 +88,28 @@ Invoke-EntraActivityEventCollector -Source SignInConditionalAccess -CsvName 'sig
     -BeforeFetch { param($schema) Test-ConditionalAccessReadable -Schema $schema } `
     -Fetch {
         param($from, $to)
-        Get-MgAuditLogSignIn -All -Filter "createdDateTime ge $from and createdDateTime lt $to" -ErrorAction Stop
+        Get-EntraActivityPagedValues -Version 'v1.0' -RelativePath 'auditLogs/signIns' `
+            -Filter "createdDateTime ge $from and createdDateTime lt $to" `
+            -OutputPath $OutputPath -LogSource 'signin-conditional-access'
         if ($includeBeta) {
             $filter = "(createdDateTime ge $from and createdDateTime lt $to) and signInEventTypes/any(t: t eq '$eventType')"
-            Get-MgBetaAuditLogSignIn -All -Filter $filter -ErrorAction Stop
+            Get-EntraActivityPagedValues -Version 'beta' -RelativePath 'auditLogs/signIns' -Filter $filter `
+                -OutputPath $OutputPath -LogSource 'signin-conditional-access'
         }
     } `
     -Map {
         param($signIn, $readable)
 
         $base = [ordered]@{
-            CreatedDateTime         = ConvertTo-CsvTimestamp $signIn.CreatedDateTime
-            SignInId                = $signIn.Id
-            UserId                  = $signIn.UserId
-            IsInteractive           = $signIn.IsInteractive
-            ConditionalAccessStatus = [string]$signIn.ConditionalAccessStatus
+            CreatedDateTime         = ConvertTo-CsvTimestamp (Get-EntraField -Object $signIn -Name 'createdDateTime')
+            SignInId                = Get-PropertyValue $signIn 'id'
+            UserId                  = Get-PropertyValue $signIn 'userId'
+            IsInteractive           = Get-PropertyValue $signIn 'isInteractive'
+            ConditionalAccessStatus = Get-PropertyValue $signIn 'conditionalAccessStatus'
             PolicyDetailReadable    = [bool]$readable
         }
 
-        $policies = @(Get-GraphAdditionalProperty -Object $signIn -Name 'appliedConditionalAccessPolicies' | Where-Object { $null -ne $_ })
+        $policies = @(Get-EntraField -Object $signIn -Name 'appliedConditionalAccessPolicies' | Where-Object { $null -ne $_ })
         if ($policies.Count -eq 0) {
             # Keep the status. Whether "no policies" means none applied depends on
             # PolicyDetailReadable.
@@ -121,8 +125,8 @@ Invoke-EntraActivityEventCollector -Source SignInConditionalAccess -CsvName 'sig
                     PolicyId                = Get-PropertyValue $policy 'id'
                     PolicyDisplayName       = Get-PropertyValue $policy 'displayName'
                     PolicyResult            = Get-PropertyValue $policy 'result'
-                    EnforcedGrantControls   = Join-ListValue (Get-GraphAdditionalProperty -Object $policy -Name 'enforcedGrantControls')
-                    EnforcedSessionControls = Join-ListValue (Get-GraphAdditionalProperty -Object $policy -Name 'enforcedSessionControls')
+                    EnforcedGrantControls   = Join-ListValue (Get-EntraField -Object $policy -Name 'enforcedGrantControls')
+                    EnforcedSessionControls = Join-ListValue (Get-EntraField -Object $policy -Name 'enforcedSessionControls')
                 })
         }
     } `

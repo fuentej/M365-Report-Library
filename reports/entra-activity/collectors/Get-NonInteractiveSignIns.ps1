@@ -12,14 +12,16 @@
         API returns only interactive sign-ins unless signInEventTypes is filtered, so each
         window is filtered to 'nonInteractiveUser' (spelled as the list examples spell it).
         The filter is not `ne 'interactiveUser'`, which would also return service principal
-        and managed identity sign-ins.
+        and managed identity sign-ins. Pages are followed on @odata.nextLink, and every
+        page sends Prefer: include-unknown-enum-members.
 
         CAVEAT: Microsoft does not support beta APIs in production applications. A report
         that cannot accept that ships signins-interactive.csv alone and states that it
         covers interactive sign-ins only.
 
         Paging, windows, retention, licence and permissions are as for
-        Get-InteractiveSignIns.ps1. Needs the Microsoft.Graph.Beta.Reports module.
+        Get-InteractiveSignIns.ps1. The beta path is /beta/auditLogs/signIns on the
+        signed-in Graph host; it does not need the Microsoft.Graph.Beta.Reports module.
 
     .EXAMPLE
         ./Get-NonInteractiveSignIns.ps1 -OutputPath ./out -LookbackDays 7
@@ -76,7 +78,8 @@ Invoke-EntraActivityEventCollector -Source NonInteractiveSignIns -CsvName 'signi
     -Fetch {
         param($from, $to)
         $filter = "(createdDateTime ge $from and createdDateTime lt $to) and signInEventTypes/any(t: t eq '$eventType')"
-        Get-MgBetaAuditLogSignIn -All -Filter $filter -ErrorAction Stop
+        Get-EntraActivityPagedValues -Version 'beta' -RelativePath 'auditLogs/signIns' -Filter $filter `
+            -OutputPath $OutputPath -LogSource 'signins-noninteractive'
     } `
     -Map { param($signIn) ConvertTo-SignInRow -SignIn $signIn } `
     @range

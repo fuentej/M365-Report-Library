@@ -9,8 +9,9 @@
     .DESCRIPTION
         Source 4 of docs/candidates/entra-activity.md: Microsoft Graph list directoryAudits
         (https://learn.microsoft.com/graph/api/directoryaudit-list), available in all three
-        clouds. The page does not state a page size, so -All follows @odata.nextLink until
-        it is absent. Each window is filtered on activityDateTime (UTC).
+        clouds. The page does not state a page size, so each window follows the full
+        @odata.nextLink until it is absent. Each window is filtered on activityDateTime
+        (UTC). The request does not send `$skip` or `$select`.
 
         Every category (Conditional Access policy changes are category Policy),
         activityDisplayName, operationType and targetResources.type is kept as returned;
@@ -73,20 +74,21 @@ Invoke-EntraActivityEventCollector -Source DirectoryAudits -CsvName 'directory-a
     -License 'the AuditLog.Read.All permission and the Reports Reader, Security Administrator or Security Reader role' `
     -Fetch {
         param($from, $to)
-        Get-MgAuditLogDirectoryAudit -All -Filter "activityDateTime ge $from and activityDateTime lt $to" -ErrorAction Stop
+        Get-EntraActivityPagedValues -Version 'v1.0' -RelativePath 'auditLogs/directoryAudits' `
+            -Filter "activityDateTime ge $from and activityDateTime lt $to" `
+            -OutputPath $OutputPath -LogSource 'directory-audits'
     } `
     -Map {
         param($audit)
 
-        $initiatedBy = $audit.PSObject.Properties['InitiatedBy']
-        $initiator = if ($initiatedBy) { $initiatedBy.Value } else { $null }
-        $user = if ($initiator) { Get-GraphAdditionalProperty -Object $initiator -Name 'user' } else { $null }
-        $app = if ($initiator) { Get-GraphAdditionalProperty -Object $initiator -Name 'app' } else { $null }
+        $initiator = Get-EntraField -Object $audit -Name 'initiatedBy'
+        $user = if ($initiator) { Get-EntraField -Object $initiator -Name 'user' } else { $null }
+        $app = if ($initiator) { Get-EntraField -Object $initiator -Name 'app' } else { $null }
 
-        $targetsProperty = $audit.PSObject.Properties['TargetResources']
-        $targets = if ($targetsProperty -and $null -ne $targetsProperty.Value) { @($targetsProperty.Value) } else { @() }
+        $targetsValue = Get-EntraField -Object $audit -Name 'targetResources'
+        $targets = if ($null -ne $targetsValue) { @($targetsValue) } else { @() }
         $modified = @($targets | ForEach-Object {
-                $props = Get-GraphAdditionalProperty -Object $_ -Name 'modifiedProperties'
+                $props = Get-EntraField -Object $_ -Name 'modifiedProperties'
                 foreach ($p in @($props)) {
                     if ($null -eq $p) { continue }
                     [ordered]@{
@@ -98,15 +100,15 @@ Invoke-EntraActivityEventCollector -Source DirectoryAudits -CsvName 'directory-a
             })
 
         [pscustomobject]@{
-            ActivityDateTime                 = ConvertTo-CsvTimestamp $audit.ActivityDateTime
-            Id                               = $audit.Id
-            ActivityDisplayName              = $audit.ActivityDisplayName
-            Category                         = $audit.Category
-            OperationType                    = $audit.OperationType
-            Result                           = [string]$audit.Result
-            ResultReason                     = $audit.ResultReason
-            LoggedByService                  = $audit.LoggedByService
-            CorrelationId                    = $audit.CorrelationId
+            ActivityDateTime                 = ConvertTo-CsvTimestamp (Get-EntraField -Object $audit -Name 'activityDateTime')
+            Id                               = Get-PropertyValue $audit 'id'
+            ActivityDisplayName              = Get-PropertyValue $audit 'activityDisplayName'
+            Category                         = Get-PropertyValue $audit 'category'
+            OperationType                    = Get-PropertyValue $audit 'operationType'
+            Result                           = Get-PropertyValue $audit 'result'
+            ResultReason                     = Get-PropertyValue $audit 'resultReason'
+            LoggedByService                  = Get-PropertyValue $audit 'loggedByService'
+            CorrelationId                    = Get-PropertyValue $audit 'correlationId'
             InitiatedByUserId                = Get-PropertyValue $user 'id'
             InitiatedByUserPrincipalName     = Get-PropertyValue $user 'userPrincipalName'
             InitiatedByAppId                 = Get-PropertyValue $app 'appId'

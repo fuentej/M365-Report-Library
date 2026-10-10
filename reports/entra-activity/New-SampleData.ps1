@@ -76,7 +76,7 @@ function New-CaSample {
 $ca = @(
     New-CaSample 'a1000000-0000-4000-8000-000000000001' '2026-09-10T06:05:00Z' 'aaaaaaaa-0000-4000-8000-000000000001' $true 'success' 'cccccccc-0000-4000-8000-000000000001' 'Require MFA for all users' 'success' 'Mfa' '' $true
     New-CaSample 'a1000000-0000-4000-8000-000000000004' '2026-09-11T09:40:00Z' 'aaaaaaaa-0000-4000-8000-000000000003' $true 'failure' 'cccccccc-0000-4000-8000-000000000002' 'Block unmanaged devices' 'failure' 'Block' '' $true
-    New-CaSample 'a1000000-0000-4000-8000-000000000004' '2026-09-11T09:40:00Z' 'aaaaaaaa-0000-4000-8000-000000000003' $true 'failure' 'cccccccc-0000-4000-8000-000000000003' 'Report-only: require compliant device' 'unknownFutureValue' '' '' $true
+    New-CaSample 'a1000000-0000-4000-8000-000000000004' '2026-09-11T09:40:00Z' 'aaaaaaaa-0000-4000-8000-000000000003' $true 'failure' 'cccccccc-0000-4000-8000-000000000003' 'Report-only: require compliant device' 'reportOnlySuccess' '' '' $true
     New-CaSample 'a1000000-0000-4000-8000-000000000002' '2026-09-10T07:30:00Z' 'aaaaaaaa-0000-4000-8000-000000000002' $true 'notApplied' '' '' '' '' '' $false
 )
 Export-AppendCsv -Path (Join-Path $OutputPath 'signin-conditional-access.csv') -Rows $ca -Column $schema.SignInConditionalAccess -KeyColumn 'SignInId', 'PolicyId', 'PolicyDisplayName'
