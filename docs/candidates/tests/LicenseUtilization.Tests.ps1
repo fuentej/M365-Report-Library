@@ -43,4 +43,15 @@ Describe 'license utilization sources' {
         $script:Doc | Should -Match 'Org settings'
         $script:Doc | Should -Match 'By default, reports hide'
     }
+
+    It 'pages licensed users and the Microsoft 365 apps JSON report' {
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Licences' })
+        $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Users' })
+        $source1 | Should -Match 'only `\$select`'
+        $source2 | Should -Match 'follow `@odata.nextLink`'
+        $source2 | Should -Match '`\$skip` is not supported'
+        $source2 | Should -Match 'capped at 500'
+        $source2 | Should -Match 'DirectoryPageTokenNotFoundException'
+        $script:Doc | Should -Match 'One JSON page is not the full set'
+    }
 }
