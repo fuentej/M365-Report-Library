@@ -408,6 +408,72 @@ Describe 'Microsoft 365 apps usage follows its JSON paging' {
         { Invoke-CollectorScript 'Get-M365AppUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*already followed*'
     }
 
+    It 'reads reportPeriod and the app flags from inside details' {
+        # https://learn.microsoft.com/graph/api/reportroot-getm365appuserdetail
+        # The JSON example puts reportPeriod (a number) and the boolean flags inside
+        # details. A false flag is a value, not a missing column. The period in the
+        # response is kept even when -Period is a different day count.
+        Mock Invoke-MgGraphRequest -MockWith {
+            @{
+                value = @(@{
+                    reportRefreshDate   = '2020-06-30'
+                    userPrincipalName   = 'admin@contoso.com'
+                    lastActivationDate  = '2020-05-22'
+                    lastActivityDate    = '2020-06-30'
+                    details             = @(@{
+                        reportPeriod        = 7
+                        windows             = $true
+                        mac                 = $false
+                        mobile              = $true
+                        web                 = $false
+                        outlook             = $false
+                        word                = $false
+                        excel               = $false
+                        powerPoint          = $false
+                        oneNote             = $false
+                        teams               = $true
+                        outlookWindows      = $false
+                        wordWindows         = $false
+                        excelWindows        = $false
+                        powerPointWindows   = $false
+                        oneNoteWindows      = $false
+                        teamsWindows        = $true
+                        outlookMac          = $false
+                        wordMac             = $false
+                        excelMac            = $false
+                        powerPointMac       = $false
+                        oneNoteMac          = $false
+                        teamsMac            = $false
+                        outlookMobile       = $false
+                        wordMobile          = $false
+                        excelMobile         = $false
+                        powerPointMobile    = $false
+                        oneNoteMobile       = $false
+                        teamsMobile         = $true
+                        outlookWeb          = $false
+                        wordWeb             = $false
+                        excelWeb            = $false
+                        powerPointWeb       = $false
+                        oneNoteWeb          = $false
+                        teamsWeb            = $true
+                    })
+                })
+            }
+        }
+
+        Invoke-CollectorScript 'Get-M365AppUsage.ps1' @{ OutputPath = $script:folder; Period = 'D30' }
+
+        $row = @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-m365-apps.csv'))[0]
+        $row.UserPrincipalName | Should -Be 'admin@contoso.com'
+        $row.ReportPeriod | Should -Be '7'
+        $row.Windows | Should -Be 'True'
+        $row.Mac | Should -Be 'False'
+        $row.PowerPoint | Should -Be 'False'
+        $row.OutlookWindows | Should -Be 'False'
+        $row.TeamsWindows | Should -Be 'True'
+        $row.TeamsWeb | Should -Be 'True'
+    }
+
     It 'refuses a next link on another host' {
         Mock Invoke-MgGraphRequest -MockWith {
             @{ '@odata.nextLink' = 'https://evil.example.net/page2'; value = @(@{ userPrincipalName = 'one@example.com' }) }
