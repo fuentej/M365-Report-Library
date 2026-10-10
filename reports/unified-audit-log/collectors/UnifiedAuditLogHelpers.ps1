@@ -409,6 +409,9 @@ function Invoke-AuditThrottleRetry {
                 if ($retryAfter -and $retryAfter.Delta) { $wait = [math]::Ceiling($retryAfter.Delta.TotalSeconds) }
             }
             catch { Write-Verbose 'No Retry-After on the 429; backing off.' }
+            # A Retry-After of zero would retry at once. The audit query limits say not to.
+            # https://learn.microsoft.com/graph/throttling-limits#security-audit-log-query-service-limits
+            if ($wait -lt 1) { $wait = 1 }
             Start-Sleep -Seconds $wait
         }
     }

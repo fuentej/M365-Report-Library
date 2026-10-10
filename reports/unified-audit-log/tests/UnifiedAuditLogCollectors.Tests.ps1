@@ -614,6 +614,24 @@ Describe 'Graph Audit Search API (source 2)' {
         $global:AuTest.Sleeps | Should -Be @(7)
     }
 
+    It 'waits at least one second when Retry-After is zero' {
+        $response = [System.Net.Http.HttpResponseMessage]::new([System.Net.HttpStatusCode]429)
+        $response.Headers.RetryAfter = [System.Net.Http.Headers.RetryConditionHeaderValue]::new([timespan]::FromSeconds(0))
+        $global:AuTest.Throttle = [Microsoft.PowerShell.Commands.HttpResponseException]::new('Response status code does not indicate success: 429 (Too Many Requests).', $response)
+        Mock Invoke-MgGraphRequest {
+            if ($Method -eq 'POST') {
+                $global:AuTest.QueryCount++
+                if ($global:AuTest.QueryCount -eq 1) { throw $global:AuTest.Throttle }
+                return @{ id = 'q1' }
+            }
+            if ($Uri -like '*/records') { return @{ value = @() } }
+            return @{ status = 'succeeded' }
+        }
+        $start = [datetime]::new(2026, 10, 8, 0, 0, 0, [DateTimeKind]::Utc)
+        @(Get-AuditGraphSlice -Start $start -End $start.AddHours(1) -OutputPath $script:Out)
+        $global:AuTest.Sleeps | Should -Be @(1)
+    }
+
     It 'rethrows an error that is not a 429 without waiting' {
         Mock Invoke-MgGraphRequest { throw 'Forbidden: Insufficient privileges' }
         { Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 } } |
