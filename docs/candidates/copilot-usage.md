@@ -1,0 +1,127 @@
+# Candidate: Microsoft 365 Copilot usage
+
+Status: sources verified against Microsoft Learn; nothing built. Written for BRO-384 so the build issue
+(BRO-390) can be written without guessing. Nothing here was run against a tenant. Pages read 2026-10-10.
+
+Cloud names follow the library: `Commercial`, `GCC`, `GCCHigh` (`-Environment`). Graph uses
+`https://graph.microsoft.com` for Commercial and GCC and `Connect-MgGraph -Environment USGov` for GCC High
+([national cloud deployments](https://learn.microsoft.com/graph/deployments)). Every Graph page cited below
+carries a national-cloud table; "US Government L4" is the GCC High column, and GCC calls the global endpoint.
+
+## How to read the table
+
+* `Available` / `NotAvailable` appear only where a Microsoft page says so; the link is in the cell.
+* `UNVERIFIED` means no Microsoft page found says either way. The collector should ask for the data and
+  record a refusal in `run.log`, as the existing reports do.
+* Sources 1 and 9 are not re-specified here. They are [license utilization](license-utilization.md) sources 1, 2
+  and 6 (BRO-364, build BRO-374); this report reuses them.
+* **The headline finding:** the three Copilot usage report APIs (sources 2 to 4) are marked `❌` for US
+  Government L4 on their Learn pages, so they are `NotAvailable` through Graph in GCC High. The same numbers exist
+  in the Microsoft 365 admin center for GCC and GCC High (source 5), but no page read says they can be read by a
+  script there. The one source with a Learn page that marks US Government L4 `✅` and returns Copilot records is
+  the interaction export API (source 8), which returns prompts and responses, not counts. This report is therefore
+  a full report in Commercial and GCC, and in GCC High a licence inventory plus audit and interaction records with
+  no usage-report numbers unless the admin center is used by hand.
+* **Copilot itself is offered in all three clouds, but not feature for feature.** Microsoft Copilot is listed for
+  Commercial, GCC, GCC High and DoD; Copilot in Teams (chat, channel, meetings) and Copilot in SharePoint are
+  `Not currently available` in GCC High on the [service description](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability).
+  A GCC High tenant with no Teams or SharePoint Copilot activity is expected, not a collection gap (source 10).
+
+## Sources
+
+| # | Source | Endpoint or cmdlet | Least privileged role or permission | License | Event / state | Retention or period | Commercial | GCC | GCC High |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Who holds a Microsoft 365 Copilot licence | Not re-specified: [license utilization](license-utilization.md) sources 1 (`GET /subscribedSkus`, find the Copilot SKU and its service plans) and 2 (`GET /users` with `assignedLicenses` and `licenseAssignmentStates`) | `LicenseAssignment.Read.All` and `User.Read.All`, as in that doc | None named on those pages | State | n/a | [Available](https://learn.microsoft.com/graph/api/subscribedsku-list) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [Available](https://learn.microsoft.com/graph/api/subscribedsku-list) (US Government L4) |
+| 2 | Copilot usage per user: last activity per Copilot app, prompts submitted and active days | [`GET /copilot/reports/getMicrosoft365CopilotUsageUserDetail(period='D7')`](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail) (v1.0). `version` is optional and defaults to `v2`, the only supported value. v1.0 returns `200 OK` with a CSV stream in the body, not a redirect. Beta returns JSON and is not supported for production applications. Columns on all versions: `Report Refresh Date`, `User Principal Name`, `Display Name`, `Last Activity Date`, and the last activity date for Copilot Chat, Teams, Word, Excel, PowerPoint, Outlook, OneNote and Loop, plus `Report Period`. `v2` adds prompts submitted (all apps, Copilot Chat work, Copilot Chat web), active usage days, Copilot Chat (work) and (web) last activity, `Microsoft 365 Copilot Last Activity Date`, `Edge Last Activity Date` and `Copilot Agent Last Activity Date`. Only users with a Microsoft 365 Copilot licence are returned | `Reports.Read.All` (delegated and application). Signed in: Company Administrator, AI Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. The page does not list Global Reader or Usage Summary Reports Reader, and [authorization](https://learn.microsoft.com/graph/reportroot-authorization) says those roles see no detailed metrics | A Microsoft 365 Copilot licence is the population. Unlicensed Copilot Chat use is not in this API (see source 5, the Copilot Chat usage report) | State | `period`: `D7`, `D28`, `D90`, `D180`, `ALL` on `v2` (`D30` only on `v1`, which is not a supported `version` value). `ALL` is the four periods in one response, not lifetime. Report available within 48 hours of the end of the UTC day on the [admin center page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-365-copilot-usage); the user table covers everyone licensed at any point in the past 180 days | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail) (US Government L4 `❌`) |
+| 3 | Copilot enabled and active users, per app, over a period (one row per period) | [`GET /copilot/reports/getMicrosoft365CopilotUserCountSummary(period='D7')`](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercountsummary). v1.0 returns a CSV stream. Enabled and active users for Teams, Word, PowerPoint, Outlook, Excel, OneNote, Loop, any app and Copilot Chat. `v2` adds Edge, Microsoft 365 Copilot, Copilot Chat (work) and (web), total prompts submitted and average prompts submitted | `Reports.Read.All`. Signed in: the source 2 roles plus Global Reader and Usage Summary Reports Reader, which this page does list | A Microsoft 365 Copilot licence defines "enabled" ([admin center page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-365-copilot-usage)) | State | Same `period` values as source 2 | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercountsummary) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercountsummary) (US Government L4 `❌`) |
+| 4 | Daily trend of Copilot enabled and active users per app | [`GET /copilot/reports/getMicrosoft365CopilotUserCountTrend(period='D7')`](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercounttrend). v1.0 returns a CSV stream, one row per `Report Date`. Same app columns as source 3; `v2` adds Edge, Microsoft 365 Copilot, Copilot Chat (work) and (web) and prompts submitted | `Reports.Read.All`; signed in: same roles as source 3 | Same as source 3 | State (a daily series, re-read each run and stamped with the run date) | Same `period` values as source 2 | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercounttrend) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercounttrend) (US Government L4 `❌`) |
+| 5 | Fallback for GCC High: the same numbers, and unlicensed Copilot Chat use, in the Microsoft 365 admin center | Admin center **Reports > Usage > Microsoft Copilot**, **Copilot** (usage tab) and **Copilot Chat**, not a Graph call. Both reports export to CSV from the page. The [usage reports overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) marks `Yes` for Microsoft Copilot usage and Microsoft Copilot Chat usage in Public, GCC, GCC-High and DoD, and `N/A` for Microsoft Copilot readiness and Copilot Agent usage in GCC and GCC-High. Whether a script can read or export them in GCC High is not stated on the pages read | Roles in "Before you begin" of the [overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports); Microsoft's [reporting options](https://learn.microsoft.com/microsoft-365/copilot/microsoft-365-copilot-reports-for-admins) page says to sign in as an AI Administrator | Copilot usage: a Microsoft 365 Copilot licence. Copilot Chat usage report: users without one ([page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-copilot-usage)) | State | 7, 28, 90 and 180 days. Available within 48 hours of the end of the UTC day (72 hours on the [Copilot reports overview](https://learn.microsoft.com/microsoft-365/copilot/agent-essentials/agent-usage-billing/agent-usage-cs-reports)) | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) | Partly: [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) in the admin center; scripted read UNVERIFIED |
+| 6 | Copilot interactions in the unified audit log, read through Exchange Online PowerShell | `Search-UnifiedAuditLog -Operations CopilotInteraction`, with the paging, `ReturnLargeSet` and 50,000-record rules specified in [unified audit log](unified-audit-log.md) source 1 and not repeated. The [Copilot audit page](https://learn.microsoft.com/purview/audit-copilot) names `CopilotInteraction` as both the `Operation` and the `RecordType` for Microsoft 365 Copilot. The record's `AuditData` carries `AppHost` (for example `Word`, `Excel`, `PowerPoint`, `Outlook`, `Teams`, `BizChat`), `AppIdentity`, `AccessedResources`, `Contexts`, `AgentId`/`AgentName`, and `Messages` with an `isPrompt` flag, so a record gives user, app and time. A single record normally holds a prompt-response pair. Other values on the page: `TeamCopilotInteraction` records (`AINotesUpdate`, `LiveNotesUpdate`, `TeamCopilotMsgInteraction`), and `ConnectedAIAppInteraction` and `AIAppInteraction` for non-Microsoft AI apps. Whether the cmdlet's `-RecordType` list accepts `CopilotInteraction` is not stated on the pages read, so filter by `-Operations` | Exchange Online role *View-Only Audit Logs* or *Audit Logs*, as in unified audit log source 1 | Audit (Standard) covers Microsoft Copilot and Copilot Studio interactions. Non-Microsoft AI app records (`AIAppInteraction`, some `ConnectedAIAppInteraction`) need pay-as-you-go billing ([page](https://learn.microsoft.com/purview/audit-copilot)) | Event | Audit (Standard) retention as in unified audit log (180 days default; the [retention policies](https://learn.microsoft.com/purview/audit-log-retention-policies) page names one year only for Exchange, SharePoint, OneDrive and Entra records of E5 users, so Copilot records stay at the default unless a custom policy says otherwise). Microsoft states audit-log counts "might not be consistent" with the usage reports ([admin center page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-365-copilot-usage#whats-the-difference-between-the-user-activity-table-and-audit-log)) | [Available](https://learn.microsoft.com/purview/audit-copilot) | UNVERIFIED (the cmdlet is not named for GCC on any page read; the [service description](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) lists Microsoft Purview controls for Copilot as `Yes` in GCC, which is the feature, not the cmdlet) | UNVERIFIED (same: the service description lists the Purview controls as `Yes` in GCCH, not the cmdlet) |
+| 7 | Copilot interactions through the Graph Audit Search API | Specified in [unified audit log](unified-audit-log.md) source 2 (`POST /security/auditLog/queries`, then list records). Which query filter value selects Copilot records is not stated on the pages read for this issue; the build issue must read the [create query](https://learn.microsoft.com/graph/api/security-auditcoreroot-post-auditlogqueries) page's record type list | Per-workload `AuditLogsQuery-*.Read.All` permissions, as in unified audit log source 2. Which one covers the Copilot workload is not stated on the pages read | As source 6 | Event | As source 6 | [Available](https://learn.microsoft.com/graph/api/security-auditcoreroot-post-auditlogqueries) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [NotAvailable](https://learn.microsoft.com/graph/api/security-auditcoreroot-post-auditlogqueries) (US Government L4 `❌`, as recorded in unified audit log) |
+| 8 | Copilot prompts and responses through the Copilot interaction export API | [`GET /copilot/users/{id}/interactionHistory/getAllEnterpriseInteractions`](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions) (v1.0), one call per user. Optional `$filter` on `appClass`: `IPM.SkypeTeams.Message.Copilot.Word`, `.Excel`, `.Teams`, `.BizChat`, `.WebChat`, `.CoworkChat`; other app classes are not supported ([export page](https://learn.microsoft.com/microsoftteams/export-teams-content-copilot#supported-appclass-filters)). Delta is not supported. It does not retrieve interactions in Copilot Studio agents. Recommended `$top` is 100. Returns prompt and response content, so it is the most sensitive source here | Application permission `AiEnterpriseInteraction.Read.All`; delegated is not supported on this page | A valid Microsoft 365 Copilot licence with the `Microsoft Copilot with Graph-grounded chat` service plan | Event | Not stated on the pages read | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions) (US Government L4 `✅`) |
+| 9 | Whether usage reports show names or concealed identifiers | Not re-specified: [license utilization](license-utilization.md) source 6 (`GET /admin/reportSettings`, `displayConcealedNames`). The Copilot admin center page says user names, display names, groups and sites are hidden by default ([page](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-365-copilot-usage#user-last-activity-table)) | `ReportSettings.Read.All`, as in that doc | None named | State | n/a | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | [Available](https://learn.microsoft.com/graph/deployments) (global service) | UNVERIFIED (the Graph page marks US Government L4 `❌`; see license utilization source 6) |
+| 10 | Which Copilot features each cloud offers (decides which app columns can ever be non-empty) | Not a tenant call. The [Microsoft Copilot service description](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) feature table, "as of the last update date". Examples: Copilot in Outlook `Yes` in all three clouds, with Schedule with Copilot not yet available in GCC and GCCH; Copilot in Teams and Copilot in SharePoint `Not currently available` in GCCH; Word, Excel and PowerPoint Agents `Not currently available` in GCC and GCCH; Copilot Analytics in Viva Insights `Yes` in GCC (limited core metrics) and `Not currently available` in GCCH | None; a public page | Copilot is an add-on to listed plans, including Microsoft 365 G3, G5 and F1 in government clouds ([licensing](https://learn.microsoft.com/microsoft-365/copilot/microsoft-365-copilot-licensing#us-government-licenses)) | State (reference file; a build step must ship a dated copy) | n/a | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) (with the per-feature exceptions above) |
+
+Consolidated notes:
+
+* **GCC High.** Sources 2 to 4 return `NotAvailable` through Graph. Under the library rule ("a source not available
+  in a cloud is skipped, and the README says why"), a GCC High run writes source 1, tries source 6 and records a
+  refusal if there is one, writes source 8, and skips 2 to 4 and 7. Source 5 shows the data exists in the admin
+  center; turning it into a collector is an open item, not a claim.
+* **Counts come from the report APIs, not from the audit log.** Microsoft says counts built on audit records
+  "might not be consistent" with the usage reports and that it can't guide on building them. Sources 6 to 8 give
+  records (who, which app host, when); sources 2 to 4 give the official active-user numbers. Do not present a count
+  from 6 to 8 beside one from 2 to 4 as the same measure.
+* **Active means an intentional action.** Opening the Copilot pane does not count; submitting a prompt does
+  ([FAQ](https://learn.microsoft.com/microsoft-365/admin/activity-reports/microsoft-365-copilot-usage#how-is-a-user-considered-active-in-microsoft-copilot-usage)).
+  The per-app last activity date is the latest intentional activity "regardless of the selected timeframe", so it
+  can be older than the period.
+* **Blank dates are not always inactivity.** Per the same page, a user can have no last activity date if they
+  used Copilot within 24 hours of the licence being assigned and never again, and client-side Office events
+  (Word, Excel, PowerPoint, OneNote, Outlook) can upload late or leave the date blank or newer than actual. The
+  report validates the past three days daily and fills gaps, so history can change between runs. Active-user data
+  for Word, Excel and PowerPoint is incomplete before 25 January 2024.
+* **Periods are windows, not events.** Sources 2 to 4 aggregate 7, 28, 90 or 180 days (`v2`). A daily run appends a
+  snapshot stamped with the run date. Do not send `D30` on the default `v2`.
+* **Concealed names.** When `displayConcealedNames` is `true` (the default), source 2 returns hashed user
+  principal names and display names (the Learn sample shows 32-character hex values), so it cannot be joined to
+  source 1 on `userPrincipalName`. Read source 9 first and show "names concealed, usage not joined" instead of zero
+  usage.
+* **Prompt content.** Source 8 returns prompts and responses. A library that stores only metadata would read
+  `appClass`, time and user and discard the body. That is a proposal for the build issue, not a Microsoft
+  statement.
+* **Read-only.** Sources 2 to 4 and 8 are GET calls. Source 6 is a cmdlet read. Source 7 needs a `POST` to create
+  the query object first; the read-only question is already open in unified audit log and is not settled here.
+
+## Proposed report pages
+
+| # | Page | Reads | What it shows |
+| --- | --- | --- | --- |
+| 1 | Overview | 1, 3 | Copilot licences assigned, enabled users, active users and active-user rate for the latest period; prompts submitted and average per user; snapshot trend by run date |
+| 2 | Adoption trend | 4 | Daily enabled and active users per app (Teams, Word, Excel, PowerPoint, Outlook, OneNote, Loop, Copilot Chat) over the chosen period |
+| 3 | Usage by user and app | 1, 2, 9 | Per licensed user: last activity date per Copilot app, prompts submitted, active days. Hidden when names are concealed |
+| 4 | Licensed but not using | 1, 2 | Users holding a Copilot licence with no last activity date, or a last activity date before the period start; with the blank-date caveat above |
+| 5 | Copilot interactions in the audit log | 6 or 8 | Interactions by user, app host and day from audit records; marked as a different measure from pages 1 to 4 |
+| 6 | Agent and plug-in context | 6 | `AgentId`, `AgentName` and `AISystemPlugin` on `CopilotInteraction` records, by day; the counts of agents themselves belong to the Copilot Studio agents report |
+| 7 | Coverage and cloud availability | 10, 9, `run.log` | Which sources ran, which were skipped in this cloud and why, whether names were concealed, and which Copilot features the cloud offers |
+
+## Starting questions
+
+| # | Question | Status |
+| --- | --- | --- |
+| 1 | Which users hold a Copilot licence, which of them used Copilot, in which apps, over a period | Covered by sources 1 and 2 (licence holders and per-app last activity), with source 9 for names. Per-app counts also in source 3. Commercial and GCC only through Graph; **dropped for GCC High through Graph** (source 5 is the manual route). |
+| 2 | How the number of active Copilot users changes over time | Covered by source 4 (daily trend) and by the run-date snapshots of source 3. Same cloud limit as question 1. |
+| 3 | Which Copilot interactions are recorded in the audit log, by user, app and day, and the read-only way to retrieve them | Covered by source 6 (`Search-UnifiedAuditLog -Operations CopilotInteraction`; user, `AppHost` and creation time are on each record) and, for content, source 8. Source 7 is `NotAvailable` in GCC High. Source 6 is UNVERIFIED in GCC and GCC High, so a run asks and records a refusal. A count from the audit log is not the official active-user count (see notes). |
+| 4 | Whether Copilot and each source is offered in GCC and GCC High | Covered by source 10 (Copilot and its features) and by the Commercial, GCC and GCC High columns on every row above. |
+
+Dropped parts of questions:
+
+| Part | Reason |
+| --- | --- |
+| Copilot usage numbers for GCC High through Graph | Sources 2 to 4 are `NotAvailable` there. Manual admin center export (source 5) only. |
+| Usage by unlicensed Copilot Chat users | Sources 2 to 4 return licensed users only. The admin center Copilot Chat usage report (source 5) and audit records (source 6) cover them; no Graph report API found for them. |
+| Copilot Studio agent counts and agent audit events | Belongs to the Copilot Studio agents report. |
+| Viva Insights Copilot Dashboard / Copilot Analytics | No read-only API or cmdlet found in the pages read; `Not currently available` in GCCH on the service description. Out of this report. |
+
+## Overlap with other candidates
+
+* License utilization ([license-utilization.md](license-utilization.md), BRO-364 and BRO-374): shares licence
+  sources 1, 2 and 6 and already lists Copilot usage as its source 5g. This report reads them and does not rebuild
+  SKU inventory, overlapping licences or the other workload usage reports.
+* Copilot Studio agents ([copilot-studio-agents.md](copilot-studio-agents.md), BRO-316, BRO-322, BRO-327): owns
+  agent inventory and agent authoring audit events. This report only reads the agent fields that appear on
+  `CopilotInteraction` records.
+* Unified audit log ([unified-audit-log.md](unified-audit-log.md)): owns the audit read paths, paging and
+  retention. Sources 6 and 7 here point at it.
+
+## Open items for the build issue
+
+* Source 6 in GCC and GCC High: confirm `Search-UnifiedAuditLog` returns `CopilotInteraction` records there.
+  Run the cmdlet and record a refusal in `run.log`.
+* Which Management Activity API content type carries `CopilotInteraction` records, and whether the Graph Audit
+  Search API's record type filter includes Copilot. Neither is stated on the pages read for this issue.
+* Source 5 in GCC High: whether the admin center CSV export can feed a collector. Decide between skipping
+  sources 2 to 4 (the library rule) and a documented manual export.
+* Source 8: decide whether to store prompt and response text at all. It is not needed for any proposed page.
+* Source 10 is a dated copy of a public page that changes; decide where the copy lives and how it is refreshed.
+* Source 2 returns hashed names when names are concealed; the build issue must read source 9 before joining.
