@@ -52,7 +52,7 @@ Sample data with fake `example.com` users is in `samples/`; `New-SampleData.ps1`
 | Sign-in activity | `AuditLog.Read.All` + `User.Read.All` | Reports Reader | Microsoft Entra ID P1 or P2 |
 | Report settings | `ReportSettings.Read.All` | An Entra limited admin role | None named |
 | Usage reports (active users, email, Teams, SharePoint, OneDrive, apps) | `Reports.Read.All` | Reports Reader and similar; Global Reader and Usage Summary Reports Reader do not receive user detail rows | None named |
-| Copilot usage | `Reports.Read.All` | As the usage reports | Only users with a Microsoft 365 Copilot licence are returned |
+| Copilot usage | `Reports.Read.All` | Company Administrator, AI Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. The `/copilot` page does not list Global Reader | Only users with a Microsoft 365 Copilot licence are returned |
 
 The collectors request only read scopes. `Reports.Read.All`, `LicenseAssignment.Read.All` and
 `ReportSettings.Read.All` are added to the shared sign-in's scopes per collector. A tenant without the Entra ID

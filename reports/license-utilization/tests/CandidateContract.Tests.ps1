@@ -39,6 +39,12 @@ Describe 'The collectors follow the contract doc' {
         ($row6 -split '\|')[-2].Trim() | Should -Match '^UNVERIFIED'
     }
 
+    It 'names the Copilot signed-in roles from the /copilot page, which does not list Global Reader' {
+        $readme = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../README.md') -Raw
+        $readme | Should -Match 'AI Administrator'
+        $readme | Should -Match 'does not list Global Reader'
+    }
+
     It 'leaves out the two doc rows that are not tenant calls (7 and 8)' {
         $script:Doc | Should -Match '(?m)^\| 7 \| Product names'
         $script:Doc | Should -Match '(?m)^\| 8 \| Fallback for GCC High'
