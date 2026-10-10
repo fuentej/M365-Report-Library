@@ -117,6 +117,8 @@ function Invoke-LicenseUtilizationSnapshot {
               * A source the schema marks NotAvailable in this cloud writes the header only.
               * An Unverified source is attempted and logs a warning.
               * A missing licence is a logged skip: header only, no error and no exception.
+              * HTTP 429 and 503 wait and try again. A read that stays throttled throws.
+                It is not written up as a missing permission.
               * Any other failure is logged as an error, leaves a header-only file when
                 nothing was collected, and throws so the run does not report success.
 
@@ -196,10 +198,33 @@ function Invoke-LicenseUtilizationSnapshot {
 
     $items = $null
     try {
-        $items = @(& $Fetch)
+        # A 429 or 503 is throttling, not a missing permission and not an empty snapshot.
+        # Graph sends Retry-After on 429. Four attempts, then the run stops.
+        # https://learn.microsoft.com/graph/throttling
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $items = @(& $Fetch)
+                break
+            }
+            catch {
+                $status = Get-LicenseGraphHttpStatus -ErrorRecord $_
+                if (($status -ne 429 -and $status -ne 503) -or $attempt -ge 4) { throw }
+                $delay = Get-LicenseRetryDelaySeconds -ErrorRecord $_ -Attempt $attempt
+                Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $log -Message (
+                    'HTTP {0}. Waiting {1} seconds before attempt {2}.' -f $status, $delay, ($attempt + 1))
+                Start-Sleep -Seconds $delay
+            }
+        }
     }
     catch {
         $message = $_.Exception.Message
+        $status = Get-LicenseGraphHttpStatus -ErrorRecord $_
+        if ($status -eq 429 -or $status -eq 503) {
+            Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $log -Message (
+                "$Description is still throttled after retries ($message). A 429 or 503 is not an empty report. It needs a later run, not a different role. Writing the header only.")
+            Write-HeaderOnly
+            throw "$Description is still throttled after retries ($message). A 429 or 503 is not an empty report."
+        }
         if (Test-LicenseError -Message $message) {
             Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $log -Message (
                 "Skipping ${CsvName}: ${Description} is not licensed in this tenant ($message). It needs $License. Writing the header only.")
@@ -286,6 +311,85 @@ function Get-SchemaColumn {
         return , (Get-UsageColumn -Header $Schema.UsageReports[$Key])
     }
     return , [string[]]$Schema[$Key]
+}
+
+function Get-LicenseGraphHttpStatus {
+    <#
+        .SYNOPSIS
+            The HTTP status on a failed Graph read, or $null.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord
+    )
+
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $status = $response.Value.PSObject.Properties['StatusCode']
+        if ($status -and $null -ne $status.Value) { return [int]$status.Value }
+    }
+
+    # PowerShell 7 and the Graph SDK: "Response status code does not indicate success: 429 (Too Many Requests)."
+    if ($ErrorRecord.Exception.Message -match '\b(404|429|503)\b') {
+        return [int]$Matches[1]
+    }
+    return $null
+}
+
+function Get-LicenseRetryDelaySeconds {
+    <#
+        .SYNOPSIS
+            Seconds to wait after HTTP 429 or 503.
+
+        .DESCRIPTION
+            Graph returns Retry-After on 429
+            (https://learn.microsoft.com/graph/throttling).
+            When the header is absent, the wait doubles each attempt and is capped at 60 seconds
+            (https://learn.microsoft.com/graph/throttling-limits).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        $ErrorRecord,
+
+        [Parameter(Mandatory)]
+        [int]$Attempt
+    )
+
+    $delay = [int][math]::Min(60, [math]::Pow(2, $Attempt - 1))
+    $candidates = @($ErrorRecord.Exception, $ErrorRecord.Exception.InnerException)
+    foreach ($exception in $candidates) {
+        if ($null -eq $exception) { continue }
+        $response = $exception.PSObject.Properties['Response']
+        if (-not $response -or $null -eq $response.Value) { continue }
+        $headers = $response.Value.PSObject.Properties['Headers']
+        if (-not $headers -or $null -eq $headers.Value) { continue }
+
+        $retryAfter = $headers.Value.PSObject.Properties['RetryAfter']
+        if ($retryAfter -and $retryAfter.Value) {
+            $delta = $retryAfter.Value.PSObject.Properties['Delta']
+            if ($delta -and $null -ne $delta.Value) {
+                $delay = [int][math]::Ceiling($delta.Value.TotalSeconds)
+                break
+            }
+        }
+
+        $named = $null
+        if ($headers.Value -is [System.Collections.IDictionary] -and $headers.Value.Contains('Retry-After')) {
+            $named = [string]$headers.Value['Retry-After']
+        }
+        if (-not [string]::IsNullOrWhiteSpace($named)) {
+            $seconds = 0
+            if ([int]::TryParse($named, [ref]$seconds) -and $seconds -gt 0) { $delay = $seconds }
+        }
+    }
+
+    if ($delay -lt 1) { return 1 }
+    return $delay
 }
 
 function Get-GraphReportCsv {

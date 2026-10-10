@@ -321,6 +321,45 @@ Describe 'Each usage report writes the columns of its sample' {
         { Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*did not download*'
     }
 
+    It 'retries a usage-report 429 and then writes the row' {
+        # https://learn.microsoft.com/graph/throttling
+        # A 429 is not a missing Reports.Read.All role and not an empty report.
+        $global:LicenseUtilizationTestTries = 0
+        Mock Start-Sleep { }
+        Mock Invoke-MgGraphRequest -MockWith {
+            $global:LicenseUtilizationTestTries++
+            if ($global:LicenseUtilizationTestTries -eq 1) {
+                throw 'Response status code does not indicate success: 429 (Too Many Requests).'
+            }
+            Set-Content -LiteralPath $OutputFilePath -Value (New-UsageCsvText -Key 'ActiveUserUsage')
+        }
+
+        Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder }
+
+        $global:LicenseUtilizationTestTries | Should -Be 2
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-active-users.csv')).Count | Should -Be 1
+        Get-LogText -Folder $script:folder | Should -Match 'HTTP 429'
+        Get-LogText -Folder $script:folder | Should -Not -Match 'unavailable to this sign-in'
+    }
+
+    It 'stops when a usage report stays throttled, and does not call that a missing role' {
+        # https://learn.microsoft.com/graph/throttling
+        $global:LicenseUtilizationTestTries = 0
+        Mock Start-Sleep { }
+        Mock Invoke-MgGraphRequest -MockWith {
+            $global:LicenseUtilizationTestTries++
+            throw 'Response status code does not indicate success: 429 (Too Many Requests).'
+        }
+
+        { Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*still throttled*'
+
+        $global:LicenseUtilizationTestTries | Should -Be 4
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-active-users.csv')).Count | Should -Be 0
+        $log = Get-LogText -Folder $script:folder
+        $log | Should -Match 'still throttled'
+        $log | Should -Not -Match 'unavailable to this sign-in'
+    }
+
     It 'warns when report-settings.csv says names are concealed' {
         Mock Get-MgAdminReportSetting -MockWith { New-MockReportSettings -Concealed $true }
         Mock Invoke-MgGraphRequest -MockWith { Set-Content -LiteralPath $OutputFilePath -Value (New-UsageCsvText -Key 'ActiveUserUsage') }
