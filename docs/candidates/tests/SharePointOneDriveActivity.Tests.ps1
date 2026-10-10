@@ -40,4 +40,20 @@ Describe 'SharePoint and OneDrive activity sources' {
         $question2 | Should -Match 'past 30 days'
         $question2 | Should -Not -Match 'last 28 days'
     }
+
+    It 'follows the getAllSites nextLink onto OneDrive and does not treat a drive timestamp as last activity' {
+        # The sample nextLink changes path. A rebuilt /sites/getAllSites drops OneDrive.
+        # Drive lastModifiedDateTime is not the usage Last Activity Date. An incomplete activity interval is not zero.
+        $row11 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 11 \| Site list' })
+        $question3 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 3 \| Sites and OneDrive' })
+        $flat = $script:Doc -replace '\s+', ' '
+        $row11 | Should -Match 'oneDrive\.getAllSites'
+        $row11 | Should -Match 'do not rebuild'
+        $row11 | Should -Match 'lastModifiedDateTime'
+        $row11 | Should -Match 'system facet'
+        $flat | Should -Match 'getActivitiesByInterval'
+        $flat | Should -Match 'incompleteData'
+        $flat | Should -Match 'not yet available in all national deployments'
+        $question3 | Should -Not -Match 'no page read shows a last-activity property'
+    }
 }
