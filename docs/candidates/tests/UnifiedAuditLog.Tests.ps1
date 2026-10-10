@@ -80,4 +80,32 @@ Describe 'unified audit log sources' {
         $source2 | Should -Not -Match 'date range properties are on the'
         $script:Doc | Should -Not -Match '`Get-MgSecurityAuditLogQuery` reads\), then'
     }
+
+    It 'records tenants where audit ingestion is off by default' {
+        # A false from Security & Compliance PowerShell is not "auditing is off".
+        # Business and unmanaged trial tenants are off until someone turns auditing on.
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Whether audit ingestion' })
+        $source4 | Should -Match 'always `False`'
+        $source4 | Should -Match 'Security & Compliance PowerShell'
+        $source4 | Should -Match 'Business Basic, Business Standard, and Business Premium'
+        $source4 | Should -Match 'unmanaged trial tenants'
+        $source4 | Should -Match '60 minutes'
+        $source4 | Should -Match 'several hours'
+        $source4 | Should -Not -Match 'which role only reads the setting'
+    }
+
+    It 'puts a Learn link on every Available or NotAvailable cell in the source table' {
+        $sources = $script:Doc -split '## Sources', 2
+        $sourceSection = ($sources[1] -split '### Retention', 2)[0]
+        $rows = @($sourceSection -split '\r?\n' | Where-Object { $_ -match '^\| \d' })
+        $rows.Count | Should -Be 5
+        foreach ($row in $rows) {
+            $cells = $row -split '\|' | Select-Object -Skip 1
+            foreach ($cell in $cells) {
+                if ($cell -match '\[(?:Not)?Available\]') {
+                    $cell | Should -Match 'https://learn\.microsoft\.com/'
+                }
+            }
+        }
+    }
 }
