@@ -784,9 +784,32 @@ Describe 'Office 365 Management Activity API (source 3)' {
 
     It 'writes nothing for a window when one content type in it fails' {
         $global:AuTest.Fail = '*contentType=Audit.General*'
-        Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' $script:FeedArgs
+        { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' $script:FeedArgs } | Should -Throw '*500*'
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-activity-feed.csv')).Count | Should -Be 0
         Get-LogText $script:Out | Should -Match 'Management Activity API failed'
+    }
+
+    It 'skips a blob whose contentExpiration has passed and still writes the others' {
+        Mock Invoke-WebRequest {
+            $global:AuTest.Requests.Add([pscustomobject]@{ Method = $Method; Uri = $Uri })
+            $base = $global:AuTest.Base
+            if ($Uri -like "$base/subscriptions/list*") { return New-WebResponse @(@{ contentType = 'Audit.General'; status = 'enabled' }) }
+            if ($Uri -like "$base/subscriptions/content*") {
+                return New-WebResponse @(
+                    @{ contentType = 'Audit.General'; contentId = 'old-blob'; contentUri = "$base/audit/old"; contentCreated = (Get-Stamp ([datetime]::UtcNow.AddHours(-3))); contentExpiration = '2000-01-01T00:00:00.000Z' }
+                    @{ contentType = 'Audit.General'; contentId = 'new-blob'; contentUri = "$base/audit/new"; contentCreated = (Get-Stamp ([datetime]::UtcNow.AddHours(-1))); contentExpiration = '2099-01-01T00:00:00.000Z' }
+                )
+            }
+            if ($Uri -like '*/audit/old*') { throw 'expired blob was requested' }
+            if ($Uri -like '*/audit/new*') {
+                return New-WebResponse @(@{ Id = 'kept'; CreationTime = '2026-10-08T09:15:00'; Operation = 'FileAccessed'; OrganizationId = $global:AuTest.Org; RecordType = 6; UserId = 'avery.abara@example.com'; Workload = 'SharePoint' })
+            }
+            throw "Unexpected request $Uri"
+        }
+        Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ ContentType = 'Audit.General' })
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-activity-feed.csv')).RecordId | Should -Be 'kept'
+        @($global:AuTest.Requests.Uri | Where-Object { $_ -like '*/audit/old*' }).Count | Should -Be 0
+        Get-LogText $script:Out | Should -Match 'contentExpiration'
     }
 
     It 'refuses a contentUri outside the feed host and never sends the token there' {
@@ -800,7 +823,8 @@ Describe 'Office 365 Management Activity API (source 3)' {
             }
             throw "Unexpected request $Uri"
         }
-        Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ ContentType = 'Audit.General' })
+        { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ ContentType = 'Audit.General' }) } |
+            Should -Throw '*outside the Management Activity API*'
         @($global:AuTest.Requests.Uri | Where-Object { $_ -like '*evil.example.net*' }).Count | Should -Be 0
         Get-LogText $script:Out | Should -Match 'outside the Management Activity API'
     }
@@ -812,7 +836,8 @@ Describe 'Office 365 Management Activity API (source 3)' {
             if ($Uri -like "$base/subscriptions/list*") { return New-WebResponse @(@{ contentType = 'Audit.General'; status = 'enabled' }) }
             New-WebResponse @() -Headers @{ NextPageUri = @('http://manage.office.com/api/v1.0/x/activity/feed/subscriptions/content?nextPage=1') }
         }
-        Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ ContentType = 'Audit.General' })
+        { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ ContentType = 'Audit.General' }) } |
+            Should -Throw '*outside the Management Activity API*'
         Get-LogText $script:Out | Should -Match 'outside the Management Activity API'
     }
 
@@ -835,7 +860,7 @@ Describe 'Office 365 Management Activity API (source 3)' {
             $global:AuTest.Requests.Add([pscustomobject]@{ Method = $Method; Uri = $Uri })
             throw 'Response status code does not indicate success: 401 (Unauthorized).'
         }
-        Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' $script:FeedArgs
+        { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' $script:FeedArgs } | Should -Throw '*401*'
         (Get-LogText $script:Out) | Should -Not -Match ([regex]::Escape($script:TokenText))
         (Get-LogText $script:Out) | Should -Not -Match 'Bearer'
         (Get-Content -LiteralPath (Join-Path $script:Out 'audit-activity-feed.csv') -Raw) | Should -Not -Match ([regex]::Escape($script:TokenText))

@@ -23,7 +23,9 @@
         ContentCreated already in the file, or -LookbackDays back on the first run, clamped to the last
         7 days; a gap older than that is logged and cannot be recovered. A window is written only when
         every content type in it has been read, so a failure in one type does not move the watermark
-        past it. Rows are keyed on the event Id.
+        past it. A blob whose contentExpiration has passed is skipped and logged; the API will not
+        return it, and failing the window on it would stall every later blob. Rows are keyed on
+        the event Id.
 
         Sign-in: the collector does not acquire a token. Pass -AccessToken, a SecureString holding a
         token for the feed root (Commercial https://manage.office.com, GCC https://manage-gcc.office.com,
@@ -129,6 +131,15 @@ try {
         $rows = [System.Collections.Generic.List[object]]::new()
         foreach ($type in $types) {
             foreach ($blob in Get-AuditActivityContent @feed -ContentType $type -Start $window.Start -End $window.End) {
+                $expires = Get-ObjectValue -Object $blob -Name 'contentExpiration'
+                if ($null -ne $expires -and "$expires" -ne '') {
+                    $expiry = ConvertTo-AuditUtc $expires
+                    if ($expiry -le [datetime]::UtcNow) {
+                        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+                            'Skipping content {0}: its contentExpiration {1:yyyy-MM-ddTHH:mm:ssZ} has passed, so the API will not return it.' -f (Get-ObjectText -Object $blob -Name 'contentId'), $expiry)
+                        continue
+                    }
+                }
                 foreach ($row in Get-AuditActivityEvent -Blob $blob -AccessToken $AccessToken -Base $base -PublisherIdentifier $PublisherIdentifier) {
                     $rows.Add($row)
                 }
@@ -142,7 +153,7 @@ try {
 catch {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
         'The Management Activity API failed ({0}). It needs a token for the feed root with the ActivityFeed.Read claim and a tenant ID that matches -TenantId. Windows already written are kept; the next run resumes from the latest ContentCreated.' -f $_.Exception.Message)
-    return
+    throw
 }
 
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
