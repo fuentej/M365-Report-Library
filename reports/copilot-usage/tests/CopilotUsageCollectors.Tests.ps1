@@ -502,7 +502,10 @@ Describe 'The interaction export' {
 
         Invoke-CollectorScript 'Get-CopilotInteractions.ps1' @{ OutputPath = $script:Out; EndDate = [datetime]'2026-10-08T00:00:00Z'; LookbackDays = 30 }
 
-        ($global:CuTest.Uris | Where-Object { $_ -match '/users/user-1/' }) | Should -Match 'createdDateTime gt 2026-10-05T10:00:00Z and'
+        # The stored stamp is that second. ge keeps a sibling interaction on the same
+        # second; gt would drop it. The user with no stamp still uses gt from the lookback.
+        # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+        ($global:CuTest.Uris | Where-Object { $_ -match '/users/user-1/' }) | Should -Match 'createdDateTime ge 2026-10-05T10:00:00Z and'
         ($global:CuTest.Uris | Where-Object { $_ -match '/users/user-2/' }) | Should -Match 'createdDateTime gt 2026-09-08T00:00:00Z and'
     }
 

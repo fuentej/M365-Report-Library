@@ -130,6 +130,9 @@ dated copy.
   retries; if throttling persists the report or run is logged as throttled, not as empty.
   The interaction export is limited to 1,500 requests per second per app and 30 per app per
   tenant ([limits](https://learn.microsoft.com/graph/throttling-limits#microsoft-teams-service-limits)).
+* **The interaction resume bound includes the last exported second.** The file stores
+  whole seconds, so the next read uses `ge` that second and skips rows already stored.
+  A caller-supplied `-StartDate` stays `gt`, as the export page's range example does.
 * **Audit records can arrive late.** A record ingested after a run, with a time before the
   newest record already exported, is not collected by the next one. A window that reaches the
   50,000-record session cap is not written; re-run it with a smaller `-WindowHours`.

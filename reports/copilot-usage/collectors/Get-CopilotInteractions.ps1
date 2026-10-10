@@ -21,8 +21,10 @@
         caller read every user's prompts.
 
         The createdDateTime filter carries both a lower and an upper bound, as the page
-        requires. $top is 100, the recommended size. @odata.nextLink is followed when a
-        response carries one. The export supports six appClass values (Word, Excel, Teams,
+        requires. A resume uses ge on the last exported second, because the file stores
+        whole seconds and an exclusive gt would drop another interaction on that second.
+        A caller-supplied -StartDate stays gt. $top is 100, the recommended size.
+        @odata.nextLink is followed when a response carries one. The export supports six appClass values (Word, Excel, Teams,
         BizChat, WebChat and CoworkChat); Outlook, PowerPoint, OneNote and Loop are not in it,
         so this is not the per-app count of the usage reports. It does not retrieve
         interactions in Copilot Studio agents, and it also returns interactions for deleted
@@ -146,8 +148,15 @@ $failed = 0
 $stopped = $null
 
 foreach ($user in $users) {
-    $from = if (-not $explicitStart -and $latestByUser.ContainsKey($user)) { $latestByUser[$user] } else { ConvertTo-CsvTimestamp $firstStart }
-    $filter = 'createdDateTime gt {0} and createdDateTime lt {1}' -f $from, (ConvertTo-CsvTimestamp $end)
+    # The CSV stamp is whole seconds. An exclusive gt of that second drops another
+    # interaction whose createdDateTime falls on the same second. ge re-reads the
+    # boundary; rows already stored are skipped by id. A caller-supplied start stays
+    # gt, matching the documented range filter.
+    # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+    $fromWatermark = -not $explicitStart -and $latestByUser.ContainsKey($user)
+    $from = if ($fromWatermark) { $latestByUser[$user] } else { ConvertTo-CsvTimestamp $firstStart }
+    $lower = if ($fromWatermark) { 'ge' } else { 'gt' }
+    $filter = 'createdDateTime {0} {1} and createdDateTime lt {2}' -f $lower, $from, (ConvertTo-CsvTimestamp $end)
     $uri = 'v1.0/copilot/users/{0}/interactionHistory/getAllEnterpriseInteractions?$top=100&$filter={1}' -f
         [uri]::EscapeDataString($user), [uri]::EscapeDataString($filter)
 
