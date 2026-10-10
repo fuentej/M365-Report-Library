@@ -566,6 +566,46 @@ Describe 'The interaction export' {
         $global:CuTest.Uris[0] | Should -Match '/users/only-user/'
     }
 
+    It 'keeps an Unspecified createdDateTime bound on that UTC instant when the machine zone is not UTC' {
+        # createdDateTime filters are UTC. Kind Unspecified is not the local zone.
+        # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+        $repo = $script:Root.Replace("'", "''")
+        $probe = @"
+Set-StrictMode -Version Latest
+`$ErrorActionPreference = 'Stop'
+. '$repo/reports/copilot-usage/tests/CopilotUsageStubs.ps1'
+. '$repo/shared/tests/TenantCmdletStubs.ps1'
+function global:Connect-MgGraph { }
+function global:Invoke-MgGraphRequest {
+    param([string]`$Method, [string]`$Uri, [hashtable]`$Headers, [string]`$OutputFilePath)
+    `$global:SeenUri = [uri]::UnescapeDataString(`$Uri)
+    @{ value = @() }
+}
+`$out = Join-Path ([System.IO.Path]::GetTempPath()) ('copilot-tz-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path `$out | Out-Null
+Import-Module '$repo/shared/M365ReportLibrary.psm1' -Force
+[pscustomobject]@{ RunDate = '2026-10-01'; Id = 'user-1' } | Export-Csv -LiteralPath (Join-Path `$out 'users.csv') -NoTypeInformation
+`$start = [datetime]::SpecifyKind([datetime]::new(2026, 10, 1, 0, 0, 0), [DateTimeKind]::Unspecified)
+`$end = [datetime]::SpecifyKind([datetime]::new(2026, 10, 2, 0, 0, 0), [DateTimeKind]::Unspecified)
+& '$repo/reports/copilot-usage/collectors/Get-CopilotInteractions.ps1' -OutputPath `$out -UserId 'user-1' -StartDate `$start -EndDate `$end
+if (`$global:SeenUri -notmatch 'createdDateTime gt 2026-10-01T00:00:00Z and createdDateTime lt 2026-10-02T00:00:00Z') {
+    Write-Output `$global:SeenUri
+    exit 1
+}
+exit 0
+"@
+        $previous = $env:TZ
+        try {
+            $env:TZ = 'America/New_York'
+            & pwsh -NoProfile -Command $probe
+            $LASTEXITCODE | Should -Be 0
+        }
+        finally {
+            if ($null -eq $previous) { Remove-Item Env:TZ -ErrorAction SilentlyContinue }
+            else { $env:TZ = $previous }
+        }
+    }
+
     It 'rejects an empty explicit range' {
         New-UsersCsv -Folder $script:Out
         { Invoke-CollectorScript 'Get-CopilotInteractions.ps1' @{ OutputPath = $script:Out; StartDate = [datetime]'2026-10-08T00:00:00Z'; EndDate = [datetime]'2026-10-01T00:00:00Z' } } | Should -Throw '*range is empty*'

@@ -117,9 +117,12 @@ if (-not $SkipConnect) {
         -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization
 }
 
-$end = if ($PSBoundParameters.ContainsKey('EndDate')) { $EndDate.ToUniversalTime() } else { [datetime]::UtcNow }
+# A value with no time zone is that UTC instant. ToUniversalTime would treat
+# Unspecified as the machine's local zone and shift the window.
+# https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+$end = if ($PSBoundParameters.ContainsKey('EndDate')) { ConvertTo-AuditQueryDate $EndDate } else { [datetime]::UtcNow }
 $explicitStart = $PSBoundParameters.ContainsKey('StartDate')
-$firstStart = if ($explicitStart) { $StartDate.ToUniversalTime() } else { $end.AddDays(-$LookbackDays) }
+$firstStart = if ($explicitStart) { ConvertTo-AuditQueryDate $StartDate } else { $end.AddDays(-$LookbackDays) }
 
 if ($explicitStart -and $end -le $firstStart) {
     throw ('The requested range is empty: the end ({0}) is not later than the start ({1}).' -f
