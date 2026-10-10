@@ -306,7 +306,18 @@ function Get-GraphReportCsv {
     $download = Join-Path ([System.IO.Path]::GetTempPath()) ('license-usage-' + [guid]::NewGuid().ToString('N') + '.csv')
     try {
         Invoke-MgGraphRequest -Method GET -Uri $Uri -OutputFilePath $download -ErrorAction Stop
-        if (Test-Path -LiteralPath $download) { @(Import-Csv -LiteralPath $download) } else { @() }
+        if (-not (Test-Path -LiteralPath $download)) {
+            throw "The usage report did not download a file from $Uri."
+        }
+        $headerLine = Get-Content -LiteralPath $download -TotalCount 1
+        $headerText = if ($null -eq $headerLine) { '' } else { [string]$headerLine }
+        # Every user-detail CSV names this column. A 302 body, an empty file, or an
+        # error page does not, and must not be stored as an empty report.
+        # https://learn.microsoft.com/graph/api/reportroot-getoffice365activeuserdetail
+        if ((Get-NormalizedHeader $headerText) -notlike '*userprincipalname*') {
+            throw "The usage report download from $Uri is not the CSV. It has no User Principal Name column."
+        }
+        @(Import-Csv -LiteralPath $download)
     }
     finally {
         Remove-Item -LiteralPath $download -Force -ErrorAction SilentlyContinue

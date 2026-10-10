@@ -261,6 +261,18 @@ Describe 'Each usage report writes the columns of its sample' {
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-active-users.csv')).Count | Should -Be 0
     }
 
+    It 'fails when the usage-report download is not the CSV' {
+        Mock Invoke-MgGraphRequest -MockWith { Set-Content -LiteralPath $OutputFilePath -Value 'Found' }
+
+        { Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*not the CSV*'
+    }
+
+    It 'fails when the usage-report download writes no file' {
+        Mock Invoke-MgGraphRequest -MockWith { }
+
+        { Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*did not download*'
+    }
+
     It 'warns when report-settings.csv says names are concealed' {
         Mock Get-MgAdminReportSetting -MockWith { New-MockReportSettings -Concealed $true }
         Mock Invoke-MgGraphRequest -MockWith { Set-Content -LiteralPath $OutputFilePath -Value (New-UsageCsvText -Key 'ActiveUserUsage') }
