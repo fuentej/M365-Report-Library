@@ -1,0 +1,6 @@
+"Date","Workload","UserId","Operation","EventCount"
+"2026-10-06","MicrosoftTeams","avery.abara@example.com","MeetingDetail","3"
+"2026-10-06","MicrosoftTeams","blake.bishop@example.com","MeetingParticipantDetail","2"
+"2026-10-07","MicrosoftTeams","avery.abara@example.com","CallParticipantDetail","1"
+"2026-10-07","MicrosoftTeams","blake.bishop@example.com","MessageSent","4"
+"2026-10-07","MicrosoftTeams","avery.abara@example.com","ChatCreated","1"
