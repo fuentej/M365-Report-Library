@@ -1,0 +1,105 @@
+table Users
+    lineageTag: 423d3811-aabe-404d-ba44-48969a0572aa
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: e6838078-e4ec-412d-bac6-f96c9da9846d
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: c93b4716-ebce-420d-8f07-f702c5e9e44c
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 53a1110b-de60-4caf-8adc-67aa210b629b
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 20d52ef8-11e5-49dc-b6ac-7c809aa68a2b
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: 55e3a126-82d3-4db7-b32e-c5391184034c
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 910772b5-2e61-4446-83f8-146058bdc908
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: 508149d9-53c1-4b53-858a-3c648380c885
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 18030449-ab29-45e2-a4d4-8f6422c311a3
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Department
+        dataType: string
+        lineageTag: 68940b94-161e-4522-9994-64422d8becfa
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: 40f8c676-bedd-441e-8764-d14982e70bf9
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column City
+        dataType: string
+        lineageTag: 3493de56-1668-48e3-ba06-d1d15c34e400
+        summarizeBy: none
+        sourceColumn: City
+
+    column Country
+        dataType: string
+        lineageTag: 44f8b1b3-4b3c-4479-9bd7-0780045a8181
+        summarizeBy: none
+        sourceColumn: Country
+
+    column ManagerId
+        dataType: string
+        lineageTag: cd1b954f-e2df-45ae-8598-f1487ae2ab33
+        summarizeBy: none
+        sourceColumn: ManagerId
+
+    column ManagerUserPrincipalName
+        dataType: string
+        lineageTag: b38b242a-7ec8-4da7-ab14-02c1845a7256
+        summarizeBy: none
+        sourceColumn: ManagerUserPrincipalName
+
+    partition Users = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
