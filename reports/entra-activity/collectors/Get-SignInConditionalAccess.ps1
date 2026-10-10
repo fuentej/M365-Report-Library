@@ -1,0 +1,142 @@
+#Requires -Version 7.0
+
+<#
+    .SYNOPSIS
+        Writes signin-conditional-access.csv: the Conditional Access result recorded on
+        each sign-in, one row per applied policy. Appended from the last exported timestamp.
+
+    .DESCRIPTION
+        Source 3 of docs/candidates/entra-activity.md. There is no separate Conditional
+        Access call: conditionalAccessStatus and appliedConditionalAccessPolicies are
+        properties of the sign-in (https://learn.microsoft.com/graph/api/signin-list).
+        The contract reads them from the source 1 and source 2 responses, so this collector
+        reads the v1.0 sign-in log and the beta non-interactive stream and keeps only the
+        Conditional Access part. -InteractiveOnly skips the beta stream.
+
+        appliedConditionalAccessPolicies comes back only when the caller holds
+        Policy.Read.All, Policy.Read.ConditionalAccess or Policy.ReadWrite.ConditionalAccess
+        (https://learn.microsoft.com/graph/api/signin-list#permissions). With
+        AuditLog.Read.All alone the status is still returned and the policy list is
+        dropped WITHOUT an error, so an empty list is not proof that no policy applied.
+        This collector asks for Policy.Read.All when it signs in interactively. Each row
+        records PolicyDetailReadable when the session holds that permission, or when the
+        response included appliedConditionalAccessPolicies. An app-only token often lists
+        only .default in Get-MgContext even when the policies are present.
+
+        The report-only results (reportOnlySuccess, reportOnlyFailure, reportOnlyNotApplied
+        and reportOnlyInterrupted) are returned only with the header
+        "Prefer: include-unknown-enum-members"
+        (https://learn.microsoft.com/graph/api/resources/appliedconditionalaccesspolicy).
+        Every page sends that header, including each @odata.nextLink page. Conditional
+        Access itself needs Entra ID P1.
+
+    .EXAMPLE
+        ./Get-SignInConditionalAccess.ps1 -OutputPath ./out -LookbackDays 7
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [string]$OutputPath,
+
+    [ValidateSet('Commercial', 'GCC', 'GCCHigh')]
+    [string]$Environment = 'Commercial',
+
+    [string]$AppId,
+    [string]$CertificateThumbprint,
+    [string]$TenantId,
+    [string]$Organization,
+
+    # An alternate schema file. The tests use it to exercise the NotAvailable path.
+    [string]$SchemaPath = (Join-Path $PSScriptRoot 'EntraActivitySchema.psd1'),
+
+    [datetime]$StartDate,
+    [datetime]$EndDate,
+
+    # The sign-in log holds 7 days (Free) or 30 days (P1, P2) at most.
+    [ValidateRange(1, 30)]
+    [int]$LookbackDays = 30,
+
+    [ValidateRange(1, 24)]
+    [int]$WindowHours = 24,
+
+    # Skip the beta non-interactive stream. The default reads it, because source 3 is
+    # the Conditional Access result on source 1 and source 2.
+    [switch]$InteractiveOnly,
+
+    [switch]$SkipConnect
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+# Imported by path without -Force: see Get-InteractiveSignIns.ps1.
+Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
+
+. (Join-Path $PSScriptRoot 'EntraActivityHelpers.ps1')
+
+$range = @{}
+if ($PSBoundParameters.ContainsKey('StartDate')) { $range['StartDate'] = $StartDate }
+if ($PSBoundParameters.ContainsKey('EndDate')) { $range['EndDate'] = $EndDate }
+
+$eventType = (Import-PowerShellDataFile -LiteralPath $SchemaPath).NonInteractiveEventType
+$includeBeta = -not $InteractiveOnly
+
+Invoke-EntraActivityEventCollector -Source SignInConditionalAccess -CsvName 'signin-conditional-access.csv' `
+    -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
+    -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
+    -SchemaPath $SchemaPath -LookbackDays $LookbackDays -WindowHours $WindowHours -SkipConnect:$SkipConnect `
+    -KeyColumn 'SignInId', 'PolicyId', 'PolicyDisplayName' -WatermarkColumn 'CreatedDateTime' `
+    -Description 'the Conditional Access result on each sign-in' `
+    -License 'Microsoft Entra ID P1 or P2, the AuditLog.Read.All permission, a Conditional Access read permission (Policy.Read.All) for the per-policy detail and the Reports Reader role' `
+    -BeforeFetch { param($schema) Test-ConditionalAccessReadable -Schema $schema } `
+    -Fetch {
+        param($from, $to)
+        Get-EntraActivityPagedValues -Version 'v1.0' -RelativePath 'auditLogs/signIns' `
+            -Filter "createdDateTime ge $from and createdDateTime lt $to" `
+            -OutputPath $OutputPath -LogSource 'signin-conditional-access'
+        if ($includeBeta) {
+            $filter = "(createdDateTime ge $from and createdDateTime lt $to) and signInEventTypes/any(t: t eq '$eventType')"
+            Get-EntraActivityPagedValues -Version 'beta' -RelativePath 'auditLogs/signIns' -Filter $filter `
+                -OutputPath $OutputPath -LogSource 'signin-conditional-access'
+        }
+    } `
+    -Map {
+        param($signIn, $readable)
+
+        # Omitted means the caller could not read Conditional Access. Present, even
+        # when empty, means the detail was returned.
+        # https://learn.microsoft.com/graph/api/signin-list#permissions
+        $policyField = Get-EntraField -Object $signIn -Name 'appliedConditionalAccessPolicies'
+        $detailReadable = [bool]$readable -or ($null -ne $policyField)
+
+        $base = [ordered]@{
+            CreatedDateTime         = ConvertTo-CsvTimestamp (Get-EntraField -Object $signIn -Name 'createdDateTime')
+            SignInId                = Get-PropertyValue $signIn 'id'
+            UserId                  = Get-PropertyValue $signIn 'userId'
+            IsInteractive           = Get-PropertyValue $signIn 'isInteractive'
+            ConditionalAccessStatus = Get-PropertyValue $signIn 'conditionalAccessStatus'
+            PolicyDetailReadable    = $detailReadable
+        }
+
+        $policies = @($policyField | Where-Object { $null -ne $_ })
+        if ($policies.Count -eq 0) {
+            # Keep the status. Whether "no policies" means none applied depends on
+            # PolicyDetailReadable.
+            [pscustomobject]($base + [ordered]@{
+                    PolicyId = ''; PolicyDisplayName = ''; PolicyResult = ''
+                    EnforcedGrantControls = ''; EnforcedSessionControls = ''
+                })
+            return
+        }
+
+        foreach ($policy in $policies) {
+            [pscustomobject]($base + [ordered]@{
+                    PolicyId                = Get-PropertyValue $policy 'id'
+                    PolicyDisplayName       = Get-PropertyValue $policy 'displayName'
+                    PolicyResult            = Get-PropertyValue $policy 'result'
+                    EnforcedGrantControls   = Join-ListValue (Get-EntraField -Object $policy -Name 'enforcedGrantControls')
+                    EnforcedSessionControls = Join-ListValue (Get-EntraField -Object $policy -Name 'enforcedSessionControls')
+                })
+        }
+    } `
+    @range
