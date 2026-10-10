@@ -26,7 +26,7 @@ Describe 'entra activity sources' {
         # Sign-ins cap a page at 1,000 and do not list $skip. Directory audits state no page size.
         # 429 on these resources is Retry-After, then a shorter window. Five calls per 10 seconds per tenant.
         $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Interactive sign-ins:' })
-        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events:' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events: who changed users, groups, roles, applications and policies' })
         $source1 | Should -Match 'does not list `\$skip` or `\$select`'
         $source1 | Should -Match 'Do not send `\$top` above 1,000'
         $source4 | Should -Match 'does not state a page size'
@@ -42,7 +42,7 @@ Describe 'entra activity sources' {
     It 'keeps directory audit rows the four category examples leave out' {
         # Policy is the Conditional Access category. result includes timeout.
         # Application and App are both documented type strings. Example 2 id is not a GUID.
-        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events:' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events: who changed users, groups, roles, applications and policies' })
         $script:Doc | Should -Not -Match 'did not research'
         $source4 | Should -Match 'not a closed set'
         $source4 | Should -Match 'category `Policy`'
@@ -74,7 +74,7 @@ Describe 'entra activity sources' {
         # The 7/30-day table names no cloud. An empty free tenant can take three days after upgrade.
         $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Interactive sign-ins:' })
         $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Non-interactive' })
-        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events:' })
+        $source4 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 4 \| Directory audit events: who changed users, groups, roles, applications and policies' })
         $source5 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5 \| How far back' })
         $script:Doc | Should -Not -Match 'or, for organizations with Microsoft 365 E5'
         $script:Doc | Should -Match 'retains Microsoft Entra ID audit logs only'
