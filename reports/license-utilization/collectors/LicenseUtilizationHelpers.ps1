@@ -415,6 +415,9 @@ function Invoke-LicenseUsageReport {
         [Parameter(Mandatory)][string]$ReportPath,
         [Parameter(Mandatory)][string]$Description,
         [Parameter(Mandatory)][string]$OutputPath,
+        # The period argument, such as D30. Written into ReportPeriod when the CSV
+        # omits that column, so two periods collected on the same run date stay distinct.
+        [string]$ReportPeriod,
         [switch]$Json,
 
         [ValidateSet('Commercial', 'GCC', 'GCCHigh')]
@@ -446,6 +449,14 @@ function Invoke-LicenseUsageReport {
         foreach ($header in $headers) {
             $value = $lookup[(Get-NormalizedHeader $header)]
             $out[(ConvertTo-UsageColumnName $header)] = if ($null -eq $value) { '' } else { [string]$value }
+        }
+        # getOffice365ActiveUserDetail's documented CSV stops at Assigned Products and
+        # does not include Report Period. The other user-detail CSVs do, as a day count
+        # (30, not D30). When the column is missing, store that day count from -Period
+        # so a second period on the same RunDate is not skipped as a duplicate.
+        # https://learn.microsoft.com/graph/api/reportroot-getoffice365activeuserdetail
+        if ([string]::IsNullOrWhiteSpace([string]$out['ReportPeriod']) -and -not [string]::IsNullOrWhiteSpace($ReportPeriod)) {
+            $out['ReportPeriod'] = ($ReportPeriod -replace '^(?i)D(?=\d)', '')
         }
         # A row with no user is not a user; the report appends nothing for it.
         if ([string]::IsNullOrWhiteSpace($out['UserPrincipalName'])) { return }

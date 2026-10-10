@@ -18,6 +18,9 @@
         days: a missing row is not a zero-activity row
         (https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports).
         The date form of the function covers only the past 30 days; this collector asks for a period.
+        The documented CSV schema ends at Assigned Products and does not list Report Period.
+        When the download omits that column, ReportPeriod is the day count from -Period
+        (D30 is stored as 30), so a second period on the same run date is kept.
 
         User names are replaced by hashes when the organization setting that conceals
         user, group and site names is on; see report-settings.csv and the README.
@@ -68,7 +71,7 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 
 
 Invoke-LicenseUsageReport -Source 'ActiveUserUsage' -CsvName 'usage-active-users.csv' `
-    -Description 'Active users report' -ReportPath "reports/getOffice365ActiveUserDetail(period='$Period')" `
+    -Description 'Active users report' -ReportPath "reports/getOffice365ActiveUserDetail(period='$Period')" -ReportPeriod $Period `
     -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect

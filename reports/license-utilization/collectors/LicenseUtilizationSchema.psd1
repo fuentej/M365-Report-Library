@@ -96,6 +96,8 @@
     # the right column. A header the report does not return is an empty cell.
     UsageReports = @{
         # https://learn.microsoft.com/graph/api/reportroot-getoffice365activeuserdetail
+        # That page's CSV schema ends at Assigned Products and does not list Report Period.
+        # The collector still writes ReportPeriod, filled from -Period when the download omits it.
         ActiveUserUsage = @(
             'Report Refresh Date', 'User Principal Name', 'Display Name', 'Is Deleted', 'Deleted Date'
             'Has Exchange License', 'Has OneDrive License', 'Has SharePoint License'

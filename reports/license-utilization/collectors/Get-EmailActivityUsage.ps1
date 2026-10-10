@@ -68,7 +68,7 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 
 
 Invoke-LicenseUsageReport -Source 'EmailActivityUsage' -CsvName 'usage-email-activity.csv' `
-    -Description 'Email activity report' -ReportPath "reports/getEmailActivityUserDetail(period='$Period')" `
+    -Description 'Email activity report' -ReportPath "reports/getEmailActivityUserDetail(period='$Period')" -ReportPeriod $Period `
     -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect

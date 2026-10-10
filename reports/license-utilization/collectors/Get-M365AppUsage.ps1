@@ -66,7 +66,7 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 
 
 Invoke-LicenseUsageReport -Source 'M365AppUsage' -CsvName 'usage-m365-apps.csv' -Json `
-    -Description 'Microsoft 365 apps usage report' -ReportPath "reports/getM365AppUserDetail(period='$Period')" `
+    -Description 'Microsoft 365 apps usage report' -ReportPath "reports/getM365AppUserDetail(period='$Period')" -ReportPeriod $Period `
     -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect

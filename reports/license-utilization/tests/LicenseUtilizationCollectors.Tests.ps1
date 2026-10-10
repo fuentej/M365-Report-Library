@@ -261,6 +261,26 @@ Describe 'Each usage report writes the columns of its sample' {
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-active-users.csv')).Count | Should -Be 0
     }
 
+    It 'keeps two active-user periods when the documented CSV omits Report Period' {
+        # https://learn.microsoft.com/graph/api/reportroot-getoffice365activeuserdetail
+        # The documented CSV ends at Assigned Products.
+        Mock Invoke-MgGraphRequest -MockWith {
+            $headers = @($global:LicenseUtilizationTestSchema.UsageReports.ActiveUserUsage | Where-Object { $_ -ne 'Report Period' })
+            $values = foreach ($header in $headers) {
+                if ($header -eq 'User Principal Name') { 'avery.abara@example.com' } else { '2026-08-01' }
+            }
+            $text = ((($headers | ForEach-Object { '"' + $_ + '"' }) -join ',') + "`n" + (($values | ForEach-Object { '"' + $_ + '"' }) -join ','))
+            Set-Content -LiteralPath $OutputFilePath -Value $text
+        }
+
+        Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder; Period = 'D30' }
+        Invoke-CollectorScript 'Get-ActiveUserUsage.ps1' @{ OutputPath = $script:folder; Period = 'D7' }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'usage-active-users.csv'))
+        $rows.Count | Should -Be 2
+        ($rows.ReportPeriod | Sort-Object) -join ',' | Should -Be '30,7'
+    }
+
     It 'fails when the usage-report download is not the CSV' {
         Mock Invoke-MgGraphRequest -MockWith { Set-Content -LiteralPath $OutputFilePath -Value 'Found' }
 

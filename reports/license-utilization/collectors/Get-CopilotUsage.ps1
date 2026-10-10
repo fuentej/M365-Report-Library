@@ -77,7 +77,7 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 
 Invoke-LicenseUsageReport -Source 'CopilotUsage' -CsvName 'usage-copilot.csv' `
     -Description 'Microsoft 365 Copilot usage report' `
-    -ReportPath "copilot/reports/getMicrosoft365CopilotUsageUserDetail(period='$Period',version='v2')" `
+    -ReportPath "copilot/reports/getMicrosoft365CopilotUsageUserDetail(period='$Period',version='v2')" -ReportPeriod $Period `
     -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect

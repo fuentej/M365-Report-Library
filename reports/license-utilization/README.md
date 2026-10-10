@@ -102,6 +102,9 @@ snapshot says names are concealed. The library only reads the setting; changing 
   user's row leaves the report within 30 days.
 * Last Activity Date is the most recent intentional activity whatever the period, so a snapshot can show
   inactivity older than the period. The counts aggregate the period.
+* Active users (5a) is the usage CSV whose [documented header](https://learn.microsoft.com/graph/api/reportroot-getoffice365activeuserdetail)
+  stops at Assigned Products. When that download has no Report Period column, `ReportPeriod` is the day
+  count from `-Period` (`D30` is stored as `30`), the same shape the other usage CSVs use.
 * Copilot usage (5g) uses the v1.0 `/copilot` function with `version='v2'` and returns only users with a
   Microsoft 365 Copilot licence. The version 2 additions are named in prose on the Learn page, not printed as
   a CSV header, so their column spellings are **UNVERIFIED**: a header that does not match leaves the cell empty.
