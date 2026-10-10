@@ -33,6 +33,15 @@ Describe 'The sample CSVs match the schema' {
         @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv').Count | Should -Be 11
     }
 
+    It 'site-permission-breadth SiteId values are GUIDs, the download column' {
+        $ids = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'site-permission-breadth.csv') | ForEach-Object { $_.SiteId })
+        $ids.Count | Should -BeGreaterThan 0
+        foreach ($id in $ids) {
+            { [guid]$id } | Should -Not -Throw
+            $id | Should -Not -Match ','
+        }
+    }
+
     It 'uses only example.com addresses and no secret sharing URL' {
         $text = (Get-ChildItem -LiteralPath $script:Samples -Recurse -Filter '*.csv' | Get-Content -Raw) -join "`n"
         $domains = [regex]::Matches($text, '[A-Za-z0-9._-]+@([A-Za-z0-9.-]+)') | ForEach-Object { $_.Groups[1].Value }

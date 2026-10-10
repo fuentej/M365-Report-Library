@@ -178,7 +178,9 @@ foreach ($snapshot in $snapshotDates) {
             $eeeu = if ($site.Name -in 'All Company', 'Partner Portal') { 3 + $snapshotIndex } else { $index % 3 }
             [pscustomobject]@{
                 RunDate = $runDate; Workload = $workload; ReportId = $reportId; ReportDate = $reportDate
-                SiteId = $site.Id; SiteName = $site.Name; SiteUrl = $site.WebUrl; SiteTemplate = $(if ($site.Template -like 'GROUP*') { 'Team site' } elseif ($site.Personal) { 'Other sites' } else { 'Communication site' })
+                # Site ID in the download is a GUID, not the Graph composite id.
+                # https://learn.microsoft.com/sharepoint/data-access-governance-site-permissions-report
+                SiteId = $site.Guid; SiteName = $site.Name; SiteUrl = $site.WebUrl; SiteTemplate = $(if ($site.Template -like 'GROUP*') { 'Team site' } elseif ($site.Personal) { 'Other sites' } else { 'Communication site' })
                 PrimaryAdmin = $people[$index % $people.Count].Name; PrimaryAdminEmail = $people[$index % $people.Count].Upn
                 ExternalSharing = $(if ($site.Name -eq 'Partner Portal') { 'Yes' } else { 'No' }); SitePrivacy = $(if ($site.Template -like 'GROUP*') { @('Private', 'Public')[$index % 2] } else { '' })
                 SiteSensitivity = $(if ($site.Name -in 'Legal', 'Finance') { 'Confidential' } else { '' })
