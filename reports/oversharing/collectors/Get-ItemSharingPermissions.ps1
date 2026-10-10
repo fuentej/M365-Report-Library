@@ -11,7 +11,8 @@
         per item, so a tenant scan is a walk of every drive: for each site, its drives
         (GET /sites/{site-id}/drives, https://learn.microsoft.com/graph/api/drive-list), then
         every folder's children (https://learn.microsoft.com/graph/api/driveitem-list-children),
-        every collection paged by following @odata.nextLink. Learn's scan guidance is the page
+        every collection paged by following @odata.nextLink. The drive root is read too:
+        root/children does not include it. Learn's scan guidance is the page
         to read before sizing it:
         https://learn.microsoft.com/onedrive/developer/rest-api/concepts/scan-guidance
 

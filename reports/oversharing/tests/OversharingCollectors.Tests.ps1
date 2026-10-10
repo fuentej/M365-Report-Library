@@ -315,6 +315,24 @@ Describe 'Paging is followed' {
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'sites.csv')).Count | Should -Be 0
     }
 
+    It 'reads permissions on the drive root, which root/children does not include' {
+        Mock Invoke-MgGraphRequest -MockWith {
+            $global:OversharingTestUris.Add($Uri)
+            switch -Wildcard ($Uri) {
+                '*/drives/drive-1/root?*' { @{ id = 'root-1'; name = 'Documents'; webUrl = 'https://contoso.sharepoint.com/sites/finance/Shared Documents'; folder = @{ childCount = 0 } } }
+                '*/root/children*' { @{ value = @() } }
+                '*/items/root-1/permissions*' { @{ value = @(@{ id = 'root-perm'; roles = @('read'); link = @{ scope = 'anonymous'; type = 'view' } }) } }
+                '*/sites/site-1/drives?*' { @{ value = @(@{ id = 'drive-1' }) } }
+                default { @{ value = @() } }
+            }
+        }
+
+        Invoke-CollectorScript 'Get-ItemSharingPermissions.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; SiteId = 'site-1'; WarningAction = 'SilentlyContinue' }
+
+        ($global:OversharingTestUris | Where-Object { $_ -like '*/items/root-1/permissions*' }).Count | Should -Be 1
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'item-permissions.csv') | Where-Object ItemId -eq 'root-1').LinkScope | Should -Be 'anonymous'
+    }
+
     It 'walks every folder and pages the drives, children and permissions of item permissions' {
         Mock Invoke-MgGraphRequest -MockWith {
             $global:OversharingTestUris.Add($Uri)

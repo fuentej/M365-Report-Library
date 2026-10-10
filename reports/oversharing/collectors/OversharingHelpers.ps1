@@ -249,10 +249,12 @@ function Get-DriveItemWalk {
             Every file and folder in a drive, folder by folder.
 
         .DESCRIPTION
-            GET /drives/{drive-id}/root/children, then GET /drives/{drive-id}/items/{item-id}/children
-            for each folder (https://learn.microsoft.com/graph/api/driveitem-list-children),
-            every collection paged. -MaxItems stops the walk after that many items; 0 walks
-            the whole drive.
+            GET /drives/{drive-id}/root, then GET /drives/{drive-id}/root/children, then
+            GET /drives/{drive-id}/items/{item-id}/children for each folder
+            (https://learn.microsoft.com/graph/api/driveitem-list-children). root/children
+            does not include the root, and a sharing link on the library itself would
+            otherwise be missed when the library has no children. Every collection is
+            paged. -MaxItems stops the walk after that many items; 0 walks the whole drive.
     #>
     [CmdletBinding()]
     param(
@@ -262,8 +264,28 @@ function Get-DriveItemWalk {
 
     $select = '$select=id,name,webUrl,folder'
     $queue = [System.Collections.Generic.Queue[string]]::new()
-    $queue.Enqueue("/v1.0/drives/$DriveId/root/children?$select")
     $count = 0
+
+    # https://learn.microsoft.com/graph/api/driveitem-get
+    try {
+        $root = Invoke-GraphGet -Uri "/v1.0/drives/$DriveId/root?$select"
+        $rootId = [string](Get-JsonProperty -Object $root -Name 'id')
+        if ($rootId) {
+            [pscustomobject]@{
+                Id       = $rootId
+                Name     = [string](Get-JsonProperty -Object $root -Name 'name')
+                WebUrl   = [string](Get-JsonProperty -Object $root -Name 'webUrl')
+                IsFolder = $null -ne (Get-JsonProperty -Object $root -Name 'folder')
+            }
+            $count++
+            if ($MaxItems -gt 0 -and $count -ge $MaxItems) { return }
+        }
+    }
+    catch {
+        Write-Verbose ("Drive {0} root was not read ({1}). The children are still walked." -f $DriveId, $_.Exception.Message)
+    }
+
+    $queue.Enqueue("/v1.0/drives/$DriveId/root/children?$select")
 
     while ($queue.Count -gt 0) {
         foreach ($item in Get-GraphPagedValue -Uri $queue.Dequeue()) {
