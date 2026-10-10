@@ -20,6 +20,10 @@ Describe 'Teams activity sources' {
         $source6 | Should -Match 'organizer_v2'
         $source6 | Should -Match 'participants_v2'
         $source6 | Should -Match '130'
+        $source6 | Should -Match '150 minutes'
+        $source6 | Should -Match 'not an absent call'
+        $source6 | Should -Match 'highest `version`'
+        $source6 | Should -Match 'session''s `caller`'
     }
 
     It 'follows export nextLink and records the evaluation-mode conflict' {
