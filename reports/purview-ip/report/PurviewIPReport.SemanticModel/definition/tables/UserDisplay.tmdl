@@ -1,58 +1,52 @@
 /// One row per user per anonymize mode (0 = real name, 1 = pseudonym).
 /// The anonymize slicer filters Mode, so the user slicer and the manager
-/// chain show the name that matches the toggle. Built with ALLNOBLANKROW
-/// so the relationship back to Users does not circular-depend on the blank row.
+/// chain show the name that matches the toggle. Built in Power Query from
+/// the Users query, not as a DAX calculated table: a DAX table that reads
+/// Users and also has a relationship to Users forms a circular dependency
+/// through the blank row that relationship adds to Users.
 table 'User Display'
 
 	column UserId
 		dataType: string
 		isHidden
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [UserId]
+		sourceColumn: UserId
 
 	column Mode
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Mode]
+		sourceColumn: Mode
 
 	column Name
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Name]
+		sourceColumn: Name
 
 	column 'Level 1'
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Level 1]
+		sourceColumn: Level 1
 
 	column 'Level 2'
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Level 2]
+		sourceColumn: Level 2
 
 	column 'Level 3'
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Level 3]
+		sourceColumn: Level 3
 
 	column 'Level 4'
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Level 4]
+		sourceColumn: Level 4
 
 	column 'Level 5'
 		dataType: string
 		summarizeBy: none
-		isNameInferred
-		sourceColumn: [Level 5]
+		sourceColumn: Level 5
 
 	hierarchy 'Manager Chain'
 		level 'Level 1'
@@ -66,30 +60,18 @@ table 'User Display'
 		level 'Level 5'
 			column: 'Level 5'
 
-	partition 'User Display' = calculated
+	partition 'User Display' = m
 		mode: import
 		source =
-				UNION(
-				    SELECTCOLUMNS(
-				        ALLNOBLANKROW(Users[UserId]),
-				        "UserId", Users[UserId],
-				        "Mode", 0,
-				        "Name", LOOKUPVALUE(Users[DisplayName], Users[UserId], Users[UserId]),
-				        "Level 1", LOOKUPVALUE(Users[Level 1 Name], Users[UserId], Users[UserId]),
-				        "Level 2", LOOKUPVALUE(Users[Level 2 Name], Users[UserId], Users[UserId]),
-				        "Level 3", LOOKUPVALUE(Users[Level 3 Name], Users[UserId], Users[UserId]),
-				        "Level 4", LOOKUPVALUE(Users[Level 4 Name], Users[UserId], Users[UserId]),
-				        "Level 5", LOOKUPVALUE(Users[Level 5 Name], Users[UserId], Users[UserId])
-				    ),
-				    SELECTCOLUMNS(
-				        ALLNOBLANKROW(Users[UserId]),
-				        "UserId", Users[UserId],
-				        "Mode", 1,
-				        "Name", LOOKUPVALUE(Users[Anonymous Display Name], Users[UserId], Users[UserId]),
-				        "Level 1", LOOKUPVALUE(Users[Level 1 Anonymous Name], Users[UserId], Users[UserId]),
-				        "Level 2", LOOKUPVALUE(Users[Level 2 Anonymous Name], Users[UserId], Users[UserId]),
-				        "Level 3", LOOKUPVALUE(Users[Level 3 Anonymous Name], Users[UserId], Users[UserId]),
-				        "Level 4", LOOKUPVALUE(Users[Level 4 Anonymous Name], Users[UserId], Users[UserId]),
-				        "Level 5", LOOKUPVALUE(Users[Level 5 Anonymous Name], Users[UserId], Users[UserId])
-				    )
-				)
+				let
+				    Real = Table.SelectColumns(Users, {"Id", "DisplayName", "Level 1 Name", "Level 2 Name", "Level 3 Name", "Level 4 Name", "Level 5 Name"}),
+				    RealRenamed = Table.RenameColumns(Real, {{"Id", "UserId"}, {"DisplayName", "Name"}, {"Level 1 Name", "Level 1"}, {"Level 2 Name", "Level 2"}, {"Level 3 Name", "Level 3"}, {"Level 4 Name", "Level 4"}, {"Level 5 Name", "Level 5"}}),
+				    RealMode = Table.AddColumn(RealRenamed, "Mode", each 0, Int64.Type),
+				    Anonymous = Table.SelectColumns(Users, {"Id", "Anonymous Display Name", "Level 1 Anonymous Name", "Level 2 Anonymous Name", "Level 3 Anonymous Name", "Level 4 Anonymous Name", "Level 5 Anonymous Name"}),
+				    AnonymousRenamed = Table.RenameColumns(Anonymous, {{"Id", "UserId"}, {"Anonymous Display Name", "Name"}, {"Level 1 Anonymous Name", "Level 1"}, {"Level 2 Anonymous Name", "Level 2"}, {"Level 3 Anonymous Name", "Level 3"}, {"Level 4 Anonymous Name", "Level 4"}, {"Level 5 Anonymous Name", "Level 5"}}),
+				    AnonymousMode = Table.AddColumn(AnonymousRenamed, "Mode", each 1, Int64.Type),
+				    // Users with no Id have nothing to relate to.
+				    Combined = Table.SelectRows(Table.Combine({RealMode, AnonymousMode}), each [UserId] <> null and [UserId] <> ""),
+				    Ordered = Table.ReorderColumns(Combined, {"UserId", "Mode", "Name", "Level 1", "Level 2", "Level 3", "Level 4", "Level 5"})
+				in
+				    Ordered

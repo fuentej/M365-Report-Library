@@ -25,5 +25,5 @@ ref table Calendar
 ref table Workload
 ref table 'Anonymize Toggle'
 ref table 'User Display'
-ref table Measures
+ref table _Measures
 

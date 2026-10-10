@@ -2,7 +2,7 @@
 /// (a 2-row calculated table plus a SELECTEDVALUE-driven measure) rather
 /// than a bookmark. A single slicer on this table then controls every
 /// page's [Display Name] measure at once, without needing a duplicate
-/// bookmark per page. See Measures['Anonymize Toggle Value'] and
+/// bookmark per page. See _Measures['Anonymize Toggle Value'] and
 /// Users['Anonymous Display Name'].
 table 'Anonymize Toggle'
 

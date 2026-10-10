@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Retention Policy Count"
                 }
               },
-              "queryRef": "Measures.[Retention Policy Count]",
-              "nativeQueryRef": "Measures.[Retention Policy Count]"
+              "queryRef": "_Measures.[Retention Policy Count]",
+              "nativeQueryRef": "_Measures.[Retention Policy Count]"
             }
           ]
         }

@@ -2,7 +2,7 @@
 /// "measures table" pattern) rather than scattered across the fact tables
 /// they read from, since several of them (downgrade detection, the
 /// anonymize switch) cross more than one table.
-table Measures
+table _Measures
 
 	column 'Measures Key'
 		dataType: int64
@@ -190,7 +190,7 @@ table Measures
 			)
 		displayFolder: Anonymize
 
-	partition Measures = calculated
+	partition _Measures = calculated
 		mode: import
 		source =
 				ROW("Measures Key", 1)

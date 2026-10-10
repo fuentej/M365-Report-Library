@@ -163,9 +163,13 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         # Only the imported (sourceColumn-backed) columns, in file order -- a
         # calculated column layered on top of a CSV-backed table (e.g.
         # ActivityExplorerEvents' Retention Label Key) is not part of the CSV and
-        # is deliberately excluded here.
+        # is deliberately excluded here. So is a column the table's Power Query
+        # adds after reading the CSV (Users' manager chain and pseudonyms).
+        $queryAdded = @{ Users = @(
+            'Manager Path', 'Manager Path Length', 'Level 1 Id', 'Level 2 Id', 'Level 3 Id', 'Level 4 Id', 'Level 5 Id', 'Level 1 Name', 'Level 2 Name', 'Level 3 Name', 'Level 4 Name', 'Level 5 Name', 'Anonymous Id', 'Anonymous Display Name', 'Level 1 Anonymous Name', 'Level 2 Anonymous Name', 'Level 3 Anonymous Name', 'Level 4 Anonymous Name', 'Level 5 Anonymous Name'
+        ) }
         $modelColumns = @($script:Model[$Table].Columns | Where-Object { -not $_.IsCalculated } |
-                ForEach-Object { $_.SourceColumn })
+                ForEach-Object { $_.SourceColumn } | Where-Object { $_ -notin $queryAdded[$Table] })
 
         ($modelColumns -join ',') | Should -Be ($csvHeader -join ',')
     }
@@ -239,7 +243,7 @@ Describe 'The report keeps its eight pages and their filters' {
     }
 
     It 'lists exactly the eight pages in pages.json' {
-        $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder '../pages.json') -Raw | ConvertFrom-Json -AsHashtable
+        $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable
         (@($pages.pageOrder) | Sort-Object) -join ',' | Should -Be ((@($script:PageNames.Keys) | Sort-Object) -join ',')
     }
 

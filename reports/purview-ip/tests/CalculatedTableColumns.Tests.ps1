@@ -202,8 +202,9 @@ BeforeAll {
 }
 
 Describe 'Calculated table columns use the form Power BI Desktop writes' {
-    It 'finds exactly the four calculated tables' {
-        ($script:CalculatedFiles | Sort-Object) -join ',' | Should -Be 'AnonymizeToggle.tmdl,Calendar.tmdl,Measures.tmdl,UserDisplay.tmdl'
+    It 'finds exactly the three calculated tables' {
+        # User Display is a Power Query table; see the circular-dependency Describe below.
+        ($script:CalculatedFiles | Sort-Object) -join ',' | Should -Be '_Measures.tmdl,AnonymizeToggle.tmdl,Calendar.tmdl'
     }
 
     It 'has no FILTER(...) calculated table that should be an import table' {
@@ -212,19 +213,18 @@ Describe 'Calculated table columns use the form Power BI Desktop writes' {
         @($script:Tables | Where-Object { $_.IsCalculated -and $_.Expression -match '^\s*FILTER\s*\(' }).File | Should -BeNullOrEmpty
     }
 
-    It 'knows the output columns of <_>' -ForEach @('AnonymizeToggle.tmdl', 'Calendar.tmdl', 'Measures.tmdl', 'UserDisplay.tmdl') {
+    It 'knows the output columns of <_>' -ForEach @('AnonymizeToggle.tmdl', 'Calendar.tmdl', '_Measures.tmdl') {
         $file = $_
         $table = $script:Tables | Where-Object File -eq $file
         $expected = @{
             'AnonymizeToggle.tmdl' = 'Value'
             'Calendar.tmdl'        = 'Date'
-            'Measures.tmdl'        = 'Measures Key'
-            'UserDisplay.tmdl'     = 'UserId,Mode,Name,Level 1,Level 2,Level 3,Level 4,Level 5'
+            '_Measures.tmdl'        = 'Measures Key'
         }[$file]
         (Get-ExpressionOutputName -Expression $table.Expression) -join ',' | Should -Be $expected
     }
 
-    It '<_> binds every returned column with a bracketed sourceColumn and isNameInferred' -ForEach @('AnonymizeToggle.tmdl', 'Calendar.tmdl', 'Measures.tmdl', 'UserDisplay.tmdl') {
+    It '<_> binds every returned column with a bracketed sourceColumn and isNameInferred' -ForEach @('AnonymizeToggle.tmdl', 'Calendar.tmdl', '_Measures.tmdl') {
         $problems = Get-CalculatedTableColumnProblem -Line (Get-Content -LiteralPath (Join-Path $script:TablesFolder $_))
         $problems | Should -BeNullOrEmpty
     }
@@ -234,8 +234,6 @@ Describe 'Calculated table columns use the form Power BI Desktop writes' {
         ($calendar.BoundColumns | Where-Object Name -eq 'Date').SourceColumn | Should -Be '[Date]'
         $toggle = $script:Tables | Where-Object Name -eq 'Anonymize Toggle'
         ($toggle.BoundColumns | Where-Object Name -eq 'Anonymize Toggle').SourceColumn | Should -Be '[Value]'
-        $userDisplay = $script:Tables | Where-Object Name -eq 'User Display'
-        $userDisplay.BoundColumns.Count | Should -Be 8
     }
 
     It 'resolves every relationship end, with none on a broken calculated-table column' {
@@ -270,12 +268,6 @@ Describe 'Calculated table columns use the form Power BI Desktop writes' {
             $problems | Should -Contain 'Date: missing isNameInferred'
         }
 
-        It 'fails when a UNION column uses a bare sourceColumn' {
-            $copy = New-BrokenCopy -Table 'UserDisplay' -Pattern "sourceColumn: \[Level 3\]" -Replacement "sourceColumn: 'Level 3'"
-            $problems = Get-CalculatedTableColumnProblem -Line (Get-Content -LiteralPath (Join-Path $copy 'tables/UserDisplay.tmdl'))
-            $problems | Should -Contain "Level 3: sourceColumn ''Level 3'' is not bracketed"
-        }
-
         It 'fails when the bracketed sourceColumn is the declared name, not the output name' {
             $copy = New-BrokenCopy -Table 'AnonymizeToggle' -Pattern 'sourceColumn: \[Value\]' -Replacement 'sourceColumn: [Anonymize Toggle]'
             $problems = Get-CalculatedTableColumnProblem -Line (Get-Content -LiteralPath (Join-Path $copy 'tables/AnonymizeToggle.tmdl'))
@@ -299,5 +291,33 @@ Describe 'Calculated table columns use the form Power BI Desktop writes' {
             $ends = @(Get-RelationshipEndProblem -Definition $copy)
             $ends | Should -Contain 'Calendar.Date (relationship end): not a declared column'
         }
+    }
+}
+
+Describe 'Users and User Display have no DAX that can form a circular dependency' {
+    # 'User Display' has a relationship to Users, which gives Users a blank row.
+    # A DAX calculated column on Users that scans the table (PATH, RANKX,
+    # LOOKUPVALUE), read by a DAX 'User Display', is a circular dependency, and
+    # Power BI Desktop refuses the refresh. Both are built in Power Query.
+    It 'Users has no calculated columns' {
+        $users = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Users.tmdl')
+        @($users | Select-String -Pattern '^\t\ttype: calculated\s*$').Count | Should -Be 0
+        @($users | Select-String -Pattern '^\tcolumn [^=]*=').Count | Should -Be 0
+    }
+
+    It 'User Display is a Power Query table built from Users' {
+        $userDisplay = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UserDisplay.tmdl') -Raw
+        $userDisplay | Should -Match "(?m)^\tpartition 'User Display' = m\s*$"
+        $userDisplay | Should -Match 'Table\.SelectColumns\(Users,'
+    }
+
+    It 'User Display reads only columns the Users query produces' {
+        $users = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'Users.tmdl') -Raw
+        $userDisplay = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UserDisplay.tmdl') -Raw
+        $produced = @([regex]::Matches($users, '(?m)^\t\tsourceColumn: (.+?)\s*$') | ForEach-Object { $_.Groups[1].Value })
+        $read = @([regex]::Matches($userDisplay, 'Table\.SelectColumns\(Users, \{([^}]*)\}') | ForEach-Object {
+                [regex]::Matches($_.Groups[1].Value, '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value } })
+        $read.Count | Should -Be 14
+        @($read | Where-Object { $_ -notin $produced }) | Should -BeNullOrEmpty
     }
 }

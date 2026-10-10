@@ -34,28 +34,28 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "Measures.[Label Applications]",
-              "nativeQueryRef": "Measures.[Label Applications]"
+              "queryRef": "_Measures.[Label Applications]",
+              "nativeQueryRef": "_Measures.[Label Applications]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "Measures.[Label Downgrades]",
-              "nativeQueryRef": "Measures.[Label Downgrades]"
+              "queryRef": "_Measures.[Label Downgrades]",
+              "nativeQueryRef": "_Measures.[Label Downgrades]"
             }
           ]
         }

@@ -38,98 +38,98 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Total Events"
                 }
               },
-              "queryRef": "Measures.[Total Events]",
-              "nativeQueryRef": "Measures.[Total Events]"
+              "queryRef": "_Measures.[Total Events]",
+              "nativeQueryRef": "_Measures.[Total Events]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "Measures.[Label Applications]",
-              "nativeQueryRef": "Measures.[Label Applications]"
+              "queryRef": "_Measures.[Label Applications]",
+              "nativeQueryRef": "_Measures.[Label Applications]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "Measures.[Label Downgrades]",
-              "nativeQueryRef": "Measures.[Label Downgrades]"
+              "queryRef": "_Measures.[Label Downgrades]",
+              "nativeQueryRef": "_Measures.[Label Downgrades]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "Measures.[DLP Matches]",
-              "nativeQueryRef": "Measures.[DLP Matches]"
+              "queryRef": "_Measures.[DLP Matches]",
+              "nativeQueryRef": "_Measures.[DLP Matches]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Retention Label Changes"
                 }
               },
-              "queryRef": "Measures.[Retention Label Changes]",
-              "nativeQueryRef": "Measures.[Retention Label Changes]"
+              "queryRef": "_Measures.[Retention Label Changes]",
+              "nativeQueryRef": "_Measures.[Retention Label Changes]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot Access Blocked"
                 }
               },
-              "queryRef": "Measures.[Copilot Access Blocked]",
-              "nativeQueryRef": "Measures.[Copilot Access Blocked]"
+              "queryRef": "_Measures.[Copilot Access Blocked]",
+              "nativeQueryRef": "_Measures.[Copilot Access Blocked]"
             }
           ]
         }
