@@ -35,7 +35,7 @@ param(
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
     [string]$Period = 'D30',
 
-    # A single day, within the last 28 days. When set it is sent instead of -Period.
+    # A single day, within the last 30 days. When set it is sent instead of -Period.
     [datetime]$Date,
 
     [switch]$SkipConnect

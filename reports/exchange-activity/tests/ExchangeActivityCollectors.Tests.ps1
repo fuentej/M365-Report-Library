@@ -240,6 +240,24 @@ Describe 'Graph usage reports (sources 1 to 4)' {
         Should -Invoke Get-MgReportMailboxUsageStorage -Times 1 -Exactly -ParameterFilter { $Period -eq 'D7' }
     }
 
+    It 'requests 180 days of mailbox storage when no period is given' {
+        # Source 2 is documented as period D180. D30 cannot backfill the earlier days.
+        # https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage
+        Mock Get-MgReportMailboxUsageStorage {
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value "Report Refresh Date,Storage Used (Byte),Report Date,Report Period`n"
+        }
+        Invoke-CollectorScript 'Get-MailboxUsageStorage.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        Should -Invoke Get-MgReportMailboxUsageStorage -Times 1 -Exactly -ParameterFilter { $Period -eq 'D180' }
+    }
+
+    It 'describes the email app date window as 30 days' {
+        # Source 4's date form reaches back 30 days, not the 28 days of source 3.
+        # https://learn.microsoft.com/graph/api/reportroot-getemailappusageuserdetail
+        $text = Get-Content -LiteralPath (Join-Path $script:Collectors 'Get-EmailAppUsageUserDetail.ps1') -Raw
+        $text | Should -Match 'within the last 30 days'
+        $text | Should -Not -Match 'within the last 28 days'
+    }
+
     It 'sends the period for email activity, and the date alone when one is given' {
         Mock Get-MgReportEmailActivityUserDetail {
             Set-Content -LiteralPath $OutFile -Encoding utf8 -Value "Report Refresh Date,User Principal Name,Display Name,Is Deleted,Deleted Date,Last Activity Date,Send Count,Receive Count,Read Count,Meeting Created Count,Meeting Interacted Count,Assigned Products,Report Period`n2026-10-06,a@example.com,A,False,,2026-10-05,3,40,30,1,2,MICROSOFT 365 E3,30"
@@ -419,6 +437,54 @@ Describe 'Exchange message trace (source 8)' {
         $global:ExTest.Calls[1].EndDate.ToUniversalTime() | Should -Be ([datetime]'2026-10-07T10:00:00Z').ToUniversalTime()
     }
 
+    It 'continues from an Unspecified Received time without shifting it out of UTC' {
+        # Output timestamps are UTC. Kind Unspecified is not the local zone.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
+        $received = [datetime]::SpecifyKind([datetime]'2026-10-07T10:00:00', [DateTimeKind]::Unspecified)
+        $global:ExTest.Calls = [System.Collections.Generic.List[object]]::new()
+        Mock Get-MessageTraceV2 {
+            $global:ExTest.Calls.Add(@{ EndDate = $EndDate })
+            if ($global:ExTest.Calls.Count -eq 1) {
+                $last = New-MockTrace -Received '2026-10-07T10:00:00Z' -Recipient 'b@example.com' -Id '00000000-0000-0000-0000-000000000002'
+                $last.Received = $received
+                New-MockTrace -Received '2026-10-07T12:00:00Z' -Recipient 'a@example.com' -Id '00000000-0000-0000-0000-000000000001'
+                $last
+            }
+            else {
+                New-MockTrace -Received '2026-10-07T09:00:00Z' -Recipient 'c@example.com' -Id '00000000-0000-0000-0000-000000000003'
+            }
+        }
+
+        $rows = @(Invoke-MessageTraceV2Window -Role Sender -Address 'avery.abara@example.com' -Start ([datetime]'2026-10-06T00:00:00Z') -End ([datetime]'2026-10-08T00:00:00Z') -ResultSize 2)
+        $rows.Count | Should -Be 3
+        $global:ExTest.Calls[1].EndDate.ToString('yyyy-MM-ddTHH:mm:ss') | Should -Be '2026-10-07T10:00:00'
+        $global:ExTest.Calls[1].EndDate.Kind | Should -Be ([DateTimeKind]::Utc)
+    }
+
+    It 're-queries a message that already has 1000 recipients by MessageTraceId' {
+        # Over 1,000 recipients the query is incomplete unless MessageTraceId is set.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
+        # https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/message-trace-modern-eac
+        $id = [guid]'00000000-0000-0000-0000-000000000010'
+        $global:ExTest.Follow = 0
+        Mock Get-MessageTraceV2 {
+            if ($MessageTraceId -eq $id) {
+                $global:ExTest.Follow++
+                New-MockTrace -Received '2026-10-07T08:00:00Z' -Recipient 'extra@example.com' -Id $id
+            }
+            else {
+                foreach ($n in 1..1000) {
+                    New-MockTrace -Received '2026-10-07T12:00:00Z' -Recipient ('r{0:d4}@example.com' -f $n) -Id $id
+                }
+            }
+        }
+
+        $rows = @(Invoke-MessageTraceV2Window -Role Sender -Address 'avery.abara@example.com' -Start ([datetime]'2026-10-06T00:00:00Z') -End ([datetime]'2026-10-08T00:00:00Z') -ResultSize 5000)
+        $rows.Count | Should -Be 1001
+        $global:ExTest.Follow | Should -Be 1
+        $rows.RecipientAddress | Should -Contain 'extra@example.com'
+    }
+
     It 'stops when a full round adds nothing new instead of looping' {
         Mock Get-MessageTraceV2 {
             New-MockTrace -Received '2026-10-07T12:00:00Z' -Recipient 'a@example.com' -Id '00000000-0000-0000-0000-000000000001'
@@ -483,6 +549,44 @@ Describe 'Exchange message trace (source 8)' {
         Wait-MessageTraceRateLimit
         Should -Invoke Start-Sleep -Times 1 -Exactly
         Remove-Variable -Name TraceRequestTimes -Scope Script -ErrorAction SilentlyContinue
+    }
+
+    It 'counts requests that are still inside the window after a wait' {
+        # Clearing the queue after the wait lets the next burst exceed 100 in 5 minutes.
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
+        Remove-Variable -Name TraceRequestTimes -Scope Script -ErrorAction SilentlyContinue
+        1..95 | ForEach-Object { Wait-MessageTraceRateLimit }
+        Wait-MessageTraceRateLimit
+        Wait-MessageTraceRateLimit
+        Should -Invoke Start-Sleep -Times 2 -Exactly
+        Remove-Variable -Name TraceRequestTimes -Scope Script -ErrorAction SilentlyContinue
+    }
+
+    It 'resumes an unfinished mailbox trace from the original start, not the newest row' {
+        # A newer row from a mailbox that finished must not hide an unfinished mailbox.
+        $global:ExTest.Phase = 'fail'
+        $global:ExTest.Starts = [System.Collections.Generic.List[datetime]]::new()
+        Mock Get-EXOMailbox {
+            New-MockMailbox -Id 'm1' -Upn 'first@example.com'
+            New-MockMailbox -Id 'm2' -Upn 'second@example.com'
+        }
+        Mock Get-MessageTraceV2 {
+            $global:ExTest.Starts.Add($StartDate)
+            if ($global:ExTest.Phase -eq 'fail' -and $SenderAddress -eq 'second@example.com') { throw 'trace failed' }
+            if ($SenderAddress -eq 'first@example.com') {
+                New-MockTrace -Received ([datetime]::UtcNow.AddHours(-1).ToString('o')) -Sender 'first@example.com' -Recipient 'a@example.com' -Id '00000000-0000-0000-0000-00000000000a'
+            }
+        }
+
+        Invoke-CollectorScript 'Get-MessageTrace.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 10 }
+        Test-Path -LiteralPath (Join-Path $script:Out 'message-trace.pending') | Should -BeTrue
+
+        $global:ExTest.Phase = 'ok'
+        $global:ExTest.Starts.Clear()
+        Invoke-CollectorScript 'Get-MessageTrace.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 10 }
+
+        ($global:ExTest.Starts | Measure-Object -Minimum).Minimum | Should -BeLessOrEqual ([datetime]::UtcNow.AddDays(-9))
+        Test-Path -LiteralPath (Join-Path $script:Out 'message-trace.pending') | Should -BeFalse
     }
 }
 
@@ -568,6 +672,47 @@ Describe 'Graph message trace (source 11)' {
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'graph-message-trace.csv')).Count | Should -Be 0
         Get-HeaderText (Join-Path $script:Out 'graph-message-trace.csv') | Should -Be ($script:Schema.GraphMessageTrace -join ',')
     }
+
+    It 'does not skip an older window after a newer window was written and a later call failed' {
+        # Newest-first writes a recent row, then a failed older window is past the watermark forever.
+        # https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/graph-api-message-trace
+        Mock Invoke-MgGraphRequest {
+            $decoded = [uri]::UnescapeDataString($Uri)
+            $match = [regex]::Match($decoded, 'receivedDateTime ge (\S+) and receivedDateTime le (\S+)')
+            $from = [datetime]::Parse($match.Groups[1].Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+            if ($from -lt [datetime]::UtcNow.AddDays(-9)) { throw 'older window failed' }
+            @{ value = @(New-GraphTrace 'id-new' ([datetime]::UtcNow.AddHours(-1).ToString('yyyy-MM-ddTHH:mm:ssZ'))) }
+        }
+        Invoke-CollectorScript 'Get-GraphMessageTrace.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 15 }
+
+        $global:ExTest.Uris = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-MgGraphRequest {
+            $global:ExTest.Uris.Add([uri]::UnescapeDataString($Uri))
+            @{ value = @() }
+        }
+        Invoke-CollectorScript 'Get-GraphMessageTrace.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 15 }
+
+        $starts = foreach ($uri in $global:ExTest.Uris) {
+            $match = [regex]::Match($uri, 'receivedDateTime ge (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)')
+            [datetime]::Parse($match.Groups[1].Value, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+        }
+        ($starts | Measure-Object -Minimum).Minimum | Should -BeLessOrEqual ([datetime]::UtcNow.AddDays(-14))
+    }
+
+    It 'retries a throttled Graph message trace instead of keeping an empty file' {
+        # Retry after the window. The page does not name Retry-After. A 401 is a different error.
+        # https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/graph-api-message-trace
+        Mock Start-Sleep { }
+        $global:ExTest.Tries = 0
+        Mock Invoke-MgGraphRequest {
+            $global:ExTest.Tries++
+            if ($global:ExTest.Tries -eq 1) { throw 'Your recent queries have surpassed the permitted limit, please try again later.' }
+            @{ value = @(New-GraphTrace 'id-throttled' '2026-10-07T10:00:00Z') }
+        }
+        Invoke-CollectorScript 'Get-GraphMessageTrace.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 2 }
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'graph-message-trace.csv')).Count | Should -Be 1
+        $global:ExTest.Tries | Should -BeGreaterOrEqual 2
+    }
 }
 
 Describe 'Run-All' {
@@ -603,5 +748,17 @@ Describe 'Run-All' {
             Test-Path -LiteralPath (Join-Path $script:Out "$name.csv") | Should -BeTrue -Because $name
         }
         Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
+    }
+
+    It 'asks for 180 days of mailbox storage unless -Period is passed, and 30 days of mailbox usage' {
+        # https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage
+        Mock Get-MgReportMailboxUsageStorage { }
+        Mock Get-MgReportMailboxUsageDetail { }
+        & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -Environment Commercial -MailboxLimit 1
+        Should -Invoke Get-MgReportMailboxUsageStorage -Times 1 -Exactly -ParameterFilter { $Period -eq 'D180' }
+        Should -Invoke Get-MgReportMailboxUsageDetail -Times 1 -Exactly -ParameterFilter { $Period -eq 'D30' }
+
+        & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -Environment Commercial -MailboxLimit 1 -Period D7
+        Should -Invoke Get-MgReportMailboxUsageStorage -Times 1 -Exactly -ParameterFilter { $Period -eq 'D7' }
     }
 }

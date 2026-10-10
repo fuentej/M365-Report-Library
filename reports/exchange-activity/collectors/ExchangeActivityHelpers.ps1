@@ -250,6 +250,47 @@ function Get-CsvBoolean {
     return ([bool]$Value).ToString()
 }
 
+function ConvertTo-ExchangeUtc {
+    <#
+        .SYNOPSIS
+            A UTC timestamp, treating an Unspecified DateTime as UTC.
+
+        .DESCRIPTION
+            Get-MessageTraceV2 output timestamps are UTC. The value often arrives with Kind
+            Unspecified; ToUniversalTime() would treat that as local time and move the next
+            round's EndDate.
+            https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
+    #>
+    [CmdletBinding()]
+    [OutputType([datetime])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        $Value
+    )
+
+    if ($null -eq $Value) {
+        throw 'A message trace timestamp is missing.'
+    }
+
+    if ($Value -is [datetime]) {
+        if ($Value.Kind -eq [DateTimeKind]::Unspecified) {
+            return [datetime]::SpecifyKind($Value, [DateTimeKind]::Utc)
+        }
+        return $Value.ToUniversalTime()
+    }
+    if ($Value -is [datetimeoffset]) {
+        return $Value.UtcDateTime
+    }
+
+    $parsed = [datetime]::MinValue
+    $styles = [System.Globalization.DateTimeStyles]::AdjustToUniversal -bor [System.Globalization.DateTimeStyles]::AssumeUniversal
+    if (-not [datetime]::TryParse([string]$Value, [System.Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$parsed)) {
+        throw "Cannot read a UTC timestamp from '$Value'."
+    }
+    return $parsed
+}
+
 function Get-MessageTraceWindow {
     <#
         .SYNOPSIS
@@ -261,7 +302,9 @@ function Get-MessageTraceWindow {
             (https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2).
             The Graph message trace has the same limits
             (https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/graph-api-message-trace).
-            The newest window comes first so an interrupted run keeps the freshest data.
+            The oldest window comes first. A later window that fails must not leave a newer
+            timestamp in the file while the older window is still missing, or the next run's
+            watermark skips that gap.
     #>
     [CmdletBinding()]
     param(
@@ -281,7 +324,6 @@ function Get-MessageTraceWindow {
         $windows.Add([pscustomobject]@{ Start = $cursor; End = $stop })
         $cursor = $stop
     }
-    $windows.Reverse()
     $windows.ToArray()
 }
 
@@ -296,7 +338,11 @@ function Invoke-MessageTraceV2Window {
             -StartingRecipientAddress to that row's RecipientAddress. Results run Received
             descending, then RecipientAddress ascending. Rows seen already are not returned
             twice, and a round that adds nothing ends the loop.
+            Received is UTC even when its Kind is Unspecified.
+            A message with 1000 or more recipient rows is queried again with -MessageTraceId:
+            over 1,000 recipients the first query is incomplete.
             https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
+            https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/message-trace-modern-eac
     #>
     [CmdletBinding()]
     param(
@@ -307,36 +353,58 @@ function Invoke-MessageTraceV2Window {
         [int]$ResultSize = 5000
     )
 
+    $Start = ConvertTo-ExchangeUtc $Start
+    $End = ConvertTo-ExchangeUtc $End
     $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    $queryEnd = $End
-    $startingRecipient = $null
+    $traceCounts = @{}
 
-    while ($true) {
-        $query = @{
-            StartDate   = $Start
-            EndDate     = $queryEnd
-            ResultSize  = $ResultSize
-            ErrorAction = 'Stop'
-        }
-        if ($Role -eq 'Sender') { $query['SenderAddress'] = $Address } else { $query['RecipientAddress'] = $Address }
-        if ($startingRecipient) { $query['StartingRecipientAddress'] = $startingRecipient }
-
-        Wait-MessageTraceRateLimit
-        $batch = @(Get-MessageTraceV2 @query | Where-Object { $null -ne $_ })
-
-        $added = 0
-        foreach ($row in $batch) {
-            if ($seen.Add(('{0}|{1}|{2}' -f $row.MessageTraceId, $row.RecipientAddress, $row.Received))) {
-                $added++
-                $row
+    # Runs in this function's scope (. $pageTrace) so $seen and $traceCounts stay shared.
+    $pageTrace = {
+        param($TraceId, [switch]$CountIds)
+        $queryEnd = $End
+        $startingRecipient = $null
+        while ($true) {
+            $query = @{
+                StartDate   = $Start
+                EndDate     = $queryEnd
+                ResultSize  = $ResultSize
+                ErrorAction = 'Stop'
             }
+            if ($Role -eq 'Sender') { $query['SenderAddress'] = $Address } else { $query['RecipientAddress'] = $Address }
+            if ($startingRecipient) { $query['StartingRecipientAddress'] = $startingRecipient }
+            if ($null -ne $TraceId) { $query['MessageTraceId'] = $TraceId }
+
+            Wait-MessageTraceRateLimit
+            $batch = @(Get-MessageTraceV2 @query | Where-Object { $null -ne $_ })
+
+            $added = 0
+            foreach ($row in $batch) {
+                if ($seen.Add(('{0}|{1}|{2}' -f $row.MessageTraceId, $row.RecipientAddress, $row.Received))) {
+                    $added++
+                    if ($CountIds) {
+                        $idText = [string]$row.MessageTraceId
+                        if (-not $traceCounts.ContainsKey($idText)) { $traceCounts[$idText] = 0 }
+                        $traceCounts[$idText]++
+                    }
+                    $row
+                }
+            }
+
+            if ($batch.Count -lt $ResultSize -or $added -eq 0) { break }
+
+            $last = $batch[-1]
+            $queryEnd = ConvertTo-ExchangeUtc $last.Received
+            $startingRecipient = [string]$last.RecipientAddress
         }
+    }
 
-        if ($batch.Count -lt $ResultSize -or $added -eq 0) { break }
+    . $pageTrace $null -CountIds
 
-        $last = $batch[-1]
-        $queryEnd = ([datetime]$last.Received).ToUniversalTime()
-        $startingRecipient = [string]$last.RecipientAddress
+    foreach ($idText in @($traceCounts.Keys)) {
+        if ($traceCounts[$idText] -lt 1000) { continue }
+        $traceId = [guid]::Empty
+        if (-not [guid]::TryParse($idText, [ref]$traceId)) { continue }
+        . $pageTrace $traceId
     }
 }
 
@@ -411,8 +479,24 @@ function Get-GraphPagedValue {
         if (-not $visited.Add($next)) {
             throw "Graph returned a nextLink that was already requested: $next"
         }
-        if ($RateLimited) { Wait-MessageTraceRateLimit }
-        $page = Invoke-MgGraphRequest -Method GET -Uri $next -ErrorAction Stop
+        $attempt = 0
+        while ($true) {
+            try {
+                if ($RateLimited) { Wait-MessageTraceRateLimit }
+                $page = Invoke-MgGraphRequest -Method GET -Uri $next -ErrorAction Stop
+                break
+            }
+            catch {
+                $attempt++
+                # The message trace page says to retry after the 5-minute window. It does not
+                # name Retry-After. A 401 is not this error and must not be retried into an empty file.
+                # https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/graph-api-message-trace
+                $throttled = $_.Exception.Message -match 'surpassed the permitted limit'
+                if (-not $throttled -or $attempt -ge 3) { throw }
+                Start-Sleep -Seconds 300
+                if (Test-Path variable:script:TraceRequestTimes) { $script:TraceRequestTimes.Clear() }
+            }
+        }
         foreach ($item in @(Get-GraphJsonValue -Object $page -Name 'value')) {
             if ($null -ne $item) { $item }
         }
@@ -429,6 +513,8 @@ function Wait-MessageTraceRateLimit {
             Both Get-MessageTraceV2 and the Graph message trace accept 100 requests per
             5-minute window. The cmdlet page names no retry, so the run waits for the window to
             clear instead of waiting to be refused. Stays at 95 to leave room for another caller.
+            After the wait, requests that are still inside the window still count. Clearing the
+            whole queue would let the next burst exceed 100.
             https://learn.microsoft.com/powershell/module/exchangepowershell/get-messagetracev2
             https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/graph-api-message-trace
     #>
@@ -446,7 +532,15 @@ function Wait-MessageTraceRateLimit {
     if ($script:TraceRequestTimes.Count -ge $Limit) {
         $wait = [math]::Ceiling($WindowSeconds - ($now - $script:TraceRequestTimes.Peek()).TotalSeconds)
         if ($wait -gt 0) { Start-Sleep -Seconds $wait }
-        $script:TraceRequestTimes.Clear()
+        $now = [datetime]::UtcNow
+        while ($script:TraceRequestTimes.Count -gt 0 -and ($now - $script:TraceRequestTimes.Peek()).TotalSeconds -ge $WindowSeconds) {
+            [void]$script:TraceRequestTimes.Dequeue()
+        }
+        # A mocked sleep does not move the clock. Drop the one request the wait was for
+        # and keep every newer request, which is still inside the window.
+        if ($script:TraceRequestTimes.Count -ge $Limit) {
+            [void]$script:TraceRequestTimes.Dequeue()
+        }
     }
     $script:TraceRequestTimes.Enqueue([datetime]::UtcNow)
 }

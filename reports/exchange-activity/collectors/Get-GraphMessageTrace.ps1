@@ -83,7 +83,9 @@ $total = [pscustomobject]@{ Written = 0; Skipped = 0 }
 
 try {
     foreach ($window in Get-MessageTraceWindow -Start $start -End $end) {
-        $filter = 'receivedDateTime ge {0:yyyy-MM-ddTHH:mm:ssZ} and receivedDateTime le {1:yyyy-MM-ddTHH:mm:ssZ}' -f $window.Start.ToUniversalTime(), $window.End.ToUniversalTime()
+        $filterStart = ConvertTo-ExchangeUtc $window.Start
+        $filterEnd = ConvertTo-ExchangeUtc $window.End
+        $filter = 'receivedDateTime ge {0:yyyy-MM-ddTHH:mm:ssZ} and receivedDateTime le {1:yyyy-MM-ddTHH:mm:ssZ}' -f $filterStart, $filterEnd
         $uri = '/beta/admin/exchange/tracing/messageTraces?$filter=' + [uri]::EscapeDataString($filter) + '&$top=5000'
 
         $rows = foreach ($item in Get-GraphPagedValue -Uri $uri -RateLimited) {

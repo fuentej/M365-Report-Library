@@ -44,6 +44,7 @@ param(
     [string]$TenantId,
     [string]$Organization,
 
+    # Sources 1, 3 and 4. Source 2 stays on D180 unless this is passed explicitly.
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
     [string]$Period = 'D30',
 
@@ -98,13 +99,16 @@ try {
 
     $common = @{ OutputPath = $OutputPath; Environment = $Environment; SkipConnect = $true }
     $usage = $common + @{ Period = $Period }
+    # getMailboxUsageStorage is documented as period D180. A D30 snapshot cannot backfill the
+    # earlier days. An explicit -Period applies to storage as well.
+    $storagePeriod = if ($PSBoundParameters.ContainsKey('Period')) { $Period } else { 'D180' }
     $mailboxScoped = @{ MailboxLimit = $MailboxLimit }
     $trace = @{ LookbackDays = $LookbackDays }
 
     $steps = @(
         @{ Name = 'report-settings'; Script = 'Get-ReportSettings.ps1'; Arguments = $common }
         @{ Name = 'mailbox-usage-detail'; Script = 'Get-MailboxUsageDetail.ps1'; Arguments = $usage }
-        @{ Name = 'mailbox-usage-storage'; Script = 'Get-MailboxUsageStorage.ps1'; Arguments = $usage }
+        @{ Name = 'mailbox-usage-storage'; Script = 'Get-MailboxUsageStorage.ps1'; Arguments = ($common + @{ Period = $storagePeriod }) }
         @{ Name = 'email-activity-user-detail'; Script = 'Get-EmailActivityUserDetail.ps1'; Arguments = $usage }
         @{ Name = 'email-app-usage-user-detail'; Script = 'Get-EmailAppUsageUserDetail.ps1'; Arguments = $usage }
         @{ Name = 'mailboxes'; Script = 'Get-Mailboxes.ps1'; Arguments = $common + $mailboxScoped }

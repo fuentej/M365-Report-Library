@@ -131,7 +131,7 @@ empty when a quota or the storage is missing. The API header list includes `Dele
 
 ### Things the data does not say
 
-* **Usage reports are periods, not events.** The count columns aggregate 7, 30, 90 or 180 days (`-Period`, default `D30`). A daily run
+* **Usage reports are periods, not events.** The count columns aggregate 7, 30, 90 or 180 days (`-Period`, default `D30` for mailbox usage and email activity, `D180` for tenant storage). A daily run
   appends a snapshot stamped with the run date. `LastActivityDate` is the most recent activity whatever the period, so a
   snapshot can show inactivity older than the period. Reports typically become available 24 to 72 hours late.
 * **Last activity** in the mailbox usage report is the last email send or read. `mailbox-statistics.csv` `LastLogonTime` is a
@@ -141,9 +141,7 @@ empty when a quota or the storage is missing. The API header list includes `Dele
   running at least every 28 days keeps daily rows contiguous (an inference, not a Learn statement). A per-day series is one `-Date` call per day.
 * **Deleted users.** A deleted user's usage data is removed within 30 days; a missing row is not a zero-activity row.
 * **Shared mailboxes.** The Graph usage CSV has no recipient-type column. Join `UserPrincipalName` to `mailboxes.csv` (`RecipientTypeDetails`).
-* **Message trace** covers the last 90 days and 10 days per query; a message sent to more than 1000 recipients is incomplete
-  unless the query also passes `-MessageTraceId` (this collector does not). A date-only start or end uses the session's regional short date, so
-  the collectors pass full timestamps.
+* **Message trace** covers the last 90 days and 10 days per query. The older window is queried first, so a failed later window does not move the watermark past the gap. A message that already has 1000 recipient rows is queried again with `-MessageTraceId` (required when a message was sent to more than 1000 recipients). `Received` is UTC; an Unspecified time is not shifted into the local zone. An unfinished run leaves `message-trace.pending` and the next run repeats that start instead of the newest row. A date-only start or end uses the session's regional short date, so the collectors pass full timestamps.
 * **Mobile devices** is mobile sync only, not Outlook for Windows, Mac or web. The cmdlet page lists no output properties; the columns are
   the ones Learn's troubleshooting page selects.
 * **No Outlook version breakdown** (the Graph columns carry no version) and **no read count in GCC High** (no read-only call found returns it).

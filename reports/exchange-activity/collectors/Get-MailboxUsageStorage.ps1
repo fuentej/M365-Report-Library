@@ -7,8 +7,9 @@
     .DESCRIPTION
         Source 2: Microsoft Graph getMailboxUsageStorage
         (https://learn.microsoft.com/graph/api/reportroot-getmailboxusagestorage), read with
-        Get-MgReportMailboxUsageStorage -OutFile. The admin center storage chart does not include
-        archive mailboxes
+        Get-MgReportMailboxUsageStorage -OutFile. The default period is D180, the value in the
+        contract, so one run holds 180 days of tenant storage. The admin center storage chart
+        does not include archive mailboxes
         (https://learn.microsoft.com/microsoft-365/admin/activity-reports/mailbox-usage).
 
         Not available in GCC High (US Government L4 is marked unsupported on the API page).
@@ -31,8 +32,9 @@ param(
     [string]$CertificateThumbprint,
     [string]$TenantId,
     [string]$Organization,
+    # D180 is the contract's storage window. A shorter default cannot be backfilled later.
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
-    [string]$Period = 'D30',
+    [string]$Period = 'D180',
 
     [switch]$SkipConnect
 )

@@ -16,9 +16,11 @@
         rest of the window, so the next round sets -EndDate to the last row's Received time and
         -StartingRecipientAddress to that row's RecipientAddress
         (https://learn.microsoft.com/exchange/monitoring/trace-an-email-message/message-trace-modern-eac).
-        Each row is one recipient, not one distinct message. A message sent to more than 1000
-        recipients is incomplete unless the query also passes -MessageTraceId; this collector does
-        not. The run stays under 100 requests in 5 minutes by waiting.
+        Each row is one recipient, not one distinct message. A message that already returned 1000
+        recipient rows is queried again with -MessageTraceId, which the cmdlet requires for a
+        message sent to more than 1000 recipients. The run stays under 100 requests in 5 minutes
+        by waiting, and an unfinished run leaves message-trace.pending so the next run repeats
+        the original start instead of skipping mailboxes behind a newer watermark.
 
         Start and end are passed as dates with a time, in UTC, not as date-only values (a date-only
         value uses the session's regional short date).
@@ -102,8 +104,18 @@ try {
     if ($MailboxLimit -gt 0) { $mailboxes = @($mailboxes | Select-Object -First $MailboxLimit) }
 
     $end = [datetime]::UtcNow
-    $watermark = Get-CsvWatermark -Path $csvPath -Column 'Received'
-    $start = if ($watermark) { $watermark } else { $end.AddDays(-$LookbackDays) }
+    # An unfinished run keeps this file. The CSV watermark is the newest row already written,
+    # which can belong to a mailbox that finished while a later mailbox did not. Resuming from
+    # that timestamp would drop the unfinished mailbox's older messages.
+    $pendingPath = Join-Path $OutputPath 'message-trace.pending'
+    if (Test-Path -LiteralPath $pendingPath) {
+        $start = ConvertTo-ExchangeUtc ((Get-Content -LiteralPath $pendingPath -Raw).Trim())
+    }
+    else {
+        $watermark = Get-CsvWatermark -Path $csvPath -Column 'Received'
+        $start = if ($watermark) { ConvertTo-ExchangeUtc $watermark } else { $end.AddDays(-$LookbackDays) }
+    }
+    Set-Content -LiteralPath $pendingPath -Value ($start.ToString('yyyy-MM-ddTHH:mm:ssZ')) -Encoding ascii -NoNewline
 
     $total = [pscustomobject]@{ Written = 0; Skipped = 0 }
     Export-AppendCsv -Path $csvPath -Column $columns
@@ -131,14 +143,14 @@ try {
             $total.Written += $result.Written
             $total.Skipped += $result.Skipped
         }
+        Remove-Item -LiteralPath $pendingPath -Force -ErrorAction SilentlyContinue
+        Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
+            'message-trace.csv: {0} rows written, {1} skipped. Window {2:yyyy-MM-ddTHH:mm:ssZ} to {3:yyyy-MM-ddTHH:mm:ssZ}.' -f $total.Written, $total.Skipped, $start, $end)
     }
     catch {
         Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
-            'Get-MessageTraceV2 failed ({0}). Rows already written are kept; the next run resumes from the latest Received. Message trace needs a role such as Help Desk or View-Only Recipients (UNVERIFIED which is least).' -f $_.Exception.Message)
+            'Get-MessageTraceV2 failed ({0}). Rows already written are kept. The next run resumes from {1:yyyy-MM-ddTHH:mm:ssZ}, not from the newest Received, because a later mailbox may not have been read. Message trace needs a role such as Help Desk or View-Only Recipients (UNVERIFIED which is least).' -f $_.Exception.Message, $start)
     }
-
-    Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
-        'message-trace.csv: {0} rows written, {1} skipped. Window {2:yyyy-MM-ddTHH:mm:ssZ} to {3:yyyy-MM-ddTHH:mm:ssZ}.' -f $total.Written, $total.Skipped, $start, $end)
 }
 finally {
     if ($connectedHere) {
