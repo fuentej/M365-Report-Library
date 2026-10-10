@@ -6,7 +6,7 @@ reports built on top of them.
 Each report is a folder: a handful of read-only collectors, a sample data set so the
 report can be built without a tenant, tests, and a README saying what the data means and
 what it takes to collect it. A shared module underneath handles the things every report
-needs — signing in to the right cloud, appending to CSVs without losing history, and
+needs: signing in to the right cloud, appending to CSVs without losing history, and
 knowing where the last run stopped.
 
 ## Why CSV
@@ -66,7 +66,7 @@ reports/
 | `Connect-M365Service` | Signs in to Graph, Exchange Online or Security & Compliance PowerShell in the right cloud, interactively or app-only |
 | `Get-M365ServiceEndpoint` | The endpoints a given service uses in a given cloud, separately from connecting, so they can be asserted |
 | `Export-AppendCsv` | Writes the header once, appends rows, skips keys the file already holds, and throws if the columns have drifted |
-| `Get-CsvWatermark` | The latest timestamp in an existing CSV — where the next run starts |
+| `Get-CsvWatermark` | The latest timestamp in an existing CSV, where the next run starts |
 | `Get-CsvLatestSnapshot` | The rows of the most recent snapshot in a snapshot CSV |
 | `Invoke-EntraUserCollector` | Writes `users.csv`, which every report joins to |
 | `Write-CollectorLog` | Appends to `run.log` in the output folder |
@@ -89,7 +89,7 @@ Sources: [Graph national cloud deployments](https://learn.microsoft.com/graph/de
 ## Read-only
 
 Against a tenant this library calls nothing but `Get-*`, `Search-*`, `Connect-*` and
-`Disconnect-*`, and issues no HTTP request other than GET. That is not a convention — a
+`Disconnect-*`, and issues no HTTP request other than GET. That is not a convention: a
 test parses every script in the repository and fails on a call that breaks it, so a
 collector that could change something cannot be merged.
 
@@ -99,7 +99,7 @@ Interactive sign-in by default, which asks only for read scopes. For unattended 
 `-AppId`, `-CertificateThumbprint`, `-TenantId`, and `-Organization` (the tenant's
 `*.onmicrosoft.com` domain, needed by the Exchange-based services). App-only Exchange
 Online also needs the `Exchange.ManageAsApp` application permission and the audit role
-on the service principal — see each report's README.
+on the service principal (see each report's README).
 
 ## Requirements
 
@@ -117,24 +117,24 @@ Every tenant call is mocked; the tests never reach a tenant. They also check tha
 sample CSV has exactly the columns its collector produces, in the same order, so the
 committed sample data cannot drift away from the collectors.
 
-The same command runs on every pull request — see `.github/workflows/tests.yml`.
+The same command runs on every pull request (see `.github/workflows/tests.yml`).
 
 ### Running tests in a cloud agent session
 
-CI installs Pester from the PowerShell Gallery as usual — that is unchanged. A scheduled
+CI installs Pester from the PowerShell Gallery as usual; that is unchanged. A scheduled
 or on-demand Claude Code cloud session cannot: its egress proxy denies
 `www.powershellgallery.com` and `codeload.github.com`, so `Install-Module Pester` fails
 there. `.claude/hooks/session-start.sh` is a `SessionStart` hook (registered in
 `.claude/settings.json`, [documented
 here](https://code.claude.com/docs/en/cloud-environments#install-dependencies-with-a-sessionstart-hook))
-that installs PowerShell 7 and Pester 5 from sources the proxy does allow — a GitHub
+that installs PowerShell 7 and Pester 5 from sources the proxy does allow (a GitHub
 release for `pwsh`, and the `api.nuget.org` flat-container feed for the `pester` NuGet
-package, whose `tools/` directory is the module — so `Invoke-Pester` works in that
+package, whose `tools/` directory is the module), so `Invoke-Pester` works in that
 session too. It only runs when `CLAUDE_CODE_REMOTE` is `true`, skips anything already
 installed, and is safe to run more than once.
 
 To pin a different Pester version, edit `PESTER_VERSION` in the hook script. Check
-`https://api.nuget.org/v3-flatcontainer/pester/index.json` first — nuget.org does not
+`https://api.nuget.org/v3-flatcontainer/pester/index.json` first: nuget.org does not
 mirror every version PSGallery has.
 
 ## Merging
@@ -148,7 +148,7 @@ mirror every version PSGallery has.
    them in order.
 3. Import the shared module by its relative path, never with `-Force`. From `collectors/`
    that is
-   `Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')` —
+   `Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')`.
    `-Force` removes the loaded module and imports it again, which drops any Pester mock a caller
    installed against it before running the collector. Without `-Force`, a session that already
    imported the module keeps that copy, so an edit to `shared/M365ReportLibrary.psm1` is not
@@ -174,7 +174,7 @@ mirror every version PSGallery has.
 Why relative-path import rather than a module manifest on `PSModulePath`: putting
 `shared/M365ReportLibrary.psm1` on `PSModulePath` would let a collector write
 `Import-Module M365ReportLibrary` by name, but only after every machine (and CI job) that
-runs a collector adds this repo's `shared/` folder to `PSModulePath` first — an extra setup
+runs a collector adds this repo's `shared/` folder to `PSModulePath` first, an extra setup
 step the current path-based import needs from nobody, since a fresh `git clone` already has
 everything `$PSScriptRoot`-relative imports need. It also keeps each collector's import
 statement an unambiguous pointer to exactly one module file, with no possibility of a

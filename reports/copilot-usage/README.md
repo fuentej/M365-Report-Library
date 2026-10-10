@@ -18,12 +18,12 @@ Nothing here has been run against a tenant. Every tenant call is mocked in `test
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-CopilotUsageUserDetail.ps1` | `copilot-usage-user-detail.csv` — source 2, last activity per Copilot app, prompts and active days per licensed user |
-| `collectors/Get-CopilotUserCountSummary.ps1` | `copilot-user-count-summary.csv` — source 3, enabled and active users per app, one row per period |
-| `collectors/Get-CopilotUserCountTrend.ps1` | `copilot-user-count-trend.csv` — source 4, the daily trend of those counts |
-| `collectors/Get-CopilotAuditEvents.ps1` | `copilot-audit-events.csv` — source 6, one row per `CopilotInteraction` audit record |
-| `collectors/Get-CopilotInteractions.ps1` | `copilot-interactions.csv` — source 8, one metadata row per prompt or response (no text) |
-| `collectors/Get-CopilotFeatureAvailability.ps1` | `copilot-feature-availability.csv` — source 10, which Copilot features each cloud offers (no tenant call) |
+| `collectors/Get-CopilotUsageUserDetail.ps1` | `copilot-usage-user-detail.csv`: source 2, last activity per Copilot app, prompts and active days per licensed user |
+| `collectors/Get-CopilotUserCountSummary.ps1` | `copilot-user-count-summary.csv`: source 3, enabled and active users per app, one row per period |
+| `collectors/Get-CopilotUserCountTrend.ps1` | `copilot-user-count-trend.csv`: source 4, the daily trend of those counts |
+| `collectors/Get-CopilotAuditEvents.ps1` | `copilot-audit-events.csv`: source 6, one row per `CopilotInteraction` audit record |
+| `collectors/Get-CopilotInteractions.ps1` | `copilot-interactions.csv`: source 8, one metadata row per prompt or response (no text) |
+| `collectors/Get-CopilotFeatureAvailability.ps1` | `copilot-feature-availability.csv`: source 10, which Copilot features each cloud offers (no tenant call) |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all six of the above |
 | `collectors/CopilotUsageSchema.psd1` | The column order of every CSV, the Learn header each report column is read from, and the availability of every source per cloud |
 | `collectors/CopilotUsageHelpers.ps1` | The report-specific helper: availability, throttle retry, the one GET, audit-log paging |
@@ -83,9 +83,9 @@ Copied from the contract; GCC calls the global service.
 | 4 | User count trend | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercounttrend) | [Available](https://learn.microsoft.com/graph/deployments) | **NotAvailable** ([US Government L4 ❌](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusercounttrend)) |
 | 5 | Admin center fallback | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) | [Available](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#available-usage-reports-in-the-microsoft-365-admin-center) | Partly: available in the admin center; scripted read **UNVERIFIED** |
 | 6 | Copilot interactions in the unified audit log | [Available](https://learn.microsoft.com/purview/audit-copilot) | **UNVERIFIED** (the cmdlet is not named for GCC on any page read; the [service description](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) lists Purview controls for Copilot as `Yes`, which is the feature, not the cmdlet) | **UNVERIFIED** (same) |
-| 7 | Graph Audit Search API | [Available](https://learn.microsoft.com/graph/api/security-auditcoreroot-post-auditlogqueries) | [Available](https://learn.microsoft.com/graph/deployments) | **NotAvailable** (US Government L4 ❌) — not collected, see above |
+| 7 | Graph Audit Search API | [Available](https://learn.microsoft.com/graph/api/security-auditcoreroot-post-auditlogqueries) | [Available](https://learn.microsoft.com/graph/deployments) | **NotAvailable** (US Government L4 ❌), not collected, see above |
 | 8 | Interaction export | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions) | [Available](https://learn.microsoft.com/graph/deployments) | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions) (US Government L4 ✅) |
-| 9 | Concealed-names setting | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | [Available](https://learn.microsoft.com/graph/deployments) | **UNVERIFIED** (the Graph page marks US Government L4 ❌) — license utilization |
+| 9 | Concealed-names setting | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | [Available](https://learn.microsoft.com/graph/deployments) | **UNVERIFIED** (the Graph page marks US Government L4 ❌) (license utilization) |
 | 10 | Copilot feature availability | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) (with per-feature exceptions) |
 
 A `NotAvailable` source writes its header only and logs why; an `UNVERIFIED` source is

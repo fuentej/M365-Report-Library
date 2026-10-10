@@ -14,10 +14,10 @@ history you can chart over time.
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-Policies.ps1` | `policies.csv` — a snapshot of the label, DLP and retention configuration |
-| `collectors/Get-ActivityExplorerEvents.ps1` | `activity-explorer-events.csv` — labeling, protection, DLP and retention activity |
-| `collectors/Get-ContentExplorerSnapshot.ps1` | `content-explorer-snapshot.csv` — item counts per label/SIT per workload |
-| `collectors/Get-CopilotAccessedResources.ps1` | `copilot-accessed-resources.csv` — resources Microsoft 365 Copilot accessed |
+| `collectors/Get-Policies.ps1` | `policies.csv`: a snapshot of the label, DLP and retention configuration |
+| `collectors/Get-ActivityExplorerEvents.ps1` | `activity-explorer-events.csv`: labeling, protection, DLP and retention activity |
+| `collectors/Get-ContentExplorerSnapshot.ps1` | `content-explorer-snapshot.csv`: item counts per label/SIT per workload |
+| `collectors/Get-CopilotAccessedResources.ps1` | `copilot-accessed-resources.csv`: resources Microsoft 365 Copilot accessed |
 | `collectors/Run-All.ps1` | Runs the users collector and all four of the above |
 | `collectors/PurviewIpSchema.psd1` | The column order of every CSV, the activity categories, and the per-cloud source availability table |
 | `collectors/PurviewIpHelpers.ps1` | Helpers specific to this report (activity/DLP/Copilot field mapping), dot-sourced by every collector |
@@ -60,7 +60,7 @@ Each collector needs read access to its own source and nothing more.
 | Collector | Access needed |
 | --- | --- |
 | `Get-ActivityExplorerEvents.ps1` | A role group that can read Activity Explorer: Information Protection Analyst, Information Protection Investigator, Compliance Administrator, Compliance Data Administrator, Security Administrator, Security Reader, or Global Reader. See [Get started with activity explorer](https://learn.microsoft.com/purview/data-classification-activity-explorer). |
-| `Get-ContentExplorerSnapshot.ps1` | **Content Explorer List Viewer** (counts and locations) or **Content Explorer Content Viewer** (also opens items — more than this collector needs). For app-only runs, add the role group to the service principal. See [Export-ContentExplorerData](https://learn.microsoft.com/powershell/module/exchangepowershell/export-contentexplorerdata). |
+| `Get-ContentExplorerSnapshot.ps1` | **Content Explorer List Viewer** (counts and locations) or **Content Explorer Content Viewer** (also opens items, more than this collector needs). For app-only runs, add the role group to the service principal. See [Export-ContentExplorerData](https://learn.microsoft.com/powershell/module/exchangepowershell/export-contentexplorerdata). |
 | `Get-CopilotAccessedResources.ps1` | **Audit Reader** or **Audit Manager** in Purview, or the View-Only Audit Logs / Audit Logs role in Exchange Online. See [Audit log search permissions](https://learn.microsoft.com/purview/audit-search). |
 | `Get-Policies.ps1` | Read access to the label, DLP and retention configuration: Global Reader, or the read-only role groups (Sensitivity Label Reader, View-Only DLP Compliance Management, View-Only Retention Management). See [Permissions in the Microsoft Purview portal](https://learn.microsoft.com/purview/microsoft-365-compliance-center-permissions). |
 
@@ -75,7 +75,7 @@ itself is documented to support. Recorded in `Get-PurviewSourceAvailability` /
 | --- | --- | --- | --- |
 | Activity Explorer | [Available](https://learn.microsoft.com/purview/data-classification-activity-explorer) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) |
 | Content Explorer | [Available](https://learn.microsoft.com/purview/data-classification-content-explorer) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) |
-| Content Explorer — Teams data | [Available](https://learn.microsoft.com/purview/data-classification-content-explorer) | [Not available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments) — listed as in development | [Not available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) — listed as in development |
+| Content Explorer: Teams data | [Available](https://learn.microsoft.com/purview/data-classification-content-explorer) | [Not available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments) (listed as in development) | [Not available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) (listed as in development) |
 | Copilot audit records | [Available](https://learn.microsoft.com/purview/audit-copilot) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/microsoft-365-copilot#feature-availability) |
 | Policy configuration | [Available](https://learn.microsoft.com/powershell/exchange/connect-to-scc-powershell) | [Available](https://learn.microsoft.com/powershell/exchange/connect-to-scc-powershell) | [Available](https://learn.microsoft.com/powershell/exchange/connect-to-scc-powershell) |
 | Users (Microsoft Graph) | [Available](https://learn.microsoft.com/graph/deployments) | [Available](https://learn.microsoft.com/graph/deployments) | [Available](https://learn.microsoft.com/graph/deployments) |
@@ -123,7 +123,7 @@ on `RecordIdentity`; `copilot-accessed-resources.csv` is keyed on `RecordId` plu
 
 ## The files
 
-### `policies.csv` — snapshot
+### `policies.csv`: snapshot
 
 One table with an `ObjectType` discriminator, filtered to get back any one of seven
 collections:
@@ -147,7 +147,7 @@ the policy's `Locations` JSON
 List-valued columns (`Locations`, `LabelIds`, `LabelNames`, `SensitiveInformationTypes`)
 are joined with `;`.
 
-### `activity-explorer-events.csv` — events, keyed on `RecordIdentity`
+### `activity-explorer-events.csv`: events, keyed on `RecordIdentity`
 
 Source: [`Export-ActivityExplorerData`](https://learn.microsoft.com/powershell/module/exchangepowershell/export-activityexplorerdata).
 One row per event: sensitivity label applied, changed or removed; protection changes; DLP
@@ -155,7 +155,7 @@ matches, enforcements and overrides with their justification; retention label ch
 Copilot / AI app interactions.
 
 Activity Explorer keeps 30 days, so **each run appends** and resumes from the watermark
-already in the file — the latest `Happened` timestamp, read the same way every event
+already in the file: the latest `Happened` timestamp, read the same way every event
 collector in this library reads one (`Get-CsvWatermark`). Running at least every 30 days
 builds a history longer than the source keeps.
 
@@ -164,16 +164,16 @@ Most columns carry the name `Export-ActivityExplorerData` uses. The derived ones
 | Column | How it is derived |
 | --- | --- |
 | `EventDate` | The UTC date part of `Happened` |
-| `Activity` | Normalised to the filter-enum name (`LabelApplied`). Taken from `ActivityId` when the record has one, otherwise mapped from `Activity` — a record can carry the portal's display name (`Label applied`) there. A value that maps to nothing is kept as-is and logged as a warning at the end of the run |
+| `Activity` | Normalised to the filter-enum name (`LabelApplied`). Taken from `ActivityId` when the record has one, otherwise mapped from `Activity`. A record can carry the portal's display name (`Label applied`) there. A value that maps to nothing is kept as-is and logged as a warning at the end of the run |
 | `ActivityRaw` | Exactly what the cmdlet returned |
 | `ActivityCategory` | `Activity` grouped into Labeling, Protection, Dlp, Retention, Ai, Discovery, Endpoint or Other (`ActivityCategories` in `PurviewIpSchema.psd1`) |
 | `IsLabelDowngrade` | `LabelEventType -eq 'LabelDowngraded'` |
 | `SensitiveInfoTypeName` / `Count` / `Confidence` | `SensitiveInfoTypeData` flattened: names joined with `;`, counts totalled, highest confidence kept |
 
-`SensitivityLabel` and `OldSensitivityLabel` hold label GUIDs — join them to
+`SensitivityLabel` and `OldSensitivityLabel` hold label GUIDs; join them to
 `policies.csv` on `ObjectId` where `ObjectType` is `SensitivityLabel`.
 
-### `content-explorer-snapshot.csv` — snapshot
+### `content-explorer-snapshot.csv`: snapshot
 
 Item counts per tag per workload, stamped with the run date: one row per (`TagType`,
 `TagName`, `Workload`) with the aggregate `TotalCount`, from
@@ -183,7 +183,7 @@ Item counts per tag per workload, stamped with the run date: one row per (`TagTy
 `ODB`, `SPO` or `Teams`. **Each run appends**, so repeated runs give the report a trend
 rather than a single point.
 
-### `copilot-accessed-resources.csv` — events, keyed on `RecordId` plus `ResourceId`
+### `copilot-accessed-resources.csv`: events, keyed on `RecordId` plus `ResourceId`
 
 One row per resource Copilot accessed, flattened out of
 `CopilotEventData.AccessedResources` on each `CopilotInteraction` record from
@@ -200,15 +200,15 @@ against the unified audit log
 Carries `SensitivityLabelId`, `Status` (`success` / `failure`), and `PolicyId` /
 `PolicyName` / `PolicyRules` from the resource's `PolicyDetails`, which the record only
 includes when a policy blocked or restricted access. `AccessBlocked` is derived: true when
-a policy is actually named, or `Status` is not `success` — an empty `PolicyDetails` is not
+a policy is actually named, or `Status` is not `success`. An empty `PolicyDetails` is not
 a block. **Each run appends**, resuming from the watermark on `CreationTime`.
 
 A `ReturnLargeSet` session returns at most 50,000 records, so the search window is split
 into `-WindowHours` windows (one day by default), each with its own session. A window that
 still reaches the limit is reported as an error naming the window, rather than silently
-dropping the rest — re-run it with a smaller `-WindowHours`.
+dropping the rest. Re-run it with a smaller `-WindowHours`.
 
-### `users.csv` — snapshot
+### `users.csv`: snapshot
 
 Written by the shared module so that every report can join to it. See the root README.
 
@@ -219,7 +219,7 @@ One line per event, in the shared module's format:
 
 ## What was not ported from `fuentej/purview-ip-report`
 
-- **`Export-Users.ps1`** — the source repo's own Graph users export. This library already
+- **`Export-Users.ps1`**: the source repo's own Graph users export. This library already
   has `Invoke-EntraUserCollector` in `shared/`, which every report uses instead of a
   second copy (per BRO-259's own instructions). `Users.csv`'s `GraphUsers` source-
   availability row from the source repo is likewise dropped: the shared module's own
@@ -228,9 +228,9 @@ One line per event, in the shared module's format:
 - **The bespoke Activity Explorer watermark file** (`.purview-watermark.*.json`, with its
   own `ExportedRecordIdentity` list for records sharing the watermark's exact second).
   This library's `Get-CsvWatermark` plus `Export-AppendCsv -KeyColumn RecordIdentity`
-  gives the same resume-without-duplicating behaviour — the same mechanism every other
+  gives the same resume-without-duplicating behaviour, the same mechanism every other
   event collector in this library already uses (`guest-invitations.csv`,
-  `sharing-events.csv`) — without a second per-dataset watermark format.
+  `sharing-events.csv`), without a second per-dataset watermark format.
 - **`Environment` / `TenantId` / `CollectedAt` columns.** The source repo stamped every
   row with these because its CSVs are single-snapshot, replaced-per-run files with no
   `RunDate`. This library's convention is the opposite: a `RunDate` (or the source's own
@@ -238,10 +238,10 @@ One line per event, in the shared module's format:
   environment, so the same information is already implicit in *which* file a row came
   from. Matches the guest-access report, which carries neither.
 - **The Python package** (`src/purview_ip_report/`) and the Power BI project
-  (`report/*.pbip`) — out of scope for this issue; the Power BI port is a separate,
+  (`report/*.pbip`): out of scope for this issue; the Power BI port is a separate,
   blocked issue.
 - **`New-SampleData.ps1`'s exact entity counts.** This report's sample set is smaller
-  (60 members, ~130 events) than the source's (200 members, 1,000+ events) — enough to
+  (60 members, ~130 events) than the source's (200 members, 1,000+ events), enough to
   exercise every code path and every activity category without the extra generation and
   review time a byte-for-byte-matched set would cost. The column shapes and per-source
   availability are ported exactly.
