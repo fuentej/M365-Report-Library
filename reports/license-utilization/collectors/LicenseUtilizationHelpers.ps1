@@ -418,6 +418,9 @@ function Invoke-LicenseUsageReport {
         # The period argument, such as D30. Written into ReportPeriod when the CSV
         # omits that column, so two periods collected on the same run date stay distinct.
         [string]$ReportPeriod,
+        # What the source needs, written into run.log when the call is refused.
+        # Copilot's /copilot page lists different roles than the other usage reports.
+        [string]$License = 'Reports.Read.All and, when signed in, a role such as Reports Reader (Global Reader and Usage Summary Reports Reader see tenant-level data only)',
         [switch]$Json,
 
         [ValidateSet('Commercial', 'GCC', 'GCCHigh')]
@@ -472,7 +475,7 @@ function Invoke-LicenseUsageReport {
     }
 
     Invoke-LicenseUtilizationSnapshot -Source $Source -CsvName $CsvName -Description $Description `
-        -License 'Reports.Read.All and, when signed in, a role such as Reports Reader (Global Reader and Usage Summary Reports Reader see tenant-level data only)' `
+        -License $License `
         -KeyColumn @('RunDate', 'UserPrincipalName', 'ReportPeriod') -OutputPath $OutputPath -Environment $Environment `
         -AppId $AppId -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
         -SchemaPath $SchemaPath -SkipConnect:$SkipConnect -Fetch $fetch -Map $map

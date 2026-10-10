@@ -261,6 +261,18 @@ Describe 'Each usage report writes the columns of its sample' {
         Should -Invoke Invoke-MgGraphRequest -Times 1 -Exactly -ParameterFilter { $Method -eq 'GET' -and $Uri -like 'https://graph.microsoft.com/v1.0/*' }
     }
 
+    It 'Get-CopilotUsage.ps1 names the /copilot roles when the report is refused' {
+        # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail
+        # That page does not list Global Reader.
+        Mock Invoke-MgGraphRequest -MockWith { throw 'Insufficient privileges to complete the operation.' }
+
+        { Invoke-CollectorScript 'Get-CopilotUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*unavailable*'
+
+        $log = Get-LogText -Folder $script:folder
+        $log | Should -Match 'AI Administrator'
+        $log | Should -Not -Match 'Global Reader'
+    }
+
     It 'Get-CopilotUsage.ps1 asks the v1.0 /copilot function with version v2 and a v2 period' {
         Mock Invoke-MgGraphRequest -MockWith { Set-Content -LiteralPath $OutputFilePath -Value (New-UsageCsvText -Key 'CopilotUsage') }
         Invoke-CollectorScript 'Get-CopilotUsage.ps1' @{ OutputPath = $script:folder }
