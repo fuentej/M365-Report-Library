@@ -413,6 +413,25 @@ Describe 'Event sources resume from the last exported timestamp' {
 
         @(Import-Csv -LiteralPath (Join-Path $script:folder 'sharing-events.csv')).Count | Should -Be 0
     }
+
+    It 'does not write a window whose ResultCount is exactly 50,000 when the next call is empty' {
+        $global:OversharingTestPages = 0
+        Mock Search-UnifiedAuditLog -MockWith {
+            $global:OversharingTestPages++
+            if ($global:OversharingTestPages -eq 1) { New-MockAuditRecord -Id 'capped' -ResultCount 50000 -MoreRecords $false }
+            else { @() }
+        }
+
+        {
+            Invoke-CollectorScript 'Get-AnonymousLinkEvents.ps1' @{
+                OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue'
+                StartDate = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-11T00:00:00Z'
+            }
+        } | Should -Throw '*50,000*'
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'anonymous-link-events.csv')).Count | Should -Be 0
+        Remove-Variable -Name OversharingTestPages -Scope Global -ErrorAction SilentlyContinue
+    }
 }
 
 Describe 'Data access governance reports are read, reused and left running' {

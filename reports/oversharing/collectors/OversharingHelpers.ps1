@@ -703,14 +703,17 @@ function Invoke-AuditSearch {
             }
 
             # ResultCount is the hit count across every iteration of the session, not the
-            # size of this page.
+            # size of this page. ReturnLargeSet stops at 50,000, so a count of exactly
+            # 50,000 is already a capped window: the records are unsorted and the ones
+            # past the cap were never returned.
+            # https://learn.microsoft.com/powershell/module/exchangepowershell/search-unifiedauditlog
             $matched = 0
             $hasResultCount = $false
             $resultCountProperty = $records[0].PSObject.Properties['ResultCount']
             if ($resultCountProperty -and $null -ne $resultCountProperty.Value) {
                 $hasResultCount = [int]::TryParse([string]$resultCountProperty.Value, [ref]$matched)
             }
-            if ($hasResultCount -and $matched -gt $sessionCap) {
+            if ($hasResultCount -and $matched -ge $sessionCap) {
                 $windowTruncated = $true
                 break
             }
