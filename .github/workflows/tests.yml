@@ -28,7 +28,7 @@ jobs:
       - name: Run the tests
         shell: pwsh
         run: |
-          Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./reports/purview-ip/tests, ./reports/teams-groups-lifecycle/tests, ./reports/identity-posture/tests, ./reports/copilot-studio-agents/tests, ./reports/mailbox-exfiltration-risk/tests, ./reports/license-utilization/tests, ./reports/oversharing/tests, ./reports/exchange-activity/tests, ./reports/teams-activity/tests, ./reports/sharepoint-onedrive-activity/tests, ./reports/copilot-usage/tests, ./.github/scripts/tests, ./docs/candidates/tests -CI
+          Invoke-Pester -Path ./shared/tests, ./reports/guest-access/tests, ./reports/purview-ip/tests, ./reports/teams-groups-lifecycle/tests, ./reports/identity-posture/tests, ./reports/copilot-studio-agents/tests, ./reports/mailbox-exfiltration-risk/tests, ./reports/license-utilization/tests, ./reports/oversharing/tests, ./reports/exchange-activity/tests, ./reports/teams-activity/tests, ./reports/sharepoint-onedrive-activity/tests, ./reports/entra-activity/tests, ./reports/copilot-usage/tests, ./reports/unified-audit-log/tests, ./.github/scripts/tests, ./docs/candidates/tests -CI
           # -CI sets Run.Exit, so a failed run already leaves the process with a
           # non-zero code. Pester also stores that count in $LASTEXITCODE; leave
           # through it so the step is red even if a later Pester stops calling exit.

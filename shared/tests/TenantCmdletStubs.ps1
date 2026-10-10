@@ -133,7 +133,8 @@ function global:Search-UnifiedAuditLog {
         [string[]]$UserIds,
         [string]$SessionId,
         [string]$SessionCommand,
-        [object]$ResultSize
+        [object]$ResultSize,
+        [switch]$Formatted
     )
     throw 'Search-UnifiedAuditLog was called for real. Mock it in the test.'
 }

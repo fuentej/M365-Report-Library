@@ -228,13 +228,15 @@ Describe 'The shared module is never imported with -Force' {
 
 Describe 'Only read-only tenant commands are called' {
     It 'calls no Graph, Exchange Online or Security & Compliance cmdlet outside <AllowedVerbs>' {
-        # Invoke-MgGraphRequest in the oversharing, Exchange activity and SharePoint and OneDrive activity helpers is the one Invoke-verb call here:
-        # the site list and drive walk are read with GET, and there is no SDK cmdlet that
-        # follows a getAllSites nextLink as returned. The next Describe holds every
-        # -Method to GET, and reports/oversharing/tests/ReadOnly.Tests.ps1 holds that helper
-        # file to one GET function.
+        # Invoke-MgGraphRequest in the oversharing, Exchange activity, SharePoint and OneDrive,
+        # Teams activity, Copilot usage and Entra activity helpers is the one Invoke-verb call here:
+        # each follows @odata.nextLink as returned and sends headers the SDK page iterator
+        # drops. The next Describe holds every -Method to GET, and each report's
+        # ReadOnly.Tests.ps1 holds that helper file to one GET function.
+        # The unified audit log helpers (UnifiedAuditLogHelpers.ps1) also call it, for the Graph
+        # audit query GETs and for the one POST described in the next Describe.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'LicenseUtilizationHelpers.ps1'))
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1', 'LicenseUtilizationHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -270,6 +272,11 @@ Describe 'No Graph request uses a method other than GET' {
                 $value = if ($null -ne $element.Argument) { $element.Argument.Extent.Text }
                 elseif ($i + 1 -lt $elements.Count) { $elements[$i + 1].Extent.Text }
                 else { '<none>' }
+
+                # Decision D-007: the unified audit log helpers send the one POST that creates a Graph
+                # audit log query (a read, no tenant change). reports/unified-audit-log/tests/ReadOnly.Tests.ps1
+                # holds it to that one path and to the one function that sends it.
+                if ((Split-Path $call.Path -Leaf) -eq 'UnifiedAuditLogHelpers.ps1' -and ($value -replace "['`"]", '') -eq 'POST' -and $call.Name -eq 'Invoke-MgGraphRequest') { continue }
 
                 if (($value -replace "['`"]", '') -ne 'GET') {
                     '{0}:{1} {2} -Method {3}' -f (Split-Path $call.Path -Leaf), $element.Extent.StartLineNumber, $call.Name, $value
@@ -309,14 +316,40 @@ Describe 'No Graph request uses a method other than GET' {
         # (Invoke-GraphGet), which reports/teams-activity/tests/ReadOnly.Tests.ps1 holds to one
         # GET call.
         #
+        # The Copilot usage report reads usage reports and interaction history with GET
+        # through the one Invoke-MgGraphRequest call in its helper file (Invoke-GraphGet),
+        # which reports/copilot-usage/tests/ReadOnly.Tests.ps1 holds to one GET call.
+        #
+        # The Entra activity report reads sign-ins and directory audits the same way, so
+        # Prefer: include-unknown-enum-members is on every page, including each nextLink.
+        # reports/entra-activity/tests/ReadOnly.Tests.ps1 holds that helper to one GET call.
+        #
+        # The unified audit log report reads the Graph Audit Search API through Invoke-MgGraphRequest
+        # and the Office 365 Management Activity API (which has no PowerShell cmdlet) through
+        # Invoke-WebRequest, both in UnifiedAuditLogHelpers.ps1. Between them they send two POSTs, each
+        # of which starts a read and changes no tenant data (decision D-007): the audit log query create
+        # and the subscription start. reports/unified-audit-log/tests/ReadOnly.Tests.ps1 pins each POST
+        # to its path and to the one function that sends it, holds every other call to GET, and checks
+        # that the token is read in two request functions only and never logged.
+        #
         # The license utilization usage reports are read with GET through Invoke-MgGraphRequest.
         # That helper file is exempt here and held to GET in two functions in
         # reports/license-utilization/tests/ReadOnly.Tests.ps1.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 
         $offenders -join '; ' | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'The test workflow runs every report that has tests' {
+    It 'includes the Entra activity tests' {
+        # A merge of main can replace this line with only the other report's path.
+        # The Entra tests then never run, so a failure there does not fail CI.
+        $workflow = Get-Content -LiteralPath (Join-Path $script:Root '.github/workflows/tests.yml') -Raw
+        $workflow | Should -Match ([regex]::Escape('./reports/entra-activity/tests'))
+        $workflow | Should -Match ([regex]::Escape('./reports/copilot-usage/tests'))
     }
 }
