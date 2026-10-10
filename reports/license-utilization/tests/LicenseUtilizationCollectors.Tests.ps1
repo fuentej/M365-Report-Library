@@ -205,6 +205,22 @@ Describe 'Each state collector writes the columns of its sample' {
         Should -Invoke Get-MgUserLicenseDetail -Times 1 -Exactly -ParameterFilter { $UserId -eq 'user-1' }
     }
 
+    It 'Get-LicenseDetails.ps1 fails when any user is refused, instead of storing a partial snapshot' {
+        # https://learn.microsoft.com/graph/api/user-list-licensedetails
+        # One call per user. A refused call is not an empty licence list.
+        Mock Get-MgUser -MockWith { @(New-MockLicensedUser -Id 'a'; New-MockLicensedUser -Id 'b') }
+        Invoke-CollectorScript 'Get-UserLicenses.ps1' @{ OutputPath = $script:folder }
+        Mock Get-MgUserLicenseDetail -MockWith {
+            if ($UserId -eq 'b') { throw 'The request has been throttled' }
+            New-MockLicenseDetail
+        }
+
+        { Invoke-CollectorScript 'Get-LicenseDetails.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*unavailable*'
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'license-details.csv')).Count | Should -Be 0
+        Get-LogText -Folder $script:folder | Should -Match 'were refused'
+    }
+
     It 'Get-LicenseDetails.ps1 writes the header only and warns when user-licenses.csv has not been collected' {
         Invoke-CollectorScript 'Get-LicenseDetails.ps1' @{ OutputPath = $script:folder }
 

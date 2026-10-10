@@ -19,8 +19,8 @@
         Administrator. Under -AppId and -CertificateThumbprint every call is refused;
         that is logged and the file holds its header only.
 
-        A user whose call fails is logged and skipped. If every call fails the collector
-        fails.
+        A user whose call fails is logged. Any refused call fails the collector and
+        leaves the header only, so a partial snapshot is not stored as a complete run.
 
     .EXAMPLE
         ./Get-LicenseDetails.ps1 -OutputPath ./out
@@ -86,7 +86,10 @@ Invoke-LicenseUtilizationSnapshot -Source 'LicenseDetails' -CsvName 'license-det
                     "Licence details for user $userId were refused ($lastError).")
             }
         }
-        if ($failures -eq $userIds.Count) { throw $lastError }
+        # One refused user is not an empty licence list. Storing the users that
+        # succeeded would look like a complete snapshot.
+        # https://learn.microsoft.com/graph/api/user-list-licensedetails
+        if ($failures -gt 0) { throw "$failures of $($userIds.Count) user licence-detail calls were refused. $lastError" }
     } `
     -Map {
         param($item, $runDate)
