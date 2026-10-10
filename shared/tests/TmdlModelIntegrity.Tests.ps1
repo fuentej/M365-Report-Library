@@ -137,6 +137,25 @@ BeforeAll {
             ForEach-Object { "'$($_.Name)' in $(($_.Group.Table | Sort-Object) -join ', ')" }
     }
 
+    function Test-InheritanceExercise {
+        <#
+            .SYNOPSIS
+                True when a live model still exposed a SELECTCOLUMNS alias.
+                A zero FILTER count is success: those partitions are imports
+                once the Desktop-open fixes land, and the detection fixtures
+                below are what exercise FILTER.
+        #>
+        param(
+            [Parameter(Mandatory)][int]$FilterTableCount,
+            [Parameter(Mandatory)][int]$ProjectedTableCount
+        )
+
+        # FilterTableCount is part of the contract so a caller can see that zero
+        # does not fail. Only a missing SELECTCOLUMNS read makes the scan vacuous.
+        $null = $FilterTableCount
+        return ($ProjectedTableCount -ge 1)
+    }
+
     function Get-RedeclaredInheritedColumn {
         param([Parameter(Mandatory)][object[]]$Table)
 
@@ -181,11 +200,12 @@ Describe 'TMDL model integrity' {
         $faults -join '; ' | Should -BeNullOrEmpty
     }
 
-    It 'finds a FILTER table and a SELECTCOLUMNS table across the models, so the inheritance rule is exercised' {
+    It 'reads a SELECTCOLUMNS table across the models, so the inheritance rule is not vacuous' {
         # BRO-347 (guest-access) and BRO-433 (identity-posture) rebuilt their FILTER
-        # *Current tables as import tables, so no single report is guaranteed to keep
-        # one. Count across every model instead: a FILTER table whose base resolves in
-        # the same model, and a SELECTCOLUMNS table whose aliases were read.
+        # *Current tables as import tables. Teams, Copilot, and mailbox still have
+        # one, and their Desktop fixes remove it too. A live FILTER count of zero
+        # is success. The detection fixtures exercise FILTER. This scan only has
+        # to keep seeing a SELECTCOLUMNS alias (identity-posture RoleDefinitions).
         $filterTables = 0
         $projectedTables = 0
         foreach ($model in $script:ModelsForAll) {
@@ -195,8 +215,7 @@ Describe 'TMDL model integrity' {
                 if ($null -ne $t.Projected -and @($t.Projected).Count -gt 0) { $projectedTables++ }
             }
         }
-        $filterTables | Should -BeGreaterThan 0
-        $projectedTables | Should -BeGreaterThan 0
+        Test-InheritanceExercise -FilterTableCount $filterTables -ProjectedTableCount $projectedTables | Should -BeTrue
     }
 
     It 'reads the alias of identity-posture''s RoleDefinitions, the calculated table it keeps' {
@@ -286,6 +305,16 @@ Describe 'TMDL model integrity' {
                 '            )'
             )
             @(Get-RedeclaredInheritedColumn -Table @($base, $cur)).Count | Should -Be 1
+        }
+
+        It 'accepts a workspace with no FILTER partition when a SELECTCOLUMNS table was read' {
+            # The previous live assertion was filterTables > 0. That fails once the
+            # other three Desktop-open reports drop their FILTER *Current tables.
+            Test-InheritanceExercise -FilterTableCount 0 -ProjectedTableCount 1 | Should -BeTrue
+        }
+
+        It 'rejects a live scan that read no SELECTCOLUMNS alias' {
+            Test-InheritanceExercise -FilterTableCount 4 -ProjectedTableCount 0 | Should -BeFalse
         }
 
         It 'reads aliases from one-line SELECTCOLUMNS calls inside UNION' {
