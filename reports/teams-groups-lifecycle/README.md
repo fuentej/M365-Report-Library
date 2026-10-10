@@ -19,15 +19,15 @@ access](../guest-access/README.md) report covers it.
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-Groups.ps1` | `groups.csv` — a snapshot of every Microsoft 365 group |
-| `collectors/Get-GroupOwners.ps1` | `group-owners.csv` — the owners of each group |
-| `collectors/Get-DeletedGroups.ps1` | `deleted-groups.csv` — soft-deleted groups still inside the restore window |
-| `collectors/Get-GroupLifecyclePolicies.ps1` | `group-lifecycle-policies.csv` — the group expiration policy |
-| `collectors/Get-GroupLifecycleCoverage.ps1` | `group-lifecycle-coverage.csv` — whether the policy covers each group |
-| `collectors/Get-TeamActivity.ps1` | `team-activity.csv` — Teams usage by team |
-| `collectors/Get-GroupActivity.ps1` | `group-activity.csv` — Microsoft 365 groups usage by group |
-| `collectors/Get-ArchivedTeams.ps1` | `team-archive-status.csv` — whether each team is archived |
-| `collectors/Get-GroupCreationEvents.ps1` | `group-creation-events.csv` — group and team creation, with the creator |
+| `collectors/Get-Groups.ps1` | `groups.csv`: a snapshot of every Microsoft 365 group |
+| `collectors/Get-GroupOwners.ps1` | `group-owners.csv`: the owners of each group |
+| `collectors/Get-DeletedGroups.ps1` | `deleted-groups.csv`: soft-deleted groups still inside the restore window |
+| `collectors/Get-GroupLifecyclePolicies.ps1` | `group-lifecycle-policies.csv`: the group expiration policy |
+| `collectors/Get-GroupLifecycleCoverage.ps1` | `group-lifecycle-coverage.csv`: whether the policy covers each group |
+| `collectors/Get-TeamActivity.ps1` | `team-activity.csv`: Teams usage by team |
+| `collectors/Get-GroupActivity.ps1` | `group-activity.csv`: Microsoft 365 groups usage by group |
+| `collectors/Get-ArchivedTeams.ps1` | `team-archive-status.csv`: whether each team is archived |
+| `collectors/Get-GroupCreationEvents.ps1` | `group-creation-events.csv`: group and team creation, with the creator |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all nine of the above, in dependency order |
 | `collectors/TeamsGroupsSchema.psd1` | The column order of every CSV, the per-cloud availability of every source |
 | `collectors/TeamsGroupsHelpers.ps1` | Small helpers the collectors dot-source |
@@ -86,9 +86,9 @@ application permissions with admin consent.
 (`https://graph.microsoft.us`) for GCC High
 ([national cloud deployments](https://learn.microsoft.com/graph/deployments)).
 
-* **Available** — collected.
-* **NotAvailable** — the collector skips the source: it writes a header-only CSV and logs why.
-* **UNVERIFIED** — no Microsoft page found says either way. The collector asks for the data,
+* **Available**: collected.
+* **NotAvailable**: the collector skips the source. It writes a header-only CSV and logs why.
+* **UNVERIFIED**: no Microsoft page found says either way. The collector asks for the data,
   logs a warning, and records any refusal in `run.log`.
 
 | CSV | Commercial | GCC | GCC High |
@@ -133,7 +133,7 @@ with `-All`, which follows `@odata.nextLink` until it is absent
 
 Timestamps are UTC, `yyyy-MM-ddTHH:mm:ssZ`. Lists are joined with `;`.
 
-### groups.csv — snapshot, key `RunDate` + `Id`
+### groups.csv: snapshot, key `RunDate` + `Id`
 
 Microsoft 365 groups only (`groupTypes/any(c:c eq 'Unified')`). `createdDateTime` is here
 for every group, so creation over time needs no audit record.
@@ -151,7 +151,7 @@ for every group, so creation over time needs no audit record.
 | `ResourceProvisioningOptions` | Contains `Team` for most teams |
 | `IsTeam` | `ResourceProvisioningOptions` contains `Team`. Certain unused old teams do not carry that value, so use `team-archive-status.csv` to find every team |
 
-### group-owners.csv — snapshot, key `RunDate` + `GroupId` + `OwnerId`
+### group-owners.csv: snapshot, key `RunDate` + `GroupId` + `OwnerId`
 
 | Column | Meaning |
 | --- | --- |
@@ -162,7 +162,7 @@ for every group, so creation over time needs no audit record.
 Owners are not available for groups created in Exchange, distribution groups, or groups
 synchronized from on-premises. Report those as "owner unknown", not "no owner".
 
-### deleted-groups.csv — snapshot, key `RunDate` + `Id`
+### deleted-groups.csv: snapshot, key `RunDate` + `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -171,7 +171,7 @@ synchronized from on-premises. Report those as "owner unknown", not "no owner".
 | `PurgeDateTime` | `DeletedDateTime` plus 30 days, when a Microsoft 365 or security group is permanently deleted. Distribution groups are deleted immediately and never appear |
 | `ResourceProvisioningOptions`, `IsTeam` | As in `groups.csv` |
 
-### group-lifecycle-policies.csv — snapshot, key `RunDate` + `Id`
+### group-lifecycle-policies.csv: snapshot, key `RunDate` + `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -182,14 +182,14 @@ synchronized from on-premises. Report those as "owner unknown", not "no owner".
 
 A tenant with no policy writes the header only.
 
-### group-lifecycle-coverage.csv — snapshot, key `RunDate` + `GroupId`
+### group-lifecycle-coverage.csv: snapshot, key `RunDate` + `GroupId`
 
 | Column | Meaning |
 | --- | --- |
 | `GroupId`, `PolicyId` | The group and the policy (empty when the tenant has none) |
 | `CoverageStatus` | `Covered`, `NotCovered`, or `Unknown` (the per-group call failed). `All` and `None` are worked out from the policy; only a `Selected` policy costs one call per group |
 
-### team-activity.csv — snapshot, key `RunDate` + `TeamId`
+### team-activity.csv: snapshot, key `RunDate` + `TeamId`
 
 A snapshot of a rolling period, `D180` by default. `LastActivityDate` is the latest activity
 whatever the period; the counts cover the period.
@@ -201,7 +201,7 @@ whatever the period; the counts cover the period.
 | `LastActivityDate` | Latest activity |
 | `ActiveUsers`, `ActiveChannels`, `Guests`, `Reactions`, `MeetingsOrganized`, `PostMessages`, `ReplyMessages`, `ChannelMessages`, `UrgentMessages`, `Mentions`, `ActiveSharedChannels`, `ActiveExternalUsers` | Activity counts for the period |
 
-### group-activity.csv — snapshot, key `RunDate` + `GroupId`
+### group-activity.csv: snapshot, key `RunDate` + `GroupId`
 
 | Column | Meaning |
 | --- | --- |
@@ -213,7 +213,7 @@ whatever the period; the counts cover the period.
 | `SharePointActiveFileCount`, `SharePointTotalFileCount`, `SharePointSiteStorageUsedByte` | Site activity and size |
 | `YammerPostedMessageCount`, `YammerReadMessageCount`, `YammerLikedMessageCount` | Viva Engage activity |
 
-### team-archive-status.csv — snapshot, key `RunDate` + `TeamId`
+### team-archive-status.csv: snapshot, key `RunDate` + `TeamId`
 
 | Column | Meaning |
 | --- | --- |
@@ -223,7 +223,7 @@ whatever the period; the counts cover the period.
 Every Microsoft 365 group in the latest `groups.csv` snapshot is asked; a group that is not
 a team answers 404 and has no row.
 
-### group-creation-events.csv — events, key `Id`
+### group-creation-events.csv: events, key `Id`
 
 Resumes from the latest `CreationTime` already in the file. Audit (Standard) keeps 180
 days, so a group created earlier has no creator here; `groups.csv` still has its

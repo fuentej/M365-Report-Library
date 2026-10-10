@@ -17,11 +17,11 @@ Nothing here has been run against a tenant. Every tenant call is mocked in `test
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-InteractiveSignIns.ps1` | `signins-interactive.csv` — source 1, v1.0 sign-in log |
-| `collectors/Get-NonInteractiveSignIns.ps1` | `signins-noninteractive.csv` — source 2, **beta** sign-in log filtered to `nonInteractiveUser` |
-| `collectors/Get-SignInConditionalAccess.ps1` | `signin-conditional-access.csv` — source 3, the Conditional Access result on each interactive and non-interactive sign-in, one row per applied policy. `-InteractiveOnly` skips the beta stream |
-| `collectors/Get-DirectoryAudits.ps1` | `directory-audits.csv` — source 4, directory audit events |
-| `collectors/Get-RetentionReference.ps1` | `retention-reference.csv` — source 5, log retention by licence level (no tenant call) |
+| `collectors/Get-InteractiveSignIns.ps1` | `signins-interactive.csv`: source 1, v1.0 sign-in log |
+| `collectors/Get-NonInteractiveSignIns.ps1` | `signins-noninteractive.csv`: source 2, **beta** sign-in log filtered to `nonInteractiveUser` |
+| `collectors/Get-SignInConditionalAccess.ps1` | `signin-conditional-access.csv`: source 3, the Conditional Access result on each interactive and non-interactive sign-in, one row per applied policy. `-InteractiveOnly` skips the beta stream |
+| `collectors/Get-DirectoryAudits.ps1` | `directory-audits.csv`: source 4, directory audit events |
+| `collectors/Get-RetentionReference.ps1` | `retention-reference.csv`: source 5, log retention by licence level (no tenant call) |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all five of the above |
 | `collectors/EntraActivitySchema.psd1` | The column order of every CSV, and the availability of every source per cloud |
 | `collectors/EntraActivityHelpers.ps1` | The report-specific helper: the window loop, availability and sign-in row shaping |

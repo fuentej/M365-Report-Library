@@ -19,18 +19,18 @@ Nothing here writes to the tenant.
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-AcceptedDomains.ps1` | `accepted-domains.csv` — the accepted domains used to decide what is external |
-| `collectors/Get-MailboxForwarding.ps1` | `mailbox-forwarding.csv` — mailboxes that forward, with an external flag |
-| `collectors/Get-SendOnBehalf.ps1` | `send-on-behalf.csv` — Send on Behalf grants |
-| `collectors/Get-InboxRules.ps1` | `inbox-rules.csv` — inbox rules that forward, redirect or delete |
-| `collectors/Get-TransportRules.ps1` | `transport-rules.csv` — mail flow rules that redirect or blind-copy |
-| `collectors/Get-MailboxFullAccess.ps1` | `mailbox-full-access.csv` — Full Access grants |
-| `collectors/Get-SendAsPermissions.ps1` | `send-as-permissions.csv` — Send As grants |
-| `collectors/Get-DelegatedConsents.ps1` | `delegated-consents.csv` — delegated permission grants |
-| `collectors/Get-AppRoleAssignments.ps1` | `app-role-assignments.csv` — app roles held on the Microsoft Graph service principal |
-| `collectors/Get-MailboxChangeEvents.ps1` | `mailbox-change-events.csv` — audit events for rule, forwarding and permission changes |
-| `collectors/Get-MailAccessEvents.ps1` | `mail-access-events.csv` — audit events for mail accessed and sent |
-| `collectors/Get-AuditConfiguration.ps1` | `audit-configuration.csv` — whether auditing is on and what each mailbox logs |
+| `collectors/Get-AcceptedDomains.ps1` | `accepted-domains.csv`: the accepted domains used to decide what is external |
+| `collectors/Get-MailboxForwarding.ps1` | `mailbox-forwarding.csv`: mailboxes that forward, with an external flag |
+| `collectors/Get-SendOnBehalf.ps1` | `send-on-behalf.csv`: Send on Behalf grants |
+| `collectors/Get-InboxRules.ps1` | `inbox-rules.csv`: inbox rules that forward, redirect or delete |
+| `collectors/Get-TransportRules.ps1` | `transport-rules.csv`: mail flow rules that redirect or blind-copy |
+| `collectors/Get-MailboxFullAccess.ps1` | `mailbox-full-access.csv`: Full Access grants |
+| `collectors/Get-SendAsPermissions.ps1` | `send-as-permissions.csv`: Send As grants |
+| `collectors/Get-DelegatedConsents.ps1` | `delegated-consents.csv`: delegated permission grants |
+| `collectors/Get-AppRoleAssignments.ps1` | `app-role-assignments.csv`: app roles held on the Microsoft Graph service principal |
+| `collectors/Get-MailboxChangeEvents.ps1` | `mailbox-change-events.csv`: audit events for rule, forwarding and permission changes |
+| `collectors/Get-MailAccessEvents.ps1` | `mail-access-events.csv`: audit events for mail accessed and sent |
+| `collectors/Get-AuditConfiguration.ps1` | `audit-configuration.csv`: whether auditing is on and what each mailbox logs |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all twelve of the above; signs in once to Exchange Online and once to Graph |
 | `collectors/MailboxExfiltrationSchema.psd1` | The column order of every CSV, the per-cloud availability of every source |
 | `collectors/MailboxExfiltrationHelpers.ps1` | Helpers the collectors dot-source: availability, external-domain test, audit search |
@@ -63,13 +63,13 @@ test tenant.
 | Collector | Role or permission | Notes |
 | --- | --- | --- |
 | Accepted domains | UNVERIFIED | |
-| Mailbox forwarding, send on behalf, full access, send as | View-Only Recipients ("View recipient properties") — **UNVERIFIED** | |
+| Mailbox forwarding, send on behalf, full access, send as | View-Only Recipients ("View recipient properties"), **UNVERIFIED** | |
 | Inbox rules | UNVERIFIED | The cmdlet page says it does **not** work for View-Only Organization Management or the Entra Global Reader role |
-| Transport rules | View-Only Configuration ("Views all of the organization and mail flow (non-recipient) settings") — **UNVERIFIED** | |
+| Transport rules | View-Only Configuration ("Views all of the organization and mail flow (non-recipient) settings"), **UNVERIFIED** | |
 | Delegated consents | `Directory.Read.All` (application and delegated); signed in, Global Reader or Directory Readers ([list oauth2PermissionGrants](https://learn.microsoft.com/graph/api/oauth2permissiongrant-list)) | |
 | App role assignments | `Application.Read.All` (application and delegated); signed in, Directory Readers ([list appRoleAssignedTo](https://learn.microsoft.com/graph/api/serviceprincipal-list-approleassignedto)) | Global Reader is not in that page's role list |
 | Audit events | Audit Reader role group (View-Only Audit Logs); Audit Manager also works ([audit permissions](https://learn.microsoft.com/purview/audit-get-started#step-2-assign-permissions-to-search-the-audit-log)) | `Set-Mailbox` records are visible only to unrestricted admins ([admin units](https://learn.microsoft.com/purview/audit-search#scoping-access-to-audit-logs-using-administrative-units)) |
-| Audit configuration | Organization settings role — **UNVERIFIED**; Audit Reader for `Get-AdminAuditLogConfig` | |
+| Audit configuration | Organization settings role (**UNVERIFIED**); Audit Reader for `Get-AdminAuditLogConfig` | |
 
 A source the sign-in cannot read leaves a header-only CSV and a line in `run.log` naming the role, and
 does not stop the others.
@@ -83,7 +83,7 @@ does not stop the others.
 * Retention ([retention policies](https://learn.microsoft.com/purview/audit-log-retention-policies)):
   **180 days** for Audit (Standard) records generated on or after 17 October 2023 (90 days before);
   **one year** for Exchange records of users with E5 or an Audit (Premium) add-on; **ten years** needs
-  the 10-year audit log retention add-on in addition to that licence, plus a retention policy — Audit
+  the 10-year audit log retention add-on in addition to that licence, plus a retention policy. Audit
   (Premium) alone does not retain for ten years. Non-user records (service principals, system) stay at
   one year.
 * Exchange records are typically searchable 60 to 90 minutes after the event; Microsoft does not
@@ -155,7 +155,7 @@ as `ExchangeAdmin`.
 Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`. "Snapshot" files add one block of
 rows per run, tagged `RunDate`.
 
-### `accepted-domains.csv` — snapshot
+### `accepted-domains.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -164,7 +164,7 @@ rows per run, tagged `RunDate`.
 | `DomainType` | Authoritative, InternalRelay or ExternalRelay |
 | `IsDefault` | Whether it is the default domain |
 
-### `mailbox-forwarding.csv` — snapshot; only mailboxes that forward
+### `mailbox-forwarding.csv`: snapshot; only mailboxes that forward
 
 | Column | Meaning |
 | --- | --- |
@@ -176,14 +176,14 @@ rows per run, tagged `RunDate`.
 | `DeliverToMailboxAndForward` | `True` when a copy stays in the mailbox |
 | `IsExternal` | `True` when `ForwardingSmtpDomain` is not an accepted domain; `False` when it is, when it is a subdomain of an accepted domain with `MatchSubdomains`, or when only `ForwardingAddress` is set; empty when the accepted domains could not be read |
 
-### `send-on-behalf.csv` — snapshot, one row per delegate
+### `send-on-behalf.csv`: snapshot, one row per delegate
 
 | Column | Meaning |
 | --- | --- |
 | `RunDate`, `ExternalDirectoryObjectId`, `UserPrincipalName`, `PrimarySmtpAddress` | The mailbox |
 | `Delegate` | A recipient in `GrantSendOnBehalfTo` |
 
-### `inbox-rules.csv` — snapshot; only rules that forward, redirect or delete
+### `inbox-rules.csv`: snapshot; only rules that forward, redirect or delete
 
 | Column | Meaning |
 | --- | --- |
@@ -195,7 +195,7 @@ rows per run, tagged `RunDate`.
 | `TargetDomains` | SMTP domains found in the three recipient lists |
 | `HasExternalTarget` | `True` when any target domain is not an accepted domain; empty when unknown or no address was found |
 
-### `transport-rules.csv` — snapshot; only rules with a redirect, blind-copy or visible-copy action
+### `transport-rules.csv`: snapshot; only rules with a redirect, blind-copy or visible-copy action
 
 | Column | Meaning |
 | --- | --- |
@@ -205,7 +205,7 @@ rows per run, tagged `RunDate`.
 | `CopyTo`, `AddToRecipients` | Actions that add visible Cc and To recipients, for context |
 | `TargetDomains`, `HasExternalTarget` | As in `inbox-rules.csv` |
 
-### `mailbox-full-access.csv` — snapshot
+### `mailbox-full-access.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -214,7 +214,7 @@ rows per run, tagged `RunDate`.
 | `User` | Who holds Full Access. `NT AUTHORITY\SELF`, Deny rows and inherited rows are dropped |
 | `AccessRights` | The rights, as returned |
 
-### `send-as-permissions.csv` — snapshot
+### `send-as-permissions.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -223,7 +223,7 @@ rows per run, tagged `RunDate`.
 | `Trustee` | Who can send as it |
 | `AccessRights`, `AccessControlType`, `IsInherited` | As returned, so a report can filter default entries |
 
-### `delegated-consents.csv` — snapshot
+### `delegated-consents.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -235,7 +235,7 @@ rows per run, tagged `RunDate`.
 | `Scope` | Space-separated permissions |
 | `HasMailScope` | `True` when a scope starts with `Mail.` or `MailboxSettings.` (this report's rule) |
 
-### `app-role-assignments.csv` — snapshot
+### `app-role-assignments.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -246,7 +246,7 @@ rows per run, tagged `RunDate`.
 | `CreatedDateTime` | When it was assigned |
 | `IsMailRole` | `True` when `AppRoleValue` starts with `Mail.` or `MailboxSettings.` (this report's rule) |
 
-### `mailbox-change-events.csv` and `mail-access-events.csv` — events, appended, key `Id`
+### `mailbox-change-events.csv` and `mail-access-events.csv`: events, appended, key `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -265,7 +265,7 @@ Mail flow rule changes are `-RecordType ExchangeAdmin` records. The activities p
 operation list for them, so the collector keeps the records whose operation contains `TransportRule`
 (this report's filter) and does not name individual cmdlets. `-SkipExchangeAdmin` leaves that search out.
 
-### `audit-configuration.csv` — snapshot
+### `audit-configuration.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |

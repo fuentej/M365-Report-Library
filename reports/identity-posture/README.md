@@ -21,14 +21,14 @@ are fake.
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-AuthenticationMethods.ps1` | `authentication-methods.csv` — methods registered, MFA and passwordless capability, per user |
-| `collectors/Get-ConditionalAccessPolicies.ps1` | `conditional-access-policies.csv` — every policy, its state, targets and grant controls |
-| `collectors/Get-ActiveRoleAssignments.ps1` | `role-assignments-active.csv` — active role assignments, including PIM activations |
-| `collectors/Get-EligibleRoleAssignments.ps1` | `role-assignments-eligible.csv` — eligible (PIM) role assignments |
-| `collectors/Get-RoleAssignments.ps1` | `role-assignments.csv` — active role assignments without PIM |
-| `collectors/Get-UserSignInActivity.ps1` | `user-signin-activity.csv` — last sign-in times per user |
-| `collectors/Get-RiskyUsers.ps1` | `risky-users.csv` — users Entra ID Protection flags as risky |
-| `collectors/Get-LegacySignIns.ps1` | `signins.csv` — sign-ins that used a legacy authentication client |
+| `collectors/Get-AuthenticationMethods.ps1` | `authentication-methods.csv`: methods registered, MFA and passwordless capability, per user |
+| `collectors/Get-ConditionalAccessPolicies.ps1` | `conditional-access-policies.csv`: every policy, its state, targets and grant controls |
+| `collectors/Get-ActiveRoleAssignments.ps1` | `role-assignments-active.csv`: active role assignments, including PIM activations |
+| `collectors/Get-EligibleRoleAssignments.ps1` | `role-assignments-eligible.csv`: eligible (PIM) role assignments |
+| `collectors/Get-RoleAssignments.ps1` | `role-assignments.csv`: active role assignments without PIM |
+| `collectors/Get-UserSignInActivity.ps1` | `user-signin-activity.csv`: last sign-in times per user |
+| `collectors/Get-RiskyUsers.ps1` | `risky-users.csv`: users Entra ID Protection flags as risky |
+| `collectors/Get-LegacySignIns.ps1` | `signins.csv`: sign-ins that used a legacy authentication client |
 | `collectors/Run-All.ps1` | Runs the shared users collector and all eight above |
 | `collectors/IdentityPostureSchema.psd1` | The column order of every CSV, the per-cloud availability and the extra Graph scopes |
 | `collectors/IdentityPostureHelpers.ps1` | Code the collectors share |
@@ -153,12 +153,12 @@ the end. Each collector signs in for itself and accepts `-SkipConnect` to reuse 
 Booleans are `True`/`False`. Timestamps are UTC, `yyyy-MM-ddTHH:mm:ssZ`. List values are
 separated by semicolons. An empty cell means Graph returned no value.
 
-### users.csv — snapshot, key `RunDate` + `Id`
+### users.csv: snapshot, key `RunDate` + `Id`
 
 From the shared collector; see `shared/M365ReportLibrary.psm1`. It does not hold
 `signInActivity`; use `user-signin-activity.csv`.
 
-### authentication-methods.csv — snapshot, key `RunDate` + `UserId`
+### authentication-methods.csv: snapshot, key `RunDate` + `UserId`
 
 | Column | Meaning |
 | --- | --- |
@@ -175,7 +175,7 @@ From the shared collector; see `shared/M365ReportLibrary.psm1`. It does not hold
 
 Disabled users are not returned by the API, so a "no MFA" count covers enabled users only.
 
-### conditional-access-policies.csv — snapshot, key `RunDate` + `Id`
+### conditional-access-policies.csv: snapshot, key `RunDate` + `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -188,7 +188,7 @@ Disabled users are not returned by the API, so a "no MFA" count covers enabled u
 
 A change shows as a difference between two `RunDate` blocks. The API records no one who made it.
 
-### role-assignments-active.csv — snapshot, key `RunDate` + `Id`
+### role-assignments-active.csv: snapshot, key `RunDate` + `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -198,17 +198,17 @@ A change shows as a difference between two `RunDate` blocks. The API records no 
 | `StartDateTime`, `EndDateTime` | Empty `EndDateTime` is a permanent assignment |
 | `RoleAssignmentOriginId`, `RoleAssignmentScheduleId` | Where it came from |
 
-### role-assignments-eligible.csv — snapshot, key `RunDate` + `Id`
+### role-assignments-eligible.csv: snapshot, key `RunDate` + `Id`
 
 Same as above without `AssignmentType`, `RoleAssignmentOriginId` and
 `RoleAssignmentScheduleId`, plus `RoleEligibilityScheduleId`.
 
-### role-assignments.csv — snapshot, key `RunDate` + `Id`
+### role-assignments.csv: snapshot, key `RunDate` + `Id`
 
 `Id`, `PrincipalId`, `RoleDefinitionId`, `DirectoryScopeId`, `AppScopeId`. Active holders only;
 use it when `role-assignments-active.csv` is header-only because PIM is not licensed.
 
-### user-signin-activity.csv — snapshot, key `RunDate` + `UserId`
+### user-signin-activity.csv: snapshot, key `RunDate` + `UserId`
 
 | Column | Meaning |
 | --- | --- |
@@ -219,14 +219,14 @@ use it when `role-assignments-active.csv` is header-only because PIM is not lice
 Graph returns `0001-01-01T00:00:00Z` or `""` for "no value"; both are written as an empty
 cell, never as a date. Selecting `signInActivity` caps a page at 500 users.
 
-### risky-users.csv — snapshot, key `RunDate` + `Id`
+### risky-users.csv: snapshot, key `RunDate` + `Id`
 
 `Id`, `UserPrincipalName`, `UserDisplayName`, `RiskLevel` (`low`, `medium`, `high`, `hidden`,
 `none`, `unknownFutureValue`), `RiskState` (`none`, `confirmedSafe`, `remediated`,
 `dismissed`, `atRisk`, `confirmedCompromised`, `unknownFutureValue`), `RiskDetail`,
 `RiskLastUpdatedDateTime`, `IsDeleted`, `IsProcessing`.
 
-### signins.csv — events, key `Id`
+### signins.csv: events, key `Id`
 
 `CreatedDateTime`, `Id`, `UserId`, `UserPrincipalName`, `AppDisplayName`,
 `ResourceDisplayName`, `IpAddress`, `ClientAppUsed` (a legacy value), `IsInteractive`,
