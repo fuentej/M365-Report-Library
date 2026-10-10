@@ -26,4 +26,11 @@ Describe 'license utilization sources' {
         $script:Doc | Should -Match 'perpetual license'
         $script:Doc | Should -Match 'within 30 days'
     }
+
+    It 'records roles that cannot see usage-report user detail' {
+        $source5a = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5a \|' })
+        $source8 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 8 \| Fallback' })
+        $source5a | Should -Match 'without visibility into detailed metrics'
+        $source8 | Should -Match 'User Experience Success Manager'
+    }
 }
