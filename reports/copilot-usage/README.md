@@ -133,6 +133,7 @@ dated copy.
 * **The interaction resume bound includes the last exported second.** The file stores
   whole seconds, so the next read uses `ge` that second and skips rows already stored.
   A caller-supplied `-StartDate` stays `gt`, as the export page's range example does.
+  `-StartDate` and `-EndDate` with no time zone are that UTC instant.
 * **Audit records can arrive late.** A record ingested after a run, with a time before the
   newest record already exported, is not collected by the next one. A window that reaches the
   50,000-record session cap is not written; re-run it with a smaller `-WindowHours`.
