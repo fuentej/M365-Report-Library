@@ -34,9 +34,11 @@
         resume point is per user, so a skipped user's history is not passed over.
 
         Available in all three clouds. Needs the application permission
-        AiEnterpriseInteraction.Read.All (delegated is not supported) and, for each user, a
-        Microsoft 365 Copilot licence with the "Microsoft Copilot with Graph-grounded chat"
-        service plan.
+        AiEnterpriseInteraction.Read.All. Delegated is not supported, so an interactive
+        sign-in does not request that permission; sign in with -AppId and
+        -CertificateThumbprint. Each user also needs a Microsoft 365 Copilot licence with
+        the "Microsoft Copilot with Graph-grounded chat" service plan. A deleted user's
+        history is returned only when that user's id is in users.csv or -UserId.
 
     .EXAMPLE
         ./Get-CopilotInteractions.ps1 -OutputPath ./out -LookbackDays 7
@@ -101,9 +103,16 @@ if ($users.Count -eq 0) {
 }
 
 if (-not $SkipConnect) {
+    # AiEnterpriseInteraction.Read.All is application only. Connect-MgGraph -Scopes is the
+    # delegated list, and this permission is not a valid delegated scope.
+    # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+    $appOnly = -not [string]::IsNullOrWhiteSpace($AppId) -and -not [string]::IsNullOrWhiteSpace($CertificateThumbprint)
+    if (-not $appOnly) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+            'AiEnterpriseInteraction.Read.All is an application permission and is not a delegated scope. An interactive sign-in does not request it. Sign in with -AppId and -CertificateThumbprint.')
+    }
     Connect-M365Service -Service Graph -Environment $Environment -AppId $AppId `
-        -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
-        -Scopes @('AiEnterpriseInteraction.Read.All')
+        -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization
 }
 
 $end = if ($PSBoundParameters.ContainsKey('EndDate')) { $EndDate.ToUniversalTime() } else { [datetime]::UtcNow }

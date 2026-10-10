@@ -61,7 +61,7 @@ endpoints have no cmdlet of their own.
 | `Get-CopilotUsageUserDetail.ps1` | `Reports.Read.All` (delegated or application) | Company Administrator, AI Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. Global Reader and Usage Summary Reports Reader see no detailed metrics ([authorization](https://learn.microsoft.com/graph/reportroot-authorization)) | A Microsoft 365 Copilot licence is the population. Unlicensed Copilot Chat use is not in this API |
 | `Get-CopilotUserCountSummary.ps1`, `Get-CopilotUserCountTrend.ps1` | `Reports.Read.All` | The roles above, plus Global Reader and Usage Summary Reports Reader | As above |
 | `Get-CopilotAuditEvents.ps1` | None (Exchange Online) | View-Only Audit Logs or Audit Logs, with auditing turned on | [Audit (Standard)](https://learn.microsoft.com/purview/audit-copilot) covers Microsoft Copilot and Copilot Studio interactions |
-| `Get-CopilotInteractions.ps1` | `AiEnterpriseInteraction.Read.All`, **application only** (delegated is not supported) | None; app-only | A Microsoft 365 Copilot licence with the `Microsoft Copilot with Graph-grounded chat` service plan, per user |
+| `Get-CopilotInteractions.ps1` | `AiEnterpriseInteraction.Read.All`, **application only** (delegated is not supported). An interactive sign-in does not request it | None; app-only (`-AppId` and `-CertificateThumbprint`) | A Microsoft 365 Copilot licence with the `Microsoft Copilot with Graph-grounded chat` service plan, per user |
 | `Get-CopilotFeatureAvailability.ps1` | None | None | None; a public page |
 
 `Get-CopilotInteractions.ps1` is the most sensitive source here: its permission lets the

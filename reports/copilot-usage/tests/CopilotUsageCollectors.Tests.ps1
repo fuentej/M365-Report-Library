@@ -276,16 +276,27 @@ Describe 'Each connection targets the endpoints of its -Environment' {
         Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
     }
 
-    It 'asks for Reports.Read.All for the usage reports and the application permission for the interaction export' -ForEach @(
+    It 'asks for Reports.Read.All for the usage reports' -ForEach @(
         @{ Script = 'Get-CopilotUsageUserDetail.ps1'; Scope = 'Reports.Read.All' }
         @{ Script = 'Get-CopilotUserCountSummary.ps1'; Scope = 'Reports.Read.All' }
         @{ Script = 'Get-CopilotUserCountTrend.ps1'; Scope = 'Reports.Read.All' }
-        @{ Script = 'Get-CopilotInteractions.ps1'; Scope = 'AiEnterpriseInteraction.Read.All' }
     ) {
         Invoke-CollectorScript $Script @{ OutputPath = $script:Out }
 
         $wanted = $Scope
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains $wanted }
+    }
+
+    It 'does not request AiEnterpriseInteraction.Read.All on a delegated sign-in' {
+        # Delegated is not supported. -Scopes is the delegated list, so the application
+        # permission must not be placed on an interactive sign-in.
+        # https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/ai-services/interaction-export/aiinteractionhistory-getallenterpriseinteractions
+        Invoke-CollectorScript 'Get-CopilotInteractions.ps1' @{ OutputPath = $script:Out }
+
+        Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter {
+            $Scopes -notcontains 'AiEnterpriseInteraction.Read.All'
+        }
+        Get-LogText $script:Out | Should -Match 'not a delegated scope'
     }
 
     It 'signs in app-only without scopes when given a certificate' {

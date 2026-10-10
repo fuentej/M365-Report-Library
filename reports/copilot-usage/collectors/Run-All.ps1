@@ -18,8 +18,9 @@
 
         Get-CopilotInteractions.ps1 reads prompt and response METADATA for every user and
         needs the application permission AiEnterpriseInteraction.Read.All, which lets the
-        caller read every prompt in the tenant. It is run last and is easy to leave out; see
-        -SkipInteractions.
+        caller read every prompt in the tenant. Delegated sign-in is not supported, so that
+        permission is not added to the interactive scope list. It is run last and is easy
+        to leave out; see -SkipInteractions.
 
     .EXAMPLE
         ./Run-All.ps1 -OutputPath ./out
