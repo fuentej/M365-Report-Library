@@ -96,6 +96,11 @@ if (Test-AuditSourceSkipped -Source 'AuditActivityFeed' -LogSource $source -CsvP
     return
 }
 
+$parsedPublisher = [guid]::Empty
+if (-not [guid]::TryParse($PublisherIdentifier, [ref]$parsedPublisher)) {
+    throw "PublisherIdentifier '$PublisherIdentifier' is not a GUID."
+}
+
 $base = Get-ActivityFeedBase -Environment $Environment -TenantId $TenantId -Schema $schema
 $feed = @{ Base = $base; AccessToken = $AccessToken; PublisherIdentifier = $PublisherIdentifier }
 

@@ -907,6 +907,11 @@ Describe 'Office 365 Management Activity API (source 3)' {
         { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ TenantId = 'contoso.onmicrosoft.com' }) } | Should -Throw '*is not a GUID*'
         $global:AuTest.Requests.Count | Should -Be 0
     }
+
+    It 'rejects a PublisherIdentifier that is not a GUID before any request' {
+        { Invoke-CollectorScript 'Get-AuditActivityFeed.ps1' (Merge-Arguments $script:FeedArgs @{ PublisherIdentifier = 'not-a-guid' }) } | Should -Throw '*is not a GUID*'
+        $global:AuTest.Requests.Count | Should -Be 0
+    }
 }
 
 Describe 'Ingestion status and retention policies (sources 4 and 5)' {
