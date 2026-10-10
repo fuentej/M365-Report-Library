@@ -21,4 +21,17 @@ Describe 'Teams activity sources' {
         $source6 | Should -Match 'participants_v2'
         $source6 | Should -Match '130'
     }
+
+    It 'follows export nextLink and records the evaluation-mode conflict' {
+        # $top is a hint. model is ignored, and the export page still describes a cap.
+        $source7 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 7 \| Chat' })
+        $source7 | Should -Match 'not a guaranteed page size'
+        $source7 | Should -Match 'at most 250'
+        $source7 | Should -Match 'lastModifiedDateTime lt'
+        $source7 | Should -Match 'model` is no longer required'
+        $source7 | Should -Match 'evaluation mode'
+        $source7 | Should -Match 'complete export'
+        $source7 | Should -Match 'Purview DLP'
+        $source7 | Should -Match 'follow `@odata.nextLink`'
+    }
 }
