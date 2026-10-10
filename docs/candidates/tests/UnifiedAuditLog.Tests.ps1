@@ -48,4 +48,20 @@ Describe 'unified audit log sources' {
         $script:Doc | Should -Match '7 Days, 30 Days, 3 Years, 5 Years, and 7 Years'
         $script:Doc | Should -Not -Match 'Entra ID, Exchange, OneDrive and SharePoint records are kept one year by default'
     }
+
+    It 'treats MailItemsAccessed as Audit Standard for E3 and E5 and names Logon_type' {
+        # The event is not E5-only. SensitivityLabel on that record is Premium.
+        # Folder permission changes that are audited are UpdateFolderPermissions.
+        $script:Doc | Should -Match 'Office 365 E3/E5 or Microsoft 365 E3/E5'
+        $script:Doc | Should -Match 'Audit \(Standard\)'
+        $script:Doc | Should -Match 'SensitivityLabel'
+        $script:Doc | Should -Match 'Logon_type'
+        $script:Doc | Should -Match 'MailboxUPN'
+        $script:Doc | Should -Match 'UpdateFolderPermissions'
+        $script:Doc | Should -Match 'not audited separately'
+        $script:Doc | Should -Match 'Remove-MailboxPermission'
+        $script:Doc | Should -Not -Match 'MailItemsAccessed needs E5'
+        $script:Doc | Should -Not -Match 'shared mailbox page says E5'
+        $script:Doc | Should -Not -Match 'field names were not confirmed'
+    }
 }

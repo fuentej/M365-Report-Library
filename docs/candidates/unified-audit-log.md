@@ -70,14 +70,15 @@ and the cmdlet page. The page lists many more; the build issue should choose the
 | Admin role changes | `Add member to role.`, `Remove member from role.` (Microsoft Entra role administration activities) |
 | Policy changes | Exchange transport rule operations `New-TransportRule`, `Set-TransportRule`, `Disable-TransportRule`, `Enable-TransportRule`, `Remove-TransportRule` ([transport rule activities](https://learn.microsoft.com/purview/audit-log-search-mailbox-rules)). Other policy families are on the activities page; not enumerated here |
 | Files and sharing | `FileAccessed` with record type `SharePointFileOperation` (cmdlet example 4); `SharingSet`, `SharingRevoked`, `SharingInvitationCreated`, `AnonymousLinkCreated`, `CompanyLinkCreated`, `SecureLinkCreated`, `AccessRequestCreated` |
-| Mailbox access by someone other than the owner | `FolderBind` (admin and delegate; delegate binds are consolidated to one record per folder per 24 hours), `MessageBind` (only users without E5, A5 or G5 licences), `MailItemsAccessed` (the shared mailbox page says E5 is required), `SendAs`, `SendOnBehalf` |
-| Mailbox permission changes | `Add-MailboxPermission` (FullAccess; also written by a system account doing maintenance on the DiscoverySearchMailbox, so filter those out), `AddFolderPermissions`, `ModifyFolderPermissions`, `UpdateCalendarDelegation`, `Set-Mailbox` |
+| Mailbox access by someone other than the owner | `FolderBind` (admin and delegate; delegate binds are consolidated to one record per folder per 24 hours), `MessageBind` (admin only, and only users without E5, A5 or G5 licences), `MailItemsAccessed` (Audit (Standard), on by default for Office 365 E3/E5 or Microsoft 365 E3/E5; the `SensitivityLabel` property is Audit (Premium)), `SendAs`, `SendOnBehalf` ([investigate accounts](https://learn.microsoft.com/purview/audit-log-investigate-accounts), [overview](https://learn.microsoft.com/purview/audit-solutions-overview#audit-premium-activity-properties), [mailbox auditing](https://learn.microsoft.com/purview/audit-mailboxes)) |
+| Mailbox permission changes | `Add-MailboxPermission` and `Remove-MailboxPermission` (FullAccess; `Add-MailboxPermission` is also written by a system account doing maintenance on the DiscoverySearchMailbox, so filter those out). Folder permission changes that are audited are `UpdateFolderPermissions`. `AddFolderPermissions` and `ModifyFolderPermissions` are listed on the activities page, but the mailbox auditing page says they are not audited separately and not to use those values. Also `UpdateCalendarDelegation` and `Set-Mailbox` ([activities](https://learn.microsoft.com/purview/audit-log-activities), [mailbox auditing](https://learn.microsoft.com/purview/audit-mailboxes)) |
 
-How an event is judged "not the owner" is a derivation from fields inside `AuditData` (the actor against the
-mailbox owner, and the logon type). The mailbox audit logging page read gives the logon types as Administrator,
-Delegate and Owner ([mailbox audit logging](https://learn.microsoft.com/exchange/mailbox-audit-logging-exchange-2013-help#mailbox-actions-logged-by-mailbox-audit-logging));
-the exact `AuditData` field names were not confirmed and the build issue must check them against the
-[schema](https://learn.microsoft.com/office/office-365-management-api/office-365-management-activity-api-schema).
+How an event is judged "not the owner" uses fields inside `AuditData`. `Logon_type` is Owner (0), Admin (1), or
+Delegate (2). `MailboxUPN` is the mailbox that holds the message and `User` is the UPN of the reader
+([investigate accounts](https://learn.microsoft.com/purview/audit-log-investigate-accounts)). `MailItemsAccessed`
+is logged for the owner as well as for admins and delegates, so the operation name alone is not "not the owner".
+Absence of `MailItemsAccessed` on a licence below E3 is not proof of no access. The `SensitivityLabel` property
+on that record is Audit (Premium), and a missing Premium licence is not the same as zero access events.
 
 ## Proposed report pages
 
@@ -100,7 +101,7 @@ Source 3 cannot fill pages 1 to 5 beyond seven days. Those pages use source 1, o
 | 1 | Which admin and user operations happen, by workload, user and day | Covered by sources 1, 2 and 3 (workload is the record type or `serviceFilter`; user and time are record fields). Source 3 is the only read path with a Learn page for all three clouds, and it lists only the last 7 days of content blobs. |
 | 2 | Which admin role assignments and policy changes happened, by whom and when | Covered by the operations in the table above through sources 1 to 3. Role changes: `Add member to role.` and `Remove member from role.`. Policy changes: only the transport rule family was verified; the build issue picks the rest from the activities page. |
 | 3 | Which file and sharing operations happened in SharePoint and OneDrive | Covered by sources 1 to 3 with the file and sharing operations above. |
-| 4 | Which mailboxes were accessed by someone other than the owner, and which mailbox permissions changed | Covered by sources 1 to 3 with the mailbox operations above. "Not the owner" is derived from `AuditData`; field names to be confirmed. `MailItemsAccessed` needs E5 licensing per the shared mailbox page, so absence of it is not proof of no access on lower licences. |
+| 4 | Which mailboxes were accessed by someone other than the owner, and which mailbox permissions changed | Covered by sources 1 to 3 with the mailbox operations above. "Not the owner" is `Logon_type` other than Owner, with `MailboxUPN` and `User`. `MailItemsAccessed` is Audit (Standard) for Office 365 E3/E5 or Microsoft 365 E3/E5, so absence of it below E3 is not proof of no access. |
 | 5 | How long records are kept per licence level and how far back a run can read | Covered by the Retention section, source 4 (is auditing on) and source 5 (custom policies). One year is E5, the Microsoft Purview Suite, or the E5 eDiscovery and Audit add-on; guest users stay at 180 days. Source 5 does not return the default policy. GCC and GCC High for source 5 UNVERIFIED. |
 | 6 | Which read-only method retrieves the records, with limits, paging and availability per cloud | Covered by sources 1 to 3, limits in each row. Source 2 is `NotAvailable` in GCC High. Source 1 is UNVERIFIED in GCC and GCC High. Source 3 is Available in all three and only the last 7 days of content. |
 
@@ -123,5 +124,4 @@ given.
 * Source 1 in GCC and GCC High: UNVERIFIED. A collector may attempt it and record a refusal in `run.log`.
 * Source 3 is a 7-day feed. Retained history still needs source 1, or source 2 outside GCC High.
 * Source 2 least privileged permission differs between the create and records pages and the get page; confirm.
-* `AuditData` field names for owner versus non-owner access: not confirmed here.
 * Roles for source 4 and source 5 (read only) are not named on the pages read.
