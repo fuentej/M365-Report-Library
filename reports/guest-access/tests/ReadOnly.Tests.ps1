@@ -228,13 +228,13 @@ Describe 'The shared module is never imported with -Force' {
 
 Describe 'Only read-only tenant commands are called' {
     It 'calls no Graph, Exchange Online or Security & Compliance cmdlet outside <AllowedVerbs>' {
-        # Invoke-MgGraphRequest in the oversharing helper is the one Invoke-verb call here:
+        # Invoke-MgGraphRequest in the oversharing and Exchange activity helpers is the one Invoke-verb call here:
         # the site list and drive walk are read with GET, and there is no SDK cmdlet that
         # follows a getAllSites nextLink as returned. The next Describe holds every
         # -Method to GET, and reports/oversharing/tests/ReadOnly.Tests.ps1 holds that helper
         # file to one GET function.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -eq 'OversharingHelpers.ps1')
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -293,8 +293,13 @@ Describe 'No Graph request uses a method other than GET' {
         # The oversharing report reads Microsoft Graph sites, drives and item permissions
         # with GET through Invoke-MgGraphRequest; its helper file is exempt here and held
         # to one GET function in reports/oversharing/tests/ReadOnly.Tests.ps1.
+        #
+        # The Exchange activity report reads the Graph message trace (/beta, paged by the
+        # @odata.nextLink as returned) with GET through the one Invoke-MgGraphRequest call in
+        # its helper file, which reports/exchange-activity/tests/ReadOnly.Tests.ps1 holds to
+        # one GET call.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 

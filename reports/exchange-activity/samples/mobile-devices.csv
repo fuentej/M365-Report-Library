@@ -1,0 +1,3 @@
+"RunDate","MailboxUserPrincipalName","DeviceId","DeviceType","DeviceOS","DeviceAccessState","DeviceUserAgent"
+"2026-10-08","avery.abara@example.com","DEV0000000000000000000000001","Outlook","iOS 17.6","Allowed","Outlook-iOS/2.0"
+"2026-10-08","blake.bishop@example.com","DEV0000000000000000000000002","UniversalOutlook","WINDOWS","Unknown","microsoft.windowscommunicationsapps"
