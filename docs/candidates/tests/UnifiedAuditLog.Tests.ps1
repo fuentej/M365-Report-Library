@@ -64,4 +64,20 @@ Describe 'unified audit log sources' {
         $script:Doc | Should -Not -Match 'shared mailbox page says E5'
         $script:Doc | Should -Not -Match 'field names were not confirmed'
     }
+
+    It 'scopes Graph audit queries by workload and does not treat a succeeded query as complete' {
+        # AuditLogsQuery-Entra.Read.All does not return mailbox or file records.
+        # succeeded can still mean the record cap stopped the query.
+        $source2 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 2 \| Unified audit log through the Graph' })
+        $source2 | Should -Match 'filterStartDateTime'
+        $source2 | Should -Match 'filterEndDateTime'
+        $source2 | Should -Match 'recordTypeFilters'
+        $source2 | Should -Match 'does not return Exchange, SharePoint, or OneDrive'
+        $source2 | Should -Match 'does not match the operation name'
+        $source2 | Should -Match 'approximateReturnedRecordCount'
+        $source2 | Should -Match 'exponential backoff'
+        $source2 | Should -Match 'Do not retry immediately'
+        $source2 | Should -Not -Match 'date range properties are on the'
+        $script:Doc | Should -Not -Match '`Get-MgSecurityAuditLogQuery` reads\), then'
+    }
 }
