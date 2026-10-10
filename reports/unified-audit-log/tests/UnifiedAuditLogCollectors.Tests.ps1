@@ -192,6 +192,12 @@ Describe 'Connection endpoint per -Environment' {
     It 'signs in to Graph with the Global environment and the audit query scopes for <Cloud>' -ForEach @(
         @{ Cloud = 'Commercial' }, @{ Cloud = 'GCC' }
     ) {
+        # A finished query, so the assertion is the sign-in and not an empty response.
+        Mock Invoke-MgGraphRequest {
+            if ($Method -eq 'POST') { return @{ id = 'q1'; status = 'notStarted' } }
+            if ($Uri -like '*/records') { return @{ value = @() } }
+            return @{ id = 'q1'; status = 'succeeded'; isRecordCountLimitExceeded = $false }
+        }
         Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; Environment = $Cloud; LookbackDays = 1 }
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter {
             $Environment -eq 'Global' -and $Scopes -contains 'AuditLogsQuery.Read.All'
@@ -498,12 +504,40 @@ Describe 'Graph Audit Search API (source 2)' {
         Get-LogText $script:Out | Should -Match 'went over the record limit'
     }
 
+    It 'reads a range just over the minimum as two halves when the query exceeded its record limit' {
+        Mock Invoke-MgGraphRequest {
+            if ($Method -eq 'POST') {
+                $global:AuTest.QueryCount++
+                return @{ id = "q$($global:AuTest.QueryCount)" }
+            }
+            if ($Uri -like '*/records') { return @{ value = @((New-GraphRecord 'kept')) } }
+            return @{ status = 'succeeded'; isRecordCountLimitExceeded = ($Uri -like '*/queries/q1') }
+        }
+        $start = [datetime]::new(2026, 10, 8, 0, 0, 0, [DateTimeKind]::Utc)
+        $rows = @(Get-AuditGraphSlice -Start $start -End $start.AddMinutes(90) -OutputPath $script:Out -MinimumMinutes 60)
+        $global:AuTest.QueryCount | Should -Be 3
+        @($rows).Count | Should -Be 2
+    }
+
+    It 'does not return the records of a query that is still over the record limit at the minimum' {
+        Mock Invoke-MgGraphRequest {
+            if ($Method -eq 'POST') { return @{ id = 'q-floor' } }
+            if ($Uri -like '*/records') { return @{ value = @((New-GraphRecord 'dropped')) } }
+            return @{ status = 'succeeded'; isRecordCountLimitExceeded = $true }
+        }
+        $start = [datetime]::new(2026, 10, 8, 0, 0, 0, [DateTimeKind]::Utc)
+        { Get-AuditGraphSlice -Start $start -End $start.AddMinutes(60) -OutputPath $script:Out -MinimumMinutes 60 } |
+            Should -Throw '*record limit*'
+        Get-LogText $script:Out | Should -Match 'were not written'
+    }
+
     It 'throws on a query that failed instead of treating it as empty' {
         Mock Invoke-MgGraphRequest {
             if ($Method -eq 'POST') { return @{ id = 'q1' } }
             return @{ status = 'failed' }
         }
-        Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 }
+        { Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 } } |
+            Should -Throw '*ended with status failed*'
         Get-LogText $script:Out | Should -Match 'ended with status failed'
         @(Import-Csv -LiteralPath (Join-Path $script:Out 'audit-graph-records.csv')).Count | Should -Be 0
     }
@@ -513,7 +547,8 @@ Describe 'Graph Audit Search API (source 2)' {
             if ($Method -eq 'POST') { return @{ id = 'q1' } }
             return @{ status = 'running' }
         }
-        Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1; MaxPolls = 3; PollSeconds = 1 }
+        { Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1; MaxPolls = 3; PollSeconds = 1 } } |
+            Should -Throw '*did not succeed after 3 polls*'
         Get-LogText $script:Out | Should -Match 'did not succeed after 3 polls'
     }
 
@@ -524,7 +559,8 @@ Describe 'Graph Audit Search API (source 2)' {
             if ($Uri -like '*/records') { return @{ value = @((New-GraphRecord 'g1')); '@odata.nextLink' = 'https://evil.example.net/steal' } }
             return @{ status = 'succeeded' }
         }
-        Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 }
+        { Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 } } |
+            Should -Throw '*outside Microsoft Graph*'
         $global:AuTest.Requests | Should -Not -Contain 'https://evil.example.net/steal'
         Get-LogText $script:Out | Should -Match 'Refusing to request a page outside Microsoft Graph'
     }
@@ -564,7 +600,8 @@ Describe 'Graph Audit Search API (source 2)' {
 
     It 'rethrows an error that is not a 429 without waiting' {
         Mock Invoke-MgGraphRequest { throw 'Forbidden: Insufficient privileges' }
-        Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 }
+        { Invoke-CollectorScript 'Get-AuditGraphRecords.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; LookbackDays = 1 } } |
+            Should -Throw '*Insufficient privileges*'
         $global:AuTest.Sleeps.Count | Should -Be 0
         Get-LogText $script:Out | Should -Match 'Insufficient privileges'
     }

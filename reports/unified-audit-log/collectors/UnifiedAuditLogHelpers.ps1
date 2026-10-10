@@ -577,8 +577,10 @@ function Get-AuditGraphSlice {
         .DESCRIPTION
             Over the limit a query still reports succeeded, so isRecordCountLimitExceeded is read
             (https://learn.microsoft.com/graph/throttling-limits#security-audit-log-query-service-limits).
-            approximateReturnedRecordCount is not compared with recordCountLimit. A range down to
-            -MinimumMinutes that is still over the limit is returned with a warning.
+            approximateReturnedRecordCount is not compared with recordCountLimit. The range is
+            halved while it is longer than -MinimumMinutes. A range that is still over the limit
+            at that floor is not returned: writing it would move the resume point past records
+            the query stopped generating.
     #>
     [CmdletBinding()]
     param(
@@ -599,7 +601,7 @@ function Get-AuditGraphSlice {
     $exceeded = Get-ObjectValue -Object $query -Name 'isRecordCountLimitExceeded'
     $isOver = $null -ne $exceeded -and [System.Convert]::ToBoolean($exceeded)
 
-    if ($isOver -and ($End - $Start).TotalMinutes -gt ($MinimumMinutes * 2)) {
+    if ($isOver -and ($End - $Start).TotalMinutes -gt $MinimumMinutes) {
         $middle = $Start.AddTicks([long](($End - $Start).Ticks / 2))
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (
             'Query {0} for {1:yyyy-MM-ddTHH:mm:ssZ} to {2:yyyy-MM-ddTHH:mm:ssZ} went over the record limit. Reading it as two halves.' -f $queryId, $Start, $End)
@@ -609,7 +611,8 @@ function Get-AuditGraphSlice {
     }
     if ($isOver) {
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $LogSource -Message (
-            'Query {0} is still over the record limit at {1} minutes. Its rows are incomplete.' -f $queryId, ($End - $Start).TotalMinutes)
+            'Query {0} is still over the record limit at {1} minutes. Its rows are incomplete and were not written.' -f $queryId, ($End - $Start).TotalMinutes)
+        throw ('Query {0} is still over the record limit. Its rows were not written.' -f $queryId)
     }
 
     foreach ($record in Get-AuditGraphRecord -QueryId $queryId) {

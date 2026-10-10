@@ -18,8 +18,9 @@
         Event source. A run starts at the latest CreationTime already in the file, or -LookbackDays back
         on the first run, and sends one query per -SliceMinutes slice, oldest first. A query that
         succeeded but went over its record limit (isRecordCountLimitExceeded) is read again as two
-        halves. A throttled call (429) waits for Retry-After, or backs off from 30 seconds when there is
-        none, and never retries at once. A tenant gets at least 200 submissions per rolling 24 hours
+        halves. A query that is still over the limit at -SliceMinutes is not written. A throttled
+        call (429) waits for Retry-After, or backs off from 30 seconds when there is none, and
+        never retries at once. A tenant gets at least 200 submissions per rolling 24 hours
         (https://learn.microsoft.com/graph/throttling-limits#security-audit-log-query-service-limits),
         so keep -LookbackDays x slices per day well under that.
 
@@ -107,7 +108,7 @@ try {
 catch {
     Write-CollectorLog -OutputPath $OutputPath -Level Error -Source $source -Message (
         'The Graph audit log query failed ({0}). It needs AuditLogsQuery.Read.All (and ThreatIntelligence.Read.All to read the query). Slices already written are kept; the next run resumes from the latest CreationTime.' -f $_.Exception.Message)
-    return
+    throw
 }
 
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
