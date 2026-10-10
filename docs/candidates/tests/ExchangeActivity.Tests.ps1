@@ -43,4 +43,16 @@ Describe 'exchange activity sources' {
         $source9 | Should -Match '-RestApi'
         $source9 | Should -Match '-UniversalOutlook'
     }
+
+    It 'follows the documented usage response shape' {
+        # Quota status changes at the quota, so "above" alone mislabels a mailbox
+        # that is exactly at the warning. The mailbox CSV example drops two headers.
+        # reportSettings is one object; the GET example's value wrapper is the collection shape.
+        $source1 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 1 \| Per-mailbox' })
+        $source5 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 5 \| Whether' })
+        $source1 | Should -Match 'at or above'
+        $source1 | Should -Match 'example schema on that same page omits both'
+        $source5 | Should -Match 'do not read `\.value`'
+        $script:Doc | Should -Match 'up to 28 days from the'
+    }
 }
