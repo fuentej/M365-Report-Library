@@ -17,4 +17,13 @@ Describe 'license utilization sources' {
         $script:Doc | Should -Match 'Edge Last Activity Date'
         $script:Doc | Should -Match '`ALL` is the four periods'
     }
+
+    It 'does not cap last activity at the selected report period' {
+        # Last activity is the latest intentional use, not the aggregate window.
+        $script:Doc | Should -Match 'regardless of the selected time period'
+        $script:Doc | Should -Not -Match 'cannot show inactivity older than'
+        $script:Doc | Should -Match '24 to 72 hours'
+        $script:Doc | Should -Match 'perpetual license'
+        $script:Doc | Should -Match 'within 30 days'
+    }
 }

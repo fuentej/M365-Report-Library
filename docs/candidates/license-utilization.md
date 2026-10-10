@@ -65,9 +65,14 @@ Consolidated notes:
 * **Concealed names.** When `displayConcealedNames` is `true`, the usage reports (5a to 5g) hide usernames, so
   they cannot be joined to source 2 on `userPrincipalName`. Source 6 must be read first, and the report must show
   "names concealed, usage not joined" instead of zero-usage users.
-* **Usage reports are periods, not events.** Each is an aggregate over 7, 30, 90 or 180 days with a last
-  activity date per user. A daily run appends a snapshot stamped with the run date; it is not an event stream.
-  The longest period is 180 days, so a snapshot cannot show inactivity older than that.
+* **Usage reports are periods, not events.** The count columns aggregate 7, 30, 90 or 180 days. A daily run
+  appends a snapshot stamped with the run date; it is not an event stream. The last activity date is the most
+  recent intentional activity in that app, regardless of the selected time period, so a snapshot can show
+  inactivity older than 180 days ([activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports)).
+  Compare that date with the period start. Reports typically become available within 24 to 72 hours and sometimes
+  take several days, so a gap of a few days is not proof of no use. Usage reports don't include perpetual license
+  models. When a user account is deleted, that user's usage data is removed within 30 days and they leave the
+  user-detail table; a missing row is not a zero-activity row.
 * **Download mechanics.** The CSV reports for sources 5a to 5f return `302 Found` to a pre-authenticated URL that
   "is only valid for a short period of time (a few minutes)". The collector must follow the redirect at once.
   Source 5g v1.0 returns `200 OK` with the CSV in the body, not a redirect.
@@ -78,11 +83,11 @@ Consolidated notes:
 
 | # | Page | Reads | What it shows |
 | --- | --- | --- | --- |
-| 1 | Overview | 1, 2, 4, 5a, 5g | Headline counts: licences bought, assigned, free, assigned to users who never signed in, assigned with no activity in the period; trend by snapshot date |
+| 1 | Overview | 1, 2, 4, 5a, 5g | Headline counts: licences bought, assigned, free, assigned to users who never signed in, assigned with last activity before the period start; trend by snapshot date |
 | 2 | SKU inventory | 1, 7 | Per SKU: bought, assigned, free, suspended, warning, `capabilityStatus`; friendly product name from the reference copy |
 | 3 | Assignments by organisation | 2, shared users | Who holds each SKU by department, job title, office location, city and country; direct versus group-assigned |
 | 4 | Assigned but inactive | 2, 4 | Licensed users with no sign-in in 30, 90 or 180 days, or no sign-in recorded; GCC High marked UNVERIFIED |
-| 5 | Workload usage | 2, 5a to 5f, 6 | Per workload (Exchange, Teams, SharePoint, OneDrive, Microsoft 365 apps): licensed users with no activity in the period; hidden when names are concealed; absent in GCC High |
+| 5 | Workload usage | 2, 5a to 5f, 6 | Per workload (Exchange, Teams, SharePoint, OneDrive, Microsoft 365 apps): licensed users whose last activity date is before the period start, or who have no date. Count columns are the period aggregate. Hidden when names are concealed; absent in GCC High |
 | 6 | Copilot adoption | 1, 2, 5g | Microsoft 365 Copilot licences assigned (service plan found through source 1) against users with a last activity date per Copilot app; absent in GCC High |
 | 7 | Overlapping licences | 1, 2, 3 | Users holding two SKUs that include the same service plan, with the SKU pair; derived, see notes |
 | 8 | Coverage and licence errors | 2, 6, `run.log` | Assignments in `Error` or `ActiveWithError` with the `error` value; which sources ran, which were skipped in this cloud, and whether names were concealed |
