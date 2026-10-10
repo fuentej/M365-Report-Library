@@ -32,12 +32,12 @@ with `-AppId`, `-CertificateThumbprint`, `-TenantId` and `-Organization`).
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-PowerPlatformEnvironments.ps1` | `environments.csv` — every Power Platform environment |
-| `collectors/Get-CopilotStudioAgents.ps1` | `agents.csv` — every agent: owner, sharing counts, authentication, channels, publish state, capability counts |
-| `collectors/Get-AgentConnectors.ps1` | `agent-connectors.csv` — the connector operations each agent uses |
-| `collectors/Get-AgentComponents.ps1` | `agent-components.csv` — knowledge sources, tools, HTTP request actions, prompts and MCP actions, from Dataverse |
-| `collectors/Get-AgentModifications.ps1` | `agent-modifications.csv` — last modified date and modifier, from Dataverse |
-| `collectors/Get-AgentAuditEvents.ps1` | `agent-audit-events.csv` — authoring events from the unified audit log |
+| `collectors/Get-PowerPlatformEnvironments.ps1` | `environments.csv`: every Power Platform environment |
+| `collectors/Get-CopilotStudioAgents.ps1` | `agents.csv`: every agent (owner, sharing counts, authentication, channels, publish state, capability counts) |
+| `collectors/Get-AgentConnectors.ps1` | `agent-connectors.csv`: the connector operations each agent uses |
+| `collectors/Get-AgentComponents.ps1` | `agent-components.csv`: knowledge sources, tools, HTTP request actions, prompts and MCP actions, from Dataverse |
+| `collectors/Get-AgentModifications.ps1` | `agent-modifications.csv`: last modified date and modifier, from Dataverse |
+| `collectors/Get-AgentAuditEvents.ps1` | `agent-audit-events.csv`: authoring events from the unified audit log |
 | `collectors/Run-All.ps1` | Runs all six |
 | `collectors/CopilotStudioSchema.psd1` | The column order of every CSV and the per-cloud availability of every source |
 | `collectors/CopilotStudioHelpers.ps1` | Helpers the collectors dot-source: the delegated token, inventory paging and Dataverse paging |
@@ -137,7 +137,7 @@ read-only test allows it in one function and nowhere else.
 
 Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 
-### `environments.csv` — snapshot, key `RunDate` + `EnvironmentId`
+### `environments.csv`: snapshot, key `RunDate` + `EnvironmentId`
 
 | Column | Meaning |
 | --- | --- |
@@ -150,7 +150,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `EnvironmentGroup` | Environment group name, if any |
 | `LastModifiedAt` | Last modified |
 
-### `agents.csv` — snapshot, key `RunDate` + `EnvironmentId` + `AgentId`
+### `agents.csv`: snapshot, key `RunDate` + `EnvironmentId` + `AgentId`
 
 | Column | Meaning |
 | --- | --- |
@@ -174,7 +174,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `CapabilitiesDistinctConnectors`, `CapabilitiesDistinctConnectorOperations` | Preview. The complete counts from `capabilitiesCounts` |
 | `IsWebSearchEnabledForKnowledge` | Preview. Whether web search is a knowledge source |
 
-### `agent-connectors.csv` — snapshot, one row per connector operation
+### `agent-connectors.csv`: snapshot, one row per connector operation
 
 | Column | Meaning |
 | --- | --- |
@@ -185,7 +185,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `WhenCanBeUsed` | `Anytime`, `ViaDirectReferenceOnly` or `Conditional` |
 | `ConnectionProvider` | `User` or `Maker`. A connector returned with an empty `operations` array (tabular connectors such as SharePoint) is still one row, with the operation columns empty |
 
-### `agent-components.csv` — snapshot
+### `agent-components.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -195,7 +195,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `ComponentId`, `ComponentName`, `ComponentType` | The `botcomponent` row; `ComponentType` is the raw `componenttype` value |
 | `Category` | `KnowledgeSource`, `Tool`, `HttpRequest`, `Prompt` or `Mcp`, from markers in the component `data` |
 
-### `agent-modifications.csv` — snapshot
+### `agent-modifications.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -204,7 +204,7 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `ModifiedOn`, `ModifiedBy` | Last modified and the modifier's system user id. The inventory has no modified field |
 | `PublishedOn` | `bot.published` |
 
-### `agent-audit-events.csv` — event, appended from the latest `CreationTime`, key `Id`
+### `agent-audit-events.csv`: event, appended from the latest `CreationTime`, key `Id`
 
 | Column | Meaning |
 | --- | --- |

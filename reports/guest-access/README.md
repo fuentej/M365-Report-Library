@@ -16,11 +16,11 @@ fake data so the report can be built and opened without a tenant.
 
 | Path | What it is |
 | --- | --- |
-| `collectors/Get-Guests.ps1` | `guests.csv` — a snapshot of every guest |
-| `collectors/Get-GuestInvitations.ps1` | `guest-invitations.csv` — invitation and redemption events |
-| `collectors/Get-GuestSignIns.ps1` | `guest-signins.csv` — sign-ins by guests |
-| `collectors/Get-SharingEvents.ps1` | `sharing-events.csv` — SharePoint and OneDrive sharing activity |
-| `collectors/Get-GuestMemberships.ps1` | `guest-memberships.csv` — the groups each guest is in |
+| `collectors/Get-Guests.ps1` | `guests.csv`: a snapshot of every guest |
+| `collectors/Get-GuestInvitations.ps1` | `guest-invitations.csv`: invitation and redemption events |
+| `collectors/Get-GuestSignIns.ps1` | `guest-signins.csv`: sign-ins by guests |
+| `collectors/Get-SharingEvents.ps1` | `sharing-events.csv`: SharePoint and OneDrive sharing activity |
+| `collectors/Get-GuestMemberships.ps1` | `guest-memberships.csv`: the groups each guest is in |
 | `collectors/Run-All.ps1` | Runs the users collector and all five of the above |
 | `collectors/GuestAccessSchema.psd1` | The column order of every CSV, and the activity and operation names collected |
 | `New-SampleData.ps1` | Regenerates `samples/` |
@@ -31,21 +31,21 @@ fake data so the report can be built and opened without a tenant.
 
 Open `report/GuestAccess.pbip` in Power BI Desktop (Store reports using enhanced
 metadata format (PBIR) and Store semantic model using TMDL format must be enabled
-under Preview features — both are required to read this project). On first open, Power
+under Preview features, both are required to read this project). On first open, Power
 BI Desktop asks for the `CsvFolder` parameter's value: point it at a folder holding the
-same CSVs described below — `samples/` to explore with fake data, or a collector output
+same CSVs described below: `samples/` to explore with fake data, or a collector output
 folder for a real tenant. Every table is a plain CSV import from
 `CsvFolder & "\<file>.csv"`; nothing else about the model depends on where that folder is.
 
 | Table | Source | What it's for |
 | --- | --- | --- |
-| `Users`, `Guests`, `GuestInvitations`, `GuestSignIns`, `SharingEvents`, `GuestMemberships` | One per CSV above, full history | Exactly what the CSV holds — column-for-column, in `GuestAccessSchema.psd1` order |
+| `Users`, `Guests`, `GuestInvitations`, `GuestSignIns`, `SharingEvents`, `GuestMemberships` | One per CSV above, full history | Exactly what the CSV holds, column-for-column, in `GuestAccessSchema.psd1` order |
 | `UsersCurrent`, `GuestsCurrent`, `GuestMembershipsCurrent` | Calculated: the latest `RunDate` snapshot of the table above | The dimension every relationship, slicer and card is built on, so a guest or member is never double-counted across snapshots |
 | `DateDim` | Calculated: a plain calendar | Drives the Between date-range slicer on every page |
 | `AnonymizeMode` | Calculated, disconnected | Drives the anonymize toggle (see below) |
 
-Seven pages — Overview, Guest lifecycle, Dormant guests, Invitations, Sign-ins,
-Sharing, Access footprint — each carrying the same four slicers (date range, external
+Seven pages (Overview, Guest lifecycle, Dormant guests, Invitations, Sign-ins,
+Sharing, Access footprint), each carrying the same four slicers (date range, external
 domain, member department, guest) plus the anonymize toggle.
 
 **Dormant guests / the "never zero" rule:** each `Guests` snapshot row keeps its own
@@ -117,7 +117,7 @@ another user's `memberOf`: Graph then returns id-only objects and does not throw
 | View-Only Audit Logs, or Audit Logs | `Search-UnifiedAuditLog` | [Audit get started](https://learn.microsoft.com/purview/audit-get-started) |
 
 Auditing also has to be turned on for the organisation before the unified audit log
-returns anything — see the same page.
+returns anything (see the same page).
 
 App-only Exchange Online (the unattended `Get-SharingEvents.ps1` path) also needs the
 `Exchange.ManageAsApp` application permission on the Office 365 Exchange Online API, and
@@ -132,7 +132,7 @@ The shared module holds the endpoints; see the root README for the table.
 | Source | Commercial | GCC | GCC High | Reference |
 | --- | --- | --- | --- | --- |
 | Graph list users (`guests.csv`, `users.csv`) | Available | Available | Available | [national cloud deployments](https://learn.microsoft.com/graph/deployments) |
-| `signInActivity` on a user | Available (P1/P2) | Available (P1/P2) | **UNVERIFIED** | [inactive user accounts](https://learn.microsoft.com/entra/identity/monitoring-health/howto-manage-inactive-user-accounts) — no per-cloud statement found for US Gov L4 |
+| `signInActivity` on a user | Available (P1/P2) | Available (P1/P2) | **UNVERIFIED** | [inactive user accounts](https://learn.microsoft.com/entra/identity/monitoring-health/howto-manage-inactive-user-accounts) (no per-cloud statement found for US Gov L4) |
 | Directory audit log | Available | Available | Available | [directoryAudits](https://learn.microsoft.com/graph/api/directoryaudit-list), [deployments](https://learn.microsoft.com/graph/deployments) |
 | Sign-in log | Available (P1/P2) | Available (P1/P2) | Available (P1/P2) | [signIns](https://learn.microsoft.com/graph/api/signin-list), [deployments](https://learn.microsoft.com/graph/deployments) |
 | Unified audit log (`Search-UnifiedAuditLog`) | Available | Available | Available | [Audit (Standard) in GCC](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments), [in GCC High](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) |
@@ -143,7 +143,7 @@ data, and if the service refuses, it leaves those columns empty and records the 
 `run.log`.
 
 Individual audit *activities* can also be missing from a government cloud even when the
-log itself is available — the [audit log activities
+log itself is available: the [audit log activities
 reference](https://learn.microsoft.com/purview/audit-log-activities) footnotes each one.
 
 ## Running it
@@ -173,7 +173,7 @@ out of `guests.csv`, so run `Get-Guests.ps1` first. `Run-All.ps1` already does.
 Each event collector starts at the latest timestamp already in its CSV, so running it
 daily costs one short query. Pass `-StartDate` to override, or `-LookbackDays` to set how
 far back a first run reaches. If a collector has not run for longer than the log's
-retention window, the gap cannot be recovered — the service no longer holds it.
+retention window, the gap cannot be recovered: the service no longer holds it.
 
 ### Re-running on the same day
 
@@ -182,7 +182,7 @@ does not duplicate a snapshot. Event files are keyed on `Id`.
 
 ## The files
 
-### `guests.csv` — snapshot
+### `guests.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -193,15 +193,15 @@ does not duplicate a snapshot. Event files are keyed on `Id`.
 | `UserPrincipalName` | The B2B UPN, of the form `alice_partner.example.com#EXT#@contoso.onmicrosoft.com` |
 | `ExternalDomain` | The guest's home domain, taken from `Mail` or parsed out of the UPN |
 | `CreatedDateTime` | When the guest object was created, which is when they were invited |
-| `CreationType` | How the account came about — `Invitation` for a normal B2B guest |
+| `CreationType` | How the account came about: `Invitation` for a normal B2B guest |
 | `ExternalUserState` | `PendingAcceptance` or `Accepted`. Pending means the invitation was never redeemed |
 | `ExternalUserStateChangeDateTime` | When that state last changed, i.e. when they redeemed |
 | `AccountEnabled` | False for a guest that has been disabled but not removed |
 | `LastSignInDateTime` | Last interactive sign-in. Empty without Entra ID P1/P2 |
-| `LastNonInteractiveSignInDateTime` | Last non-interactive sign-in — a token refresh counts, so this stays recent longer |
+| `LastNonInteractiveSignInDateTime` | Last non-interactive sign-in. A token refresh counts, so this stays recent longer |
 | `LastSuccessfulSignInDateTime` | Last sign-in that actually succeeded |
 
-### `guest-invitations.csv` — events, keyed on `Id`
+### `guest-invitations.csv`: events, keyed on `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -223,7 +223,7 @@ reference](https://learn.microsoft.com/entra/identity/monitoring-health/referenc
 - `Invite internal user to B2B collaboration`
 - `Invitation Email`
 - `Redeem external user invite`
-- `Redeem extern user invite` — spelled that way in the service and in the reference
+- `Redeem extern user invite` (spelled that way in the service and in the reference)
 - `Bulk invite users - finished (bulk)`
 
 The same reference also lists `Delete external user` and `Email not sent, user
@@ -231,7 +231,7 @@ unsubscribed` under "Invited users". They are not invitation or redemption event
 they are not collected; add them to `InvitationActivities` in
 `collectors/GuestAccessSchema.psd1` if you want them.
 
-### `guest-signins.csv` — events, keyed on `Id`
+### `guest-signins.csv`: events, keyed on `Id`
 
 | Column | Meaning |
 | --- | --- |
@@ -251,7 +251,7 @@ they are not collected; add them to `InvitationActivities` in
 The v1.0 `signIn` resource has no supported filter on guest status, so the collector
 queries by date and keeps the rows whose `UserId` is in `guests.csv`.
 
-### `sharing-events.csv` — events, keyed on `Id`
+### `sharing-events.csv`: events, keyed on `Id`
 
 Taken from each record's `AuditData`.
 
@@ -281,7 +281,7 @@ past events that were never returned. The collector logs the exact `-StartDate` 
 `-EndDate` of that window and stops. Re-run that window with those dates and a smaller
 `-WindowHours`.
 
-### `guest-memberships.csv` — snapshot
+### `guest-memberships.csv`: snapshot
 
 | Column | Meaning |
 | --- | --- |
@@ -292,7 +292,7 @@ past events that were never returned. The collector logs the exact `-StartDate` 
 | `IsTeam` | True when the group's `resourceProvisioningOptions` contains `Team` |
 | `Visibility` | `Public`, `Private` or `HiddenMembership` |
 
-### `users.csv` — snapshot
+### `users.csv`: snapshot
 
 Written by the shared module so that every report can join to it. Columns: `RunDate`,
 `Id`, `DisplayName`, `UserPrincipalName`, `Mail`, `UserType`, `AccountEnabled`,
@@ -313,7 +313,7 @@ under `example.com` or a `partnerN.example.com` subdomain, and every sign-in add
 `203.0.113.0/24`, both reserved for documentation.
 
 It contains 200 members across six departments with a management chain three levels deep,
-60 guests from 12 partner domains, six monthly snapshots and 240 days of events —
+60 guests from 12 partner domains, six monthly snapshots and 240 days of events,
 including guests who never accepted, guests quiet for more than 90 days, disabled guests,
 anonymous and secure links, revoked sharing, invitations from 26 different members, and
 guests in both Teams and plain groups.
