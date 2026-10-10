@@ -33,4 +33,14 @@ Describe 'license utilization sources' {
         $source5a | Should -Match 'without visibility into detailed metrics'
         $source8 | Should -Match 'User Experience Success Manager'
     }
+
+    It 'records the conceal-names setting and leaves GCC High report settings unverified' {
+        $source6 = @($script:Doc -split '\r?\n' | Where-Object { $_ -match '^\| 6 \| Whether' })
+        $source6 | Should -Match 'Conceal user, group, and site names'
+        $source6 | Should -Not -Match '\[NotAvailable\]'
+        $source6 | Should -Match 'UNVERIFIED'
+        $script:Doc | Should -Not -Match 'menu path is not stated'
+        $script:Doc | Should -Match 'Org settings'
+        $script:Doc | Should -Match 'By default, reports hide'
+    }
 }
