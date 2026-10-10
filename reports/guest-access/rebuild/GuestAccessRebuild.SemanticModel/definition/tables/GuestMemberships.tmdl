@@ -1,0 +1,53 @@
+table GuestMemberships
+    lineageTag: 7d811898-a2bb-4934-b86a-910857c35ed8
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 43d5a250-5e49-4c8a-bc59-67667ecc5760
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column GuestId
+        dataType: string
+        lineageTag: 513b7dc2-3fc1-4a28-b707-ebe9dac6e4f4
+        summarizeBy: none
+        sourceColumn: GuestId
+
+    column GroupId
+        dataType: string
+        lineageTag: 2d7faa5d-c490-4320-8aca-6bbdf1c38003
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column GroupDisplayName
+        dataType: string
+        lineageTag: 5d945ebf-5ef4-4ed1-b20e-43e642a8f04a
+        summarizeBy: none
+        sourceColumn: GroupDisplayName
+
+    column IsTeam
+        dataType: boolean
+        lineageTag: aed07eb9-355b-4df5-a338-d63ae3cee4e2
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    column Visibility
+        dataType: string
+        lineageTag: 604e932d-42d6-4117-8f70-aced5fc05f14
+        summarizeBy: none
+        sourceColumn: Visibility
+
+    partition GuestMemberships = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-memberships.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsTeam", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
