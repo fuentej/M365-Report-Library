@@ -352,7 +352,11 @@ function Get-GraphReportJson {
 
     $hostName = ([uri]$Uri).Host
     $next = $Uri
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
     while (-not [string]::IsNullOrEmpty($next)) {
+        if (-not $seen.Add($next)) {
+            throw "The usage report next link was already followed ($next). Refusing to request it again."
+        }
         if (([uri]$next).Host -ne $hostName) {
             throw "The next link points at $(([uri]$next).Host), not $hostName. Refusing to follow it."
         }

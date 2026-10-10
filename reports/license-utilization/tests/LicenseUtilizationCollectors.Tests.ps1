@@ -312,6 +312,15 @@ Describe 'Microsoft 365 apps usage follows its JSON paging' {
         Get-HeaderText -Path (Join-Path $script:folder 'usage-m365-apps.csv') | Should -Be (Get-HeaderText -Path (Join-Path $script:Samples 'usage-m365-apps.csv'))
     }
 
+    It 'refuses a next link it has already followed' {
+        Mock Invoke-MgGraphRequest -MockWith {
+            @{ '@odata.nextLink' = $Uri
+                value = @(@{ userPrincipalName = 'one@example.com'; reportPeriod = '30'; details = @(@{ windows = $true }) }) }
+        }
+
+        { Invoke-CollectorScript 'Get-M365AppUsage.ps1' @{ OutputPath = $script:folder } } | Should -Throw '*already followed*'
+    }
+
     It 'refuses a next link on another host' {
         Mock Invoke-MgGraphRequest -MockWith {
             @{ '@odata.nextLink' = 'https://evil.example.net/page2'; value = @(@{ userPrincipalName = 'one@example.com' }) }
