@@ -161,6 +161,29 @@ function Invoke-GraphGet {
     Invoke-MgGraphRequest -Method GET -Uri $Uri -ErrorAction Stop
 }
 
+function Test-GraphReadUri {
+    <#
+        .SYNOPSIS
+            True when a Graph read URL is relative or on a Microsoft Graph host.
+
+        .DESCRIPTION
+            A returned @odata.nextLink is requested as it is, but only on
+            https://graph.microsoft.com or https://graph.microsoft.us
+            (https://learn.microsoft.com/graph/deployments). Any other host is refused
+            so the session token is not sent there.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][string]$Uri)
+
+    if ($Uri -notmatch '^[a-z][a-z0-9+.-]*://') { return $true }
+
+    $parsed = $null
+    if (-not [uri]::TryCreate($Uri, [UriKind]::Absolute, [ref]$parsed)) { return $false }
+    if ($parsed.Scheme -ne 'https') { return $false }
+    return $parsed.Host -eq 'graph.microsoft.com' -or $parsed.Host -eq 'graph.microsoft.us'
+}
+
 function Get-GraphPagedValue {
     <#
         .SYNOPSIS
@@ -170,6 +193,8 @@ function Get-GraphPagedValue {
             https://learn.microsoft.com/graph/paging. The returned URL is requested as it is.
             For getAllSites the sample nextLink changes the path to oneDrive.getAllSites, so
             rebuilding /sites/getAllSites from a skiptoken would ask for the wrong page.
+            The host must be graph.microsoft.com or graph.microsoft.us
+            (https://learn.microsoft.com/graph/deployments).
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Uri)
@@ -179,6 +204,9 @@ function Get-GraphPagedValue {
     while (-not [string]::IsNullOrEmpty($next)) {
         if (-not $seen.Add($next)) {
             throw "Microsoft Graph returned a nextLink it had already returned: $next"
+        }
+        if (-not (Test-GraphReadUri -Uri $next)) {
+            throw "Microsoft Graph returned a nextLink that is not a Graph address: $next"
         }
         $page = Invoke-GraphGet -Uri $next
         foreach ($item in @(Get-JsonProperty -Object $page -Name 'value')) {

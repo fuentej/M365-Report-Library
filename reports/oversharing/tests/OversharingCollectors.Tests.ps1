@@ -293,6 +293,19 @@ Describe 'Paging is followed' {
         (@(Import-Csv -LiteralPath (Join-Path $script:folder 'sites.csv')).SiteId | Sort-Object) -join ',' | Should -Be 'site-1,site-2'
     }
 
+    It 'does not request a nextLink on a host other than Microsoft Graph' {
+        Mock Invoke-MgGraphRequest -MockWith {
+            $global:OversharingTestUris.Add($Uri)
+            New-MockSiteResponse -NextLink 'https://evil.example/steal'
+        }
+
+        Invoke-CollectorScript 'Get-Sites.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue' }
+
+        $global:OversharingTestUris | Should -Not -Contain 'https://evil.example/steal'
+        Get-LogText -Folder $script:folder | Should -Match 'not a Graph address'
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'sites.csv')).Count | Should -Be 0
+    }
+
     It 'stops on a nextLink it has already followed' {
         Mock Invoke-MgGraphRequest -MockWith { New-MockSiteResponse -NextLink 'https://graph.microsoft.com/v1.0/sites/getAllSites' }
 
