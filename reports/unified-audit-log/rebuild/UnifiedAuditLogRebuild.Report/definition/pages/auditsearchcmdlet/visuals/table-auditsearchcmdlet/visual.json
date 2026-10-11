@@ -1,0 +1,176 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-auditsearchcmdlet",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "CreationTime"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.CreationTime"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "RecordId"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.RecordId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "RecordType"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.RecordType"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "Operation"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.Operation"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "Workload"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.Workload"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "UserId"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.UserId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "ObjectId"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.ObjectId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "ClientIP"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.ClientIP"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "ResultStatus"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.ResultStatus"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "OrganizationId"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.OrganizationId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "AuditSearchCmdlet"
+                    }
+                  },
+                  "Property": "AuditData"
+                }
+              },
+              "queryRef": "AuditSearchCmdlet.AuditData"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "AuditSearchCmdlet (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}
