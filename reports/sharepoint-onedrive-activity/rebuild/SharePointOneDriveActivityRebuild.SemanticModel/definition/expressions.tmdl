@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\SharePointOneDriveActivityData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 2b7f8ab4-8d6b-4b7c-9ec6-3155415216dd
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "SharePointOneDriveActivityRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c18dc880-5d2f-460f-9445-a42bb1d87401"
+  }
+}
