@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\OversharingData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 7bccd5e9-fcee-43aa-a6d6-da53071b27bf
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text
