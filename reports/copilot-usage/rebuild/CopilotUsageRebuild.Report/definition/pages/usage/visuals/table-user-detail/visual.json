@@ -1,0 +1,332 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-user-detail",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.RunDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "ReportRefreshDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.ReportRefreshDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "UserPrincipalName"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.UserPrincipalName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.DisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "LastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.LastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "CopilotChatLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.CopilotChatLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "MicrosoftTeamsCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.MicrosoftTeamsCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "WordCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.WordCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "ExcelCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.ExcelCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "PowerPointCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.PowerPointCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "OutlookCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.OutlookCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "OneNoteCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.OneNoteCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "LoopCopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.LoopCopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "ReportPeriod"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.ReportPeriod"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "PromptsSubmittedAllApps"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedAllApps"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "PromptsSubmittedCopilotChatWork"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWork"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "PromptsSubmittedCopilotChatWeb"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWeb"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "ActiveUsageDaysAllApps"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.ActiveUsageDaysAllApps"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "CopilotChatWorkLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.CopilotChatWorkLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "CopilotChatWebLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.CopilotChatWebLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "Microsoft365CopilotLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.Microsoft365CopilotLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "EdgeLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.EdgeLastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "CopilotUsageUserDetail"
+                    }
+                  },
+                  "Property": "CopilotAgentLastActivityDate"
+                }
+              },
+              "queryRef": "CopilotUsageUserDetail.CopilotAgentLastActivityDate"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "Copilot usage by user (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}

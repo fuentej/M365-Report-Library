@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "CopilotUsageRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "6bda22cc-44cc-4e5a-8503-cdaa0a201a8d"
+  }
+}
