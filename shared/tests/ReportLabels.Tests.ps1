@@ -11,7 +11,9 @@
     - every formatting property under title, categoryLabels, categoryAxis and
       valueAxis is an expression, not a bare value;
     - a card shows a title or a category label;
-    - a chart or table shows a non-empty title, and a chart shows both axis titles.
+    - a chart or table shows a non-empty title, and a chart shows both axis titles;
+    - a matrix keeps measures out of Rows and Columns (they take Grouping fields only);
+    - each report has a .platform file, and each .pbip names its schema.
 
     Read-only filesystem and JSON inspection.
 #>
@@ -90,8 +92,39 @@ Describe 'Labels on <Report> / <Name>' -ForEach $script:Visuals {
         Get-ObjectProperty $script:Container 'title' 'text' | Should -Match "^'.+'$"
     }
 
+    It 'keeps measures out of the Rows and Columns of a matrix' -Skip:($Type -ne 'pivotTable') {
+        $misplaced = foreach ($role in 'Rows', 'Columns') {
+            if (-not $script:Visual.query.queryState.Contains($role)) { continue }
+            foreach ($projection in $script:Visual.query.queryState[$role].projections) {
+                if ($projection.field.Contains('Measure')) { "$role/$($projection.queryRef)" }
+            }
+        }
+        ($misplaced -join ', ') | Should -BeNullOrEmpty
+    }
+
     It 'shows both axis titles on a chart' -Skip:($Type -notin 'clusteredBarChart', 'clusteredColumnChart', 'lineChart') {
         Get-ObjectProperty $script:Objects 'categoryAxis' 'showAxisTitle' | Should -Be 'true'
         Get-ObjectProperty $script:Objects 'valueAxis' 'showAxisTitle' | Should -Be 'true'
+    }
+}
+
+$script:ReportFiles = foreach ($report in $script:Reports) {
+    $reportRoot = Join-Path $script:RepoRoot "reports/$($report.Split('/')[0])/report"
+    @{
+        Report   = $report.Split('/')[0]
+        Platform = Join-Path $script:RepoRoot "reports/$report/.platform"
+        Pbip     = @(Get-ChildItem -LiteralPath $reportRoot -Filter '*.pbip' -File | ForEach-Object FullName)
+    }
+}
+
+Describe 'Report item files for <Report>' -ForEach $script:ReportFiles {
+    It 'has a .platform file with type Report' {
+        Test-Path -LiteralPath $Platform | Should -BeTrue
+        (Get-Content -LiteralPath $Platform -Raw | ConvertFrom-Json).metadata.type | Should -Be 'Report'
+    }
+
+    It 'names the pbipProperties schema in its .pbip' {
+        $Pbip.Count | Should -Be 1
+        (Get-Content -LiteralPath $Pbip[0] -Raw | ConvertFrom-Json).'$schema' | Should -Match 'pbipProperties/1\.0\.0/schema\.json$'
     }
 }
