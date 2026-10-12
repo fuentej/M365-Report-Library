@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "AnonymizeToggle.Label",
-              "nativeQueryRef": "AnonymizeToggle.Label"
+              "nativeQueryRef": "AnonymizeToggle.Label",
+              "displayName": "Anonymize"
             }
           ]
         }

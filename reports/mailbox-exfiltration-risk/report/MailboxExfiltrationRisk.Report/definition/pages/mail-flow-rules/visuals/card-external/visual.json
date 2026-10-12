@@ -26,7 +26,8 @@
                   "Property": "Mail Flow Rules With External Target"
                 }
               },
-              "queryRef": "TransportRules.Mail Flow Rules With External Target"
+              "queryRef": "TransportRules.Mail Flow Rules With External Target",
+              "nativeQueryRef": "Mail Flow Rules With External Target"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "External target"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'External target'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

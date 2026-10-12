@@ -26,7 +26,8 @@
                   "Property": "Covered Groups"
                 }
               },
-              "queryRef": "GroupLifecycleCoverage.Covered Groups"
+              "queryRef": "GroupLifecycleCoverage.Covered Groups",
+              "nativeQueryRef": "Covered Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Covered groups"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Covered groups'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

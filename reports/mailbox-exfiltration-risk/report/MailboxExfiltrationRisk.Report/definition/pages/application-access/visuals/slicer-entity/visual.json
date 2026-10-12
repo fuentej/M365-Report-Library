@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "Apps.Pseudonym"
+              "queryRef": "Apps.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Application"
             }
           ]
         }
@@ -36,8 +38,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Application"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Application'"
+                }
+              }
+            }
           }
         }
       ]

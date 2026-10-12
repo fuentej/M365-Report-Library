@@ -26,7 +26,8 @@
                   "Property": "Mail-Scoped Consents"
                 }
               },
-              "queryRef": "DelegatedConsents.Mail-Scoped Consents"
+              "queryRef": "DelegatedConsents.Mail-Scoped Consents",
+              "nativeQueryRef": "Mail-Scoped Consents"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Consents that include a mail scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Consents that include a mail scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

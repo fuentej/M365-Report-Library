@@ -26,7 +26,8 @@
                   "Property": "Registered Users"
                 }
               },
-              "queryRef": "AuthenticationMethods.Registered Users"
+              "queryRef": "AuthenticationMethods.Registered Users",
+              "nativeQueryRef": "Registered Users"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Enabled users with registration data"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Enabled users with registration data'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

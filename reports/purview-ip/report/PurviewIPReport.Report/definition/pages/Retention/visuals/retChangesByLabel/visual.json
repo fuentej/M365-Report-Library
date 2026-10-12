@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "RetentionLabels.DisplayName",
-              "nativeQueryRef": "RetentionLabels.DisplayName"
+              "nativeQueryRef": "RetentionLabels.DisplayName",
+              "displayName": "Retention label"
             }
           ]
         },
@@ -50,6 +51,56 @@
           ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Retention label changes by label'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -26,7 +26,8 @@
                   "Property": "Inbox Rules"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules"
+              "queryRef": "InboxRules.Inbox Rules",
+              "nativeQueryRef": "Inbox Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules that forward, redirect or delete"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules that forward, redirect or delete'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

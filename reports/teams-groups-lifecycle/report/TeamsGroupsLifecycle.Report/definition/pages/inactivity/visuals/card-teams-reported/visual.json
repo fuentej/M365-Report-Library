@@ -26,7 +26,8 @@
                   "Property": "Teams Reported (Activity)"
                 }
               },
-              "queryRef": "TeamActivity.Teams Reported (Activity)"
+              "queryRef": "TeamActivity.Teams Reported (Activity)",
+              "nativeQueryRef": "Teams Reported (Activity)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Teams in usage report"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Teams in usage report'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

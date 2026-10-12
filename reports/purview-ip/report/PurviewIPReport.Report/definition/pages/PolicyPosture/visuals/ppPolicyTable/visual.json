@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Policies.ObjectType",
-              "nativeQueryRef": "Policies.ObjectType"
+              "nativeQueryRef": "Policies.ObjectType",
+              "displayName": "Type"
             },
             {
               "field": {
@@ -41,7 +42,8 @@
                 }
               },
               "queryRef": "Policies.DisplayName",
-              "nativeQueryRef": "Policies.DisplayName"
+              "nativeQueryRef": "Policies.DisplayName",
+              "displayName": "Name"
             },
             {
               "field": {
@@ -102,6 +104,28 @@
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label, DLP and retention policies and rules'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "SensitivityAtRest.TagName",
-              "nativeQueryRef": "SensitivityAtRest.TagName"
+              "nativeQueryRef": "SensitivityAtRest.TagName",
+              "displayName": "Sensitivity label"
             }
           ]
         },
@@ -68,6 +69,56 @@
           ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Items at rest by sensitivity label and workload'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

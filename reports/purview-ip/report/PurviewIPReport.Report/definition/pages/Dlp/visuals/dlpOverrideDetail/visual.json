@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.RuleName",
-              "nativeQueryRef": "ActivityExplorerEvents.RuleName"
+              "nativeQueryRef": "ActivityExplorerEvents.RuleName",
+              "displayName": "DLP rule"
             },
             {
               "field": {
@@ -41,7 +42,8 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name"
+              "nativeQueryRef": "User Display.Name",
+              "displayName": "User"
             },
             {
               "field": {
@@ -69,11 +71,48 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.Happened",
-              "nativeQueryRef": "ActivityExplorerEvents.Happened"
+              "nativeQueryRef": "ActivityExplorerEvents.Happened",
+              "displayName": "When"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "DLP Overrides"
+                }
+              },
+              "queryRef": "_Measures.[DLP Overrides]",
+              "nativeQueryRef": "_Measures.[DLP Overrides]"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP overrides: rule, user and justification'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

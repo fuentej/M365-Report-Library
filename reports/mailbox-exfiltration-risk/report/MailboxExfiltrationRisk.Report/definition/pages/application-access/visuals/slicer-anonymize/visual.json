@@ -26,7 +26,9 @@
                   "Property": "Mode"
                 }
               },
-              "queryRef": "AnonymizeMode.Mode"
+              "queryRef": "AnonymizeMode.Mode",
+              "nativeQueryRef": "Mode",
+              "displayName": "Anonymize"
             }
           ]
         }
@@ -36,8 +38,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Anonymize"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Anonymize'"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "SignInAgeBucket"
                 }
               },
-              "queryRef": "UserSignInActivity.SignInAgeBucket"
+              "queryRef": "UserSignInActivity.SignInAgeBucket",
+              "nativeQueryRef": "SignInAgeBucket",
+              "displayName": "Days since last successful sign-in"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Users With Sign-In Data"
                 }
               },
-              "queryRef": "UserSignInActivity.Users With Sign-In Data"
+              "queryRef": "UserSignInActivity.Users With Sign-In Data",
+              "nativeQueryRef": "Users With Sign-In Data"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Users by days since last successful sign-in"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Users by days since last successful sign-in'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

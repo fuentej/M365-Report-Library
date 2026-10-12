@@ -26,7 +26,8 @@
                   "Property": "Report-Only Policies"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Report-Only Policies"
+              "queryRef": "ConditionalAccessPolicies.Report-Only Policies",
+              "nativeQueryRef": "Report-Only Policies"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Report-only"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Report-only'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

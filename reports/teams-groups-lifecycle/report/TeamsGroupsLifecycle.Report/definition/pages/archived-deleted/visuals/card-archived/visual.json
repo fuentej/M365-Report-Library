@@ -26,7 +26,8 @@
                   "Property": "Archived Teams"
                 }
               },
-              "queryRef": "TeamArchiveStatus.Archived Teams"
+              "queryRef": "TeamArchiveStatus.Archived Teams",
+              "nativeQueryRef": "Archived Teams"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Archived teams"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Archived teams'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

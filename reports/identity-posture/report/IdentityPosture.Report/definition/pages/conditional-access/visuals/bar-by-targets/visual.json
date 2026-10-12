@@ -26,7 +26,8 @@
                   "Property": "State"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.State"
+              "queryRef": "ConditionalAccessPolicies.State",
+              "nativeQueryRef": "State"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Policies Targeting All Users"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policies Targeting All Users"
+              "queryRef": "ConditionalAccessPolicies.Policies Targeting All Users",
+              "nativeQueryRef": "Policies Targeting All Users"
             },
             {
               "field": {
@@ -56,7 +58,8 @@
                   "Property": "Policies Targeting Groups"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policies Targeting Groups"
+              "queryRef": "ConditionalAccessPolicies.Policies Targeting Groups",
+              "nativeQueryRef": "Policies Targeting Groups"
             },
             {
               "field": {
@@ -69,7 +72,8 @@
                   "Property": "Policies Targeting Roles"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policies Targeting Roles"
+              "queryRef": "ConditionalAccessPolicies.Policies Targeting Roles",
+              "nativeQueryRef": "Policies Targeting Roles"
             }
           ]
         }
@@ -79,8 +83,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Targets by state: all users, groups, roles"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Targets by state: all users, groups, roles'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "SharingScope"
                 }
               },
-              "queryRef": "Agents.SharingScope"
+              "queryRef": "Agents.SharingScope",
+              "nativeQueryRef": "SharingScope",
+              "displayName": "Sharing scope"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Agent Count"
                 }
               },
-              "queryRef": "Agents.Agent Count"
+              "queryRef": "Agents.Agent Count",
+              "nativeQueryRef": "Agent Count"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Agents by sharing scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Agents by sharing scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

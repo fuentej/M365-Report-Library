@@ -26,7 +26,8 @@
                   "Property": "Forwarding Keeps Copy"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Keeps Copy"
+              "queryRef": "MailboxForwarding.Forwarding Keeps Copy",
+              "nativeQueryRef": "Forwarding Keeps Copy"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Copy stays in the mailbox"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copy stays in the mailbox'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

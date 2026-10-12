@@ -26,7 +26,8 @@
                   "Property": "Permanent Active Assignments"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Permanent Active Assignments"
+              "queryRef": "ActiveRoleAssignments.Permanent Active Assignments",
+              "nativeQueryRef": "Permanent Active Assignments"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Permanent active assignments (no end date)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Permanent active assignments (no end date)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

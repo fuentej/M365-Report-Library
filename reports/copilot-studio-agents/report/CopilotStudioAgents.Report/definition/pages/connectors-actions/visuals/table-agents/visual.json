@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "AgentsCurrent.Pseudonym"
+              "queryRef": "AgentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Agent"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Agent Display Name"
                 }
               },
-              "queryRef": "AgentsCurrent.Agent Display Name"
+              "queryRef": "AgentsCurrent.Agent Display Name",
+              "nativeQueryRef": "Agent Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Connectors Listed"
                 }
               },
-              "queryRef": "Agents.Connectors Listed"
+              "queryRef": "Agents.Connectors Listed",
+              "nativeQueryRef": "Connectors Listed"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Connectors Total (capabilitiesCounts)"
                 }
               },
-              "queryRef": "Agents.Connectors Total (capabilitiesCounts)"
+              "queryRef": "Agents.Connectors Total (capabilitiesCounts)",
+              "nativeQueryRef": "Connectors Total (capabilitiesCounts)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Connector Operations Listed"
                 }
               },
-              "queryRef": "Agents.Connector Operations Listed"
+              "queryRef": "Agents.Connector Operations Listed",
+              "nativeQueryRef": "Connector Operations Listed"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Connector Operations Total (capabilitiesCounts)"
                 }
               },
-              "queryRef": "Agents.Connector Operations Total (capabilitiesCounts)"
+              "queryRef": "Agents.Connector Operations Total (capabilitiesCounts)",
+              "nativeQueryRef": "Connector Operations Total (capabilitiesCounts)"
             },
             {
               "field": {
@@ -104,7 +111,8 @@
                   "Property": "HTTP Request Actions"
                 }
               },
-              "queryRef": "AgentComponents.HTTP Request Actions"
+              "queryRef": "AgentComponents.HTTP Request Actions",
+              "nativeQueryRef": "HTTP Request Actions"
             },
             {
               "field": {
@@ -117,7 +125,8 @@
                   "Property": "Prompt Components"
                 }
               },
-              "queryRef": "AgentComponents.Prompt Components"
+              "queryRef": "AgentComponents.Prompt Components",
+              "nativeQueryRef": "Prompt Components"
             },
             {
               "field": {
@@ -130,7 +139,8 @@
                   "Property": "MCP Actions"
                 }
               },
-              "queryRef": "AgentComponents.MCP Actions"
+              "queryRef": "AgentComponents.MCP Actions",
+              "nativeQueryRef": "MCP Actions"
             }
           ]
         }
@@ -140,8 +150,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Listed count next to the complete count, per agent"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Listed count next to the complete count, per agent'"
+                }
+              }
+            }
           }
         }
       ]

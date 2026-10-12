@@ -26,7 +26,8 @@
                   "Property": "State"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.State"
+              "queryRef": "ConditionalAccessPolicies.State",
+              "nativeQueryRef": "State"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Policy Count"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policy Count"
+              "queryRef": "ConditionalAccessPolicies.Policy Count",
+              "nativeQueryRef": "Policy Count"
             }
           ]
         }
@@ -53,8 +55,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Policies by state"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Policies by state'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

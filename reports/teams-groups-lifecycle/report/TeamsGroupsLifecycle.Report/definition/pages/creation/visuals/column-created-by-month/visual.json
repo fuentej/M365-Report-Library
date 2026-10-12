@@ -26,7 +26,9 @@
                   "Property": "CreatedYearMonth"
                 }
               },
-              "queryRef": "Groups.CreatedYearMonth"
+              "queryRef": "Groups.CreatedYearMonth",
+              "nativeQueryRef": "CreatedYearMonth",
+              "displayName": "Month created"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Groups Created"
                 }
               },
-              "queryRef": "Groups.Groups Created"
+              "queryRef": "Groups.Groups Created",
+              "nativeQueryRef": "Groups Created"
             },
             {
               "field": {
@@ -56,7 +59,8 @@
                   "Property": "Teams Created"
                 }
               },
-              "queryRef": "Groups.Teams Created"
+              "queryRef": "Groups.Teams Created",
+              "nativeQueryRef": "Teams Created"
             }
           ]
         }
@@ -66,8 +70,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups and Teams created per month (from groups.csv)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups and Teams created per month (from groups.csv)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

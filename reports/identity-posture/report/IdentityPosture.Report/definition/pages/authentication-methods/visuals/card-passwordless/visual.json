@@ -26,7 +26,8 @@
                   "Property": "Passwordless Capable Users"
                 }
               },
-              "queryRef": "AuthenticationMethods.Passwordless Capable Users"
+              "queryRef": "AuthenticationMethods.Passwordless Capable Users",
+              "nativeQueryRef": "Passwordless Capable Users"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Passwordless capable"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Passwordless capable'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

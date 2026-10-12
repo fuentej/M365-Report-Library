@@ -469,13 +469,44 @@ for ($i = 0; $i -lt 15; $i++) {
 }
 
 # DLP events, some with an override and justification.
+# Every match is followed by a DLPRuleEnforce event (the rules block access),
+# and every overridden match by a DLPRuleUndo event carrying the user's
+# justification. Those follow-ups are added after the last random draw below,
+# so they do not shift the rest of the generated set.
+# Activity names: https://learn.microsoft.com/powershell/module/exchangepowershell/export-activityexplorerdata
+$dlpFollowUps = [System.Collections.Generic.List[object]]::new()
 for ($i = 0; $i -lt 25; $i++) {
     $user = Get-RandomItem $members.ToArray()
     $rule = Get-RandomItem $allDlpRules
     $overridden = ($i % 5 -eq 0)
+    $matchId = New-ActivityId
+    $happened = New-EventTime -From $eventStart
+    $workload = Get-RandomItem $workloads
+    $itemName = Get-RandomItem $fileNames
 
-    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened (New-EventTime -From $eventStart) -Activity 'DLPRuleMatch' -Workload (Get-RandomItem $workloads) -User $user -Extra @{
-        ItemName                    = Get-RandomItem $fileNames
+    $dlpFollowUps.Add([pscustomobject]@{
+            Activity   = 'DLPRuleEnforce'
+            Happened   = $happened.AddMinutes(1)
+            Workload   = $workload
+            User       = $user
+            ItemName   = $itemName
+            Rule       = $rule
+            Overridden = $false
+        })
+    if ($overridden) {
+        $dlpFollowUps.Add([pscustomobject]@{
+                Activity   = 'DLPRuleUndo'
+                Happened   = $happened.AddMinutes(5)
+                Workload   = $workload
+                User       = $user
+                ItemName   = $itemName
+                Rule       = $rule
+                Overridden = $true
+            })
+    }
+
+    Add-ActivityRow -RecordIdentity $matchId -Happened $happened -Activity 'DLPRuleMatch' -Workload $workload -User $user -Extra @{
+        ItemName                    = $itemName
         PolicyId                    = $rule.Policy.Id
         PolicyName                  = $rule.Policy.Name
         RuleId                      = $rule.Id
@@ -523,6 +554,22 @@ for ($i = 0; $i -lt 10; $i++) {
         ItemName   = Get-RandomItem $fileNames
         DeviceName = 'DESKTOP-{0}' -f $random.Next(10000, 99999)
         Platform   = 'Windows'
+    }
+}
+
+foreach ($followUp in $dlpFollowUps) {
+    $rule = $followUp.Rule
+    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened $followUp.Happened -Activity $followUp.Activity -Workload $followUp.Workload -User $followUp.User -Extra @{
+        ItemName         = $followUp.ItemName
+        PolicyId         = $rule.Policy.Id
+        PolicyName       = $rule.Policy.Name
+        RuleId           = $rule.Id
+        RuleName         = $rule.Name
+        RuleActions      = 'BlockAccess;NotifyUser'
+        EnforcementMode  = 'Enable'
+        FalsePositive    = $false
+        DlpPolicyMatchId = ''
+        Justification    = if ($followUp.Overridden) { 'Approved by manager for external audit' } else { '' }
     }
 }
 

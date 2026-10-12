@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.HowApplied",
-              "nativeQueryRef": "ActivityExplorerEvents.HowApplied"
+              "nativeQueryRef": "ActivityExplorerEvents.HowApplied",
+              "displayName": "How the label was applied"
             }
           ]
         },
@@ -50,6 +51,56 @@
           ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label applications by how the label was applied'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

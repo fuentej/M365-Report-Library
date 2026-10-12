@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "SensitivityAtRest.TagName",
-              "nativeQueryRef": "SensitivityAtRest.TagName"
+              "nativeQueryRef": "SensitivityAtRest.TagName",
+              "displayName": "Sensitivity label"
             },
             {
               "field": {
@@ -60,6 +61,28 @@
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Items at rest by sensitivity label and workload'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

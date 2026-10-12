@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "CopilotAccessedResources.PolicyName",
-              "nativeQueryRef": "CopilotAccessedResources.PolicyName"
+              "nativeQueryRef": "CopilotAccessedResources.PolicyName",
+              "displayName": "DLP policy"
             },
             {
               "field": {
@@ -46,6 +47,28 @@
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot DLP matches by policy'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

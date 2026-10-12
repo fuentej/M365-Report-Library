@@ -26,7 +26,8 @@
                   "Property": "Groups With Unknown Last Activity"
                 }
               },
-              "queryRef": "GroupActivity.Groups With Unknown Last Activity"
+              "queryRef": "GroupActivity.Groups With Unknown Last Activity",
+              "nativeQueryRef": "Groups With Unknown Last Activity"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups, last activity unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups, last activity unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

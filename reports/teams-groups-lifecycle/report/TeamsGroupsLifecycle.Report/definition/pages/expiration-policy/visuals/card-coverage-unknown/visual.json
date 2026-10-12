@@ -26,7 +26,8 @@
                   "Property": "Coverage Unknown Groups"
                 }
               },
-              "queryRef": "GroupLifecycleCoverage.Coverage Unknown Groups"
+              "queryRef": "GroupLifecycleCoverage.Coverage Unknown Groups",
+              "nativeQueryRef": "Coverage Unknown Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Coverage unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Coverage unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

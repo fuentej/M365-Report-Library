@@ -26,7 +26,8 @@
                   "Property": "Active Role Holders (Effective)"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Active Role Holders (Effective)"
+              "queryRef": "ActiveRoleAssignments.Active Role Holders (Effective)",
+              "nativeQueryRef": "Active Role Holders (Effective)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Active role holders"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Active role holders'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

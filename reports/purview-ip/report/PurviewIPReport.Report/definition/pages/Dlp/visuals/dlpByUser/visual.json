@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name"
+              "nativeQueryRef": "User Display.Name",
+              "displayName": "User"
             },
             {
               "field": {
@@ -78,6 +79,28 @@
         ],
         "isDefaultSort": false
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP matches and overrides by user'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

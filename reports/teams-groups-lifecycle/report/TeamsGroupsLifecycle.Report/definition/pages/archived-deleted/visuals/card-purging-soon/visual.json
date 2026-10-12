@@ -26,7 +26,8 @@
                   "Property": "Purging Within 7 Days"
                 }
               },
-              "queryRef": "DeletedGroups.Purging Within 7 Days"
+              "queryRef": "DeletedGroups.Purging Within 7 Days",
+              "nativeQueryRef": "Purging Within 7 Days"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Purging within 7 days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Purging within 7 days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

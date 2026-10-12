@@ -26,7 +26,8 @@
                   "Property": "Users At Risk"
                 }
               },
-              "queryRef": "RiskyUsers.Users At Risk"
+              "queryRef": "RiskyUsers.Users At Risk",
+              "nativeQueryRef": "Users At Risk"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "At risk"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'At risk'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

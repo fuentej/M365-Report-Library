@@ -26,7 +26,9 @@
                   "Property": "TargetDomainsLabel"
                 }
               },
-              "queryRef": "TransportRules.TargetDomainsLabel"
+              "queryRef": "TransportRules.TargetDomainsLabel",
+              "nativeQueryRef": "TargetDomainsLabel",
+              "displayName": "Target domains"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Mail Flow Rules"
                 }
               },
-              "queryRef": "TransportRules.Mail Flow Rules"
+              "queryRef": "TransportRules.Mail Flow Rules",
+              "nativeQueryRef": "Mail Flow Rules"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules by target domain (recipient addresses are not shown)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules by target domain (recipient addresses are not shown)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

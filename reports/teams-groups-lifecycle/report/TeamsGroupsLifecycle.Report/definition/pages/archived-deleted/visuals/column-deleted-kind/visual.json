@@ -26,7 +26,9 @@
                   "Property": "DeletedKind"
                 }
               },
-              "queryRef": "DeletedGroups.DeletedKind"
+              "queryRef": "DeletedGroups.DeletedKind",
+              "nativeQueryRef": "DeletedKind",
+              "displayName": "Group type"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Soft-Deleted Groups"
                 }
               },
-              "queryRef": "DeletedGroups.Soft-Deleted Groups"
+              "queryRef": "DeletedGroups.Soft-Deleted Groups",
+              "nativeQueryRef": "Soft-Deleted Groups"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Soft-deleted groups by kind"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Soft-deleted groups by kind'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

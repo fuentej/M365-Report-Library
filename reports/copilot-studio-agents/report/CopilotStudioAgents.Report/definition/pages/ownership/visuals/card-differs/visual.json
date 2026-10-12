@@ -26,7 +26,8 @@
                   "Property": "Owner Differs From Creator"
                 }
               },
-              "queryRef": "Agents.Owner Differs From Creator"
+              "queryRef": "Agents.Owner Differs From Creator",
+              "nativeQueryRef": "Owner Differs From Creator"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Owner differs from creator"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Owner differs from creator'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

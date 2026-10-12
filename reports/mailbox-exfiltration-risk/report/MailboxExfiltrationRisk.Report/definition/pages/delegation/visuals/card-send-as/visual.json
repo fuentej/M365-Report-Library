@@ -26,7 +26,8 @@
                   "Property": "Send As Grants"
                 }
               },
-              "queryRef": "SendAsPermissions.Send As Grants"
+              "queryRef": "SendAsPermissions.Send As Grants",
+              "nativeQueryRef": "Send As Grants"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Send As grants"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Send As grants'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]
