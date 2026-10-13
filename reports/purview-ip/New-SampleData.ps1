@@ -441,19 +441,33 @@ for ($i = 0; $i -lt 40; $i++) {
     }
 }
 
-for ($i = 0; $i -lt 10; $i++) {
+# Label downgrades. Activity Explorer records a justification only where the user is
+# prompted for one, which is not in SharePoint or OneDrive: those downgrades carry none.
+# The others (Exchange, Endpoint) carry a justification that varies from event to event.
+$downgradeWorkloads = @('SharePoint', 'OneDrive', 'Exchange', 'Endpoint')
+$downgradeJustifications = @(
+    'No longer contains restricted data'
+    'Customer approved public release of this document'
+    'Label was applied in error at creation'
+    'Content was redacted before sharing'
+    'Project closed and the data is no longer sensitive'
+    'Legal approved external distribution'
+)
+for ($i = 0; $i -lt 16; $i++) {
     $user = Get-RandomItem $members.ToArray()
     $oldLabel = $labels.Restricted
     $newLabel = $labels.General
     $happened = New-EventTime -From $eventStart
+    $downgradeWorkload = $downgradeWorkloads[$i % $downgradeWorkloads.Count]
+    $justification = Get-RandomItem $downgradeJustifications
 
-    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened $happened -Activity 'LabelChanged' -Workload 'SharePoint' -User $user -Extra @{
+    Add-ActivityRow -RecordIdentity (New-ActivityId) -Happened $happened -Activity 'LabelChanged' -Workload $downgradeWorkload -User $user -Extra @{
         LabelEventType      = 'LabelDowngraded'
         ItemName            = Get-RandomItem $fileNames
         SensitivityLabel    = $newLabel.Id
         OldSensitivityLabel = $oldLabel.Id
         HowApplied          = 'Manual'
-        Justification       = 'No longer contains restricted data'
+        Justification       = if ($downgradeWorkload -in @('SharePoint', 'OneDrive')) { '' } else { $justification }
     }
 }
 

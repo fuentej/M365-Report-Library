@@ -120,6 +120,27 @@ Describe 'Activity Explorer events cover every category' {
         @($script:Events | Where-Object IsLabelDowngrade -EQ 'True').Count | Should -BeGreaterThan 0
     }
 
+    It 'varies the justification across label downgrades' {
+        $downgrades = @($script:Events | Where-Object { $_.IsLabelDowngrade -eq 'True' -and $_.Justification })
+        $downgrades.Count | Should -BeGreaterThan 0
+        (@($downgrades.Justification | Sort-Object -Unique)).Count | Should -BeGreaterOrEqual 3
+    }
+
+    It 'records no justification for a downgrade in <Workload>' -ForEach @(
+        @{ Workload = 'SharePoint' }
+        @{ Workload = 'OneDrive' }
+    ) {
+        $downgrades = @($script:Events | Where-Object { $_.IsLabelDowngrade -eq 'True' -and $_.Workload -eq $Workload })
+        $downgrades.Count | Should -BeGreaterThan 0
+        @($downgrades | Where-Object { -not [string]::IsNullOrWhiteSpace($_.Justification) }).Count | Should -Be 0
+    }
+
+    It 'records a justification for downgrades outside SharePoint and OneDrive' {
+        $other = @($script:Events | Where-Object { $_.IsLabelDowngrade -eq 'True' -and $_.Workload -notin @('SharePoint', 'OneDrive') })
+        $other.Count | Should -BeGreaterThan 0
+        @($other | Where-Object { [string]::IsNullOrWhiteSpace($_.Justification) }).Count | Should -Be 0
+    }
+
     It 'includes a DLP match with a justification' {
         @($script:Events | Where-Object { $_.ActivityCategory -eq 'Dlp' -and $_.Justification }).Count | Should -BeGreaterThan 0
     }

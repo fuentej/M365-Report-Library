@@ -38,15 +38,15 @@ if (-not (Test-Path -LiteralPath $gccHigh)) { New-Item -Path $gccHigh -ItemType 
 
 $gb = 1GB
 $people = @(
-    @{ Name = 'Avery Abara'; Upn = 'avery.abara@example.com'; Used = 12 * $gb; Files = 4200; Active = 310; Last = '2026-10-07' }
-    @{ Name = 'Blake Bishop'; Upn = 'blake.bishop@example.com'; Used = 46 * $gb; Files = 15800; Active = 40; Last = '2026-10-02' }
-    @{ Name = 'Casey Cho'; Upn = 'casey.cho@example.com'; Used = 3 * $gb; Files = 900; Active = 0; Last = '' }
-    @{ Name = 'Devon Diaz'; Upn = 'devon.diaz@example.com'; Used = 20 * $gb; Files = 7300; Active = 120; Last = '2026-10-06' }
+    @{ Name = 'Avery Abara'; Upn = 'avery.abara@example.com'; Used = 12 * $gb; Growth = [long](1.5 * $gb); Files = 4200; Active = 310; Last = '2026-10-07' }
+    @{ Name = 'Blake Bishop'; Upn = 'blake.bishop@example.com'; Used = 46 * $gb; Growth = [long](4 * $gb); Files = 15800; Active = 40; Last = '2026-10-02' }
+    @{ Name = 'Casey Cho'; Upn = 'casey.cho@example.com'; Used = 3 * $gb; Growth = [long](0 * $gb); Files = 900; Active = 0; Last = '' }
+    @{ Name = 'Devon Diaz'; Upn = 'devon.diaz@example.com'; Used = 20 * $gb; Growth = [long](0.75 * $gb); Files = 7300; Active = 120; Last = '2026-10-06' }
 )
 $sites = @(
-    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-1111-4a2b-9c3d-000000000001,4f6a7b8c-1111-4d5e-8f90-000000000001'; Url = 'https://contoso.sharepoint.example.com/sites/finance'; Title = 'Finance'; Owner = 'Avery Abara'; OwnerUpn = 'avery.abara@example.com'; Template = 'GROUP#0'; Used = 85 * $gb; Files = 52000; Active = 1900; Pages = 410; Visited = 120; Last = '2026-10-08' }
-    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-2222-4a2b-9c3d-000000000002,4f6a7b8c-2222-4d5e-8f90-000000000002'; Url = 'https://contoso.sharepoint.example.com/sites/projects'; Title = 'Projects'; Owner = 'Blake Bishop'; OwnerUpn = 'blake.bishop@example.com'; Template = 'STS#3'; Used = 12 * $gb; Files = 9100; Active = 85; Pages = 30; Visited = 14; Last = '2026-09-18' }
-    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-3333-4a2b-9c3d-000000000003,4f6a7b8c-3333-4d5e-8f90-000000000003'; Url = 'https://contoso.sharepoint.example.com/sites/archive'; Title = 'Archive'; Owner = 'Casey Cho'; OwnerUpn = 'casey.cho@example.com'; Template = 'STS#3'; Used = 140 * $gb; Files = 210000; Active = 0; Pages = 0; Visited = 0; Last = '' }
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-1111-4a2b-9c3d-000000000001,4f6a7b8c-1111-4d5e-8f90-000000000001'; Url = 'https://contoso.sharepoint.example.com/sites/finance'; Title = 'Finance'; Owner = 'Avery Abara'; OwnerUpn = 'avery.abara@example.com'; Template = 'GROUP#0'; Used = 85 * $gb; Growth = [long](6.25 * $gb); Files = 52000; Active = 1900; Pages = 410; Visited = 120; Last = '2026-10-08' }
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-2222-4a2b-9c3d-000000000002,4f6a7b8c-2222-4d5e-8f90-000000000002'; Url = 'https://contoso.sharepoint.example.com/sites/projects'; Title = 'Projects'; Owner = 'Blake Bishop'; OwnerUpn = 'blake.bishop@example.com'; Template = 'STS#3'; Used = 12 * $gb; Growth = [long](0.5 * $gb); Files = 9100; Active = 85; Pages = 30; Visited = 14; Last = '2026-09-18' }
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-3333-4a2b-9c3d-000000000003,4f6a7b8c-3333-4d5e-8f90-000000000003'; Url = 'https://contoso.sharepoint.example.com/sites/archive'; Title = 'Archive'; Owner = 'Casey Cho'; OwnerUpn = 'casey.cho@example.com'; Template = 'STS#3'; Used = 140 * $gb; Growth = [long](0 * $gb); Files = 210000; Active = 0; Pages = 0; Visited = 0; Last = '' }
 )
 $runDates = '2026-10-01', '2026-10-08'
 $refresh = '2026-10-06'
@@ -54,7 +54,7 @@ $refresh = '2026-10-06'
 # Source 1
 $rows = foreach ($run in $runDates) {
     foreach ($s in $sites) {
-        $growth = if ($run -eq '2026-10-08') { 1 * $gb } else { 0 }
+        $growth = if ($run -eq '2026-10-08') { $s.Growth } else { 0 }
         [pscustomobject]@{
             RunDate = $run; ReportRefreshDate = $refresh; SiteId = $s.Id; SiteUrl = $s.Url; OwnerDisplayName = $s.Owner
             IsDeleted = 'False'; LastActivityDate = $s.Last; FileCount = $s.Files; ActiveFileCount = $s.Active
@@ -69,10 +69,11 @@ Write-Sample $OutputPath 'sharepoint-site-usage-detail.csv' $schema.SharePointSi
 $rows = foreach ($run in $runDates) {
     foreach ($p in $people) {
         $deleted = if ($p.Name -eq 'Casey Cho') { 'True' } else { 'False' }
+        $growth = if ($run -eq '2026-10-08') { $p.Growth } else { 0 }
         [pscustomobject]@{
             RunDate = $run; ReportRefreshDate = $refresh; SiteUrl = "https://contoso-my.sharepoint.example.com/personal/$($p.Upn.Split('@')[0].Replace('.', '_'))_example_com"
             OwnerDisplayName = $p.Name; IsDeleted = $deleted; LastActivityDate = $p.Last; FileCount = $p.Files; ActiveFileCount = $p.Active
-            StorageUsedByte = $p.Used; StorageAllocatedByte = 1024 * $gb; OwnerPrincipalName = $p.Upn; ReportPeriod = 30
+            StorageUsedByte = $p.Used + $growth; StorageAllocatedByte = 1024 * $gb; OwnerPrincipalName = $p.Upn; ReportPeriod = 30
         }
     }
 }
@@ -81,10 +82,11 @@ Write-Sample $OutputPath 'onedrive-usage-account-detail.csv' $schema.OneDriveUsa
 # Sources 3 and 4
 foreach ($pair in @(@('SharePointSiteUsageStorage', 'sharepoint-site-usage-storage.csv', 'All', 230), @('OneDriveUsageStorage', 'onedrive-usage-storage.csv', 'All', 80))) {
     $key, $name, $type, $baseGb = $pair
+    $dailyGb = if ($key -eq 'SharePointSiteUsageStorage') { 0, 1.25, 1.5, 2.75, 3.0, 5.25 } else { 0, 0.5, 1.0, 1.0, 2.25, 3.5 }
     $rows = foreach ($day in 1..6) {
         [pscustomobject]@{
             RunDate = '2026-10-08'; ReportRefreshDate = $refresh; SiteType = $type
-            StorageUsedByte = ($baseGb + $day) * $gb; ReportDate = ('2026-10-{0:00}' -f $day); ReportPeriod = 30
+            StorageUsedByte = [long](($baseGb + $dailyGb[$day - 1]) * $gb); ReportDate = ('2026-10-{0:00}' -f $day); ReportPeriod = 30
         }
     }
     Write-Sample $OutputPath $name $schema[$key] $rows
@@ -142,15 +144,15 @@ foreach ($s in $sites) {
     $rows.Add([pscustomobject]@{
             RunDate = '2026-10-08'; SiteId = $s.Id; SiteWebUrl = $s.Url; IsPersonalSite = 'False'
             DriveId = 'b!' + ($s.Title.ToLowerInvariant() + '-documents'); DriveName = 'Documents'; DriveType = 'documentLibrary'
-            DriveWebUrl = $s.Url + '/Shared%20Documents'; QuotaState = $state; QuotaUsed = $s.Used; QuotaTotal = 1024 * $gb
-            QuotaRemaining = 1024 * $gb - $s.Used; QuotaDeleted = 1 * $gb; LastModifiedDateTime = '2026-10-07T14:03:11Z'
+            DriveWebUrl = $s.Url + '/Shared%20Documents'; QuotaState = $state; QuotaUsed = $s.Used + $s.Growth; QuotaTotal = 1024 * $gb
+            QuotaRemaining = 1024 * $gb - ($s.Used + $s.Growth); QuotaDeleted = 1 * $gb; LastModifiedDateTime = '2026-10-07T14:03:11Z'
         })
 }
 $rows.Add([pscustomobject]@{
         RunDate = '2026-10-08'; SiteId = 'contoso-my.sharepoint.example.com,5d2e6f7a-4444-4b3c-8d9e-000000000004,6a7b8c9d-4444-4e5f-9a0b-000000000004'
         SiteWebUrl = 'https://contoso-my.sharepoint.example.com/personal/avery_abara_example_com'; IsPersonalSite = 'True'
         DriveId = 'b!avery-onedrive'; DriveName = 'OneDrive'; DriveType = 'business'; DriveWebUrl = 'https://contoso-my.sharepoint.example.com/personal/avery_abara_example_com/Documents'
-        QuotaState = 'normal'; QuotaUsed = 12 * $gb; QuotaTotal = 1024 * $gb; QuotaRemaining = 1012 * $gb; QuotaDeleted = 0; LastModifiedDateTime = '2026-10-07T09:30:00Z'
+        QuotaState = 'normal'; QuotaUsed = 12 * $gb + $people[0].Growth; QuotaTotal = 1024 * $gb; QuotaRemaining = 1012 * $gb - $people[0].Growth; QuotaDeleted = 0; LastModifiedDateTime = '2026-10-07T09:30:00Z'
     })
 Write-Sample $OutputPath 'drive-quota.csv' $schema.DriveQuota $rows.ToArray()
 

@@ -218,6 +218,53 @@ Describe 'The events span the window the report charts' {
     }
 }
 
+Describe 'Disabled guests and quiet partners behave like real ones' {
+    BeforeAll {
+        $script:DisabledIds = @($script:LatestGuests | Where-Object AccountEnabled -EQ 'False').Id
+        $script:DisabledSignIns = @($script:SignIns | Where-Object { $script:DisabledIds -contains $_.UserId })
+        $script:Cutoff = ([datetime]$script:LatestRunDate).AddDays(-90)
+    }
+
+    It 'refuses every sign-in a disabled guest makes after being disabled, with error 500571' {
+        $refused = @($script:DisabledSignIns | Where-Object ErrorCode -EQ '500571')
+        $refused.Count | Should -BeGreaterThan 0
+        @($refused | Where-Object ConditionalAccessStatus -NE 'notApplied').Count | Should -Be 0
+        @($refused.UserId | Sort-Object -Unique).Count | Should -Be $script:DisabledIds.Count
+    }
+
+    It 'never records a successful sign-in for a disabled guest after the last one on file' {
+        foreach ($id in $script:DisabledIds) {
+            $guest = $script:LatestGuests | Where-Object Id -EQ $id
+            $lastSuccess = [datetime]$guest.LastSuccessfulSignInDateTime
+            $late = @($script:DisabledSignIns | Where-Object {
+                    $_.UserId -eq $id -and $_.ErrorCode -eq '0' -and ([datetime]$_.CreatedDateTime) -gt $lastSuccess
+                })
+            $late.Count | Should -Be 0
+        }
+    }
+
+    It 'uses error 500571 only for disabled guests' {
+        $stray = @($script:SignIns | Where-Object { $_.ErrorCode -eq '500571' -and $script:DisabledIds -notcontains $_.UserId })
+        $stray.Count | Should -Be 0
+    }
+
+    It 'has at least one partner company with no sign-in in the last 90 days' {
+        $lastByDomain = @{}
+        $domainById = @{}
+        foreach ($guest in $script:LatestGuests) { $domainById[$guest.Id] = $guest.ExternalDomain }
+        foreach ($signIn in $script:SignIns) {
+            $domain = $domainById[$signIn.UserId]
+            $when = [datetime]$signIn.CreatedDateTime
+            if (-not $lastByDomain.ContainsKey($domain) -or $lastByDomain[$domain] -lt $when) { $lastByDomain[$domain] = $when }
+        }
+        $quiet = @($script:LatestGuests.ExternalDomain | Sort-Object -Unique | Where-Object {
+                -not $lastByDomain.ContainsKey($_) -or $lastByDomain[$_] -lt $script:Cutoff
+            })
+        $quiet.Count | Should -BeGreaterOrEqual 1
+        @($quiet | Where-Object { $lastByDomain.ContainsKey($_) }).Count | Should -BeGreaterThan 0
+    }
+}
+
 Describe 'Guests belong to both Teams and plain groups' {
     BeforeAll {
         $script:LatestMemberships = @($script:Memberships | Where-Object RunDate -EQ $script:LatestRunDate)

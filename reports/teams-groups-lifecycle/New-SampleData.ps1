@@ -109,6 +109,15 @@ $users = foreach ($i in 1..$memberCount) {
 }
 $users = @($users)
 
+# The first six accounts are the managers (none of them disabled, none with a manager of their
+# own). Everyone else reports to one of them, so a creator or owner always has a manager.
+$managerCount = 6
+for ($i = 0; $i -lt $users.Count; $i++) {
+    $manager = if ($i -ge $managerCount) { $users[$i % $managerCount] } else { $null }
+    $users[$i] | Add-Member -NotePropertyName ManagerId -NotePropertyValue $(if ($manager) { $manager.Id } else { '' })
+    $users[$i] | Add-Member -NotePropertyName ManagerUpn -NotePropertyValue $(if ($manager) { $manager.UserPrincipalName } else { '' })
+}
+
 foreach ($snapshot in $snapshotDates) {
     $rows = foreach ($user in $users) {
         [pscustomobject]@{
@@ -124,8 +133,8 @@ foreach ($snapshot in $snapshotDates) {
             JobTitle                 = 'Specialist'
             City                     = 'Seattle'
             Country                  = 'US'
-            ManagerId                = ''
-            ManagerUserPrincipalName = ''
+            ManagerId                = $user.ManagerId
+            ManagerUserPrincipalName = $user.ManagerUpn
         }
     }
     Export-AppendCsv -Path (Join-Path $OutputPath 'users.csv') -Rows @($rows) -Column (Get-EntraUserCsvColumn) -KeyColumn @('RunDate', 'Id')
@@ -146,6 +155,13 @@ $groups = foreach ($i in 1..($groupCount + $deletedCount)) {
 
     $ownerRoll = $random.Next(0, 10)
     $ownerTotal = if ($ownerRoll -lt 2) { 0 } elseif ($ownerRoll -lt 5) { 1 } else { $random.Next(2, 4) }
+
+    # Audit (Standard) keeps 180 days. An ownerless active group is created inside that window,
+    # so its creator is on record and can be suggested as the owner.
+    if ($ownerTotal -eq 0 -and $i -le $groupCount) {
+        $created = $EndDate.AddDays(-(10 + ($i * 13) % 150))
+        if ($renewed -lt $created) { $renewed = $created }
+    }
 
     [pscustomobject]@{
         Id          = New-DeterministicGuid
@@ -382,7 +398,9 @@ foreach ($snapshot in $snapshotDates) {
 # Audit (Standard) keeps 180 days, so only groups created inside that window have a record.
 $auditStart = $EndDate.AddDays(-180)
 $events = foreach ($group in $groups | Where-Object { $_.Created -ge $auditStart }) {
-    $creator = $users[$random.Next(0, $users.Count)]
+    # The creator is an enabled account with a manager, so a suggestion can name both.
+    $eligible = @($users | Where-Object { $_.AccountEnabled -and $_.ManagerUpn })
+    $creator = $eligible[$random.Next(0, $users.Count) % $eligible.Count]
     $operation = if ($group.IsTeam) { 'TeamCreated' } else { 'AddGroup' }
     [pscustomobject]@{
         CreationTime      = Format-Stamp $group.Created
