@@ -1,0 +1,215 @@
+table TeamsUserActivityUserDetail
+    lineageTag: 72b71d85-c1fa-4162-b463-131f26c8639a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: efaac22c-dcc7-4326-9237-56a7964e0def
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column QueryDate
+        dataType: string
+        lineageTag: e29ccb4c-5acb-4e8e-a549-64f8cd61dc50
+        summarizeBy: none
+        sourceColumn: QueryDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 81bcfd57-8cda-4e66-b9ea-e3aab2cc0675
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserId
+        dataType: string
+        lineageTag: 732187d1-5697-42c5-a1bc-92178061d829
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: c65fbbcb-6d11-4082-8594-5f796270508f
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 6c005436-310f-4612-a6db-de15084fbcba
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column IsDeleted
+        dataType: string
+        lineageTag: a705fdf7-9147-4145-b3d7-c78d22b1a595
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: 7fb8a9e4-1a6a-46d3-85c4-089a9ad07fa7
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column AssignedProducts
+        dataType: string
+        lineageTag: 74b0b55c-45af-4263-a952-11bf953c27d7
+        summarizeBy: none
+        sourceColumn: AssignedProducts
+
+    column TeamChatMessageCount
+        dataType: string
+        lineageTag: 6047601b-c1ab-4d1d-8f32-41105a895d71
+        summarizeBy: none
+        sourceColumn: TeamChatMessageCount
+
+    column PrivateChatMessageCount
+        dataType: string
+        lineageTag: 8f7c4c73-1d26-46d0-83a6-f7983bbf9a83
+        summarizeBy: none
+        sourceColumn: PrivateChatMessageCount
+
+    column CallCount
+        dataType: string
+        lineageTag: 2652cd0b-f47a-4b9a-9da6-2cecc2a4ba04
+        summarizeBy: none
+        sourceColumn: CallCount
+
+    column MeetingCount
+        dataType: string
+        lineageTag: aea22983-5adc-4e4e-be22-61384c9d50c2
+        summarizeBy: none
+        sourceColumn: MeetingCount
+
+    column PostMessages
+        dataType: string
+        lineageTag: 3f5a059f-b555-4fba-a401-190121070774
+        summarizeBy: none
+        sourceColumn: PostMessages
+
+    column ReplyMessages
+        dataType: string
+        lineageTag: 0db8cf30-b2f1-4ae0-8db5-5422e2f6773c
+        summarizeBy: none
+        sourceColumn: ReplyMessages
+
+    column UrgentMessages
+        dataType: string
+        lineageTag: 6a419ae2-7256-46c8-b969-3a4dd6986dd6
+        summarizeBy: none
+        sourceColumn: UrgentMessages
+
+    column MeetingsOrganizedCount
+        dataType: string
+        lineageTag: 6f44f7c1-00ac-4c91-9274-a584db61d0d2
+        summarizeBy: none
+        sourceColumn: MeetingsOrganizedCount
+
+    column MeetingsAttendedCount
+        dataType: string
+        lineageTag: 3306a322-065c-4be2-96eb-08b05f038427
+        summarizeBy: none
+        sourceColumn: MeetingsAttendedCount
+
+    column AdHocMeetingsOrganizedCount
+        dataType: string
+        lineageTag: 336c12db-4894-461d-8a79-aea4b0768544
+        summarizeBy: none
+        sourceColumn: AdHocMeetingsOrganizedCount
+
+    column AdHocMeetingsAttendedCount
+        dataType: string
+        lineageTag: b1b7b4a3-efc5-43fa-b77b-3936577c50a8
+        summarizeBy: none
+        sourceColumn: AdHocMeetingsAttendedCount
+
+    column ScheduledOneTimeMeetingsOrganizedCount
+        dataType: string
+        lineageTag: 8ee79332-e554-45e5-9d46-ca3968dd8a86
+        summarizeBy: none
+        sourceColumn: ScheduledOneTimeMeetingsOrganizedCount
+
+    column ScheduledOneTimeMeetingsAttendedCount
+        dataType: string
+        lineageTag: a59e68fa-96c9-449a-9fb9-497c7b18d771
+        summarizeBy: none
+        sourceColumn: ScheduledOneTimeMeetingsAttendedCount
+
+    column ScheduledRecurringMeetingsOrganizedCount
+        dataType: string
+        lineageTag: 11c391af-f5c0-4560-9713-e5f02a474539
+        summarizeBy: none
+        sourceColumn: ScheduledRecurringMeetingsOrganizedCount
+
+    column ScheduledRecurringMeetingsAttendedCount
+        dataType: string
+        lineageTag: 0bf4bf7e-6d5b-4cad-bb28-64f4539e8509
+        summarizeBy: none
+        sourceColumn: ScheduledRecurringMeetingsAttendedCount
+
+    column AudioDuration
+        dataType: string
+        lineageTag: 12917d30-0931-48fe-83d8-33d14b7c61b5
+        summarizeBy: none
+        sourceColumn: AudioDuration
+
+    column VideoDuration
+        dataType: string
+        lineageTag: b7f31ca7-c83c-4d3d-a0b1-c8495be33918
+        summarizeBy: none
+        sourceColumn: VideoDuration
+
+    column ScreenShareDuration
+        dataType: string
+        lineageTag: f011b951-a02e-478d-952f-6c87a5a4a2ee
+        summarizeBy: none
+        sourceColumn: ScreenShareDuration
+
+    column AudioDurationInSeconds
+        dataType: string
+        lineageTag: d493c393-86be-4fb8-ac42-9736a4fcab58
+        summarizeBy: none
+        sourceColumn: AudioDurationInSeconds
+
+    column VideoDurationInSeconds
+        dataType: string
+        lineageTag: fd055675-2958-4694-b37f-f3effb9e01b6
+        summarizeBy: none
+        sourceColumn: VideoDurationInSeconds
+
+    column ScreenShareDurationInSeconds
+        dataType: string
+        lineageTag: 7f754184-b774-43e0-90cd-bc231ae21ff2
+        summarizeBy: none
+        sourceColumn: ScreenShareDurationInSeconds
+
+    column HasOtherAction
+        dataType: string
+        lineageTag: 7c253500-b652-48ce-ac96-12447d0581ba
+        summarizeBy: none
+        sourceColumn: HasOtherAction
+
+    column IsLicensed
+        dataType: string
+        lineageTag: aabf327c-f1eb-43da-9e90-0950a5ef397f
+        summarizeBy: none
+        sourceColumn: IsLicensed
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 67558ae9-0b48-491e-bb59-3e2ec9cae279
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition TeamsUserActivityUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\teams-user-activity-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
