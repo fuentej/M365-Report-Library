@@ -1,0 +1,233 @@
+table CopilotUserCountSummary
+    lineageTag: 2f9298e4-0c2a-49cb-92ed-ef7ba960f05a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 8ef6e300-bcf1-425b-8e83-cd75a315d818
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: f2d158bd-f776-400d-a985-d779b3226a5e
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column ReportPeriod
+        dataType: int64
+        formatString: #,0
+        lineageTag: ee209cf0-35ef-469a-9980-0d231fa1f7c9
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column MicrosoftTeamsEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 3cd9ed78-5e1c-457b-8b9d-904c8f285ab9
+        summarizeBy: none
+        sourceColumn: MicrosoftTeamsEnabledUsers
+
+    column MicrosoftTeamsActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 65a12cf0-3141-4daf-a1cb-e168d914f20b
+        summarizeBy: none
+        sourceColumn: MicrosoftTeamsActiveUsers
+
+    column WordEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: f2bab69c-432e-49ec-b72d-bbde919bd5ad
+        summarizeBy: none
+        sourceColumn: WordEnabledUsers
+
+    column WordActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 7ccf1fe2-24f8-4b9c-b1a1-3fbaa1166bc9
+        summarizeBy: none
+        sourceColumn: WordActiveUsers
+
+    column PowerPointEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 8b2ccf32-1780-48b1-891b-ccecf83f7873
+        summarizeBy: none
+        sourceColumn: PowerPointEnabledUsers
+
+    column PowerPointActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 172e6462-7e47-4cc7-b305-554a0a234f4d
+        summarizeBy: none
+        sourceColumn: PowerPointActiveUsers
+
+    column OutlookEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 259d1f88-2e0e-4686-87dc-b1cd9b513c55
+        summarizeBy: none
+        sourceColumn: OutlookEnabledUsers
+
+    column OutlookActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 84c943ac-d00a-4b32-b70b-480e15f7366a
+        summarizeBy: none
+        sourceColumn: OutlookActiveUsers
+
+    column ExcelEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 7b5a9c64-5bf8-4267-b1df-2e7b45fe2760
+        summarizeBy: none
+        sourceColumn: ExcelEnabledUsers
+
+    column ExcelActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 539a1b1e-fc09-4f7c-9344-829fbaaf0156
+        summarizeBy: none
+        sourceColumn: ExcelActiveUsers
+
+    column OneNoteEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 346bac0f-c7f5-417d-b86e-7799d27cb700
+        summarizeBy: none
+        sourceColumn: OneNoteEnabledUsers
+
+    column OneNoteActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 137f9191-73ea-407d-ae53-b4f637b451c1
+        summarizeBy: none
+        sourceColumn: OneNoteActiveUsers
+
+    column LoopEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: f55fb295-268e-4b41-983f-b3fc4532d305
+        summarizeBy: none
+        sourceColumn: LoopEnabledUsers
+
+    column LoopActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: d1b0f28e-780a-4f7e-94b6-83cc52dbeee7
+        summarizeBy: none
+        sourceColumn: LoopActiveUsers
+
+    column AnyAppEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: c1c44dcf-ae61-4547-bf6e-53b5862cee9f
+        summarizeBy: none
+        sourceColumn: AnyAppEnabledUsers
+
+    column AnyAppActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: a5cbb89b-a6d7-4405-8e78-b985d146624b
+        summarizeBy: none
+        sourceColumn: AnyAppActiveUsers
+
+    column CopilotChatEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 1ae0e89b-b38d-4c26-9cae-a4138b5f9c5c
+        summarizeBy: none
+        sourceColumn: CopilotChatEnabledUsers
+
+    column CopilotChatActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 482d48de-90ce-4e98-85ac-de50acfef7f4
+        summarizeBy: none
+        sourceColumn: CopilotChatActiveUsers
+
+    column EdgeEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: b3c67367-9118-49a1-b30e-4653b87c2aae
+        summarizeBy: none
+        sourceColumn: EdgeEnabledUsers
+
+    column EdgeActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 2dc3e619-f2ca-4d5b-b5fa-95f223f985f7
+        summarizeBy: none
+        sourceColumn: EdgeActiveUsers
+
+    column Microsoft365CopilotEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 779bf50e-05b7-4ad0-a5b6-2c8297ad2e85
+        summarizeBy: none
+        sourceColumn: Microsoft365CopilotEnabledUsers
+
+    column Microsoft365CopilotActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 5a185e4e-c0fb-47a5-84f6-aea7c5a0f0eb
+        summarizeBy: none
+        sourceColumn: Microsoft365CopilotActiveUsers
+
+    column CopilotChatWorkEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: db303ea7-a6b6-4e8b-996b-f44d7ae8fef6
+        summarizeBy: none
+        sourceColumn: CopilotChatWorkEnabledUsers
+
+    column CopilotChatWorkActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 289c571f-e7ad-4565-9782-3e8f15a2e228
+        summarizeBy: none
+        sourceColumn: CopilotChatWorkActiveUsers
+
+    column CopilotChatWebEnabledUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 065bcd29-3062-42be-beaf-e6443ab08a29
+        summarizeBy: none
+        sourceColumn: CopilotChatWebEnabledUsers
+
+    column CopilotChatWebActiveUsers
+        dataType: int64
+        formatString: #,0
+        lineageTag: 02bbbe19-2047-49b6-98f6-934807eb7380
+        summarizeBy: none
+        sourceColumn: CopilotChatWebActiveUsers
+
+    column TotalPromptsSubmitted
+        dataType: int64
+        formatString: #,0
+        lineageTag: e7706deb-0b9f-4291-a0b6-0fb9a923fa40
+        summarizeBy: none
+        sourceColumn: TotalPromptsSubmitted
+
+    column AveragePromptsSubmitted
+        dataType: double
+        formatString: #,0.00
+        lineageTag: cfa51ff8-936a-424c-bd45-e11f56579c73
+        summarizeBy: none
+        sourceColumn: AveragePromptsSubmitted
+
+    partition CopilotUserCountSummary = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\copilot-user-count-summary.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"ReportRefreshDate", type date}, {"ReportPeriod", Int64.Type}, {"MicrosoftTeamsEnabledUsers", Int64.Type}, {"MicrosoftTeamsActiveUsers", Int64.Type}, {"WordEnabledUsers", Int64.Type}, {"WordActiveUsers", Int64.Type}, {"PowerPointEnabledUsers", Int64.Type}, {"PowerPointActiveUsers", Int64.Type}, {"OutlookEnabledUsers", Int64.Type}, {"OutlookActiveUsers", Int64.Type}, {"ExcelEnabledUsers", Int64.Type}, {"ExcelActiveUsers", Int64.Type}, {"OneNoteEnabledUsers", Int64.Type}, {"OneNoteActiveUsers", Int64.Type}, {"LoopEnabledUsers", Int64.Type}, {"LoopActiveUsers", Int64.Type}, {"AnyAppEnabledUsers", Int64.Type}, {"AnyAppActiveUsers", Int64.Type}, {"CopilotChatEnabledUsers", Int64.Type}, {"CopilotChatActiveUsers", Int64.Type}, {"EdgeEnabledUsers", Int64.Type}, {"EdgeActiveUsers", Int64.Type}, {"Microsoft365CopilotEnabledUsers", Int64.Type}, {"Microsoft365CopilotActiveUsers", Int64.Type}, {"CopilotChatWorkEnabledUsers", Int64.Type}, {"CopilotChatWorkActiveUsers", Int64.Type}, {"CopilotChatWebEnabledUsers", Int64.Type}, {"CopilotChatWebActiveUsers", Int64.Type}, {"TotalPromptsSubmitted", Int64.Type}, {"AveragePromptsSubmitted", type number}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
