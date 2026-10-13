@@ -121,6 +121,25 @@ Describe 'The sample CSVs match the collectors' {
         @($latest | Where-Object { $_.LastActivityDate }).Count | Should -BeGreaterThan 1
     }
 
+    It 'keeps teams-team-activity-detail.csv as the report states it: channel messages are posts plus replies, last activity does not follow the snapshot, and counts need activity inside the period' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-team-activity-detail.csv'))
+        $rows.Count | Should -BeGreaterThan 0
+        foreach ($row in $rows) {
+            $because = "$($row.TeamName) on $($row.RunDate)"
+            [int]$row.ChannelMessages | Should -Be ([int]$row.PostMessages + [int]$row.ReplyMessages) -Because $because
+            $refresh = [datetime]::ParseExact($row.ReportRefreshDate, 'yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+            if ($row.LastActivityDate) {
+                $last = [datetime]::ParseExact($row.LastActivityDate, 'yyyy-MM-dd', [cultureinfo]::InvariantCulture)
+                $last | Should -BeLessOrEqual $refresh -Because $because
+            }
+            $counted = [int]$row.ChannelMessages + [int]$row.MeetingsOrganized + [int]$row.Reactions + [int]$row.Mentions
+            if ($counted -gt 0) {
+                $row.LastActivityDate | Should -Not -BeNullOrEmpty -Because $because
+                $last | Should -BeGreaterThan $refresh.AddDays(-[int]$row.ReportPeriod) -Because $because
+            }
+        }
+    }
+
     It 'covers every audited operation in teams-audit-events.csv' {
         $ops = (Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-audit-events.csv')).Operation | Sort-Object -Unique
         $ops | Should -Be (@($script:Schema.TeamsAuditOperations) | Sort-Object)
