@@ -263,6 +263,7 @@ Describe 'Collector output matches the committed sample files' {
                 @{ Csv = 'agent-components.csv'; Key = 'AgentComponents' }
                 @{ Csv = 'agent-modifications.csv'; Key = 'AgentModifications' }
                 @{ Csv = 'agent-audit-events.csv'; Key = 'AgentAuditEvents' }
+                @{ Csv = 'agent-credit-consumption.csv'; Key = 'AgentCreditConsumption' }
             )) {
             Get-HeaderText -Path (Join-Path $script:Samples $pair.Csv) | Should -Be ($script:Schema[$pair.Key] -join ',')
         }
@@ -887,15 +888,184 @@ Describe 'Run-All.ps1' {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'produces all six CSVs' {
+    It 'produces all seven CSVs' {
         Invoke-CollectorScript 'Run-All.ps1' @{
             OutputPath = $script:folder; DataverseUrl = 'https://org.crm.example.com'
             StartDate = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-11T00:00:00Z'
             WarningAction = 'SilentlyContinue'
         }
 
-        foreach ($csv in 'environments', 'agents', 'agent-connectors', 'agent-components', 'agent-modifications', 'agent-audit-events') {
+        foreach ($csv in 'environments', 'agents', 'agent-connectors', 'agent-components', 'agent-modifications', 'agent-audit-events', 'agent-credit-consumption') {
             Test-Path -LiteralPath (Join-Path $script:folder "$csv.csv") | Should -BeTrue
         }
+        # No -ConsumptionFolder was given, so the consumption file is the header only.
+        @(Get-Content -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).Count | Should -Be 1
+    }
+
+    It 'passes -ConsumptionFolder to the credit consumption collector' {
+        $downloads = New-TestFolder
+        try {
+            Set-Content -LiteralPath (Join-Path $downloads 'Contoso Production.csv') -Value "Agent name,Billed credits,Non-billed credits`nHR Policy Helper,5,0"
+            Invoke-CollectorScript 'Run-All.ps1' @{
+                OutputPath = $script:folder; DataverseUrl = 'https://org.crm.example.com'; ConsumptionFolder = $downloads
+                StartDate = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-11T00:00:00Z'
+                WarningAction = 'SilentlyContinue'
+            }
+            (Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).AgentName | Should -Be 'HR Policy Helper'
+        }
+        finally { Remove-Item -LiteralPath $downloads -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+Describe 'Credit consumption (the Power Platform admin center download)' {
+    BeforeEach {
+        $script:folder = New-TestFolder
+        $script:downloads = New-TestFolder
+        # The columns the Learn page lists for the detailed report, as headers. The page gives no file format,
+        # header text, date column or environment column; these are the shapes the collector accepts.
+        # https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#download-detailed-copilot-consumption-for-an-environment
+        $script:Header = 'Date,Agent name,Product / AI feature,Channel,LLM model,Knowledge sources / Tool used,Billed credits,Non-billed credits'
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:folder, $script:downloads -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'writes the header only and says the download is missing when the folder is empty, absent or not given' -ForEach @(
+        @{ Case = 'empty' }, @{ Case = 'absent' }, @{ Case = 'none' }
+    ) {
+        $arguments = @{ OutputPath = $script:folder }
+        if ($Case -eq 'empty') { $arguments['ConsumptionFolder'] = $script:downloads }
+        if ($Case -eq 'absent') { $arguments['ConsumptionFolder'] = Join-Path $script:downloads 'nothing-here' }
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' $arguments
+
+        $path = Join-Path $script:folder 'agent-credit-consumption.csv'
+        @(Get-Content -LiteralPath $path).Count | Should -Be 1
+        Get-HeaderText -Path $path | Should -Be ($script:Schema.AgentCreditConsumption -join ',')
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'consumption download is missing'
+    }
+
+    It 'reads one row per agent, day, feature and channel, with the environment from the file name' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,12.5,0'
+            '2026-09-01,HR Policy Helper,Generative answer,Website,Model A,Public website,3,0'
+            '2026-09-02,IT Service Desk,Classic answer,Teams,,,0,4'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv'))
+        $rows.Count | Should -Be 3
+        $rows[0].Date | Should -Be '2026-09-01'
+        $rows[0].EnvironmentName | Should -Be 'Contoso Production'
+        $rows[0].AgentName | Should -Be 'HR Policy Helper'
+        $rows[0].Feature | Should -Be 'Generative answer'
+        $rows[0].Channel | Should -Be 'Teams'
+        $rows[0].Model | Should -Be 'Model A'
+        $rows[0].KnowledgeSourceOrTool | Should -Be 'SharePoint site'
+        $rows[0].BilledCredits | Should -Be '12.5'
+        $rows[0].NonBilledCredits | Should -Be '0'
+        $rows[0].SourceFile | Should -Be 'Contoso Production.csv'
+        $rows[2].BilledCredits | Should -Be '0'
+        $rows[2].NonBilledCredits | Should -Be '4'
+    }
+
+    It 'matches headers ignoring case, spaces and punctuation, and uses an Environment column when the report has one' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'download.csv') -Value @(
+            'ENVIRONMENT,Agent Name,AI Feature,CHANNEL,Billed Credits,Non billed credits'
+            'Contoso Finance,Expense Assistant,Agent action,Teams,7,1'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')
+        $row.EnvironmentName | Should -Be 'Contoso Finance'
+        $row.AgentName | Should -Be 'Expense Assistant'
+        $row.Feature | Should -Be 'Agent action'
+        $row.BilledCredits | Should -Be '7'
+        $row.NonBilledCredits | Should -Be '1'
+    }
+
+    It 'leaves Date empty and warns that the rows are not per day when the report has no date column' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            'Agent name,Product / AI feature,Channel,Billed credits,Non-billed credits'
+            'HR Policy Helper,Generative answer,Teams,40,2'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')
+        $row.Date | Should -Be ''
+        $row.Model | Should -Be ''
+        $log = Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw
+        $log | Should -Match 'no column found for .*Date'
+        $log | Should -Match 'not per day'
+    }
+
+    It 'normalizes a date to yyyy-MM-dd and sums rows that share a key' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '9/1/2026 12:00:00 AM,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,"1,000.5",0'
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,2.5,1'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $row = @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv'))
+        $row.Count | Should -Be 1
+        $row[0].Date | Should -Be '2026-09-01'
+        $row[0].BilledCredits | Should -Be '1003'
+        $row[0].NonBilledCredits | Should -Be '1'
+    }
+
+    It 'does not write a row twice when downloads overlap or the collector runs again' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @($script:Header, '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0')
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0'
+            '2026-09-02,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,6,0'
+        )
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).Date | Should -Be @('2026-09-01', '2026-09-02')
+    }
+
+    It 'skips a file that is not the consumption report, warns about files that are not CSV, and keeps the rest' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'unrelated.csv') -Value @('Name,Value', 'a,1')
+        Set-Content -LiteralPath (Join-Path $script:downloads 'report.xlsx') -Value 'not a csv'
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @($script:Header, '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0')
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).Count | Should -Be 1
+        $log = Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw
+        $log | Should -Match 'unrelated.csv does not look like the Copilot credit consumption report'
+        $log | Should -Match 'Not read, because only \.csv files are read: report\.xlsx'
+    }
+
+    It 'records every cloud as UNVERIFIED and still reads the files' -ForEach @(@{ Cloud = 'Commercial' }, @{ Cloud = 'GCC' }, @{ Cloud = 'GCCHigh' }) {
+        $script:Schema.SourceAvailability.AgentCreditConsumption[$Cloud].Status | Should -Be 'Unverified'
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @($script:Header, '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0')
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; Environment = $Cloud; ConsumptionFolder = $script:downloads }
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).Count | Should -Be 1
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'UNVERIFIED'
+    }
+
+    It 'has a sample with at least 5 agents over 30 days, billed and non-billed credits, and every column filled that the report lists' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'agent-credit-consumption.csv'))
+        @($rows.AgentName | Sort-Object -Unique).Count | Should -BeGreaterOrEqual 5
+        @($rows.Date | Sort-Object -Unique).Count | Should -BeGreaterOrEqual 30
+        @($rows.EnvironmentName | Sort-Object -Unique).Count | Should -BeGreaterOrEqual 2
+        @($rows | Where-Object { [double]$_.NonBilledCredits -gt 0 }).Count | Should -BeGreaterThan 0
+        @($rows | Where-Object { [double]$_.BilledCredits -gt 0 }).Count | Should -BeGreaterThan 0
+        foreach ($row in $rows) { $row.Feature | Should -Not -BeNullOrEmpty; $row.Channel | Should -Not -BeNullOrEmpty }
+        # One key per row.
+        $keys = $rows | ForEach-Object { ($_.Date, $_.EnvironmentName, $_.AgentName, $_.Product, $_.Feature, $_.Channel, $_.Model, $_.KnowledgeSourceOrTool) -join '|' }
+        @($keys | Sort-Object -Unique).Count | Should -Be $rows.Count
     }
 }

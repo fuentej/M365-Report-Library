@@ -257,6 +257,49 @@ $auditRows = @($auditRows | Sort-Object CreationTime)
 Export-AppendCsv -Path (Join-Path $OutputPath 'agent-audit-events.csv') -Rows $auditRows `
     -Column $schema.AgentAuditEvents -KeyColumn 'Id'
 
+# Credit consumption: what an admin downloads per environment, one row per agent, day, feature and channel for
+# the 30 days to EndDate. Six agents in three environments. Columns follow the Learn page for the download;
+# Date and EnvironmentName are UNVERIFIED as report columns (see the schema). Credits are Copilot Credits.
+$consumptionProfiles = @(
+    @{ Feature = 'Generative answer'; Product = 'Copilot Studio'; Channel = 'Teams'; Model = 'Sample model A'; Source = 'SharePoint site'; Base = 38; Billed = $true }
+    @{ Feature = 'Generative answer'; Product = 'Copilot Studio'; Channel = 'Website'; Model = 'Sample model A'; Source = 'Public website'; Base = 22; Billed = $true }
+    @{ Feature = 'Classic answer'; Product = 'Copilot Studio'; Channel = 'Teams'; Model = ''; Source = ''; Base = 12; Billed = $true }
+    @{ Feature = 'Agent action'; Product = 'Copilot Studio'; Channel = 'Microsoft Copilot'; Model = 'Sample model B'; Source = 'ServiceNow connector'; Base = 18; Billed = $true }
+    @{ Feature = 'Agent flow actions'; Product = 'Copilot Studio'; Channel = 'Teams'; Model = ''; Source = 'Power Automate flow'; Base = 9; Billed = $true }
+    @{ Feature = 'Generative answer'; Product = 'Microsoft 365 Copilot Chat'; Channel = 'Microsoft Copilot'; Model = 'Sample model A'; Source = 'SharePoint site'; Base = 30; Billed = $false }
+)
+$consumptionAgents = @($agents | Select-Object -First 6)
+$consumptionRows = foreach ($offset in 29..0) {
+    $day = $EndDate.AddDays(-$offset).Date
+    $weekend = $day.DayOfWeek -in @([System.DayOfWeek]::Saturday, [System.DayOfWeek]::Sunday)
+    foreach ($index in 0..($consumptionAgents.Count - 1)) {
+        $agent = $consumptionAgents[$index]
+        $environmentName = ($environments | Where-Object { $_.Id -eq $agent.EnvironmentId } | Select-Object -First 1).Name
+        # Each agent uses two or three of the profiles; the agent's index sets its scale, so agents differ.
+        $mine = @(0..2 | ForEach-Object { ($index + $_ * 2) % $consumptionProfiles.Count } | Select-Object -Unique | ForEach-Object { $consumptionProfiles[$_] })
+        foreach ($profile in $mine) {
+            $scale = (1 + $index * 0.45) * $(if ($weekend) { 0.2 } else { 1.0 }) * (0.6 + $random.NextDouble() * 0.8)
+            $credits = [math]::Round($profile.Base * $scale, 1)
+            if ($credits -le 0) { continue }
+            [pscustomobject]@{
+                Date                  = $day.ToString('yyyy-MM-dd')
+                EnvironmentName       = $environmentName
+                AgentName             = $agent.Name
+                Product               = $profile.Product
+                Feature               = $profile.Feature
+                Channel               = $profile.Channel
+                Model                 = $profile.Model
+                KnowledgeSourceOrTool = $profile.Source
+                BilledCredits         = if ($profile.Billed) { $credits.ToString('0.0', [cultureinfo]::InvariantCulture) } else { '0' }
+                NonBilledCredits      = if ($profile.Billed) { '0' } else { $credits.ToString('0.0', [cultureinfo]::InvariantCulture) }
+                SourceFile            = ($environmentName -replace '[^A-Za-z0-9]+', '-').Trim('-') + '.csv'
+            }
+        }
+    }
+}
+Export-AppendCsv -Path (Join-Path $OutputPath 'agent-credit-consumption.csv') -Rows @($consumptionRows) `
+    -Column $schema.AgentCreditConsumption -KeyColumn @('Date', 'EnvironmentName', 'AgentName', 'Product', 'Feature', 'Channel', 'Model', 'KnowledgeSourceOrTool')
+
 # GCC and GCC High: Microsoft documents connector inventory as not available, so the
 # collector writes the header only.
 foreach ($cloud in 'gcc', 'gcchigh') {
