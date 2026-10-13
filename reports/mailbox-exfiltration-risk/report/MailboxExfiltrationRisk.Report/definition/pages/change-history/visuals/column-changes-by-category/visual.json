@@ -26,7 +26,9 @@
                   "Property": "ChangeCategory"
                 }
               },
-              "queryRef": "MailboxChangeEvents.ChangeCategory"
+              "queryRef": "MailboxChangeEvents.ChangeCategory",
+              "nativeQueryRef": "ChangeCategory",
+              "displayName": "Change category"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Change Events"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Change Events"
+              "queryRef": "MailboxChangeEvents.Change Events",
+              "nativeQueryRef": "Change Events"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Change events by category"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Change events by category'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

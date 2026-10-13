@@ -26,7 +26,8 @@
                   "Property": "Accepted Domains"
                 }
               },
-              "queryRef": "AcceptedDomains.Accepted Domains"
+              "queryRef": "AcceptedDomains.Accepted Domains",
+              "nativeQueryRef": "Accepted Domains"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Accepted domains"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Accepted domains'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

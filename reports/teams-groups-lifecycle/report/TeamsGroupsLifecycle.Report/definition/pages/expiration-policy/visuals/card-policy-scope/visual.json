@@ -26,7 +26,8 @@
                   "Property": "Policy Scope"
                 }
               },
-              "queryRef": "GroupLifecyclePolicies.Policy Scope"
+              "queryRef": "GroupLifecyclePolicies.Policy Scope",
+              "nativeQueryRef": "Policy Scope"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Policy scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Policy scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "User Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.User Display Name"
+              "queryRef": "UsersCurrent.User Display Name",
+              "nativeQueryRef": "User Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "User Type (Display)"
                 }
               },
-              "queryRef": "AuthenticationMethods.User Type (Display)"
+              "queryRef": "AuthenticationMethods.User Type (Display)",
+              "nativeQueryRef": "User Type (Display)"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "MFA Registered (Display)"
                 }
               },
-              "queryRef": "AuthenticationMethods.MFA Registered (Display)"
+              "queryRef": "AuthenticationMethods.MFA Registered (Display)",
+              "nativeQueryRef": "MFA Registered (Display)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Passwordless Capable (Display)"
                 }
               },
-              "queryRef": "AuthenticationMethods.Passwordless Capable (Display)"
+              "queryRef": "AuthenticationMethods.Passwordless Capable (Display)",
+              "nativeQueryRef": "Passwordless Capable (Display)"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Methods Registered (Display)"
                 }
               },
-              "queryRef": "AuthenticationMethods.Methods Registered (Display)"
+              "queryRef": "AuthenticationMethods.Methods Registered (Display)",
+              "nativeQueryRef": "Methods Registered (Display)"
             }
           ]
         }
@@ -101,8 +108,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Users and their registered methods (disabled users are not returned by the API)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Users and their registered methods (disabled users are not returned by the API)'"
+                }
+              }
+            }
           }
         }
       ]

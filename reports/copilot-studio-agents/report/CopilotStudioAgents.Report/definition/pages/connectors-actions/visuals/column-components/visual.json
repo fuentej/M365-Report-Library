@@ -26,7 +26,9 @@
                   "Property": "CategoryLabel"
                 }
               },
-              "queryRef": "AgentComponents.CategoryLabel"
+              "queryRef": "AgentComponents.CategoryLabel",
+              "nativeQueryRef": "CategoryLabel",
+              "displayName": "Component category"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Components"
                 }
               },
-              "queryRef": "AgentComponents.Components"
+              "queryRef": "AgentComponents.Components",
+              "nativeQueryRef": "Components"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Components by category (Unknown = no value returned)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Components by category (Unknown = no value returned)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

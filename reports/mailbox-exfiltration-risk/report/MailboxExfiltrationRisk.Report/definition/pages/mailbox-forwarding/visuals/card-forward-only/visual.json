@@ -26,7 +26,8 @@
                   "Property": "Forwarding Without Copy"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Without Copy"
+              "queryRef": "MailboxForwarding.Forwarding Without Copy",
+              "nativeQueryRef": "Forwarding Without Copy"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Forwarded only"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Forwarded only'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

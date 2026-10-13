@@ -26,7 +26,8 @@
                   "Property": "Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes",
+              "nativeQueryRef": "Forwarding Mailboxes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mailboxes that forward"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mailboxes that forward'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

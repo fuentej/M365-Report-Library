@@ -26,7 +26,8 @@
                   "Property": "At-Risk Users Holding a Role"
                 }
               },
-              "queryRef": "RiskyUsers.At-Risk Users Holding a Role"
+              "queryRef": "RiskyUsers.At-Risk Users Holding a Role",
+              "nativeQueryRef": "At-Risk Users Holding a Role"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "At-risk users holding an active role"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'At-risk users holding an active role'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

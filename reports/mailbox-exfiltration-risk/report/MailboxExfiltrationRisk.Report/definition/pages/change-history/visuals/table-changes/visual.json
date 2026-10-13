@@ -26,7 +26,9 @@
                   "Property": "CreationTime"
                 }
               },
-              "queryRef": "MailboxChangeEvents.CreationTime"
+              "queryRef": "MailboxChangeEvents.CreationTime",
+              "nativeQueryRef": "CreationTime",
+              "displayName": "When"
             },
             {
               "field": {
@@ -39,7 +41,9 @@
                   "Property": "ChangeCategory"
                 }
               },
-              "queryRef": "MailboxChangeEvents.ChangeCategory"
+              "queryRef": "MailboxChangeEvents.ChangeCategory",
+              "nativeQueryRef": "ChangeCategory",
+              "displayName": "Change category"
             },
             {
               "field": {
@@ -52,7 +56,8 @@
                   "Property": "Operation"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Operation"
+              "queryRef": "MailboxChangeEvents.Operation",
+              "nativeQueryRef": "Operation"
             },
             {
               "field": {
@@ -65,7 +70,9 @@
                   "Property": "ActorPseudonym"
                 }
               },
-              "queryRef": "MailboxChangeEvents.ActorPseudonym"
+              "queryRef": "MailboxChangeEvents.ActorPseudonym",
+              "nativeQueryRef": "ActorPseudonym",
+              "displayName": "Changed by"
             },
             {
               "field": {
@@ -78,7 +85,8 @@
                   "Property": "Actor (Display)"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Actor (Display)"
+              "queryRef": "MailboxChangeEvents.Actor (Display)",
+              "nativeQueryRef": "Actor (Display)"
             },
             {
               "field": {
@@ -91,7 +99,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -104,7 +114,9 @@
                   "Property": "ResultLabel"
                 }
               },
-              "queryRef": "MailboxChangeEvents.ResultLabel"
+              "queryRef": "MailboxChangeEvents.ResultLabel",
+              "nativeQueryRef": "ResultLabel",
+              "displayName": "Result"
             },
             {
               "field": {
@@ -117,7 +129,8 @@
                   "Property": "Change Events"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Change Events"
+              "queryRef": "MailboxChangeEvents.Change Events",
+              "nativeQueryRef": "Change Events"
             }
           ]
         }
@@ -127,8 +140,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rule, forwarding and permission changes (auditing settings: Organization Auditing card; records go back to Earliest Audit Record)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rule, forwarding and permission changes (auditing settings: Organization Auditing card; records go back to Earliest Audit Record)'"
+                }
+              }
+            }
           }
         }
       ]

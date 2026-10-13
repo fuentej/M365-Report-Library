@@ -26,7 +26,8 @@
                   "Property": "External Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.External Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.External Forwarding Mailboxes",
+              "nativeQueryRef": "External Forwarding Mailboxes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "External destination"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'External destination'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "Soft-Deleted Security Groups"
                 }
               },
-              "queryRef": "DeletedGroups.Soft-Deleted Security Groups"
+              "queryRef": "DeletedGroups.Soft-Deleted Security Groups",
+              "nativeQueryRef": "Soft-Deleted Security Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Security groups"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Security groups'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

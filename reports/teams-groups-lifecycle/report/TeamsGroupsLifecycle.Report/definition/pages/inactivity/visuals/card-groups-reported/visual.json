@@ -26,7 +26,8 @@
                   "Property": "Groups Reported (Activity)"
                 }
               },
-              "queryRef": "GroupActivity.Groups Reported (Activity)"
+              "queryRef": "GroupActivity.Groups Reported (Activity)",
+              "nativeQueryRef": "Groups Reported (Activity)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups in usage report"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups in usage report'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

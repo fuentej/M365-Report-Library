@@ -26,20 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GuestsCurrent.Pseudonym"
-            },
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Guests"
-                    }
-                  },
-                  "Property": "Guest Display Name"
-                }
-              },
-              "queryRef": "Guests.Guest Display Name"
+              "queryRef": "GuestsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Guest"
             }
           ]
         },
@@ -56,12 +45,27 @@
                   "Property": "Visibility"
                 }
               },
-              "queryRef": "GuestMemberships.Visibility"
+              "queryRef": "GuestMemberships.Visibility",
+              "nativeQueryRef": "Visibility"
             }
           ]
         },
         "Values": {
           "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Guests"
+                    }
+                  },
+                  "Property": "Guest Display Name"
+                }
+              },
+              "queryRef": "Guests.Guest Display Name",
+              "nativeQueryRef": "Guest Display Name"
+            },
             {
               "field": {
                 "Measure": {
@@ -73,7 +77,8 @@
                   "Property": "Membership Count"
                 }
               },
-              "queryRef": "GuestMemberships.Membership Count"
+              "queryRef": "GuestMemberships.Membership Count",
+              "nativeQueryRef": "Membership Count"
             }
           ]
         }
@@ -83,8 +88,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Each guest's memberships by visibility"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Each guest''s memberships by visibility'"
+                }
+              }
+            }
           }
         }
       ]

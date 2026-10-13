@@ -26,7 +26,8 @@
                   "Property": "MCP Actions"
                 }
               },
-              "queryRef": "AgentComponents.MCP Actions"
+              "queryRef": "AgentComponents.MCP Actions",
+              "nativeQueryRef": "MCP Actions"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "MCP actions"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'MCP actions'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

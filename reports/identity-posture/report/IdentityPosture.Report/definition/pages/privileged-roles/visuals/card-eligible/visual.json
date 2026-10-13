@@ -26,7 +26,8 @@
                   "Property": "Eligible Assignments"
                 }
               },
-              "queryRef": "EligibleRoleAssignments.Eligible Assignments"
+              "queryRef": "EligibleRoleAssignments.Eligible Assignments",
+              "nativeQueryRef": "Eligible Assignments"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Eligible assignments"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Eligible assignments'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

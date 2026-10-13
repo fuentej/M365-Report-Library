@@ -26,7 +26,8 @@
                   "Property": "Expiration Policy Lifetime"
                 }
               },
-              "queryRef": "GroupLifecyclePolicies.Expiration Policy Lifetime"
+              "queryRef": "GroupLifecyclePolicies.Expiration Policy Lifetime",
+              "nativeQueryRef": "Expiration Policy Lifetime"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Policy lifetime"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Policy lifetime'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

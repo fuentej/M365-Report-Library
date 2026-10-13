@@ -26,12 +26,49 @@
                   "Property": "DLP Overrides With Justification"
                 }
               },
-              "queryRef": "_Measures.[DLP Overrides With Justification]",
-              "nativeQueryRef": "_Measures.[DLP Overrides With Justification]"
+              "queryRef": "_Measures.DLP Overrides With Justification",
+              "nativeQueryRef": "DLP Overrides With Justification"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP overrides with a justification'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

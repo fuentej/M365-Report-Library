@@ -26,7 +26,8 @@
                   "Property": "Activity Source Status"
                 }
               },
-              "queryRef": "TeamActivity.Activity Source Status"
+              "queryRef": "TeamActivity.Activity Source Status",
+              "nativeQueryRef": "Activity Source Status"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Usage-report availability (not available in GCC High, GCC unverified)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Usage-report availability (not available in GCC High, GCC unverified)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

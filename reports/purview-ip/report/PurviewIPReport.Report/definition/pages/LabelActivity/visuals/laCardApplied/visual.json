@@ -26,12 +26,49 @@
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "_Measures.[Label Applications]",
-              "nativeQueryRef": "_Measures.[Label Applications]"
+              "queryRef": "_Measures.Label Applications",
+              "nativeQueryRef": "Label Applications"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sensitivity labels applied'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

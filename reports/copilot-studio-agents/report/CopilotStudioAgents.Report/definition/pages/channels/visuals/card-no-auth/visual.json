@@ -26,7 +26,8 @@
                   "Property": "Published With No Authentication"
                 }
               },
-              "queryRef": "Agents.Published With No Authentication"
+              "queryRef": "Agents.Published With No Authentication",
+              "nativeQueryRef": "Published With No Authentication"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Published with no authentication"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Published with no authentication'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "RiskLevel"
                 }
               },
-              "queryRef": "RiskyUsers.RiskLevel"
+              "queryRef": "RiskyUsers.RiskLevel",
+              "nativeQueryRef": "RiskLevel",
+              "displayName": "Risk level"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Risky Users Listed"
                 }
               },
-              "queryRef": "RiskyUsers.Risky Users Listed"
+              "queryRef": "RiskyUsers.Risky Users Listed",
+              "nativeQueryRef": "Risky Users Listed"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "By risk level"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'By risk level'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

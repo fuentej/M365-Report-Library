@@ -26,7 +26,9 @@
                   "Property": "ArchiveLabel"
                 }
               },
-              "queryRef": "TeamArchiveStatus.ArchiveLabel"
+              "queryRef": "TeamArchiveStatus.ArchiveLabel",
+              "nativeQueryRef": "ArchiveLabel",
+              "displayName": "Archive state"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Teams Checked For Archive"
                 }
               },
-              "queryRef": "TeamArchiveStatus.Teams Checked For Archive"
+              "queryRef": "TeamArchiveStatus.Teams Checked For Archive",
+              "nativeQueryRef": "Teams Checked For Archive"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Teams by archive state"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Teams by archive state'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

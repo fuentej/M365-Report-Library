@@ -26,7 +26,8 @@
                   "Property": "Inactive Agents (180+ days)"
                 }
               },
-              "queryRef": "AgentModifications.Inactive Agents (180+ days)"
+              "queryRef": "AgentModifications.Inactive Agents (180+ days)",
+              "nativeQueryRef": "Inactive Agents (180+ days)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Not modified for 180+ days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Not modified for 180+ days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "CoverageStatus"
                 }
               },
-              "queryRef": "GroupLifecycleCoverage.CoverageStatus"
+              "queryRef": "GroupLifecycleCoverage.CoverageStatus",
+              "nativeQueryRef": "CoverageStatus",
+              "displayName": "Expiration policy coverage"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Groups (Coverage Snapshot)"
                 }
               },
-              "queryRef": "GroupLifecycleCoverage.Groups (Coverage Snapshot)"
+              "queryRef": "GroupLifecycleCoverage.Groups (Coverage Snapshot)",
+              "nativeQueryRef": "Groups (Coverage Snapshot)"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups by coverage (members need Entra ID P1 or P2)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups by coverage (members need Entra ID P1 or P2)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

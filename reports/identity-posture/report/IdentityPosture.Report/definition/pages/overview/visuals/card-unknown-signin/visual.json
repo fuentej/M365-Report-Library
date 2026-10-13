@@ -26,7 +26,8 @@
                   "Property": "Unknown Last Sign-In"
                 }
               },
-              "queryRef": "UserSignInActivity.Unknown Last Sign-In"
+              "queryRef": "UserSignInActivity.Unknown Last Sign-In",
+              "nativeQueryRef": "Unknown Last Sign-In"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Accounts with an unknown last successful sign-in (not counted as stale)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Accounts with an unknown last successful sign-in (not counted as stale)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

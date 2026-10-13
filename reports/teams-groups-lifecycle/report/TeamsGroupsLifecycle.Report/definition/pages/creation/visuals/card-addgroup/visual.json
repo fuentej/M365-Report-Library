@@ -26,7 +26,8 @@
                   "Property": "Group Creation Events (AddGroup)"
                 }
               },
-              "queryRef": "GroupCreationEvents.Group Creation Events (AddGroup)"
+              "queryRef": "GroupCreationEvents.Group Creation Events (AddGroup)",
+              "nativeQueryRef": "Group Creation Events (AddGroup)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "AddGroup"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'AddGroup'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

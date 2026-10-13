@@ -26,7 +26,8 @@
                   "Property": "Mailbox Permission Changes"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Mailbox Permission Changes"
+              "queryRef": "MailboxChangeEvents.Mailbox Permission Changes",
+              "nativeQueryRef": "Mailbox Permission Changes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Permission changes"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Permission changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

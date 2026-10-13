@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "AgentsCurrent.Pseudonym"
+              "queryRef": "AgentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Agent"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Agent Display Name"
                 }
               },
-              "queryRef": "AgentsCurrent.Agent Display Name"
+              "queryRef": "AgentsCurrent.Agent Display Name",
+              "nativeQueryRef": "Agent Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Created (Display)"
                 }
               },
-              "queryRef": "Agents.Created (Display)"
+              "queryRef": "Agents.Created (Display)",
+              "nativeQueryRef": "Created (Display)"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Last Published (Display)"
                 }
               },
-              "queryRef": "Agents.Last Published (Display)"
+              "queryRef": "Agents.Last Published (Display)",
+              "nativeQueryRef": "Last Published (Display)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Last Modified (Display)"
                 }
               },
-              "queryRef": "AgentModifications.Last Modified (Display)"
+              "queryRef": "AgentModifications.Last Modified (Display)",
+              "nativeQueryRef": "Last Modified (Display)"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Days Since Modified (Display)"
                 }
               },
-              "queryRef": "AgentModifications.Days Since Modified (Display)"
+              "queryRef": "AgentModifications.Days Since Modified (Display)",
+              "nativeQueryRef": "Days Since Modified (Display)"
             },
             {
               "field": {
@@ -104,7 +111,8 @@
                   "Property": "Audit Events"
                 }
               },
-              "queryRef": "AgentAuditEvents.Audit Events"
+              "queryRef": "AgentAuditEvents.Audit Events",
+              "nativeQueryRef": "Audit Events"
             }
           ]
         }
@@ -114,8 +122,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Created, last published, last modified and audit events per agent"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Created, last published, last modified and audit events per agent'"
+                }
+              }
+            }
           }
         }
       ]

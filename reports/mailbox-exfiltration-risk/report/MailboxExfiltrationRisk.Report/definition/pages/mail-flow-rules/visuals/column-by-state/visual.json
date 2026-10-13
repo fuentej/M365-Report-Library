@@ -26,7 +26,8 @@
                   "Property": "State"
                 }
               },
-              "queryRef": "TransportRules.State"
+              "queryRef": "TransportRules.State",
+              "nativeQueryRef": "State"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Mail Flow Rules"
                 }
               },
-              "queryRef": "TransportRules.Mail Flow Rules"
+              "queryRef": "TransportRules.Mail Flow Rules",
+              "nativeQueryRef": "Mail Flow Rules"
             }
           ]
         }
@@ -53,8 +55,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules by state"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules by state'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

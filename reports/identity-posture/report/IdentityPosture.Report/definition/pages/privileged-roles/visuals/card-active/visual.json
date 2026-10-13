@@ -26,7 +26,8 @@
                   "Property": "Active Assignments (Effective)"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Active Assignments (Effective)"
+              "queryRef": "ActiveRoleAssignments.Active Assignments (Effective)",
+              "nativeQueryRef": "Active Assignments (Effective)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Active assignments"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Active assignments'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

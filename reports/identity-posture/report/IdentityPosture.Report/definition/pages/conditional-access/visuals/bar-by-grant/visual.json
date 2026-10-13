@@ -26,7 +26,9 @@
                   "Property": "BuiltInControls"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.BuiltInControls"
+              "queryRef": "ConditionalAccessPolicies.BuiltInControls",
+              "nativeQueryRef": "BuiltInControls",
+              "displayName": "Built-in grant controls"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Policy Count"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policy Count"
+              "queryRef": "ConditionalAccessPolicies.Policy Count",
+              "nativeQueryRef": "Policy Count"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Policies by built-in grant control (blank: none, or an authentication strength only)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Policies by built-in grant control (blank: none, or an authentication strength only)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]
