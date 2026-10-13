@@ -26,7 +26,8 @@
                   "Property": "Group Count"
                 }
               },
-              "queryRef": "Groups.Group Count"
+              "queryRef": "Groups.Group Count",
+              "nativeQueryRef": "Group Count"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups (selected snapshot)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups (selected snapshot)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

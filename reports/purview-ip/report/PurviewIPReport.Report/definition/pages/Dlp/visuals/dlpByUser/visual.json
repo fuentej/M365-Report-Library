@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name"
+              "nativeQueryRef": "Name",
+              "displayName": "User"
             },
             {
               "field": {
@@ -40,8 +41,8 @@
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "_Measures.[DLP Matches]",
-              "nativeQueryRef": "_Measures.[DLP Matches]"
+              "queryRef": "_Measures.DLP Matches",
+              "nativeQueryRef": "DLP Matches"
             },
             {
               "field": {
@@ -54,8 +55,8 @@
                   "Property": "DLP Overrides"
                 }
               },
-              "queryRef": "_Measures.[DLP Overrides]",
-              "nativeQueryRef": "_Measures.[DLP Overrides]"
+              "queryRef": "_Measures.DLP Overrides",
+              "nativeQueryRef": "DLP Overrides"
             }
           ]
         }
@@ -78,6 +79,28 @@
         ],
         "isDefaultSort": false
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP matches and overrides by user'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

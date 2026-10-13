@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Users.Department",
-              "nativeQueryRef": "Users.Department"
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -40,8 +40,8 @@
                   "Property": "Total Events"
                 }
               },
-              "queryRef": "_Measures.[Total Events]",
-              "nativeQueryRef": "_Measures.[Total Events]"
+              "queryRef": "_Measures.Total Events",
+              "nativeQueryRef": "Total Events"
             },
             {
               "field": {
@@ -54,8 +54,8 @@
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "_Measures.[Label Applications]",
-              "nativeQueryRef": "_Measures.[Label Applications]"
+              "queryRef": "_Measures.Label Applications",
+              "nativeQueryRef": "Label Applications"
             },
             {
               "field": {
@@ -68,8 +68,8 @@
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "_Measures.[Label Downgrades]",
-              "nativeQueryRef": "_Measures.[Label Downgrades]"
+              "queryRef": "_Measures.Label Downgrades",
+              "nativeQueryRef": "Label Downgrades"
             },
             {
               "field": {
@@ -82,8 +82,8 @@
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "_Measures.[DLP Matches]",
-              "nativeQueryRef": "_Measures.[DLP Matches]"
+              "queryRef": "_Measures.DLP Matches",
+              "nativeQueryRef": "DLP Matches"
             },
             {
               "field": {
@@ -96,8 +96,8 @@
                   "Property": "Retention Label Changes"
                 }
               },
-              "queryRef": "_Measures.[Retention Label Changes]",
-              "nativeQueryRef": "_Measures.[Retention Label Changes]"
+              "queryRef": "_Measures.Retention Label Changes",
+              "nativeQueryRef": "Retention Label Changes"
             },
             {
               "field": {
@@ -110,8 +110,8 @@
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "_Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.Copilot Resources Accessed",
+              "nativeQueryRef": "Copilot Resources Accessed"
             },
             {
               "field": {
@@ -124,12 +124,34 @@
                   "Property": "Copilot Access Blocked"
                 }
               },
-              "queryRef": "_Measures.[Copilot Access Blocked]",
-              "nativeQueryRef": "_Measures.[Copilot Access Blocked]"
+              "queryRef": "_Measures.Copilot Access Blocked",
+              "nativeQueryRef": "Copilot Access Blocked"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Activity by department'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

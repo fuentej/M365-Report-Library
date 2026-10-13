@@ -26,7 +26,8 @@
                   "Property": "Send As Trustees"
                 }
               },
-              "queryRef": "SendAsPermissions.Send As Trustees"
+              "queryRef": "SendAsPermissions.Send As Trustees",
+              "nativeQueryRef": "Send As Trustees"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Send As trustees"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Send As trustees'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

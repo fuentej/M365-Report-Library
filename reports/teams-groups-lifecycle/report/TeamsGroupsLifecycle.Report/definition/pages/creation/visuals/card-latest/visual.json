@@ -26,7 +26,8 @@
                   "Property": "Latest Creation Event"
                 }
               },
-              "queryRef": "GroupCreationEvents.Latest Creation Event"
+              "queryRef": "GroupCreationEvents.Latest Creation Event",
+              "nativeQueryRef": "Latest Creation Event"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Latest creation event"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Latest creation event'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

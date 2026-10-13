@@ -1,0 +1,241 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-sharepointsiteusagedetail",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.RunDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "ReportRefreshDate"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.ReportRefreshDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "SiteId"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.SiteId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "SiteUrl"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.SiteUrl"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "OwnerDisplayName"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.OwnerDisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "IsDeleted"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.IsDeleted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "LastActivityDate"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.LastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "FileCount"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.FileCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "ActiveFileCount"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.ActiveFileCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "PageViewCount"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.PageViewCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "VisitedPageCount"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.VisitedPageCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "StorageUsedByte"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.StorageUsedByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "StorageAllocatedByte"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.StorageAllocatedByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "RootWebTemplate"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.RootWebTemplate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "OwnerPrincipalName"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.OwnerPrincipalName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SharePointSiteUsageDetail"
+                    }
+                  },
+                  "Property": "ReportPeriod"
+                }
+              },
+              "queryRef": "SharePointSiteUsageDetail.ReportPeriod"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "SharePointSiteUsageDetail (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -26,7 +26,8 @@
                   "Property": "Active Assignment Source"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Active Assignment Source"
+              "queryRef": "ActiveRoleAssignments.Active Assignment Source",
+              "nativeQueryRef": "Active Assignment Source"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Source of the active counts"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Source of the active counts'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

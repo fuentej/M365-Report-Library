@@ -26,7 +26,9 @@
                   "Property": "SiteUrl"
                 }
               },
-              "queryRef": "SharingEvents.SiteUrl"
+              "queryRef": "SharingEvents.SiteUrl",
+              "nativeQueryRef": "SiteUrl",
+              "displayName": "Site URL"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Sharing Event Count"
                 }
               },
-              "queryRef": "SharingEvents.Sharing Event Count"
+              "queryRef": "SharingEvents.Sharing Event Count",
+              "nativeQueryRef": "Sharing Event Count"
             }
           ]
         }
@@ -67,8 +70,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "By site"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'By site'"
+                }
+              }
+            }
           }
         }
       ]

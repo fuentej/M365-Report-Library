@@ -26,7 +26,8 @@
                   "Property": "Operation"
                 }
               },
-              "queryRef": "SharingEvents.Operation"
+              "queryRef": "SharingEvents.Operation",
+              "nativeQueryRef": "Operation"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Sharing Event Count"
                 }
               },
-              "queryRef": "SharingEvents.Sharing Event Count"
+              "queryRef": "SharingEvents.Sharing Event Count",
+              "nativeQueryRef": "Sharing Event Count"
             }
           ]
         }
@@ -71,8 +73,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Sharing events by operation"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sharing events by operation'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "Unknown Forwarding Destination"
                 }
               },
-              "queryRef": "MailboxForwarding.Unknown Forwarding Destination"
+              "queryRef": "MailboxForwarding.Unknown Forwarding Destination",
+              "nativeQueryRef": "Unknown Forwarding Destination"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Unknown destination"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Unknown destination'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

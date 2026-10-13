@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name"
+              "nativeQueryRef": "Name",
+              "displayName": "User"
             },
             {
               "field": {
@@ -41,7 +42,7 @@
                 }
               },
               "queryRef": "Users.Department",
-              "nativeQueryRef": "Users.Department"
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -54,12 +55,34 @@
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "_Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.Copilot Resources Accessed",
+              "nativeQueryRef": "Copilot Resources Accessed"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot resources accessed by user'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

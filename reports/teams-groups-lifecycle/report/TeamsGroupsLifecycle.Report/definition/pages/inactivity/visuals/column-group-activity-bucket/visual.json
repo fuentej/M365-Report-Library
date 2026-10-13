@@ -26,7 +26,9 @@
                   "Property": "ActivityBucket"
                 }
               },
-              "queryRef": "GroupActivity.ActivityBucket"
+              "queryRef": "GroupActivity.ActivityBucket",
+              "nativeQueryRef": "ActivityBucket",
+              "displayName": "Days since last activity"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Groups (Activity Snapshot)"
                 }
               },
-              "queryRef": "GroupActivity.Groups (Activity Snapshot)"
+              "queryRef": "GroupActivity.Groups (Activity Snapshot)",
+              "nativeQueryRef": "Groups (Activity Snapshot)"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups by days since last activity"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups by days since last activity'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

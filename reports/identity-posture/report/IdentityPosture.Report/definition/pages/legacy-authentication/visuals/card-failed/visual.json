@@ -26,7 +26,8 @@
                   "Property": "Legacy Sign-Ins Failed or Blocked"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked"
+              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked",
+              "nativeQueryRef": "Legacy Sign-Ins Failed or Blocked"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Failed or blocked (at least)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Failed or blocked (at least)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

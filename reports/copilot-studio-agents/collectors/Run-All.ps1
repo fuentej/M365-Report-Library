@@ -2,7 +2,7 @@
 
 <#
     .SYNOPSIS
-        Runs the six Copilot Studio agents collectors into one output folder.
+        Runs the seven Copilot Studio agents collectors into one output folder.
 
     .DESCRIPTION
         Four of the six sign in as a person, interactively: the three that read the
@@ -11,6 +11,9 @@
         -CertificateThumbprint apply only to the audit collector, which follows the
         library's normal connection pattern.
 
+        The seventh, the credit consumption collector, signs in to nothing: it reads the consumption reports
+        an admin downloaded from the Power Platform admin center into -ConsumptionFolder.
+
         Each collector signs in for itself, so a source that is unavailable in this cloud
         or unlicensed in this tenant leaves a header-only CSV and a line in run.log
         without stopping the others.
@@ -18,6 +21,10 @@
     .PARAMETER DataverseUrl
         The Dataverse URL of each environment to read for agent-components.csv and
         agent-modifications.csv. Without it those two write a header only.
+
+    .PARAMETER ConsumptionFolder
+        The folder holding the credit consumption reports (*.csv) downloaded from the Power Platform
+        admin center, one per environment. Without it agent-credit-consumption.csv is a header only.
 
     .PARAMETER ApiHost
         The Power Platform API base URL. Required for GCC and GCC High (UNVERIFIED).
@@ -36,6 +43,7 @@ param(
     [string]$TenantId,
     [string]$ApiHost,
     [string[]]$DataverseUrl,
+    [string]$ConsumptionFolder,
 
     [string]$AppId,
     [string]$CertificateThumbprint,
@@ -67,6 +75,8 @@ $audit = @{
 if ($PSBoundParameters.ContainsKey('StartDate')) { $audit['StartDate'] = $StartDate }
 if ($PSBoundParameters.ContainsKey('EndDate')) { $audit['EndDate'] = $EndDate }
 
+$consumption = @{ OutputPath = $OutputPath; Environment = $Environment; ConsumptionFolder = $ConsumptionFolder }
+
 $steps = @(
     @{ Name = 'environments'; Script = 'Get-PowerPlatformEnvironments.ps1'; Arguments = $inventory }
     @{ Name = 'agents'; Script = 'Get-CopilotStudioAgents.ps1'; Arguments = $inventory }
@@ -74,6 +84,7 @@ $steps = @(
     @{ Name = 'agent-components'; Script = 'Get-AgentComponents.ps1'; Arguments = $dataverse }
     @{ Name = 'agent-modifications'; Script = 'Get-AgentModifications.ps1'; Arguments = $dataverse }
     @{ Name = 'agent-audit-events'; Script = 'Get-AgentAuditEvents.ps1'; Arguments = $audit }
+    @{ Name = 'agent-credit-consumption'; Script = 'Get-AgentCreditConsumption.ps1'; Arguments = $consumption }
 )
 
 $failed = 0

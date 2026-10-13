@@ -26,7 +26,8 @@
                   "Property": "Viewer Groups"
                 }
               },
-              "queryRef": "Agents.Viewer Groups"
+              "queryRef": "Agents.Viewer Groups",
+              "nativeQueryRef": "Viewer Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Viewer groups (Preview)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Viewer groups (Preview)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

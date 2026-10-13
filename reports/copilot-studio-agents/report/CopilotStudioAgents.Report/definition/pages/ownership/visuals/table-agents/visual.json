@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "AgentsCurrent.Pseudonym"
+              "queryRef": "AgentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Agent"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Agent Display Name"
                 }
               },
-              "queryRef": "AgentsCurrent.Agent Display Name"
+              "queryRef": "AgentsCurrent.Agent Display Name",
+              "nativeQueryRef": "Agent Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Owner (Display)"
                 }
               },
-              "queryRef": "Agents.Owner (Display)"
+              "queryRef": "Agents.Owner (Display)",
+              "nativeQueryRef": "Owner (Display)"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Creator (Display)"
                 }
               },
-              "queryRef": "Agents.Creator (Display)"
+              "queryRef": "Agents.Creator (Display)",
+              "nativeQueryRef": "Creator (Display)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Created (Display)"
                 }
               },
-              "queryRef": "Agents.Created (Display)"
+              "queryRef": "Agents.Created (Display)",
+              "nativeQueryRef": "Created (Display)"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Publish State (Display)"
                 }
               },
-              "queryRef": "Agents.Publish State (Display)"
+              "queryRef": "Agents.Publish State (Display)",
+              "nativeQueryRef": "Publish State (Display)"
             }
           ]
         }
@@ -101,8 +108,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Owner and creator per agent (Entra object ids; a missing owner cannot be detected without the directory)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Owner and creator per agent (Entra object ids; a missing owner cannot be detected without the directory)'"
+                }
+              }
+            }
           }
         }
       ]

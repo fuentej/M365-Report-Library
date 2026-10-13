@@ -26,7 +26,8 @@
                   "Property": "Apps With Mail Access"
                 }
               },
-              "queryRef": "Apps.Apps With Mail Access"
+              "queryRef": "Apps.Apps With Mail Access",
+              "nativeQueryRef": "Apps With Mail Access"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Apps with mail access"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Apps with mail access'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

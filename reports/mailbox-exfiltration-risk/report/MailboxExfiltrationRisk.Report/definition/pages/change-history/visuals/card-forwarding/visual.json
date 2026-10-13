@@ -26,7 +26,8 @@
                   "Property": "Forwarding Changes"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Forwarding Changes"
+              "queryRef": "MailboxChangeEvents.Forwarding Changes",
+              "nativeQueryRef": "Forwarding Changes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Forwarding changes"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Forwarding changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

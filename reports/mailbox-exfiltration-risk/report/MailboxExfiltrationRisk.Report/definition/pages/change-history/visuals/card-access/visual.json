@@ -26,7 +26,8 @@
                   "Property": "Mail Access Events"
                 }
               },
-              "queryRef": "MailAccessEvents.Mail Access Events"
+              "queryRef": "MailAccessEvents.Mail Access Events",
+              "nativeQueryRef": "Mail Access Events"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail access and send events"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail access and send events'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

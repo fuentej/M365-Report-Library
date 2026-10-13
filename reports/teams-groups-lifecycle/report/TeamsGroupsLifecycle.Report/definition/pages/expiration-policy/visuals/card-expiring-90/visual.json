@@ -26,7 +26,8 @@
                   "Property": "Expiring Within 90 Days"
                 }
               },
-              "queryRef": "Groups.Expiring Within 90 Days"
+              "queryRef": "Groups.Expiring Within 90 Days",
+              "nativeQueryRef": "Expiring Within 90 Days"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Expiring within 90 days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Expiring within 90 days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

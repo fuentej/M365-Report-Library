@@ -26,7 +26,8 @@
                   "Property": "Owner Unknown Groups"
                 }
               },
-              "queryRef": "Groups.Owner Unknown Groups"
+              "queryRef": "Groups.Owner Unknown Groups",
+              "nativeQueryRef": "Owner Unknown Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Owner unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Owner unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

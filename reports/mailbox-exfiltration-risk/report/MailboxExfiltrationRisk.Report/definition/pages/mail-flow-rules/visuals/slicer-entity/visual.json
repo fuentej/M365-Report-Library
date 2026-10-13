@@ -26,7 +26,9 @@
                   "Property": "Name"
                 }
               },
-              "queryRef": "TransportRules.Name"
+              "queryRef": "TransportRules.Name",
+              "nativeQueryRef": "Name",
+              "displayName": "Mail flow rule"
             }
           ]
         }
@@ -36,8 +38,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail flow rule"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail flow rule'"
+                }
+              }
+            }
           }
         }
       ]

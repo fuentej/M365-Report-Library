@@ -26,7 +26,8 @@
                   "Property": "Groups Without Owner"
                 }
               },
-              "queryRef": "Groups.Groups Without Owner"
+              "queryRef": "Groups.Groups Without Owner",
+              "nativeQueryRef": "Groups Without Owner"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "No owner"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'No owner'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

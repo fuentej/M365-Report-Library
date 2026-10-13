@@ -26,7 +26,8 @@
                   "Property": "Activated Assignments"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Activated Assignments"
+              "queryRef": "ActiveRoleAssignments.Activated Assignments",
+              "nativeQueryRef": "Activated Assignments"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Activated through PIM"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Activated through PIM'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

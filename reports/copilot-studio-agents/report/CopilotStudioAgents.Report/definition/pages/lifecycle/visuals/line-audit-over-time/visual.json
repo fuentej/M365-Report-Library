@@ -26,7 +26,9 @@
                   "Property": "ActivityDate"
                 }
               },
-              "queryRef": "AgentAuditEvents.ActivityDate"
+              "queryRef": "AgentAuditEvents.ActivityDate",
+              "nativeQueryRef": "ActivityDate",
+              "displayName": "Activity date"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Audit Events"
                 }
               },
-              "queryRef": "AgentAuditEvents.Audit Events"
+              "queryRef": "AgentAuditEvents.Audit Events",
+              "nativeQueryRef": "Audit Events"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Audit events over time"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Audit events over time'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

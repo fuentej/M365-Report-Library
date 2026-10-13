@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,9 @@
                   "Property": "DelegatePseudonym"
                 }
               },
-              "queryRef": "SendOnBehalf.DelegatePseudonym"
+              "queryRef": "SendOnBehalf.DelegatePseudonym",
+              "nativeQueryRef": "DelegatePseudonym",
+              "displayName": "Delegate"
             },
             {
               "field": {
@@ -52,7 +56,8 @@
                   "Property": "Send On Behalf Delegate (Display)"
                 }
               },
-              "queryRef": "SendOnBehalf.Send On Behalf Delegate (Display)"
+              "queryRef": "SendOnBehalf.Send On Behalf Delegate (Display)",
+              "nativeQueryRef": "Send On Behalf Delegate (Display)"
             },
             {
               "field": {
@@ -65,7 +70,8 @@
                   "Property": "Send On Behalf Grants"
                 }
               },
-              "queryRef": "SendOnBehalf.Send On Behalf Grants"
+              "queryRef": "SendOnBehalf.Send On Behalf Grants",
+              "nativeQueryRef": "Send On Behalf Grants"
             }
           ]
         }
@@ -75,8 +81,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Who holds Send on Behalf on whom"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Who holds Send on Behalf on whom'"
+                }
+              }
+            }
           }
         }
       ]

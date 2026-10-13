@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "EntraActivityRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "9feed615-2ca4-4aad-8634-6a94a14798de"
+  }
+}

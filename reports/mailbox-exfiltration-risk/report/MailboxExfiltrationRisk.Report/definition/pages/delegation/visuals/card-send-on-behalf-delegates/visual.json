@@ -26,7 +26,8 @@
                   "Property": "Send On Behalf Delegates"
                 }
               },
-              "queryRef": "SendOnBehalf.Send On Behalf Delegates"
+              "queryRef": "SendOnBehalf.Send On Behalf Delegates",
+              "nativeQueryRef": "Send On Behalf Delegates"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Send on Behalf delegates"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Send on Behalf delegates'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

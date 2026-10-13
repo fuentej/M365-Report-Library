@@ -22,22 +22,25 @@ its start time was stored. Nothing is rewritten or deleted. Everything is read-o
 | `collectors/Get-TeamsUserActivityUserDetail.ps1` | `teams-user-activity-user-detail.csv`: chat, call and meeting counts per user (source 1) |
 | `collectors/Get-TeamsUserActivityCounts.ps1` | `teams-user-activity-counts.csv`: tenant totals per day (source 2) |
 | `collectors/Get-TeamsDeviceUsageUserDetail.ps1` | `teams-device-usage-user-detail.csv`: which platforms each user used Teams on (source 3) |
+| `collectors/Get-TeamsTeamActivityDetail.ps1` | `teams-team-activity-detail.csv`: channel messages, replies, posts, meetings, active users and last activity per team (source 4) |
 | `collectors/Get-ReportSettings.ps1` | `report-settings.csv`: whether usage reports conceal names (source 5) |
 | `collectors/Get-CallRecords.ps1` | `call-records.csv`: calls and meetings of the last 30 days, one row per session, with the caller and callee platform (source 6) |
 | `collectors/Get-TeamsAuditEvents.ps1` | `teams-audit-events.csv`: Teams meeting, call, message and chat-created events counted per day, user and operation (source 8) |
-| `collectors/Run-All.ps1` | Signs in once to Graph and once to Exchange and runs all of the above, plus the lifecycle report's team activity collector (source 4) |
+| `collectors/Run-All.ps1` | Signs in once to Graph and once to Exchange and runs all of the above, plus the lifecycle report's team activity collector (the same API as source 4, written to `team-activity.csv`) |
 | `collectors/TeamsActivitySchema.psd1` | Column order of every CSV, the per-cloud availability of every source, and the audited operations |
 | `collectors/TeamsActivityHelpers.ps1` | Report-specific helpers (below) |
 | `New-SampleData.ps1` | Regenerates `samples/` |
-| `samples/` | Fake CSVs (everything is on `example.com`); `samples/gcchigh/` holds the header-only files a GCC High run leaves for the three Graph usage reports |
+| `samples/` | Fake CSVs (everything is on `example.com`); `samples/gcchigh/` holds the header-only files a GCC High run leaves for the four Graph usage reports |
 | `tests/` | Pester 5 tests; every tenant call is mocked |
 
 ### Sources that are not collectors here
 
-* **Source 4, Teams activity per team** is the same API as the Teams and Groups lifecycle report's
-  team activity. It is not rebuilt: [`reports/teams-groups-lifecycle`](../teams-groups-lifecycle/)
-  `Get-TeamActivity.ps1` already writes every column the contract lists (`team-activity.csv`).
-  `Run-All.ps1` runs it into the same output folder so the file sits beside the others.
+* **Source 4, Teams activity per team** is collected here as `teams-team-activity-detail.csv`
+  (`Get-TeamsTeamActivityDetail.ps1`). It is the same API as the Teams and Groups lifecycle report's
+  team activity: [`reports/teams-groups-lifecycle`](../teams-groups-lifecycle/) `Get-TeamActivity.ps1`
+  writes `team-activity.csv` with the same columns, and `Run-All.ps1` still runs it into the same folder,
+  so a full run reads the report twice. The lifecycle file is what the lifecycle report reads; this one is
+  what the Teams activity report reads.
 * **Source 7, chat and channel message export** is not built. It reads message bodies, and the contract
   leaves "should the library read message content at all" as a policy decision for the build issue;
   nothing in the library reads content, and `tests/ReadOnly.Tests.ps1` fails if a collector calls
@@ -102,14 +105,14 @@ refusal rather than guessing. A `NotAvailable` source writes its CSV header only
 | 1 | `getTeamsUserActivityUserDetail` | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail) | UNVERIFIED: the API page marks the global service `✅`, but the [usage reports cloud table](https://learn.microsoft.com/graph/api/resources/report#cloud-deployments) marks Microsoft Cloud for US Government `➖` | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivityuserdetail) (US Government L4 `❌`) |
 | 2 | `getTeamsUserActivityCounts` | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivitycounts) | UNVERIFIED (same conflict) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsuseractivitycounts) |
 | 3 | `getTeamsDeviceUsageUserDetail` | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail) | UNVERIFIED (same conflict) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail) |
-| 4 | `getTeamsTeamActivityDetail` | Collected by the lifecycle report: [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail) | UNVERIFIED | NotAvailable |
+| 4 | `getTeamsTeamActivityDetail` | [Available](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail) | UNVERIFIED (same conflict) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail) (the page marks the global service only; US Government L4 and L5 `❌`) |
 | 5 | `GET /admin/reportSettings` | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | UNVERIFIED (global service `✅`, cloud table `➖`) | UNVERIFIED: the [Graph page](https://learn.microsoft.com/graph/api/adminreportsettings-get) marks US Government L4 `❌`, while the [usage reports overview](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports#use-adminreportsettings-to-show-user-group-or-site-details) says an API in all environments changes the setting. Sources 1 to 4 are `NotAvailable` there anyway, so there is nothing to conceal |
 | 6 | `GET /communications/callRecords` | [Available](https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords) | [Available](https://learn.microsoft.com/graph/deployments) (global service; the API pages have no GCC column) | [Available](https://learn.microsoft.com/graph/api/callrecords-cloudcommunications-list-callrecords) (US Government L4 `✅`) |
 | 7 | Teams export APIs (message content) | Not built | Not built | Not built (see above) |
 | 8 | `Search-UnifiedAuditLog`, Teams operations | [Available](https://learn.microsoft.com/purview/audit-log-activities#teams-activities) | Audit (Standard) [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments). `MeetingDetail` and `MeetingParticipantDetail` Available ([footnote 9](https://learn.microsoft.com/purview/audit-log-activities#teams-activities)); `CallParticipantDetail`, `MessageSent`, `ChatCreated` UNVERIFIED | Audit (Standard) [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments). Same split of operations |
 | 9 | Admin center reports | Manual export, [Available](https://learn.microsoft.com/microsoftteams/teams-analytics-and-reports/teams-reporting-reference) | Manual export, Available | Manual export, Available (`Yes` in the GCCH column) |
 
-In GCC High a run therefore writes headers only for sources 1 to 3 (and the lifecycle report's `team-activity.csv`),
+In GCC High a run therefore writes headers only for sources 1 to 4 (and the lifecycle report's `team-activity.csv`),
 and still collects sources 5, 6 and 8. Source 6 there sees calls and meetings only, not chat or channel messages,
 and only 30 days back. **No read-only Teams PowerShell cmdlet or Graph call was found that gives chat counts,
 device use or per-team activity in GCC High**; the admin center export is the only documented route.
@@ -123,10 +126,11 @@ Dates and times are UTC. `RunDate` is the UTC date of the run.
 | `teams-user-activity-user-detail.csv` | State | A user, a run, a period or a day | `RunDate`, `QueryDate`, then the report's columns: `ReportRefreshDate`, `UserId`, `UserPrincipalName`, `LastActivityDate`, `IsDeleted`, `DeletedDate`, `AssignedProducts`, `TeamChatMessageCount` (includes posts and replies), `PrivateChatMessageCount`, `CallCount` (1:1 calls), `MeetingCount`, `PostMessages`, `ReplyMessages`, `UrgentMessages`, organized and attended counts (all, ad hoc, scheduled one-time, scheduled recurring), `AudioDuration`, `VideoDuration`, `ScreenShareDuration` (ISO 8601) and the same three `...InSeconds`, `HasOtherAction`, `IsLicensed`, `ReportPeriod`. `Tenant Display Name` and `Shared Channel Tenant Display Names` are not kept |
 | `teams-user-activity-counts.csv` | State | A report date in a run | `RunDate`, `ReportRefreshDate`, `ReportDate`, `TeamChatMessages`, `PostMessages`, `ReplyMessages`, `PrivateChatMessages`, `Calls`, `Meetings`, `AudioDuration`, `VideoDuration`, `ScreenShareDuration`, `MeetingsOrganized`, `MeetingsAttended`, `ReportPeriod` |
 | `teams-device-usage-user-detail.csv` | State | A user, a run, a period or a day | `RunDate`, `QueryDate`, `ReportRefreshDate`, `UserId`, `UserPrincipalName`, `LastActivityDate`, `IsDeleted`, `DeletedDate`, then `UsedWeb`, `UsedWindowsPhone`, `UsediOS`, `UsedMac`, `UsedAndroidPhone`, `UsedWindows`, `UsedChromeOS`, `UsedLinux` (Yes or No in the period, not counts), `IsLicensed`, `ReportPeriod` |
+| `teams-team-activity-detail.csv` | State | A team, a run, a period | `RunDate`, `ReportRefreshDate`, `ReportPeriod`, `TeamId`, `TeamName` (a concealed value, or blank, when names are concealed), `TeamType`, `LastActivityDate`, `ActiveUsers`, `ActiveChannels`, `Guests`, `Reactions`, `MeetingsOrganized`, `PostMessages`, `ReplyMessages`, `ChannelMessages`, `UrgentMessages`, `Mentions`, `ActiveSharedChannels`, `ActiveExternalUsers`, as Microsoft reports them (licensed and non-licensed users). The counts are for the period; `LastActivityDate` is the latest activity whatever the period |
 | `report-settings.csv` | State | A run | `RunDate`, `DisplayConcealedNames` |
 | `call-records.csv` | Event | A session of a call record, per record version (one row with empty session columns if a record has none; a repeated session id stays when the endpoints or times differ) | `CallRecordId`, `Version`, `Type` (`groupCall`, `peerToPeer`, `unknown`), `Modalities` (joined with `;`), `StartDateTime`, `EndDateTime`, `LastModifiedDateTime`, `SessionId`, `SessionStartDateTime`, `SessionEndDateTime`, `CallerUserId`, `CallerPlatform`, `CalleeUserId`, `CalleePlatform` (`windows`, `macOS`, `iOS`, `android`, `web`, ...) |
 | `teams-audit-events.csv` | Event | A UTC day, workload, user and operation | `Date`, `Workload`, `UserId`, `Operation`, `EventCount` |
-| `team-activity.csv` | State | Written by the lifecycle report | See [`reports/teams-groups-lifecycle`](../teams-groups-lifecycle/README.md) |
+| `team-activity.csv` | State | Written by the lifecycle report, same API as `teams-team-activity-detail.csv` | See [`reports/teams-groups-lifecycle`](../teams-groups-lifecycle/README.md) |
 
 ### Things the data does not say
 
@@ -170,7 +174,7 @@ Dates and times are UTC. `RunDate` is the UTC date of the run.
 Usage reports hide user and team names by default. The setting is **Settings > Org settings > Services > Reports > "Conceal
 user, group, and site names in all reports"** in the Microsoft 365 admin center, and it also applies to the reports in Graph
 and the Teams admin center. `Get-ReportSettings.ps1` records its state in `report-settings.csv` (`DisplayConcealedNames`). When
-it is `True`, the user columns in sources 1 and 3 (and the team name in `team-activity.csv`) hold concealed identifiers and
+it is `True`, the user columns in sources 1 and 3 (and the team name in `teams-team-activity-detail.csv` and `team-activity.csv`) hold concealed identifiers and
 **cannot be joined** to the users or groups files: show "names concealed, usage not joined" instead of zero-activity users or
 teams. Showing identifiable names is a Global Administrator action and a logged Purview audit event; the library never changes
 the setting. Run the report-settings collector first (`Run-All.ps1` does).

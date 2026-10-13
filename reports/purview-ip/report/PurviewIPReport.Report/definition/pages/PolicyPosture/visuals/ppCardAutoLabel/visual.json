@@ -26,12 +26,49 @@
                   "Property": "Auto-Labeling Policy Count"
                 }
               },
-              "queryRef": "_Measures.[Auto-Labeling Policy Count]",
-              "nativeQueryRef": "_Measures.[Auto-Labeling Policy Count]"
+              "queryRef": "_Measures.Auto-Labeling Policy Count",
+              "nativeQueryRef": "Auto-Labeling Policy Count"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Auto-labeling policies'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Calendar.Date",
-              "nativeQueryRef": "Calendar.Date"
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -45,7 +45,8 @@
                 }
               },
               "queryRef": "SensitivityAtRest.TagName",
-              "nativeQueryRef": "SensitivityAtRest.TagName"
+              "nativeQueryRef": "TagName",
+              "displayName": "Sensitivity label"
             }
           ]
         },
@@ -62,12 +63,62 @@
                   "Property": "Sensitivity Items At Rest"
                 }
               },
-              "queryRef": "_Measures.[Sensitivity Items At Rest]",
-              "nativeQueryRef": "_Measures.[Sensitivity Items At Rest]"
+              "queryRef": "_Measures.Sensitivity Items At Rest",
+              "nativeQueryRef": "Sensitivity Items At Rest"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Items at rest over time, by sensitivity label'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

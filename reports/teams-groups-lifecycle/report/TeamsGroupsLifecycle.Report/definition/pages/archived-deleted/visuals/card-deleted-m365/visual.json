@@ -26,7 +26,8 @@
                   "Property": "Soft-Deleted Microsoft 365 Groups"
                 }
               },
-              "queryRef": "DeletedGroups.Soft-Deleted Microsoft 365 Groups"
+              "queryRef": "DeletedGroups.Soft-Deleted Microsoft 365 Groups",
+              "nativeQueryRef": "Soft-Deleted Microsoft 365 Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Microsoft 365 groups"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Microsoft 365 groups'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

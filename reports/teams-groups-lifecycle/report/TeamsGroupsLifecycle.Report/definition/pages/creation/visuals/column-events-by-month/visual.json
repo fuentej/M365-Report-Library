@@ -26,7 +26,9 @@
                   "Property": "YearMonth"
                 }
               },
-              "queryRef": "DateDim.YearMonth"
+              "queryRef": "DateDim.YearMonth",
+              "nativeQueryRef": "YearMonth",
+              "displayName": "Month"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Creation Events"
                 }
               },
-              "queryRef": "GroupCreationEvents.Creation Events"
+              "queryRef": "GroupCreationEvents.Creation Events",
+              "nativeQueryRef": "Creation Events"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Creation events per month (audit retention 180 days)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Creation events per month (audit retention 180 days)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

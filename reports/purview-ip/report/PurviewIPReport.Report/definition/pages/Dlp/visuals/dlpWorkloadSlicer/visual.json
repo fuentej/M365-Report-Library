@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Workload.Workload",
-              "nativeQueryRef": "Workload.Workload"
+              "nativeQueryRef": "Workload"
             }
           ]
         }

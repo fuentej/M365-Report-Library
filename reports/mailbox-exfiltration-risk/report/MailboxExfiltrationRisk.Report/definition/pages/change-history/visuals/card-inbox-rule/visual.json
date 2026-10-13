@@ -26,7 +26,8 @@
                   "Property": "Inbox Rule Changes"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Inbox Rule Changes"
+              "queryRef": "MailboxChangeEvents.Inbox Rule Changes",
+              "nativeQueryRef": "Inbox Rule Changes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Inbox rule changes"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Inbox rule changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

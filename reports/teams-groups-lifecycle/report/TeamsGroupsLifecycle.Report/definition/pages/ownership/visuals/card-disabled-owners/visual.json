@@ -26,7 +26,8 @@
                   "Property": "Groups With Disabled Owners"
                 }
               },
-              "queryRef": "Groups.Groups With Disabled Owners"
+              "queryRef": "Groups.Groups With Disabled Owners",
+              "nativeQueryRef": "Groups With Disabled Owners"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups with a disabled owner"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups with a disabled owner'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

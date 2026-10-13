@@ -26,7 +26,8 @@
                   "Property": "Editor Groups"
                 }
               },
-              "queryRef": "Agents.Editor Groups"
+              "queryRef": "Agents.Editor Groups",
+              "nativeQueryRef": "Editor Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Editor groups (Preview)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Editor groups (Preview)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

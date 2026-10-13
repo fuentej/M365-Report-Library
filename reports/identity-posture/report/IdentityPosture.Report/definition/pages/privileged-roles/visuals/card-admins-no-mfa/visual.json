@@ -26,7 +26,8 @@
                   "Property": "Admins Without MFA"
                 }
               },
-              "queryRef": "AuthenticationMethods.Admins Without MFA"
+              "queryRef": "AuthenticationMethods.Admins Without MFA",
+              "nativeQueryRef": "Admins Without MFA"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Admins with no MFA method (isAdmin on registration details)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Admins with no MFA method (isAdmin on registration details)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

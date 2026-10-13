@@ -26,7 +26,9 @@
                   "Property": "ActivityDate"
                 }
               },
-              "queryRef": "MailAccessEvents.ActivityDate"
+              "queryRef": "MailAccessEvents.ActivityDate",
+              "nativeQueryRef": "ActivityDate",
+              "displayName": "Date"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Operation"
                 }
               },
-              "queryRef": "MailAccessEvents.Operation"
+              "queryRef": "MailAccessEvents.Operation",
+              "nativeQueryRef": "Operation"
             }
           ]
         },
@@ -60,7 +63,8 @@
                   "Property": "Mail Access Events"
                 }
               },
-              "queryRef": "MailAccessEvents.Mail Access Events"
+              "queryRef": "MailAccessEvents.Mail Access Events",
+              "nativeQueryRef": "Mail Access Events"
             }
           ]
         }
@@ -70,8 +74,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail access and send events on the days they occurred"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail access and send events on the days they occurred'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

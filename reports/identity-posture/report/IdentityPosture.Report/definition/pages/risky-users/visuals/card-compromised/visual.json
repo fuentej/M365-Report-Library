@@ -26,7 +26,8 @@
                   "Property": "Confirmed Compromised Users"
                 }
               },
-              "queryRef": "RiskyUsers.Confirmed Compromised Users"
+              "queryRef": "RiskyUsers.Confirmed Compromised Users",
+              "nativeQueryRef": "Confirmed Compromised Users"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Confirmed compromised"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Confirmed compromised'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

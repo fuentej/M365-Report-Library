@@ -35,6 +35,18 @@ function global:Get-TransportRule {
     throw 'Get-TransportRule was called for real. Mock it in the test.'
 }
 
+function global:Get-HostedOutboundSpamFilterPolicy {
+    [CmdletBinding()]
+    param([string]$Identity)
+    throw 'Get-HostedOutboundSpamFilterPolicy was called for real. Mock it in the test.'
+}
+
+function global:Get-HostedOutboundSpamFilterRule {
+    [CmdletBinding()]
+    param([string]$Identity, [string]$State)
+    throw 'Get-HostedOutboundSpamFilterRule was called for real. Mock it in the test.'
+}
+
 function global:Get-MailboxPermission {
     [CmdletBinding()]
     param([string]$Identity, [object]$ResultSize)

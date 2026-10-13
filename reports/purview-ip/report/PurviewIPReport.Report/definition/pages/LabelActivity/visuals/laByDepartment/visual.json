@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Users.Department",
-              "nativeQueryRef": "Users.Department"
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -40,8 +40,8 @@
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "_Measures.[Label Applications]",
-              "nativeQueryRef": "_Measures.[Label Applications]"
+              "queryRef": "_Measures.Label Applications",
+              "nativeQueryRef": "Label Applications"
             },
             {
               "field": {
@@ -54,8 +54,8 @@
                   "Property": "Label Upgrades"
                 }
               },
-              "queryRef": "_Measures.[Label Upgrades]",
-              "nativeQueryRef": "_Measures.[Label Upgrades]"
+              "queryRef": "_Measures.Label Upgrades",
+              "nativeQueryRef": "Label Upgrades"
             },
             {
               "field": {
@@ -68,8 +68,8 @@
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "_Measures.[Label Downgrades]",
-              "nativeQueryRef": "_Measures.[Label Downgrades]"
+              "queryRef": "_Measures.Label Downgrades",
+              "nativeQueryRef": "Label Downgrades"
             },
             {
               "field": {
@@ -82,12 +82,34 @@
                   "Property": "Label Removals"
                 }
               },
-              "queryRef": "_Measures.[Label Removals]",
-              "nativeQueryRef": "_Measures.[Label Removals]"
+              "queryRef": "_Measures.Label Removals",
+              "nativeQueryRef": "Label Removals"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label activity by department'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

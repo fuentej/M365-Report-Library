@@ -26,7 +26,8 @@
                   "Property": "Date"
                 }
               },
-              "queryRef": "DateDim.Date"
+              "queryRef": "DateDim.Date",
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Forwarding Mailboxes (All Snapshots)"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Mailboxes (All Snapshots)"
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes (All Snapshots)",
+              "nativeQueryRef": "Forwarding Mailboxes (All Snapshots)"
             },
             {
               "field": {
@@ -56,7 +58,8 @@
                   "Property": "External Forwarding Mailboxes (All Snapshots)"
                 }
               },
-              "queryRef": "MailboxForwarding.External Forwarding Mailboxes (All Snapshots)"
+              "queryRef": "MailboxForwarding.External Forwarding Mailboxes (All Snapshots)",
+              "nativeQueryRef": "External Forwarding Mailboxes (All Snapshots)"
             },
             {
               "field": {
@@ -69,7 +72,8 @@
                   "Property": "Forward Or Redirect Rules (All Snapshots)"
                 }
               },
-              "queryRef": "InboxRules.Forward Or Redirect Rules (All Snapshots)"
+              "queryRef": "InboxRules.Forward Or Redirect Rules (All Snapshots)",
+              "nativeQueryRef": "Forward Or Redirect Rules (All Snapshots)"
             },
             {
               "field": {
@@ -82,7 +86,8 @@
                   "Property": "Inbox Rules With External Target (All Snapshots)"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules With External Target (All Snapshots)"
+              "queryRef": "InboxRules.Inbox Rules With External Target (All Snapshots)",
+              "nativeQueryRef": "Inbox Rules With External Target (All Snapshots)"
             }
           ]
         }
@@ -92,8 +97,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Forwarding mailboxes and inbox rules by snapshot date"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Forwarding mailboxes and inbox rules by snapshot date'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

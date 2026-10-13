@@ -26,7 +26,8 @@
                   "Property": "Guest Count"
                 }
               },
-              "queryRef": "Guests.Guest Count"
+              "queryRef": "Guests.Guest Count",
+              "nativeQueryRef": "Guest Count"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Guests (latest snapshot)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Guests (latest snapshot)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,12 +26,49 @@
                   "Property": "DLP Policy Count"
                 }
               },
-              "queryRef": "_Measures.[DLP Policy Count]",
-              "nativeQueryRef": "_Measures.[DLP Policy Count]"
+              "queryRef": "_Measures.DLP Policy Count",
+              "nativeQueryRef": "DLP Policy Count"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP policies'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

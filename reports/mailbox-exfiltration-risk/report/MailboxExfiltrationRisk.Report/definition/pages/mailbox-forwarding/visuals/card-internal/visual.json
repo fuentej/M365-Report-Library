@@ -26,7 +26,8 @@
                   "Property": "Internal Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.Internal Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.Internal Forwarding Mailboxes",
+              "nativeQueryRef": "Internal Forwarding Mailboxes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Internal destination"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Internal destination'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

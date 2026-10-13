@@ -26,7 +26,8 @@
                   "Property": "Knowledge Source Components"
                 }
               },
-              "queryRef": "AgentComponents.Knowledge Source Components"
+              "queryRef": "AgentComponents.Knowledge Source Components",
+              "nativeQueryRef": "Knowledge Source Components"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Knowledge source components (Dataverse)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Knowledge source components (Dataverse)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

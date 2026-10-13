@@ -26,7 +26,8 @@
                   "Property": "Full Access Grants"
                 }
               },
-              "queryRef": "MailboxFullAccess.Full Access Grants"
+              "queryRef": "MailboxFullAccess.Full Access Grants",
+              "nativeQueryRef": "Full Access Grants"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Full Access grants"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Full Access grants'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,12 +26,49 @@
                   "Property": "Retention Label Changes"
                 }
               },
-              "queryRef": "_Measures.[Retention Label Changes]",
-              "nativeQueryRef": "_Measures.[Retention Label Changes]"
+              "queryRef": "_Measures.Retention Label Changes",
+              "nativeQueryRef": "Retention Label Changes"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Retention label changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

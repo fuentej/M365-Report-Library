@@ -26,7 +26,8 @@
                   "Property": "Policies Requiring MFA"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policies Requiring MFA"
+              "queryRef": "ConditionalAccessPolicies.Policies Requiring MFA",
+              "nativeQueryRef": "Policies Requiring MFA"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Requiring MFA as a built-in control"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Requiring MFA as a built-in control'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]
