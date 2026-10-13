@@ -114,7 +114,7 @@ Describe 'Each collector writes the columns of its sample' {
         Set-UsageMock 'Get-MgReportOneDriveActivityUserDetail' 'OneDriveUser'
         Mock Get-MgAdminReportSetting { [pscustomobject]@{ DisplayConcealedNames = $false } }
         Mock Get-SPOTenant { [pscustomobject]@{ StorageQuota = 5242880; StorageQuotaAllocated = 1048576; ResourceQuota = 300; ResourceQuotaAllocated = 0; OneDriveStorageQuota = 1048576 } }
-        Mock Get-SPOSite { [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/finance'; Title = 'Finance'; Template = 'GROUP#0'; StorageUsageCurrent = 1024; ResourceUsageCurrent = 0; WebsCount = 1 } }
+        Mock Get-SPOSite { [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/finance'; Title = 'Finance'; Template = 'GROUP#0'; StorageUsageCurrent = 1024; ResourceUsageCurrent = 0; WebsCount = 1; IsTeamsConnected = $true; IsTeamsChannelConnected = $false; SharingCapability = 'ExternalUserSharingOnly' } }
         Mock Invoke-MgGraphRequest {
             if ($Uri -like '*getAllSites*') { @{ value = @(New-MockSite -Id 'site-1') } }
             elseif ($Uri -like '*/drives*') { @{ value = @(New-MockDrive -Id 'drive-1') } }
@@ -203,16 +203,17 @@ Describe 'Cloud availability' {
     }
 
     It 'attempts <Script> in <Cloud> and logs a warning that availability is UNVERIFIED' -ForEach @(
-        @{ Script = 'Get-TenantStorage.ps1'; Cloud = 'Commercial'; Cmdlet = 'Get-SPOTenant' }
-        @{ Script = 'Get-TenantStorage.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-SPOTenant' }
-        @{ Script = 'Get-SpoSites.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-SPOSite' }
-        @{ Script = 'Get-SpoSites.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-SPOSite' }
-        @{ Script = 'Get-ReportSettings.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-MgAdminReportSetting' }
-        @{ Script = 'Get-SiteActivity.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Invoke-MgGraphRequest' }
+        @{ Script = 'Get-TenantStorage.ps1'; Cloud = 'Commercial'; Cmdlet = 'Get-SPOTenant'; Calls = 1 }
+        @{ Script = 'Get-TenantStorage.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-SPOTenant'; Calls = 1 }
+        # One list call, then one Get-SPOSite -Identity call for the one site it returns.
+        @{ Script = 'Get-SpoSites.ps1'; Cloud = 'GCC'; Cmdlet = 'Get-SPOSite'; Calls = 2 }
+        @{ Script = 'Get-SpoSites.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-SPOSite'; Calls = 2 }
+        @{ Script = 'Get-ReportSettings.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Get-MgAdminReportSetting'; Calls = 1 }
+        @{ Script = 'Get-SiteActivity.ps1'; Cloud = 'GCCHigh'; Cmdlet = 'Invoke-MgGraphRequest'; Calls = 1 }
     ) {
         Invoke-CollectorScript $Script @{ OutputPath = $script:Out; Environment = $Cloud; SkipConnect = $true }
         Get-LogText $script:Out | Should -Match 'UNVERIFIED'
-        Should -Invoke $Cmdlet -Times 1 -Exactly -Scope It
+        Should -Invoke $Cmdlet -Times $Calls -Exactly -Scope It
     }
 
     It 'does not warn that <Script> is unverified in <Cloud>, where the contract marks it available' -ForEach @(
@@ -371,12 +372,43 @@ Describe 'State sources stamp the run date and append' {
             if ($global:SpoTest.UsageTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
             Set-Content -LiteralPath $OutFile -Encoding utf8 -Value ($global:SpoTest.Headers.SiteDetail + "`n" + $global:SpoTest.Rows.SiteDetail)
         }
-        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true; Period = 'D7' }
 
         (Import-Csv -LiteralPath (Join-Path $script:Out 'sharepoint-site-usage-detail.csv')).SiteId | Should -Be 'site-1'
         $global:SpoTest.UsageTries | Should -Be 2
         Get-LogText $script:Out | Should -Match 'HTTP 429'
         Get-LogText $script:Out | Should -Not -Match 'unavailable to this sign-in'
+    }
+
+    It 'reads all four periods by default, told apart by ReportPeriod, and one period when -Period is given' {
+        Mock Get-MgReportSharePointSiteUsageDetail {
+            $days = $Period.Substring(1)
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value ($global:SpoTest.Headers.SiteDetail + "`n" + ($global:SpoTest.Rows.SiteDetail -replace ',30\s*$', ",$days"))
+        }
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        foreach ($wanted in 'D7', 'D30', 'D90', 'D180') {
+            Should -Invoke Get-MgReportSharePointSiteUsageDetail -Times 1 -Exactly -ParameterFilter { $Period -eq $wanted }
+        }
+        $path = Join-Path $script:Out 'sharepoint-site-usage-detail.csv'
+        @(Import-Csv -LiteralPath $path).ReportPeriod | Should -Be @('7', '30', '90', '180')
+
+        # A second run on the same day adds nothing; a single period still works.
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        @(Import-Csv -LiteralPath $path).Count | Should -Be 4
+        $other = Join-Path $script:Out 'other'
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $other; SkipConnect = $true; Period = 'D90' }
+        @(Import-Csv -LiteralPath (Join-Path $other 'sharepoint-site-usage-detail.csv')).ReportPeriod | Should -Be '90'
+    }
+
+    It 'writes the header only when the site usage report is refused for every period' {
+        Mock Get-MgReportSharePointSiteUsageDetail { throw 'Forbidden' }
+        Invoke-CollectorScript 'Get-SharePointSiteUsageDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $path = Join-Path $script:Out 'sharepoint-site-usage-detail.csv'
+        @(Import-Csv -LiteralPath $path).Count | Should -Be 0
+        Get-HeaderText $path | Should -Be ($script:Schema.SharePointSiteUsageDetail -join ',')
+        Get-LogText $script:Out | Should -Match 'Reports.Read.All'
     }
 
     It 'sends -Period and records no query date for a period activity report' {
@@ -440,6 +472,87 @@ Describe 'State sources stamp the run date and append' {
         Should -Invoke Get-SPOSite -Times 1 -Exactly -ParameterFilter { $Limit -eq 'ALL' -and $IncludePersonalSite -eq $true -and -not $Identity }
         (Import-Csv -LiteralPath (Join-Path $script:Out 'spo-sites.csv')).StorageUsageCurrent | Should -Be ''
         Get-LogText $script:Out | Should -Match 'without -Detailed'
+    }
+
+
+    It 'records the Teams link and channel link from the list, and the sharing level from a call per site' {
+        # SharingCapability is not populated when Get-SPOSite runs with -Limit, so it comes from -Identity.
+        # https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite
+        Mock Get-SPOSite {
+            if ($Identity) {
+                $sharing = switch -Wildcard ($Identity) { '*team*' { 'ExternalUserAndGuestSharing' } '*channel*' { 'Disabled' } default { 'ExistingExternalUserSharingOnly' } }
+                [pscustomobject]@{ Url = $Identity; SharingCapability = $sharing; IsTeamsConnected = $false; IsTeamsChannelConnected = $false }
+            }
+            else {
+                @(
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/team'; Title = 'Team site'; Template = 'GROUP#0'; IsTeamsConnected = $true; IsTeamsChannelConnected = $false; SharingCapability = 'Disabled' }
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/channel'; Title = 'Channel site'; Template = 'TEAMCHANNEL#0'; IsTeamsConnected = $false; IsTeamsChannelConnected = $true; SharingCapability = 'Disabled' }
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/plain'; Title = 'No group'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false; SharingCapability = 'Disabled' }
+                )
+            }
+        }
+        Invoke-CollectorScript 'Get-SpoSites.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'spo-sites.csv'))
+        $rows.Count | Should -Be 3
+        $rows[0].IsTeamsConnected | Should -Be 'True'
+        $rows[0].IsTeamsChannelConnected | Should -Be 'False'
+        $rows[1].IsTeamsConnected | Should -Be 'False'
+        $rows[1].IsTeamsChannelConnected | Should -Be 'True'
+        $rows[2].IsTeamsConnected | Should -Be 'False'
+        $rows[2].IsTeamsChannelConnected | Should -Be 'False'
+        # The list returned 'Disabled' for all three (a default); the per-site value wins.
+        $rows.SharingCapability | Should -Be @('ExternalUserAndGuestSharing', 'Disabled', 'ExistingExternalUserSharingOnly')
+        Should -Invoke Get-SPOSite -Times 1 -Exactly -ParameterFilter { $Limit -eq 'ALL' -and -not $Identity }
+        Should -Invoke Get-SPOSite -Times 3 -Exactly -ParameterFilter { $Identity -and -not $Limit }
+    }
+
+    It 'leaves SharingCapability empty and warns once when the per-site call fails' {
+        Mock Get-SPOSite {
+            if ($Identity) { throw 'Access denied' }
+            @(
+                [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/a'; Title = 'A'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false; SharingCapability = 'Disabled' }
+                [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/b'; Title = 'B'; Template = 'STS#3'; IsTeamsConnected = $true; IsTeamsChannelConnected = $false; SharingCapability = 'Disabled' }
+            )
+        }
+        Invoke-CollectorScript 'Get-SpoSites.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'spo-sites.csv'))
+        $rows.Count | Should -Be 2
+        ($rows.SharingCapability | Sort-Object -Unique) | Should -Be ''
+        $rows[1].IsTeamsConnected | Should -Be 'True'
+        @([regex]::Matches((Get-LogText $script:Out), 'SharingCapability is empty for 2 of 2 sites')).Count | Should -Be 1
+    }
+
+    It 'retries a throttled per-site call and names the cause when one still fails' {
+        # SharePoint answers 429 and 503 with Retry-After; a throttled site is not a site with no sharing level.
+        # https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online
+        Mock Start-Sleep { }
+        $global:SpoTest.SiteTries = @{}
+        Mock Get-SPOSite {
+            if (-not $Identity) {
+                return @(
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/a'; Title = 'A'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false }
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/b'; Title = 'B'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false }
+                )
+            }
+            $global:SpoTest.SiteTries[$Identity] = 1 + [int]$global:SpoTest.SiteTries[$Identity]
+            if ($Identity -like '*/a') {
+                if ($global:SpoTest.SiteTries[$Identity] -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+                return [pscustomobject]@{ Url = $Identity; SharingCapability = 'ExternalUserAndGuestSharing' }
+            }
+            throw 'The remote server returned an error: (403) Forbidden.'
+        }
+        Invoke-CollectorScript 'Get-SpoSites.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'spo-sites.csv'))
+        $rows[0].SharingCapability | Should -Be 'ExternalUserAndGuestSharing'
+        $rows[1].SharingCapability | Should -Be ''
+        $global:SpoTest.SiteTries['https://contoso.sharepoint.example.com/sites/a'] | Should -Be 2
+        $global:SpoTest.SiteTries['https://contoso.sharepoint.example.com/sites/b'] | Should -Be 1
+        $log = Get-LogText $script:Out
+        $log | Should -Match 'SharingCapability is empty for 1 of 2 sites'
+        $log | Should -Match 'Forbidden'
     }
 
     It 'warns for the tenant storage properties Get-SPOTenant does not return' {
@@ -817,7 +930,7 @@ Describe 'Run-All' {
         }
         Should -Invoke Get-MgReportSharePointSiteUsageDetail -Times 0 -Exactly
         Should -Invoke Connect-SPOService -Times 1 -Exactly -ParameterFilter { $Region -eq 'ITAR' }
-        Should -Invoke Get-SPOSite -Times 1 -Exactly
+        Should -Invoke Get-SPOSite -Times 1 -Exactly -ParameterFilter { $Limit -eq 'ALL' }
         Should -Invoke Search-UnifiedAuditLog -Scope It -Times 1
     }
 

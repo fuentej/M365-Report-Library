@@ -95,6 +95,41 @@ Describe 'The sample CSVs match the collectors' {
         }
     }
 
+    It 'has all four usage periods in sharepoint-site-usage-detail.csv, for every site in every run' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv'))
+        ($rows.ReportPeriod | Sort-Object { [int]$_ } -Unique) | Should -Be @('7', '30', '90', '180')
+        foreach ($group in $rows | Group-Object RunDate, SiteId) {
+            ($group.Group.ReportPeriod | Sort-Object { [int]$_ }) | Should -Be @('7', '30', '90', '180') -Because $group.Name
+        }
+    }
+
+    It 'shows no active files or page views in a usage period that ends before the last activity' {
+        # The report covers the period ending on ReportRefreshDate; a site last active before it has nothing in it.
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv'))
+        foreach ($row in $rows) {
+            $windowStart = ([datetime]$row.ReportRefreshDate).AddDays(-[int]$row.ReportPeriod)
+            $inWindow = $row.LastActivityDate -ne '' -and [datetime]$row.LastActivityDate -ge $windowStart
+            if ($inWindow) { continue }
+            $row.ActiveFileCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod) was last active $($row.LastActivityDate)"
+            $row.PageViewCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod)"
+            $row.VisitedPageCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod)"
+        }
+    }
+
+    It 'has a site of each type and each sharing level in spo-sites.csv' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'spo-sites.csv'))
+        @($rows | Where-Object { $_.IsTeamsConnected -eq 'True' }).Count | Should -BeGreaterOrEqual 1
+        @($rows | Where-Object { $_.IsTeamsChannelConnected -eq 'True' }).Count | Should -BeGreaterOrEqual 1
+        # An M365 group site that is not connected to a team, and a site with no group.
+        @($rows | Where-Object { $_.Template -eq 'GROUP#0' -and $_.IsTeamsConnected -eq 'False' }).Count | Should -BeGreaterOrEqual 1
+        @($rows | Where-Object { $_.Template -notlike 'GROUP#0' -and $_.IsTeamsConnected -eq 'False' -and $_.IsTeamsChannelConnected -eq 'False' }).Count | Should -BeGreaterOrEqual 1
+        ($rows.SharingCapability | Sort-Object -Unique) | Should -Be @('Disabled', 'ExistingExternalUserSharingOnly', 'ExternalUserAndGuestSharing', 'ExternalUserSharingOnly')
+        foreach ($row in $rows) {
+            $row.IsTeamsConnected | Should -BeIn 'True', 'False'
+            $row.IsTeamsChannelConnected | Should -BeIn 'True', 'False'
+        }
+    }
+
     It 'uses no address outside example.com' {
         $text = foreach ($file in Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -Recurse) { Get-Content -LiteralPath $file.FullName -Raw }
         $addresses = [regex]::Matches(($text -join "`n"), '[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})') | ForEach-Object { $_.Groups[1].Value.ToLowerInvariant() } | Sort-Object -Unique
