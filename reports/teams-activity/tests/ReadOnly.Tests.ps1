@@ -29,7 +29,7 @@ Describe 'Only read-only tenant commands are called' {
     It 'covers the tenant cmdlets it expects' {
         $names = $script:Calls.Name | Sort-Object -Unique
         foreach ($expected in 'Get-MgReportTeamUserActivityUserDetail', 'Get-MgReportTeamUserActivityCount',
-            'Get-MgReportTeamDeviceUsageUserDetail', 'Get-MgAdminReportSetting', 'Search-UnifiedAuditLog', 'Invoke-MgGraphRequest') {
+            'Get-MgReportTeamDeviceUsageUserDetail', 'Get-MgReportTeamActivityDetail', 'Get-MgAdminReportSetting', 'Search-UnifiedAuditLog', 'Invoke-MgGraphRequest') {
             $names | Should -Contain $expected
         }
     }
