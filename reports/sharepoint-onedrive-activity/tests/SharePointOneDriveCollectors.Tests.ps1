@@ -524,6 +524,37 @@ Describe 'State sources stamp the run date and append' {
         @([regex]::Matches((Get-LogText $script:Out), 'SharingCapability is empty for 2 of 2 sites')).Count | Should -Be 1
     }
 
+    It 'retries a throttled per-site call and names the cause when one still fails' {
+        # SharePoint answers 429 and 503 with Retry-After; a throttled site is not a site with no sharing level.
+        # https://learn.microsoft.com/sharepoint/dev/general-development/how-to-avoid-getting-throttled-or-blocked-in-sharepoint-online
+        Mock Start-Sleep { }
+        $global:SpoTest.SiteTries = @{}
+        Mock Get-SPOSite {
+            if (-not $Identity) {
+                return @(
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/a'; Title = 'A'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false }
+                    [pscustomobject]@{ Url = 'https://contoso.sharepoint.example.com/sites/b'; Title = 'B'; Template = 'STS#3'; IsTeamsConnected = $false; IsTeamsChannelConnected = $false }
+                )
+            }
+            $global:SpoTest.SiteTries[$Identity] = 1 + [int]$global:SpoTest.SiteTries[$Identity]
+            if ($Identity -like '*/a') {
+                if ($global:SpoTest.SiteTries[$Identity] -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+                return [pscustomobject]@{ Url = $Identity; SharingCapability = 'ExternalUserAndGuestSharing' }
+            }
+            throw 'The remote server returned an error: (403) Forbidden.'
+        }
+        Invoke-CollectorScript 'Get-SpoSites.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Out 'spo-sites.csv'))
+        $rows[0].SharingCapability | Should -Be 'ExternalUserAndGuestSharing'
+        $rows[1].SharingCapability | Should -Be ''
+        $global:SpoTest.SiteTries['https://contoso.sharepoint.example.com/sites/a'] | Should -Be 2
+        $global:SpoTest.SiteTries['https://contoso.sharepoint.example.com/sites/b'] | Should -Be 1
+        $log = Get-LogText $script:Out
+        $log | Should -Match 'SharingCapability is empty for 1 of 2 sites'
+        $log | Should -Match 'Forbidden'
+    }
+
     It 'warns for the tenant storage properties Get-SPOTenant does not return' {
         Mock Get-SPOTenant { [pscustomobject]@{ StorageQuota = 100 } }
         Invoke-CollectorScript 'Get-TenantStorage.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }

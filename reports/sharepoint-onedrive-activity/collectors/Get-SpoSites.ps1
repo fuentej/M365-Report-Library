@@ -18,8 +18,9 @@
         IsTeamsConnected and IsTeamsChannelConnected (a private or shared channel site) are read from the
         same list (examples 9 and 10 on the cmdlet page). SharingCapability is not populated when -Limit
         or -Filter is given, and the list needs -Limit ALL, so it is read with one
-        Get-SPOSite -Identity <url> call per site. A site whose call fails leaves SharingCapability
-        empty, and one warning in run.log counts them. That is one call per site, including every
+        Get-SPOSite -Identity <url> call per site, retried on HTTP 429 or 503. A site whose call
+        still fails leaves SharingCapability empty, and one warning in run.log counts them and gives
+        the first error. That is one call per site, including every
         OneDrive, so a large tenant takes a while; -SiteLimit shortens a trial run.
 
         Whether the cmdlet works in any cloud is UNVERIFIED, so every cloud is attempted with a
@@ -103,16 +104,20 @@ try {
     if ($SiteLimit -gt 0) { $sites = @($sites | Select-Object -First $SiteLimit) }
 
     $sharingUnread = 0
+    $firstSharingError = ''
     $rows = foreach ($site in $sites) {
         $url = Get-ObjectText -Object $site -Name 'Url'
         # SharingCapability is not populated by the list call, so ask for the site itself.
         $sharing = ''
         try {
-            $detail = Get-SPOSite -Identity $url -ErrorAction Stop
+            $detail = Invoke-ReadWithThrottleRetry -OutputPath $OutputPath -Source $source -Action {
+                Get-SPOSite -Identity $url -ErrorAction Stop
+            }
             $sharing = Get-ObjectText -Object $detail -Name 'SharingCapability'
         }
         catch {
             $sharing = ''
+            if ($firstSharingError -eq '') { $firstSharingError = $_.Exception.Message }
         }
         if ($sharing -eq '') { $sharingUnread++ }
 
@@ -133,7 +138,7 @@ try {
 
     if ($sharingUnread -gt 0) {
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
-            'SharingCapability is empty for {0} of {1} sites: Get-SPOSite -Identity did not return it. It is not populated by the -Limit list call.' -f $sharingUnread, $rows.Count)
+            'SharingCapability is empty for {0} of {1} sites: Get-SPOSite -Identity did not return it. It is not populated by the -Limit list call. First error: {2}' -f $sharingUnread, $rows.Count, $(if ($firstSharingError -eq '') { 'none (the call returned no SharingCapability)' } else { $firstSharingError }))
     }
 
     if ($rows.Count -gt 0 -and @($rows | Where-Object { $_.StorageUsageCurrent -ne '' }).Count -eq 0) {
