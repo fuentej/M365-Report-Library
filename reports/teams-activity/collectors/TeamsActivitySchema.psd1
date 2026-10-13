@@ -2,8 +2,8 @@
     # The column order of every CSV this report produces. The collectors, the sample data and the
     # tests all read the order from here, so a sample file can never drift from its collector's output.
     # Contract: docs/candidates/teams-activity.md (source numbers below are that table's).
-    # Source 4 (team activity) is collected by reports/teams-groups-lifecycle (Get-TeamActivity.ps1), which
-    # already writes every column the contract lists. Source 7 (message content) is not built: it reads
+    # Source 4 (team activity) is collected here (Get-TeamsTeamActivityDetail.ps1) and, from the same API, by
+    # reports/teams-groups-lifecycle (Get-TeamActivity.ps1, team-activity.csv). Source 7 (message content) is not built: it reads
     # message bodies. Source 9 (the admin center export) is a manual fallback, not a collector.
 
     # Source 1. getTeamsUserActivityUserDetail. One row per user per run and period. QueryDate is the day
@@ -88,6 +88,31 @@
         'ReportPeriod'
     )
 
+    # Source 4. getTeamsTeamActivityDetail. One row per team per run and period, as Microsoft reports them
+    # (the numbers include licensed and non-licensed users). Team names are blank when the tenant conceals
+    # names. The lifecycle report's Get-TeamActivity.ps1 reads the same API into team-activity.csv.
+    TeamsTeamActivityDetail = @(
+        'RunDate'
+        'ReportRefreshDate'
+        'ReportPeriod'
+        'TeamId'
+        'TeamName'
+        'TeamType'
+        'LastActivityDate'
+        'ActiveUsers'
+        'ActiveChannels'
+        'Guests'
+        'Reactions'
+        'MeetingsOrganized'
+        'PostMessages'
+        'ReplyMessages'
+        'ChannelMessages'
+        'UrgentMessages'
+        'Mentions'
+        'ActiveSharedChannels'
+        'ActiveExternalUsers'
+    )
+
     # Source 5. GET /admin/reportSettings. DisplayConcealedNames is True when usage reports hold concealed
     # identifiers, so sources 1 and 3 cannot be joined on UserPrincipalName.
     ReportSettings = @(
@@ -144,6 +169,13 @@
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail' }
             GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail' }
             GCCHigh    = @{ Status = 'NotAvailable'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsdeviceusageuserdetail' }
+        }
+        # The API page marks the global service only: US Government L4 and L5 are not supported.
+        # GCC is UNVERIFIED for the same reason as sources 1 to 3.
+        TeamsTeamActivityDetail = @{
+            Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail' }
+            GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail' }
+            GCCHigh    = @{ Status = 'NotAvailable'; Reference = 'https://learn.microsoft.com/graph/api/reportroot-getteamsteamactivitydetail' }
         }
         ReportSettings = @{
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/adminreportsettings-get' }

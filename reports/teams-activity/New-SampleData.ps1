@@ -7,7 +7,7 @@
     .DESCRIPTION
         Every name is invented and every address is on example.com. Columns come from
         collectors/TeamsActivitySchema.psd1, so a sample cannot drift from its collector.
-        samples/gcchigh/ holds the header-only files a GCC High run leaves for the three Graph
+        samples/gcchigh/ holds the header-only files a GCC High run leaves for the four Graph
         usage reports, which are not available in that cloud.
 
     .EXAMPLE
@@ -100,6 +100,30 @@ $rows = foreach ($run in $runDates) {
 }
 Write-Sample $OutputPath 'teams-device-usage-user-detail.csv' $schema.TeamsDeviceUsageUserDetail $rows
 
+# Source 4. Six teams, one of them with no activity: no last activity date and zero counts.
+$teams = @(
+    @{ Id = '44444444-0000-0000-0000-000000000001'; Name = 'Sales EMEA'; Type = 'Standard'; Last = '2026-10-07'; Users = 14; Channels = 6; Guests = 2; React = 88; Org = 9; Post = 140; Reply = 310; Chan = 450; Urgent = 3; Mentions = 52; Shared = 1; Ext = 1 }
+    @{ Id = '44444444-0000-0000-0000-000000000002'; Name = 'Engineering Platform'; Type = 'Standard'; Last = '2026-10-07'; Users = 22; Channels = 11; Guests = 0; React = 160; Org = 21; Post = 260; Reply = 720; Chan = 980; Urgent = 1; Mentions = 140; Shared = 0; Ext = 0 }
+    @{ Id = '44444444-0000-0000-0000-000000000003'; Name = 'Finance Close'; Type = 'Standard'; Last = '2026-10-02'; Users = 4; Channels = 2; Guests = 0; React = 6; Org = 2; Post = 11; Reply = 19; Chan = 30; Urgent = 0; Mentions = 4; Shared = 0; Ext = 0 }
+    @{ Id = '44444444-0000-0000-0000-000000000004'; Name = 'Partner Collaboration'; Type = 'Standard'; Last = '2026-10-06'; Users = 9; Channels = 4; Guests = 6; React = 31; Org = 4; Post = 48; Reply = 95; Chan = 143; Urgent = 0; Mentions = 17; Shared = 2; Ext = 5 }
+    @{ Id = '44444444-0000-0000-0000-000000000005'; Name = 'Facilities Notices'; Type = 'Standard'; Last = '2026-08-19'; Users = 1; Channels = 1; Guests = 0; React = 0; Org = 0; Post = 1; Reply = 0; Chan = 1; Urgent = 0; Mentions = 0; Shared = 0; Ext = 0 }
+    @{ Id = '44444444-0000-0000-0000-000000000006'; Name = 'Retired Project Atlas'; Type = 'Standard'; Last = ''; Users = 0; Channels = 0; Guests = 0; React = 0; Org = 0; Post = 0; Reply = 0; Chan = 0; Urgent = 0; Mentions = 0; Shared = 0; Ext = 0 }
+)
+$rows = foreach ($run in $runDates) {
+    foreach ($t in $teams) {
+        $scale = if ($run -eq '2026-10-08') { 1.1 } else { 1.0 }
+        [pscustomobject]@{
+            RunDate = $run; ReportRefreshDate = ([datetime]$run).AddDays(-3).ToString('yyyy-MM-dd'); ReportPeriod = 30
+            TeamId = $t.Id; TeamName = $t.Name; TeamType = $t.Type; LastActivityDate = $t.Last
+            ActiveUsers = $t.Users; ActiveChannels = $t.Channels; Guests = $t.Guests; Reactions = [int]($t.React * $scale)
+            MeetingsOrganized = [int]($t.Org * $scale); PostMessages = [int]($t.Post * $scale); ReplyMessages = [int]($t.Reply * $scale)
+            ChannelMessages = [int]($t.Chan * $scale); UrgentMessages = $t.Urgent; Mentions = [int]($t.Mentions * $scale)
+            ActiveSharedChannels = $t.Shared; ActiveExternalUsers = $t.Ext
+        }
+    }
+}
+Write-Sample $OutputPath 'teams-team-activity-detail.csv' $schema.TeamsTeamActivityDetail $rows
+
 # Source 5
 $rows = $runDates | ForEach-Object { [pscustomobject]@{ RunDate = $_; DisplayConcealedNames = 'False' } }
 Write-Sample $OutputPath 'report-settings.csv' $schema.ReportSettings $rows
@@ -145,11 +169,12 @@ $rows = @(
 )
 Write-Sample $OutputPath 'teams-audit-events.csv' $schema.TeamsAuditEvents $rows
 
-# Header-only files a GCC High run leaves for sources 1 to 3
+# Header-only files a GCC High run leaves for sources 1 to 4
 $notAvailable = [ordered]@{
     'teams-user-activity-user-detail.csv' = 'TeamsUserActivityUserDetail'
     'teams-user-activity-counts.csv'      = 'TeamsUserActivityCounts'
     'teams-device-usage-user-detail.csv'  = 'TeamsDeviceUsageUserDetail'
+    'teams-team-activity-detail.csv'      = 'TeamsTeamActivityDetail'
 }
 foreach ($name in $notAvailable.Keys) {
     Write-Sample $gccHigh $name $schema[$notAvailable[$name]] @()

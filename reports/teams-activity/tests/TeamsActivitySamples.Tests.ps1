@@ -9,16 +9,17 @@ BeforeAll {
     $script:Schema = Import-PowerShellDataFile -LiteralPath (Join-Path $script:Collectors 'TeamsActivitySchema.psd1')
 
     # CSV name -> schema key. One row per source in docs/candidates/teams-activity.md that this report collects.
-    # Source 4 is collected by reports/teams-groups-lifecycle; source 7 is not built; source 9 is manual.
+    # Source 4 is collected here and, from the same API, by reports/teams-groups-lifecycle; source 7 is not built; source 9 is manual.
     $script:Map = [ordered]@{
         'teams-user-activity-user-detail.csv' = 'TeamsUserActivityUserDetail'
         'teams-user-activity-counts.csv'      = 'TeamsUserActivityCounts'
         'teams-device-usage-user-detail.csv'  = 'TeamsDeviceUsageUserDetail'
+        'teams-team-activity-detail.csv'      = 'TeamsTeamActivityDetail'
         'report-settings.csv'                 = 'ReportSettings'
         'call-records.csv'                    = 'CallRecords'
         'teams-audit-events.csv'              = 'TeamsAuditEvents'
     }
-    $script:Unavailable = 'TeamsUserActivityUserDetail', 'TeamsUserActivityCounts', 'TeamsDeviceUsageUserDetail'
+    $script:Unavailable = 'TeamsUserActivityUserDetail', 'TeamsUserActivityCounts', 'TeamsDeviceUsageUserDetail', 'TeamsTeamActivityDetail'
 }
 
 AfterAll {
@@ -104,6 +105,20 @@ Describe 'The sample CSVs match the collectors' {
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'call-records.csv') | Where-Object SessionId -EQ '6b2e0001-0000-0000-0000-000000000002')
         $rows.Count | Should -Be 2
         @($rows.CalleeUserId | Sort-Object -Unique).Count | Should -Be 2
+    }
+
+    It 'has at least 6 teams in teams-team-activity-detail.csv, one of them with no activity' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-team-activity-detail.csv'))
+        $latest = @($rows | Where-Object RunDate -EQ ($rows.RunDate | Sort-Object | Select-Object -Last 1))
+        $latest.Count | Should -BeGreaterOrEqual 6
+        $quiet = @($latest | Where-Object { -not $_.LastActivityDate })
+        $quiet.Count | Should -BeGreaterOrEqual 1
+        foreach ($team in $quiet) {
+            foreach ($column in 'ActiveUsers', 'ActiveChannels', 'Reactions', 'MeetingsOrganized', 'PostMessages', 'ReplyMessages', 'ChannelMessages', 'Mentions') {
+                $team.$column | Should -Be '0' -Because "$($team.TeamName) $column"
+            }
+        }
+        @($latest | Where-Object { $_.LastActivityDate }).Count | Should -BeGreaterThan 1
     }
 
     It 'covers every audited operation in teams-audit-events.csv' {

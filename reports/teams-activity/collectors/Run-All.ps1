@@ -9,13 +9,13 @@
         those sessions (-SkipConnect), so an interactive run prompts twice, not once per collector.
         report-settings.csv runs first: it says whether the usage reports conceal names.
 
-        The team activity report (source 4 of the contract) is not rebuilt here. It is the same API
-        the Teams and Groups lifecycle report already collects, so this script runs that report's
-        Get-TeamActivity.ps1 into the same folder and its team-activity.csv is the source 4 file.
+        The team activity report (source 4 of the contract) is written here as teams-team-activity-detail.csv.
+        It is the same API the Teams and Groups lifecycle report collects, so this script also runs that
+        report's Get-TeamActivity.ps1 into the same folder and leaves its team-activity.csv beside it.
 
         A collector whose source is refused, or documented as unavailable in this cloud, leaves a
         header-only CSV and a line in run.log without stopping the others. In GCC High the three usage
-        report CSVs and team-activity.csv are skipped that way.
+        report CSVs, teams-team-activity-detail.csv and team-activity.csv are skipped that way.
 
         Reports.Read.All and ReportSettings.Read.All are requested for an interactive sign-in.
         The call records need the application permission CallRecords.Read.All. That permission is
@@ -106,6 +106,7 @@ try {
         @{ Name = 'teams-user-activity-user-detail'; Script = Join-Path $PSScriptRoot 'Get-TeamsUserActivityUserDetail.ps1'; Arguments = $usage }
         @{ Name = 'teams-user-activity-counts'; Script = Join-Path $PSScriptRoot 'Get-TeamsUserActivityCounts.ps1'; Arguments = $usage }
         @{ Name = 'teams-device-usage-user-detail'; Script = Join-Path $PSScriptRoot 'Get-TeamsDeviceUsageUserDetail.ps1'; Arguments = $usage }
+        @{ Name = 'teams-team-activity-detail'; Script = Join-Path $PSScriptRoot 'Get-TeamsTeamActivityDetail.ps1'; Arguments = $usage }
         @{ Name = 'team-activity'; Script = $lifecycle; Arguments = $usage }
         @{ Name = 'call-records'; Script = Join-Path $PSScriptRoot 'Get-CallRecords.ps1'; Arguments = $common + @{ LookbackDays = [math]::Min($LookbackDays, 30) } }
         @{ Name = 'teams-audit-events'; Script = Join-Path $PSScriptRoot 'Get-TeamsAuditEvents.ps1'; Arguments = $common + @{ LookbackDays = $LookbackDays } }
