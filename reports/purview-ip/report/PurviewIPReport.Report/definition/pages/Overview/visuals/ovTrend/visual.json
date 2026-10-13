@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Calendar.Date",
-              "nativeQueryRef": "Calendar.Date"
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -44,8 +44,8 @@
                   "Property": "Total Events"
                 }
               },
-              "queryRef": "_Measures.[Total Events]",
-              "nativeQueryRef": "_Measures.[Total Events]"
+              "queryRef": "_Measures.Total Events",
+              "nativeQueryRef": "Total Events"
             }
           ]
         }

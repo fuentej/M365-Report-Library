@@ -26,8 +26,8 @@
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "_Measures.[Label Downgrades]",
-              "nativeQueryRef": "_Measures.[Label Downgrades]"
+              "queryRef": "_Measures.Label Downgrades",
+              "nativeQueryRef": "Label Downgrades"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label downgrades'"
                 }
               }
             }

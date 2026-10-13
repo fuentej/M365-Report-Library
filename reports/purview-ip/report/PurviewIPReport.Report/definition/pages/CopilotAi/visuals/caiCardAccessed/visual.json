@@ -26,8 +26,8 @@
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "_Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.Copilot Resources Accessed",
+              "nativeQueryRef": "Copilot Resources Accessed"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Resources Copilot accessed'"
                 }
               }
             }

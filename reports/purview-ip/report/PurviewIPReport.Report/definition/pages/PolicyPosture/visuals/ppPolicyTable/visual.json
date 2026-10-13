@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Policies.ObjectType",
-              "nativeQueryRef": "Policies.ObjectType",
+              "nativeQueryRef": "ObjectType",
               "displayName": "Type"
             },
             {
@@ -42,7 +42,7 @@
                 }
               },
               "queryRef": "Policies.DisplayName",
-              "nativeQueryRef": "Policies.DisplayName",
+              "nativeQueryRef": "DisplayName",
               "displayName": "Name"
             },
             {
@@ -57,7 +57,7 @@
                 }
               },
               "queryRef": "Policies.Mode",
-              "nativeQueryRef": "Policies.Mode"
+              "nativeQueryRef": "Mode"
             },
             {
               "field": {
@@ -71,7 +71,7 @@
                 }
               },
               "queryRef": "Policies.Enabled",
-              "nativeQueryRef": "Policies.Enabled"
+              "nativeQueryRef": "Enabled"
             },
             {
               "field": {
@@ -85,7 +85,7 @@
                 }
               },
               "queryRef": "Policies.Workload",
-              "nativeQueryRef": "Policies.Workload"
+              "nativeQueryRef": "Workload"
             },
             {
               "field": {
@@ -99,7 +99,7 @@
                 }
               },
               "queryRef": "Policies.Locations",
-              "nativeQueryRef": "Policies.Locations"
+              "nativeQueryRef": "Locations"
             }
           ]
         }

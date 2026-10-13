@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.HowApplied",
-              "nativeQueryRef": "ActivityExplorerEvents.HowApplied",
+              "nativeQueryRef": "HowApplied",
               "displayName": "How the label was applied"
             }
           ]
@@ -45,8 +45,8 @@
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "_Measures.[Label Applications]",
-              "nativeQueryRef": "_Measures.[Label Applications]"
+              "queryRef": "_Measures.Label Applications",
+              "nativeQueryRef": "Label Applications"
             }
           ]
         }

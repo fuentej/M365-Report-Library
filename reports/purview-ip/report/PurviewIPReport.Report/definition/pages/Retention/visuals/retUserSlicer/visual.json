@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name",
+              "nativeQueryRef": "Name",
               "displayName": "User"
             }
           ]

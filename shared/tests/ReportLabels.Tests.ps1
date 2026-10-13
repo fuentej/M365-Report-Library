@@ -6,11 +6,23 @@
     ({ "expr": { "Literal": { "Value": ... } } }); a bare JSON true or string is not
     rendered, which is how the cards in five of these reports lost their titles.
 
+    A legacy card ("card") has no title by default (suppressDefaultTitle in its
+    capabilities), and its category label is the field's display name resolved at
+    render time. In Desktop that label did not appear on the Purview cards (BRO-461:
+    "a card shows 25 and nothing says what it counts"), whose show flag was true and
+    whose projections carried queryRef "_Measures.[DLP Matches]" and nativeQueryRef
+    the same string. So the label on every card is the visual title, written as
+    literal text in the visual: title.show true, title.text a non-empty string, and
+    categoryLabels.show false so the text is not shown twice. A card that relies on
+    its category label fails here.
+
     Checks, per visual.json:
     - every projection has a nativeQueryRef;
+    - a Column or Measure projection is named the way Desktop writes it: queryRef
+      "Entity.Property", nativeQueryRef "Property";
     - every formatting property under title, categoryLabels, categoryAxis and
       valueAxis is an expression, not a bare value;
-    - a card shows a title or a category label;
+    - a card shows a non-empty title as its label, with the category label off;
     - a chart or table shows a non-empty title, and a chart shows both axis titles;
     - a matrix keeps measures out of Rows and Columns (they take Grouping fields only);
     - each report has a .platform file, and each .pbip names its schema.
@@ -81,10 +93,25 @@ Describe 'Labels on <Report> / <Name>' -ForEach $script:Visuals {
         ($bare -join ', ') | Should -BeNullOrEmpty
     }
 
-    It 'shows a title or a category label on a card' -Skip:($Type -ne 'card') {
-        $title = Get-ObjectProperty $script:Container 'title' 'show'
-        $label = Get-ObjectProperty $script:Objects 'categoryLabels' 'show'
-        ($title -eq 'true' -or $label -eq 'true') | Should -BeTrue
+    It 'names each field the way Desktop writes it (queryRef Entity.Property, nativeQueryRef Property)' {
+        $wrong = foreach ($role in $script:Visual.query.queryState.Keys) {
+            foreach ($projection in $script:Visual.query.queryState[$role].projections) {
+                $kind = @($projection.field.Keys)[0]
+                if ($kind -notin 'Column', 'Measure') { continue }
+                $entity = $projection.field[$kind].Expression.SourceRef.Entity
+                $property = $projection.field[$kind].Property
+                if ($projection.queryRef -cne "$entity.$property" -or $projection.nativeQueryRef -cne $property) {
+                    "$role/$($projection.queryRef) ($($projection.nativeQueryRef))"
+                }
+            }
+        }
+        ($wrong -join ', ') | Should -BeNullOrEmpty
+    }
+
+    It 'labels a card with its title, not its category label' -Skip:($Type -ne 'card') {
+        Get-ObjectProperty $script:Container 'title' 'show' | Should -Be 'true'
+        Get-ObjectProperty $script:Container 'title' 'text' | Should -Match "^'.*\S.*'$"
+        Get-ObjectProperty $script:Objects 'categoryLabels' 'show' | Should -Be 'false'
     }
 
     It 'shows a non-empty title on a chart or table' -Skip:($Type -in 'card', 'slicer') {

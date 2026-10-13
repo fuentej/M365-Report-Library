@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "SensitivityAtRest.TagName",
-              "nativeQueryRef": "SensitivityAtRest.TagName",
+              "nativeQueryRef": "TagName",
               "displayName": "Sensitivity label"
             }
           ]
@@ -46,7 +46,7 @@
                 }
               },
               "queryRef": "SensitivityAtRest.Workload",
-              "nativeQueryRef": "SensitivityAtRest.Workload"
+              "nativeQueryRef": "Workload"
             }
           ]
         },
@@ -63,8 +63,8 @@
                   "Property": "Sensitivity Items At Rest"
                 }
               },
-              "queryRef": "_Measures.[Sensitivity Items At Rest]",
-              "nativeQueryRef": "_Measures.[Sensitivity Items At Rest]"
+              "queryRef": "_Measures.Sensitivity Items At Rest",
+              "nativeQueryRef": "Sensitivity Items At Rest"
             }
           ]
         }

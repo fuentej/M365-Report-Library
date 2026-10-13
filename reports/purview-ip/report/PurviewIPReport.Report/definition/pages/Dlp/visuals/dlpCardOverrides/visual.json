@@ -26,8 +26,8 @@
                   "Property": "DLP Overrides"
                 }
               },
-              "queryRef": "_Measures.[DLP Overrides]",
-              "nativeQueryRef": "_Measures.[DLP Overrides]"
+              "queryRef": "_Measures.DLP Overrides",
+              "nativeQueryRef": "DLP Overrides"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP overrides'"
                 }
               }
             }

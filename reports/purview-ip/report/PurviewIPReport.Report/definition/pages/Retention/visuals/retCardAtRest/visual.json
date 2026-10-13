@@ -26,8 +26,8 @@
                   "Property": "Retention Items At Rest (Latest)"
                 }
               },
-              "queryRef": "_Measures.[Retention Items At Rest (Latest)]",
-              "nativeQueryRef": "_Measures.[Retention Items At Rest (Latest)]"
+              "queryRef": "_Measures.Retention Items At Rest (Latest)",
+              "nativeQueryRef": "Retention Items At Rest (Latest)"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Items with a retention label (latest snapshot)'"
                 }
               }
             }

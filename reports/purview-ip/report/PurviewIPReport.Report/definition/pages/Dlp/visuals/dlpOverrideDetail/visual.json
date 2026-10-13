@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.RuleName",
-              "nativeQueryRef": "ActivityExplorerEvents.RuleName",
+              "nativeQueryRef": "RuleName",
               "displayName": "DLP rule"
             },
             {
@@ -42,7 +42,7 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name",
+              "nativeQueryRef": "Name",
               "displayName": "User"
             },
             {
@@ -57,7 +57,7 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.Justification",
-              "nativeQueryRef": "ActivityExplorerEvents.Justification"
+              "nativeQueryRef": "Justification"
             },
             {
               "field": {
@@ -71,7 +71,7 @@
                 }
               },
               "queryRef": "ActivityExplorerEvents.Happened",
-              "nativeQueryRef": "ActivityExplorerEvents.Happened",
+              "nativeQueryRef": "Happened",
               "displayName": "When"
             },
             {
@@ -85,8 +85,8 @@
                   "Property": "DLP Overrides"
                 }
               },
-              "queryRef": "_Measures.[DLP Overrides]",
-              "nativeQueryRef": "_Measures.[DLP Overrides]"
+              "queryRef": "_Measures.DLP Overrides",
+              "nativeQueryRef": "DLP Overrides"
             }
           ]
         }

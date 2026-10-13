@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name",
+              "nativeQueryRef": "Name",
               "displayName": "User"
             },
             {
@@ -42,7 +42,7 @@
                 }
               },
               "queryRef": "Users.Department",
-              "nativeQueryRef": "Users.Department"
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -55,8 +55,8 @@
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "_Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.Copilot Resources Accessed",
+              "nativeQueryRef": "Copilot Resources Accessed"
             }
           ]
         }

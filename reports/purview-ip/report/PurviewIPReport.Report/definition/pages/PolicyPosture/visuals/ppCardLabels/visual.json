@@ -26,8 +26,8 @@
                   "Property": "Sensitivity Label Count"
                 }
               },
-              "queryRef": "_Measures.[Sensitivity Label Count]",
-              "nativeQueryRef": "_Measures.[Sensitivity Label Count]"
+              "queryRef": "_Measures.Sensitivity Label Count",
+              "nativeQueryRef": "Sensitivity Label Count"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sensitivity labels'"
                 }
               }
             }

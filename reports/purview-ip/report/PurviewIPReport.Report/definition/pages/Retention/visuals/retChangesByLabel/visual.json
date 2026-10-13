@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "RetentionLabels.DisplayName",
-              "nativeQueryRef": "RetentionLabels.DisplayName",
+              "nativeQueryRef": "DisplayName",
               "displayName": "Retention label"
             }
           ]
@@ -45,8 +45,8 @@
                   "Property": "Retention Label Changes"
                 }
               },
-              "queryRef": "_Measures.[Retention Label Changes]",
-              "nativeQueryRef": "_Measures.[Retention Label Changes]"
+              "queryRef": "_Measures.Retention Label Changes",
+              "nativeQueryRef": "Retention Label Changes"
             }
           ]
         }

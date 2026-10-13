@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Calendar.Date",
-              "nativeQueryRef": "Calendar.Date"
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -44,8 +44,8 @@
                   "Property": "Retention Items At Rest"
                 }
               },
-              "queryRef": "_Measures.[Retention Items At Rest]",
-              "nativeQueryRef": "_Measures.[Retention Items At Rest]"
+              "queryRef": "_Measures.Retention Items At Rest",
+              "nativeQueryRef": "Retention Items At Rest"
             }
           ]
         }

@@ -26,8 +26,8 @@
                   "Property": "Anonymize Toggle Label"
                 }
               },
-              "queryRef": "AnonymizeToggle.Label",
-              "nativeQueryRef": "AnonymizeToggle.Label",
+              "queryRef": "Anonymize Toggle.Anonymize Toggle Label",
+              "nativeQueryRef": "Anonymize Toggle Label",
               "displayName": "Anonymize"
             }
           ]

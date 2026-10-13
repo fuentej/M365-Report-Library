@@ -26,8 +26,8 @@
                   "Property": "Copilot-Scoped DLP Policies"
                 }
               },
-              "queryRef": "_Measures.[Copilot-Scoped DLP Policies]",
-              "nativeQueryRef": "_Measures.[Copilot-Scoped DLP Policies]"
+              "queryRef": "_Measures.Copilot-Scoped DLP Policies",
+              "nativeQueryRef": "Copilot-Scoped DLP Policies"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP policies that apply to Copilot'"
                 }
               }
             }

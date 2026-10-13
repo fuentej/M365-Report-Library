@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "User Display.Name",
-              "nativeQueryRef": "User Display.Name",
+              "nativeQueryRef": "Name",
               "displayName": "User"
             },
             {
@@ -41,8 +41,8 @@
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "_Measures.[DLP Matches]",
-              "nativeQueryRef": "_Measures.[DLP Matches]"
+              "queryRef": "_Measures.DLP Matches",
+              "nativeQueryRef": "DLP Matches"
             },
             {
               "field": {
@@ -55,8 +55,8 @@
                   "Property": "DLP Overrides"
                 }
               },
-              "queryRef": "_Measures.[DLP Overrides]",
-              "nativeQueryRef": "_Measures.[DLP Overrides]"
+              "queryRef": "_Measures.DLP Overrides",
+              "nativeQueryRef": "DLP Overrides"
             }
           ]
         }

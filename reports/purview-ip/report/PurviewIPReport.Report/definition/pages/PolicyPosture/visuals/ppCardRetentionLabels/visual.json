@@ -26,8 +26,8 @@
                   "Property": "Retention Label Count"
                 }
               },
-              "queryRef": "_Measures.[Retention Label Count]",
-              "nativeQueryRef": "_Measures.[Retention Label Count]"
+              "queryRef": "_Measures.Retention Label Count",
+              "nativeQueryRef": "Retention Label Count"
             }
           ]
         }
@@ -40,7 +40,29 @@
             "show": {
               "expr": {
                 "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
                   "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Retention labels'"
                 }
               }
             }
