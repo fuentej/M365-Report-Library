@@ -17,7 +17,7 @@
         Not available in US Government L4 or L5 (the API page marks the global service only), so a GCC High run
         writes the header only and logs why. GCC is UNVERIFIED and is attempted with a warning. Needs
         Reports.Read.All; a delegated caller also needs a limited admin role such as Reports Reader. Team names
-        are blank when the organization setting that conceals user, group and site names is on
+        are concealed or blank when the organization setting that conceals user, group and site names is on
         (see report-settings.csv).
 
     .EXAMPLE

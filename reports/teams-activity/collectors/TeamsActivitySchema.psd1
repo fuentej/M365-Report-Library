@@ -89,7 +89,7 @@
     )
 
     # Source 4. getTeamsTeamActivityDetail. One row per team per run and period, as Microsoft reports them
-    # (the numbers include licensed and non-licensed users). Team names are blank when the tenant conceals
+    # (the numbers include licensed and non-licensed users). Team names are concealed or blank when the tenant conceals
     # names. The lifecycle report's Get-TeamActivity.ps1 reads the same API into team-activity.csv.
     TeamsTeamActivityDetail = @(
         'RunDate'

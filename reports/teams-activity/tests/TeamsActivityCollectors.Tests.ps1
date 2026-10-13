@@ -327,6 +327,31 @@ Describe 'Graph usage reports (sources 1 to 4) are state snapshots stamped with 
         $log | Should -Not -Match 'Reports\.Read\.All'
     }
 
+    It 'retries a team activity 429 and logs a team activity that stays throttled as throttle, not a missing permission' {
+        $global:TaTest.TeamTries = 0
+        Mock Get-MgReportTeamActivityDetail {
+            $global:TaTest.TeamTries++
+            if ($global:TaTest.TeamTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value "Report Refresh Date,Team Name,Team Id,Team Type,Last Activity Date,Report Period,Active Users`n2026-10-06,Sales EMEA,team-1,Standard,2026-10-05,30,14"
+        }
+        Mock Start-Sleep { }
+        Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $global:TaTest.TeamTries | Should -Be 2
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'teams-team-activity-detail.csv')).Count | Should -Be 1
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+
+        $stuck = New-TestFolder
+        try {
+            Mock Get-MgReportTeamActivityDetail { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $stuck; SkipConnect = $true }
+            @(Import-Csv -LiteralPath (Join-Path $stuck 'teams-team-activity-detail.csv')).Count | Should -Be 0
+            $log = Get-LogText $stuck
+            $log | Should -Match 'still throttled'
+            $log | Should -Not -Match 'Reports\.Read\.All'
+        }
+        finally { Remove-Item -LiteralPath $stuck -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
     It 'writes one row per team with the report''s counts, accepts either header spelling, and drops a row with no team id' {
         $header = 'Report Refresh Date,Team Name,Team Id,Team type,Last Activity Date,Report Period,Active users,Active Channels,Guests,Reactions,Meetings Organized,Post Messages,Reply Messages,Channel Messages,Urgent Messages,Mentions,Active Shared Channels,Active External Users'
         $altHeader = $header -replace 'Team type', 'Team Type' -replace 'Active users', 'Active Users'
