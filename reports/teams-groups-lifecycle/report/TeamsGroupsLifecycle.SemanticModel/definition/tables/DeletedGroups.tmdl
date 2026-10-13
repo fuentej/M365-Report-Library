@@ -305,6 +305,13 @@ table DeletedGroups
             RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
         lineageTag: d0b53d13-b453-4636-a58d-166573ada9a5
 
+    /// The strip has six slots. Soft-deleted groups past the sixth are counted here, so the strip never drops one without saying so; the tile above counts all of them.
+    measure 'Recycle Bin Overflow Note' =
+            VAR Slots = 6
+            VAR Hidden = [Restorable Deleted Groups] - Slots
+            RETURN IF(Hidden > 0, "+" & FORMAT(Hidden, "#,0") & " more not shown")
+        lineageTag: 5d0b7c0e-3f6a-4b8e-9a52-1c7e4f2a8b61
+
     partition DeletedGroups = m
         mode: import
         source =

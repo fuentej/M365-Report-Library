@@ -456,3 +456,32 @@ Describe 'Collector UTC timestamps are parsed with an explicit Z format' {
         $tmdl | Should -Match ([regex]::Escape('{"' + $Column + '", ParseUtc, type datetime}'))
     }
 }
+
+Describe 'The recycle bin strip never drops a restorable group without saying so' {
+    BeforeAll {
+        $script:OwnersVisuals = Join-Path $script:PagesFolder 'groups-nobody-owns/visuals'
+        $script:SlotCount = @(Get-ChildItem -LiteralPath $script:OwnersVisuals -Directory -Filter 'owners-recycle-*-group').Count
+        $script:DeletedGroupsTmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'DeletedGroups.tmdl') -Raw
+    }
+
+    It 'has one Recycle Bin Group and one Days Left measure per slot' {
+        $script:SlotCount | Should -BeGreaterThan 0
+        foreach ($n in 1..$script:SlotCount) {
+            $script:DeletedGroupsTmdl | Should -Match ([regex]::Escape("measure 'Recycle Bin Group $n'"))
+            $script:DeletedGroupsTmdl | Should -Match ([regex]::Escape("measure 'Recycle Bin Days Left $n'"))
+        }
+        $script:DeletedGroupsTmdl | Should -Not -Match ([regex]::Escape("measure 'Recycle Bin Group $($script:SlotCount + 1)'"))
+    }
+
+    It 'counts the groups beyond the last slot, using the real slot count' {
+        $script:DeletedGroupsTmdl | Should -Match ([regex]::Escape("measure 'Recycle Bin Overflow Note'"))
+        $script:DeletedGroupsTmdl | Should -Match ([regex]::Escape("VAR Slots = $($script:SlotCount)"))
+        $script:DeletedGroupsTmdl | Should -Match ([regex]::Escape('[Restorable Deleted Groups] - Slots'))
+    }
+
+    It 'shows that count on the Groups nobody owns page' {
+        $visual = Get-Content -LiteralPath (Join-Path $script:OwnersVisuals 'owners-recycle-overflow/visual.json') -Raw | ConvertFrom-Json
+        $visual.visual.visualType | Should -Be 'cardVisual'
+        $visual.visual.query.queryState.Data.projections[0].field.Measure.Property | Should -Be 'Recycle Bin Overflow Note'
+    }
+}

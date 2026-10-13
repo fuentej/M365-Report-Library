@@ -257,7 +257,8 @@ designs in `docs/design/teams-groups-lifecycle/`:
   enabled), ranked by members, with who left, outside members, files, last activity, whether
   the expiration policy covers the group, and a suggested owner (the departed owner's manager,
   else the person who created the group). The recycle bin strip shows the soft-deleted groups
-  that can still be restored and the days left.
+  that can still be restored and the days left. It has six slots, fewest days left first; a
+  red note under "days left to restore" counts any restorable groups beyond the sixth.
 * **The graveyard**: groups by days since last activity, split by expiration coverage; dead
   groups (no activity for more than 90 days) that never expire; groups past their expiration
   date that are still here.
