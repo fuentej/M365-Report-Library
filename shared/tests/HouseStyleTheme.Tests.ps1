@@ -44,6 +44,12 @@ Describe 'Backlog Krew house-style theme' {
         $background['color']['solid']['color'] | Should -Be '#EEF1F4'
     }
 
+    It 'tells a PBIR report to register a GUID-suffixed copy whose name matches its file name' {
+        $readme = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../theme/README.md') -Raw
+        $readme | Should -Match 'BacklogKrewHouseStyle-<guid>\.json'
+        $readme | Should -Match 'customTheme\.name'
+    }
+
     It 'keeps every colour in the file as #RRGGBB' {
         $colors = [regex]::Matches($script:ThemeText, '"#[^"]*"') | ForEach-Object { $_.Value.Trim('"') }
         $colors | Should -Not -BeNullOrEmpty

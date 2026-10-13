@@ -105,8 +105,11 @@ or border, and table columns grow to fit.
   `BacklogKrewHouseStyle.json`. Importing a theme removes existing customizations from the
   report. See [Use report themes in Power BI](https://learn.microsoft.com/power-bi/create-reports/desktop-report-themes#apply-a-custom-report-theme-json-file).
 - **PBIR (in the repo):** copy the file into the report's
-  `StaticResources/RegisteredResources/` folder and register it in `definition/report.json`,
-  under `themeCollection.customTheme` and in `resourcePackages`. The skill's
+  `StaticResources/RegisteredResources/` folder as `BacklogKrewHouseStyle-<guid>.json` (a fresh
+  8 to 12 hex character suffix on every edit), set the copy's `name` to that same file name, and
+  register it in `definition/report.json`, under `themeCollection.customTheme` and in
+  `resourcePackages`. `customTheme.name`, the resource item's `name` and its `path` must all equal
+  that file name, `.json` included. Do not edit this shared file's `name`. The skill's
   `.claude/skills/powerbi-report-cli/references/authoring/theming.md` gives both entries and the
   file-naming rule. Then run `powerbi-report-author validate` on the report. See
   [Create custom report themes in Power BI Desktop](https://learn.microsoft.com/power-bi/create-reports/report-themes-create-custom).
