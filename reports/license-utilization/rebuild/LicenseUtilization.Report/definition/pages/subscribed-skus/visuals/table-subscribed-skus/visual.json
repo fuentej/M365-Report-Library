@@ -1,0 +1,176 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-subscribed-skus",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "SubscribedSkus.RunDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "SkuId"
+                }
+              },
+              "queryRef": "SubscribedSkus.SkuId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "SkuPartNumber"
+                }
+              },
+              "queryRef": "SubscribedSkus.SkuPartNumber"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "AppliesTo"
+                }
+              },
+              "queryRef": "SubscribedSkus.AppliesTo"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "CapabilityStatus"
+                }
+              },
+              "queryRef": "SubscribedSkus.CapabilityStatus"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "ConsumedUnits"
+                }
+              },
+              "queryRef": "SubscribedSkus.ConsumedUnits"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "PrepaidEnabled"
+                }
+              },
+              "queryRef": "SubscribedSkus.PrepaidEnabled"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "PrepaidSuspended"
+                }
+              },
+              "queryRef": "SubscribedSkus.PrepaidSuspended"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "PrepaidWarning"
+                }
+              },
+              "queryRef": "SubscribedSkus.PrepaidWarning"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "PrepaidLockedOut"
+                }
+              },
+              "queryRef": "SubscribedSkus.PrepaidLockedOut"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SubscribedSkus"
+                    }
+                  },
+                  "Property": "FreeUnits"
+                }
+              },
+              "queryRef": "SubscribedSkus.FreeUnits"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "SubscribedSkus (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}
