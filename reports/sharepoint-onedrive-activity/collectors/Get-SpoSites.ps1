@@ -15,6 +15,13 @@
         contract asks for that to be confirmed). The cmdlet lists no file count, active file count
         or last-activity date. Sites in the recycle bin are not returned.
 
+        IsTeamsConnected and IsTeamsChannelConnected (a private or shared channel site) are read from the
+        same list (examples 9 and 10 on the cmdlet page). SharingCapability is not populated when -Limit
+        or -Filter is given, and the list needs -Limit ALL, so it is read with one
+        Get-SPOSite -Identity <url> call per site. A site whose call fails leaves SharingCapability
+        empty, and one warning in run.log counts them. That is one call per site, including every
+        OneDrive, so a large tenant takes a while; -SiteLimit shortens a trial run.
+
         Whether the cmdlet works in any cloud is UNVERIFIED, so every cloud is attempted with a
         warning. Role: SharePoint Online administrator and site collection administrator. Needs
         Connect-SPOService (-Region ITAR in GCC High).
@@ -95,18 +102,39 @@ try {
 
     if ($SiteLimit -gt 0) { $sites = @($sites | Select-Object -First $SiteLimit) }
 
+    $sharingUnread = 0
     $rows = foreach ($site in $sites) {
+        $url = Get-ObjectText -Object $site -Name 'Url'
+        # SharingCapability is not populated by the list call, so ask for the site itself.
+        $sharing = ''
+        try {
+            $detail = Get-SPOSite -Identity $url -ErrorAction Stop
+            $sharing = Get-ObjectText -Object $detail -Name 'SharingCapability'
+        }
+        catch {
+            $sharing = ''
+        }
+        if ($sharing -eq '') { $sharingUnread++ }
+
         [pscustomobject]@{
-            RunDate              = $runDate
-            Url                  = Get-ObjectText -Object $site -Name 'Url'
-            Title                = Get-ObjectText -Object $site -Name 'Title'
-            Template             = Get-ObjectText -Object $site -Name 'Template'
-            StorageUsageCurrent  = Get-ObjectText -Object $site -Name 'StorageUsageCurrent'
-            ResourceUsageCurrent = Get-ObjectText -Object $site -Name 'ResourceUsageCurrent'
-            WebsCount            = Get-ObjectText -Object $site -Name 'WebsCount'
+            RunDate                 = $runDate
+            Url                     = $url
+            Title                   = Get-ObjectText -Object $site -Name 'Title'
+            Template                = Get-ObjectText -Object $site -Name 'Template'
+            StorageUsageCurrent     = Get-ObjectText -Object $site -Name 'StorageUsageCurrent'
+            ResourceUsageCurrent    = Get-ObjectText -Object $site -Name 'ResourceUsageCurrent'
+            WebsCount               = Get-ObjectText -Object $site -Name 'WebsCount'
+            IsTeamsConnected        = Get-ObjectText -Object $site -Name 'IsTeamsConnected'
+            IsTeamsChannelConnected = Get-ObjectText -Object $site -Name 'IsTeamsChannelConnected'
+            SharingCapability       = $sharing
         }
     }
     $rows = @($rows)
+
+    if ($sharingUnread -gt 0) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+            'SharingCapability is empty for {0} of {1} sites: Get-SPOSite -Identity did not return it. It is not populated by the -Limit list call.' -f $sharingUnread, $rows.Count)
+    }
 
     if ($rows.Count -gt 0 -and @($rows | Where-Object { $_.StorageUsageCurrent -ne '' }).Count -eq 0) {
         Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (

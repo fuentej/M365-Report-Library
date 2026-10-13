@@ -48,18 +48,29 @@ $sites = @(
     @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-2222-4a2b-9c3d-000000000002,4f6a7b8c-2222-4d5e-8f90-000000000002'; Url = 'https://contoso.sharepoint.example.com/sites/projects'; Title = 'Projects'; Owner = 'Blake Bishop'; OwnerUpn = 'blake.bishop@example.com'; Template = 'STS#3'; Used = 12 * $gb; Files = 9100; Active = 85; Pages = 30; Visited = 14; Last = '2026-09-18' }
     @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-3333-4a2b-9c3d-000000000003,4f6a7b8c-3333-4d5e-8f90-000000000003'; Url = 'https://contoso.sharepoint.example.com/sites/archive'; Title = 'Archive'; Owner = 'Casey Cho'; OwnerUpn = 'casey.cho@example.com'; Template = 'STS#3'; Used = 140 * $gb; Files = 210000; Active = 0; Pages = 0; Visited = 0; Last = '' }
 )
+# Sites added for the site-type and sharing filters. They appear in sources 1 and 10 only. Template values
+# for the channel sites are illustrative.
+$moreSites = @(
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-4444-4a2b-9c3d-000000000004,4f6a7b8c-4444-4d5e-8f90-000000000004'; Url = 'https://contoso.sharepoint.example.com/sites/marketing'; Title = 'Marketing'; Owner = 'Devon Diaz'; OwnerUpn = 'devon.diaz@example.com'; Template = 'GROUP#0'; Used = 31 * $gb; Files = 12400; Active = 640; Pages = 90; Visited = 33; Last = '2026-10-07' }
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-5555-4a2b-9c3d-000000000005,4f6a7b8c-5555-4d5e-8f90-000000000005'; Url = 'https://contoso.sharepoint.example.com/sites/finance-closing'; Title = 'Finance - Closing (private channel)'; Owner = 'Avery Abara'; OwnerUpn = 'avery.abara@example.com'; Template = 'TEAMCHANNEL#0'; Used = 2 * $gb; Files = 380; Active = 44; Pages = 0; Visited = 0; Last = '2026-10-05' }
+    @{ Id = 'contoso.sharepoint.example.com,3b1c5d2e-6666-4a2b-9c3d-000000000006,4f6a7b8c-6666-4d5e-8f90-000000000006'; Url = 'https://contoso.sharepoint.example.com/sites/partners-shared'; Title = 'Partners (shared channel)'; Owner = 'Blake Bishop'; OwnerUpn = 'blake.bishop@example.com'; Template = 'TEAMCHANNEL#1'; Used = 5 * $gb; Files = 910; Active = 12; Pages = 0; Visited = 0; Last = '2026-08-30' }
+)
 $runDates = '2026-10-01', '2026-10-08'
 $refresh = '2026-10-06'
 
-# Source 1
+# Source 1. All four report periods in every run. A longer period reaches back further, so the file and
+# page counts are the same snapshot while the active file and page counts and the last activity grow with it.
 $rows = foreach ($run in $runDates) {
-    foreach ($s in $sites) {
-        $growth = if ($run -eq '2026-10-08') { 1 * $gb } else { 0 }
-        [pscustomobject]@{
-            RunDate = $run; ReportRefreshDate = $refresh; SiteId = $s.Id; SiteUrl = $s.Url; OwnerDisplayName = $s.Owner
-            IsDeleted = 'False'; LastActivityDate = $s.Last; FileCount = $s.Files; ActiveFileCount = $s.Active
-            PageViewCount = $s.Pages; VisitedPageCount = $s.Visited; StorageUsedByte = $s.Used + $growth
-            StorageAllocatedByte = 1024 * $gb; RootWebTemplate = $s.Template; OwnerPrincipalName = $s.OwnerUpn; ReportPeriod = 30
+    foreach ($period in 7, 30, 90, 180) {
+        foreach ($s in $sites + $moreSites) {
+            $growth = if ($run -eq '2026-10-08') { 1 * $gb } else { 0 }
+            $reach = $period / 30
+            [pscustomobject]@{
+                RunDate = $run; ReportRefreshDate = $refresh; SiteId = $s.Id; SiteUrl = $s.Url; OwnerDisplayName = $s.Owner
+                IsDeleted = 'False'; LastActivityDate = $s.Last; FileCount = $s.Files; ActiveFileCount = [int][math]::Min($s.Files, [math]::Ceiling($s.Active * $reach))
+                PageViewCount = [int][math]::Ceiling($s.Pages * $reach); VisitedPageCount = [int][math]::Ceiling($s.Visited * $reach); StorageUsedByte = $s.Used + $growth
+                StorageAllocatedByte = 1024 * $gb; RootWebTemplate = $s.Template; OwnerPrincipalName = $s.OwnerUpn; ReportPeriod = $period
+            }
         }
     }
 }
@@ -128,11 +139,27 @@ $rows = foreach ($run in $runDates) {
 }
 Write-Sample $OutputPath 'tenant-storage.csv' $schema.TenantStorage $rows
 
-# Source 10. The storage columns are empty in the second row: the cmdlet may not return them without -Detailed.
-$rows = foreach ($s in $sites) {
-    [pscustomobject]@{ RunDate = '2026-10-08'; Url = $s.Url; Title = $s.Title; Template = $s.Template; StorageUsageCurrent = [math]::Floor($s.Used / 1MB); ResourceUsageCurrent = 0; WebsCount = 1 }
+# Source 10. The storage columns are empty in the personal-site row: the cmdlet may not return them without -Detailed.
+# Teams link, channel link and sharing level per site: every site type and every sharing level appears.
+$spoFlags = @{
+    'finance'          = @('True', 'False', 'ExternalUserSharingOnly')
+    'projects'         = @('False', 'False', 'Disabled')
+    'archive'          = @('False', 'False', 'ExistingExternalUserSharingOnly')
+    'marketing'        = @('False', 'False', 'ExternalUserAndGuestSharing')
+    'finance-closing'  = @('False', 'True', 'Disabled')
+    'partners-shared'  = @('False', 'True', 'ExternalUserSharingOnly')
 }
-$rows += [pscustomobject]@{ RunDate = '2026-10-08'; Url = 'https://contoso-my.sharepoint.example.com/personal/avery_abara_example_com'; Title = 'Avery Abara'; Template = 'SPSPERS#10'; StorageUsageCurrent = ''; ResourceUsageCurrent = ''; WebsCount = '' }
+$rows = foreach ($s in $sites + $moreSites) {
+    $flags = $spoFlags[$s.Url.Split('/')[-1]]
+    [pscustomobject]@{
+        RunDate = '2026-10-08'; Url = $s.Url; Title = $s.Title; Template = $s.Template; StorageUsageCurrent = [math]::Floor($s.Used / 1MB); ResourceUsageCurrent = 0; WebsCount = 1
+        IsTeamsConnected = $flags[0]; IsTeamsChannelConnected = $flags[1]; SharingCapability = $flags[2]
+    }
+}
+$rows += [pscustomobject]@{
+    RunDate = '2026-10-08'; Url = 'https://contoso-my.sharepoint.example.com/personal/avery_abara_example_com'; Title = 'Avery Abara'; Template = 'SPSPERS#10'
+    StorageUsageCurrent = ''; ResourceUsageCurrent = ''; WebsCount = ''; IsTeamsConnected = 'False'; IsTeamsChannelConnected = 'False'; SharingCapability = 'ExternalUserSharingOnly'
+}
 Write-Sample $OutputPath 'spo-sites.csv' $schema.SpoSites $rows
 
 # Source 11
