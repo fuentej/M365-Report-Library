@@ -76,6 +76,21 @@
         'HasExternalTarget'
     )
 
+    # Source 3b. One row per outbound spam filter policy. AutoForwardingMode is Automatic, On
+    # or Off as returned. Off blocks automatic forwarding by inbox rules and mailbox
+    # forwarding, not by mail flow rules. AppliesTo is 'All senders' for the default policy,
+    # and for a custom policy the From, FromMemberOf and SenderDomainIs of its rule.
+    OutboundSpamPolicies = @(
+        'RunDate'
+        'Name'
+        'Guid'
+        'IsDefault'
+        'AutoForwardingMode'
+        'RuleName'
+        'RuleState'
+        'AppliesTo'
+    )
+
     # Source 4a. Full Access rows that survive the filter: AccessRights like 'Full*',
     # Deny false, IsInherited false, and not NT AUTHORITY\SELF.
     MailboxFullAccess = @(
@@ -202,6 +217,14 @@
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/exchange/security-and-compliance/mail-flow-rules/mail-flow-rules' }
             GCC        = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments#exchange-online-features' }
             GCCHigh    = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments#exchange-online-features' }
+        }
+        OutboundSpamPolicies = @{
+            # Commercial: the cmdlet page says it is available in Exchange Online. GCC and GCC
+            # High: the US government service description lists features, not cmdlets, and no
+            # row for outbound spam filtering was found, so both are UNVERIFIED.
+            Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterpolicy' }
+            GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments#exchange-online-features' }
+            GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments#exchange-online-features' }
         }
         MailboxFullAccess = @{
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/exchange/recipients-in-exchange-online/manage-permissions-for-recipients' }

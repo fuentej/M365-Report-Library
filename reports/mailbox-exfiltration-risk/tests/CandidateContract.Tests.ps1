@@ -8,15 +8,15 @@ BeforeAll {
 
 Describe 'The collectors follow the contract doc' {
     It 'has a collector for every source row other than the shared users source' {
-        foreach ($script in 'Get-AcceptedDomains', 'Get-MailboxForwarding', 'Get-SendOnBehalf', 'Get-InboxRules', 'Get-TransportRules',
+        foreach ($script in 'Get-AcceptedDomains', 'Get-MailboxForwarding', 'Get-SendOnBehalf', 'Get-InboxRules', 'Get-TransportRules', 'Get-OutboundSpamPolicies',
             'Get-MailboxFullAccess', 'Get-SendAsPermissions', 'Get-DelegatedConsents', 'Get-AppRoleAssignments',
             'Get-MailboxChangeEvents', 'Get-MailAccessEvents', 'Get-AuditConfiguration') {
             Test-Path -LiteralPath (Join-Path $script:Collectors "$script.ps1") | Should -BeTrue -Because $script
         }
-        # Source rows 1, 1b, 2, 3, 4a, 4b, 4c, 5a, 5b, 6a, 6b, 6c.
+        # Source rows 1, 1b, 2, 3, 3b, 4a, 4b, 4c, 5a, 5b, 6a, 6b, 6c.
         $sources = ($script:Doc -split '## Sources')[1] -split '## Proposed report pages' | Select-Object -First 1
-        @($sources -split "`n" | Where-Object { $_ -match '^\| (1|1b|2|3|4a|4b|4c|5a|5b|6a|6b|6c) \|' }).Count | Should -Be 12
-        $script:Schema.SourceAvailability.Keys.Count | Should -Be 12
+        @($sources -split "`n" | Where-Object { $_ -match '^\| (1|1b|2|3|3b|4a|4b|4c|5a|5b|6a|6b|6c) \|' }).Count | Should -Be 13
+        $script:Schema.SourceAvailability.Keys.Count | Should -Be 13
         Test-Path -LiteralPath (Join-Path $script:Collectors 'Get-Users.ps1') | Should -BeFalse
     }
 

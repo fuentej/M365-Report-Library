@@ -99,6 +99,37 @@ BeforeAll {
         }
     }
 
+    # Get-HostedOutboundSpamFilterPolicy: Name and IsDefault are used by the cmdlet page
+    # example; AutoForwardingMode (Automatic, On, Off) is the Set-HostedOutboundSpamFilterPolicy
+    # parameter. Get-HostedOutboundSpamFilterRule: HostedOutboundSpamFilterPolicy, Priority and
+    # State are used by the cmdlet page example; From, FromMemberOf and SenderDomainIs are
+    # the New-HostedOutboundSpamFilterRule conditions. No output object is documented.
+    # https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterpolicy
+    # https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterrule
+    function New-MockOutboundSpamPolicy {
+        param(
+            [string]$Name = 'Default',
+            [string]$Guid = '22222222-3333-4444-5555-666666666666',
+            [bool]$IsDefault = $true,
+            [string]$AutoForwardingMode = 'Off'
+        )
+        [pscustomobject]@{ Name = $Name; Guid = $Guid; IsDefault = $IsDefault; AutoForwardingMode = $AutoForwardingMode }
+    }
+
+    function New-MockOutboundSpamRule {
+        param(
+            [string]$Name = 'Sales forwarding exception',
+            [string]$Policy = 'Sales forwarding exception',
+            [string[]]$From = @(),
+            [string[]]$FromMemberOf = @(),
+            [string[]]$SenderDomainIs = @()
+        )
+        [pscustomobject]@{
+            Name = $Name; HostedOutboundSpamFilterPolicy = $Policy; State = 'Enabled'; Priority = 0
+            From = $From; FromMemberOf = $FromMemberOf; SenderDomainIs = $SenderDomainIs
+        }
+    }
+
     # Get-TransportRule: RedirectMessageTo, BlindCopyTo, CopyTo and AddToRecipients are the
     # action names on the mail flow rule actions page; Name, Guid, State and Priority are
     # rule properties. No output object is documented.
@@ -233,6 +264,8 @@ Describe 'Collector output matches the committed sample files' {
         Mock Get-EXOMailbox -MockWith { New-MockMailbox -ForwardingSmtpAddress 'smtp:inbox@fabrikam.example.net' -GrantSendOnBehalfTo @('Devon Moreau') }
         Mock Get-InboxRule -MockWith { New-MockInboxRule -ForwardTo @('"Contact" [SMTP:inbox@fabrikam.example.net]') }
         Mock Get-TransportRule -MockWith { New-MockTransportRule -RedirectMessageTo @('archive@fabrikam.example.net') }
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { @() }
         Mock Get-MailboxPermission -MockWith { New-MockMailboxPermission }
         Mock Get-RecipientPermission -MockWith { New-MockRecipientPermission }
         Mock Get-OrganizationConfig -MockWith { [pscustomobject]@{ AuditDisabled = $false } }
@@ -253,6 +286,7 @@ Describe 'Collector output matches the committed sample files' {
         @{ Csv = 'send-on-behalf.csv'; Script = 'Get-SendOnBehalf.ps1'; Key = 'SendOnBehalf' }
         @{ Csv = 'inbox-rules.csv'; Script = 'Get-InboxRules.ps1'; Key = 'InboxRules' }
         @{ Csv = 'transport-rules.csv'; Script = 'Get-TransportRules.ps1'; Key = 'TransportRules' }
+        @{ Csv = 'outbound-spam-policies.csv'; Script = 'Get-OutboundSpamPolicies.ps1'; Key = 'OutboundSpamPolicies' }
         @{ Csv = 'mailbox-full-access.csv'; Script = 'Get-MailboxFullAccess.ps1'; Key = 'MailboxFullAccess' }
         @{ Csv = 'send-as-permissions.csv'; Script = 'Get-SendAsPermissions.ps1'; Key = 'SendAsPermissions' }
         @{ Csv = 'delegated-consents.csv'; Script = 'Get-DelegatedConsents.ps1'; Key = 'DelegatedConsents' }
@@ -286,7 +320,7 @@ Describe 'Collector output matches the committed sample files' {
         foreach ($pair in @(
                 @{ Csv = 'accepted-domains.csv'; Key = 'AcceptedDomains' }, @{ Csv = 'mailbox-forwarding.csv'; Key = 'MailboxForwarding' }
                 @{ Csv = 'send-on-behalf.csv'; Key = 'SendOnBehalf' }, @{ Csv = 'inbox-rules.csv'; Key = 'InboxRules' }
-                @{ Csv = 'transport-rules.csv'; Key = 'TransportRules' }, @{ Csv = 'mailbox-full-access.csv'; Key = 'MailboxFullAccess' }
+                @{ Csv = 'transport-rules.csv'; Key = 'TransportRules' }, @{ Csv = 'outbound-spam-policies.csv'; Key = 'OutboundSpamPolicies' }, @{ Csv = 'mailbox-full-access.csv'; Key = 'MailboxFullAccess' }
                 @{ Csv = 'send-as-permissions.csv'; Key = 'SendAsPermissions' }, @{ Csv = 'delegated-consents.csv'; Key = 'DelegatedConsents' }
                 @{ Csv = 'app-role-assignments.csv'; Key = 'AppRoleAssignments' }, @{ Csv = 'audit-configuration.csv'; Key = 'AuditConfiguration' }
                 @{ Csv = 'mailbox-change-events.csv'; Key = 'AuditEvents' }, @{ Csv = 'mail-access-events.csv'; Key = 'AuditEvents' }
@@ -592,6 +626,95 @@ Describe 'Rules' {
     }
 }
 
+Describe 'Outbound spam policies' {
+    BeforeEach {
+        $script:folder = New-TestFolder
+        Mock Disconnect-ExchangeOnline -MockWith { }
+    }
+
+    AfterEach {
+        Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'writes the automatic forwarding setting and who each policy applies to' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith {
+            @(
+                (New-MockOutboundSpamPolicy -Name 'Default' -Guid '1' -IsDefault $true -AutoForwardingMode 'Off')
+                (New-MockOutboundSpamPolicy -Name 'Sales forwarding exception' -Guid '2' -IsDefault $false -AutoForwardingMode 'On')
+                (New-MockOutboundSpamPolicy -Name 'Contractors' -Guid '3' -IsDefault $false -AutoForwardingMode 'Automatic')
+                (New-MockOutboundSpamPolicy -Name 'Unassigned' -Guid '4' -IsDefault $false -AutoForwardingMode 'Off')
+            )
+        }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith {
+            @(
+                (New-MockOutboundSpamRule -Name 'Sales forwarding exception' -Policy 'Sales forwarding exception' -FromMemberOf @('Sales Team'))
+                (New-MockOutboundSpamRule -Name 'Contractors' -Policy 'Contractors' -From @('a@example.com', 'b@example.com') -SenderDomainIs @('contractors.example.com'))
+            )
+        }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'outbound-spam-policies.csv'))
+        $rows.Name | Should -Be @('Default', 'Sales forwarding exception', 'Contractors', 'Unassigned')
+        $rows[0].IsDefault | Should -Be 'True'
+        $rows[0].AutoForwardingMode | Should -Be 'Off'
+        $rows[0].AppliesTo | Should -Be 'All senders'
+        $rows[1].IsDefault | Should -Be 'False'
+        $rows[1].AutoForwardingMode | Should -Be 'On'
+        $rows[1].AppliesTo | Should -Be 'Groups: Sales Team'
+        $rows[1].RuleState | Should -Be 'Enabled'
+        $rows[2].AutoForwardingMode | Should -Be 'Automatic'
+        $rows[2].AppliesTo | Should -Be 'Users: a@example.com;b@example.com | Domains: contractors.example.com'
+        $rows[3].AppliesTo | Should -Be 'No one (no rule)'
+    }
+
+    It 'appends a block of rows per run date and does not repeat a run date' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { @() }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'outbound-spam-policies.csv')).Count | Should -Be 1
+    }
+
+    It 'writes the header only and names the role when the policies are refused' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { throw 'Insufficient permissions' }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue' }
+
+        $path = Join-Path $script:folder 'outbound-spam-policies.csv'
+        @(Get-Content -LiteralPath $path).Count | Should -Be 1
+        Get-HeaderText -Path $path | Should -Be ($script:Schema.OutboundSpamPolicies -join ',')
+        Get-LogText -Folder $script:folder | Should -Match 'View-Only Configuration'
+    }
+
+    It 'writes the header only when the rules are refused, so no policy is reported without its scope' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { throw 'Insufficient permissions' }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; WarningAction = 'SilentlyContinue' }
+
+        @(Get-Content -LiteralPath (Join-Path $script:folder 'outbound-spam-policies.csv')).Count | Should -Be 1
+    }
+
+    It 'has a sample with the default policy and a custom policy that has a different forwarding setting' {
+        $sample = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'outbound-spam-policies.csv'))
+        $latest = @($sample | Where-Object RunDate -eq ($sample.RunDate | Sort-Object | Select-Object -Last 1))
+        @($latest | Where-Object IsDefault -eq 'True').Count | Should -Be 1
+        $custom = @($latest | Where-Object IsDefault -eq 'False')
+        $custom.Count | Should -Be 1
+        $custom[0].AutoForwardingMode | Should -Not -Be ($latest | Where-Object IsDefault -eq 'True').AutoForwardingMode
+    }
+
+    It 'records Commercial as available and GCC and GCC High as UNVERIFIED' {
+        $entry = $script:Schema.SourceAvailability.OutboundSpamPolicies
+        $entry.Commercial.Status | Should -Be 'Available'
+        $entry.GCC.Status | Should -Be 'Unverified'
+        $entry.GCCHigh.Status | Should -Be 'Unverified'
+    }
+}
+
 Describe 'Delegation' {
     BeforeEach {
         $script:folder = New-TestFolder
@@ -624,6 +747,8 @@ Describe 'Delegation' {
 
     It 'calls Get-MailboxPermission once per mailbox with an identity and no result cap' {
         Mock Get-EXOMailbox -MockWith { @((New-MockMailbox -Id 'a' -Upn 'a@example.com'), (New-MockMailbox -Id 'b' -Upn 'b@example.com')) }
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { @() }
         Mock Get-MailboxPermission -MockWith { New-MockMailboxPermission }
 
         Invoke-CollectorScript 'Get-MailboxFullAccess.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
@@ -633,6 +758,8 @@ Describe 'Delegation' {
 
     It 'honours -MailboxLimit' {
         Mock Get-EXOMailbox -MockWith { @((New-MockMailbox -Id 'a' -Upn 'a@example.com'), (New-MockMailbox -Id 'b' -Upn 'b@example.com')) }
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { @() }
         Mock Get-MailboxPermission -MockWith { New-MockMailboxPermission }
 
         Invoke-CollectorScript 'Get-MailboxFullAccess.ps1' @{ OutputPath = $script:folder; SkipConnect = $true; MailboxLimit = 1 }
@@ -992,7 +1119,7 @@ Describe 'Source availability' {
                 $entry.Reference | Should -Match '^https://learn\.microsoft\.com/'
             }
         }
-        $script:Schema.SourceAvailability.Keys.Count | Should -Be 12
+        $script:Schema.SourceAvailability.Keys.Count | Should -Be 13
     }
 
     It 'skips only a NotAvailable source' {
@@ -1073,6 +1200,8 @@ Describe 'Run-All.ps1' {
         Mock Get-EXOMailbox -MockWith { New-MockMailbox -ForwardingSmtpAddress 'smtp:x@fabrikam.example.net' -GrantSendOnBehalfTo @('Devon Moreau') }
         Mock Get-InboxRule -MockWith { New-MockInboxRule -ForwardTo @('x@fabrikam.example.net') }
         Mock Get-TransportRule -MockWith { New-MockTransportRule -RedirectMessageTo @('archive@fabrikam.example.net') }
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { @() }
         Mock Get-MailboxPermission -MockWith { New-MockMailboxPermission }
         Mock Get-RecipientPermission -MockWith { New-MockRecipientPermission }
         Mock Get-OrganizationConfig -MockWith { [pscustomobject]@{ AuditDisabled = $false } }
@@ -1097,7 +1226,7 @@ Describe 'Run-All.ps1' {
         Remove-Item -LiteralPath $script:folder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    It 'signs in to Exchange Online and Graph once each and writes all thirteen CSVs' {
+    It 'signs in to Exchange Online and Graph once each and writes all fourteen CSVs' {
         Invoke-CollectorScript 'Run-All.ps1' @{
             OutputPath = $script:folder; WarningAction = 'SilentlyContinue'
             StartDate = [datetime]'2026-08-10T00:00:00Z'; EndDate = [datetime]'2026-08-11T00:00:00Z'
@@ -1105,7 +1234,7 @@ Describe 'Run-All.ps1' {
 
         Should -Invoke Connect-M365Service -Times 1 -Exactly -ParameterFilter { $Service -eq 'ExchangeOnline' }
         Should -Invoke Connect-M365Service -Times 1 -Exactly -ParameterFilter { $Service -eq 'Graph' }
-        foreach ($csv in 'users', 'accepted-domains', 'mailbox-forwarding', 'send-on-behalf', 'inbox-rules', 'transport-rules', 'mailbox-full-access',
+        foreach ($csv in 'users', 'accepted-domains', 'mailbox-forwarding', 'send-on-behalf', 'inbox-rules', 'transport-rules', 'outbound-spam-policies', 'mailbox-full-access',
             'send-as-permissions', 'delegated-consents', 'app-role-assignments', 'audit-configuration', 'mailbox-change-events', 'mail-access-events') {
             Test-Path -LiteralPath (Join-Path $script:folder "$csv.csv") | Should -BeTrue -Because "$csv.csv should exist"
         }

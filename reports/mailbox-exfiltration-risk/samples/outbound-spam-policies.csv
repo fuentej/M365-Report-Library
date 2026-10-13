@@ -1,0 +1,7 @@
+"RunDate","Name","Guid","IsDefault","AutoForwardingMode","RuleName","RuleState","AppliesTo"
+"2026-07-01","Default","00000001-0004-0005-0102-030405060708","True","Off","","","All senders"
+"2026-07-01","Sales forwarding exception","00000002-0004-0005-0102-030405060708","False","On","Sales forwarding exception","Enabled","Groups: Sales Team"
+"2026-08-01","Default","00000001-0004-0005-0102-030405060708","True","Off","","","All senders"
+"2026-08-01","Sales forwarding exception","00000002-0004-0005-0102-030405060708","False","On","Sales forwarding exception","Enabled","Groups: Sales Team"
+"2026-09-01","Default","00000001-0004-0005-0102-030405060708","True","Off","","","All senders"
+"2026-09-01","Sales forwarding exception","00000002-0004-0005-0102-030405060708","False","On","Sales forwarding exception","Enabled","Groups: Sales Team"
