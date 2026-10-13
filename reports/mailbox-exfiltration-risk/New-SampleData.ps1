@@ -199,7 +199,7 @@ foreach ($snapshot in $snapshotDates) {
     $policyRows = @(
         [pscustomobject]@{
             RunDate = $runDate; Name = 'Default'; Guid = [guid]::new(1, 4, 5, [byte[]](1, 2, 3, 4, 5, 6, 7, 8)).ToString()
-            IsDefault = 'True'; AutoForwardingMode = 'Off'; RuleName = ''; RuleState = ''; AppliesTo = 'All senders'
+            IsDefault = 'True'; AutoForwardingMode = 'Off'; RuleName = ''; RuleState = ''; AppliesTo = 'All senders not covered by an enabled custom policy'
         }
         [pscustomobject]@{
             RunDate = $runDate; Name = 'Sales forwarding exception'; Guid = [guid]::new(2, 4, 5, [byte[]](1, 2, 3, 4, 5, 6, 7, 8)).ToString()

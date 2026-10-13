@@ -78,8 +78,10 @@
 
     # Source 3b. One row per outbound spam filter policy. AutoForwardingMode is Automatic, On
     # or Off as returned. Off blocks automatic forwarding by inbox rules and mailbox
-    # forwarding, not by mail flow rules. AppliesTo is 'All senders' for the default policy,
-    # and for a custom policy the From, FromMemberOf and SenderDomainIs of its rule.
+    # forwarding, not by mail flow rules. AppliesTo is 'All senders not covered by an enabled
+    # custom policy' for the default policy, and for a custom policy the From, FromMemberOf and
+    # SenderDomainIs of its rule less the ExceptIf* exceptions; 'No one' when there is no rule
+    # or the rule is disabled.
     OutboundSpamPolicies = @(
         'RunDate'
         'Name'

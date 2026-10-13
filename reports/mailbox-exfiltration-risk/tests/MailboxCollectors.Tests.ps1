@@ -102,8 +102,9 @@ BeforeAll {
     # Get-HostedOutboundSpamFilterPolicy: Name and IsDefault are used by the cmdlet page
     # example; AutoForwardingMode (Automatic, On, Off) is the Set-HostedOutboundSpamFilterPolicy
     # parameter. Get-HostedOutboundSpamFilterRule: HostedOutboundSpamFilterPolicy, Priority and
-    # State are used by the cmdlet page example; From, FromMemberOf and SenderDomainIs are
-    # the New-HostedOutboundSpamFilterRule conditions. No output object is documented.
+    # State are used by the cmdlet page example; From, FromMemberOf, SenderDomainIs and their
+    # ExceptIf* forms are the New-HostedOutboundSpamFilterRule conditions and exceptions.
+    # No output object is documented.
     # https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterpolicy
     # https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterrule
     function New-MockOutboundSpamPolicy {
@@ -122,11 +123,16 @@ BeforeAll {
             [string]$Policy = 'Sales forwarding exception',
             [string[]]$From = @(),
             [string[]]$FromMemberOf = @(),
-            [string[]]$SenderDomainIs = @()
+            [string[]]$SenderDomainIs = @(),
+            [string[]]$ExceptIfFrom = @(),
+            [string[]]$ExceptIfFromMemberOf = @(),
+            [string[]]$ExceptIfSenderDomainIs = @(),
+            [string]$State = 'Enabled'
         )
         [pscustomobject]@{
-            Name = $Name; HostedOutboundSpamFilterPolicy = $Policy; State = 'Enabled'; Priority = 0
+            Name = $Name; HostedOutboundSpamFilterPolicy = $Policy; State = $State; Priority = 0
             From = $From; FromMemberOf = $FromMemberOf; SenderDomainIs = $SenderDomainIs
+            ExceptIfFrom = $ExceptIfFrom; ExceptIfFromMemberOf = $ExceptIfFromMemberOf; ExceptIfSenderDomainIs = $ExceptIfSenderDomainIs
         }
     }
 
@@ -658,14 +664,37 @@ Describe 'Outbound spam policies' {
         $rows.Name | Should -Be @('Default', 'Sales forwarding exception', 'Contractors', 'Unassigned')
         $rows[0].IsDefault | Should -Be 'True'
         $rows[0].AutoForwardingMode | Should -Be 'Off'
-        $rows[0].AppliesTo | Should -Be 'All senders'
+        $rows[0].AppliesTo | Should -Be 'All senders not covered by an enabled custom policy'
         $rows[1].IsDefault | Should -Be 'False'
         $rows[1].AutoForwardingMode | Should -Be 'On'
         $rows[1].AppliesTo | Should -Be 'Groups: Sales Team'
         $rows[1].RuleState | Should -Be 'Enabled'
         $rows[2].AutoForwardingMode | Should -Be 'Automatic'
-        $rows[2].AppliesTo | Should -Be 'Users: a@example.com;b@example.com | Domains: contractors.example.com'
+        $rows[2].AppliesTo | Should -Be 'Users: a@example.com;b@example.com AND Domains: contractors.example.com'
         $rows[3].AppliesTo | Should -Be 'No one (no rule)'
+    }
+
+    It 'shows the rule exceptions, because a policy does not apply to a sender the rule excludes' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy -Name 'Sales' -Guid '2' -IsDefault $false -AutoForwardingMode 'On' }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith {
+            New-MockOutboundSpamRule -Name 'Sales' -Policy 'Sales' -FromMemberOf @('Sales Team') -ExceptIfFrom @('boss@example.com') -ExceptIfSenderDomainIs @('contoso.example.com')
+        }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        $row = @(Import-Csv -LiteralPath (Join-Path $script:folder 'outbound-spam-policies.csv'))[0]
+        $row.AppliesTo | Should -Be 'Groups: Sales Team EXCEPT Users: boss@example.com AND Domains: contoso.example.com'
+    }
+
+    It 'says a custom policy applies to no one while its rule is disabled' {
+        Mock Get-HostedOutboundSpamFilterPolicy -MockWith { New-MockOutboundSpamPolicy -Name 'Sales' -Guid '2' -IsDefault $false -AutoForwardingMode 'On' }
+        Mock Get-HostedOutboundSpamFilterRule -MockWith { New-MockOutboundSpamRule -Name 'Sales' -Policy 'Sales' -FromMemberOf @('Sales Team') -State 'Disabled' }
+
+        Invoke-CollectorScript 'Get-OutboundSpamPolicies.ps1' @{ OutputPath = $script:folder; SkipConnect = $true }
+
+        $row = @(Import-Csv -LiteralPath (Join-Path $script:folder 'outbound-spam-policies.csv'))[0]
+        $row.RuleState | Should -Be 'Disabled'
+        $row.AppliesTo | Should -Be 'No one (rule disabled)'
     }
 
     It 'appends a block of rows per run date and does not repeat a run date' {

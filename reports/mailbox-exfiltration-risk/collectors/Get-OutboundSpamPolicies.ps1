@@ -17,10 +17,13 @@
         (https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding).
         Automatic behaves like On or Off depending on the organization, so it is recorded as returned.
 
-        The default policy applies to every sender. A custom policy applies to what its rule
-        names with From, FromMemberOf and SenderDomainIs
-        (https://learn.microsoft.com/powershell/module/exchangepowershell/new-hostedoutboundspamfilterrule).
-        A custom policy with no rule applies to no one.
+        The default policy applies to every sender not covered by an enabled custom policy; it has
+        the lowest priority. A custom policy applies to what its rule names with From, FromMemberOf
+        and SenderDomainIs (different condition types must all match), less its ExceptIfFrom,
+        ExceptIfFromMemberOf and ExceptIfSenderDomainIs exceptions
+        (https://learn.microsoft.com/powershell/module/exchangepowershell/new-hostedoutboundspamfilterrule,
+        https://learn.microsoft.com/defender-office-365/outbound-spam-policies-configure).
+        A custom policy with no rule, or whose rule is disabled, applies to no one.
 
         The cmdlet pages defer to the permissions page for the role; the matching role,
         View-Only Configuration, is an inference and is UNVERIFIED.
@@ -91,20 +94,33 @@ try {
             $rule = $rules | Where-Object { [string]$_.HostedOutboundSpamFilterPolicy -eq [string]$policy.Name } | Select-Object -First 1
 
             $appliesTo = if ($isDefault) {
-                'All senders'
+                'All senders not covered by an enabled custom policy'
             }
             elseif ($null -eq $rule) {
                 'No one (no rule)'
             }
+            elseif ([string]$rule.State -eq 'Disabled') {
+                'No one (rule disabled)'
+            }
             else {
-                $parts = @()
+                $conditions = @()
+                $exceptions = @()
                 $users = Join-ListValue $rule.From
                 $groups = Join-ListValue $rule.FromMemberOf
                 $domains = Join-ListValue $rule.SenderDomainIs
-                if ($users) { $parts += "Users: $users" }
-                if ($groups) { $parts += "Groups: $groups" }
-                if ($domains) { $parts += "Domains: $domains" }
-                if ($parts.Count -eq 0) { 'No conditions' } else { $parts -join ' | ' }
+                if ($users) { $conditions += "Users: $users" }
+                if ($groups) { $conditions += "Groups: $groups" }
+                if ($domains) { $conditions += "Domains: $domains" }
+                $exceptUsers = Join-ListValue $rule.ExceptIfFrom
+                $exceptGroups = Join-ListValue $rule.ExceptIfFromMemberOf
+                $exceptDomains = Join-ListValue $rule.ExceptIfSenderDomainIs
+                if ($exceptUsers) { $exceptions += "Users: $exceptUsers" }
+                if ($exceptGroups) { $exceptions += "Groups: $exceptGroups" }
+                if ($exceptDomains) { $exceptions += "Domains: $exceptDomains" }
+
+                $text = if ($conditions.Count -eq 0) { 'No conditions' } else { $conditions -join ' AND ' }
+                if ($exceptions.Count -gt 0) { $text += ' EXCEPT ' + ($exceptions -join ' AND ') }
+                $text
             }
 
             [pscustomobject]@{

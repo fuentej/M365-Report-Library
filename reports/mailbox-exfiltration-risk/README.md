@@ -216,7 +216,7 @@ rows per run, tagged `RunDate`.
 | `Name`, `Guid`, `IsDefault` | The policy and whether it is the default policy |
 | `AutoForwardingMode` | `Automatic`, `On` or `Off`, as returned. `Off` blocks automatic external forwarding set by Inbox rules and mailbox forwarding; it does not block forwarding done by mail flow rules. `Automatic` behaves like `On` or `Off` depending on the organization ([Learn](https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding)) |
 | `RuleName`, `RuleState` | The outbound spam filter rule that scopes a custom policy; empty for the default policy and for a policy with no rule |
-| `AppliesTo` | `All senders` for the default policy. For a custom policy, the rule's `From`, `FromMemberOf` and `SenderDomainIs` as `Users: ... \| Groups: ... \| Domains: ...`; `No one (no rule)` when the policy has no rule |
+| `AppliesTo` | `All senders not covered by an enabled custom policy` for the default policy (it has the lowest priority). For a custom policy, the rule's `From`, `FromMemberOf` and `SenderDomainIs` as `Users: ... AND Groups: ... AND Domains: ...` (a sender must match every type listed), then `EXCEPT` and the rule's `ExceptIfFrom`, `ExceptIfFromMemberOf` and `ExceptIfSenderDomainIs` ([Learn](https://learn.microsoft.com/defender-office-365/outbound-spam-policies-configure)). `No one (no rule)` when the policy has no rule; `No one (rule disabled)` when its rule is disabled |
 
 When the sign-in cannot read the policies or the rules, the file is header only and `run.log` names the role.
 
