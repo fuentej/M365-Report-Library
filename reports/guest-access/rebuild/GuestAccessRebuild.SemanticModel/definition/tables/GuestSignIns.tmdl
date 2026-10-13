@@ -1,0 +1,98 @@
+table GuestSignIns
+    lineageTag: e829822f-498c-4fa4-ab5c-ed1766898482
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: cdade55b-60ac-413e-a66c-2fb0d2e0d55d
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 2d26c0a8-5d6e-4f26-a778-03c86c4bfd06
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: baecba19-f066-4a1d-ae3d-f0625a7234e4
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 57d20ab4-5aea-48bb-81cc-2216e1c1ef6e
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column AppDisplayName
+        dataType: string
+        lineageTag: d74ac3e1-50da-4ba0-8bfb-a9c86c6d10af
+        summarizeBy: none
+        sourceColumn: AppDisplayName
+
+    column ResourceDisplayName
+        dataType: string
+        lineageTag: a14ef890-1382-461d-aa1f-2927501b393d
+        summarizeBy: none
+        sourceColumn: ResourceDisplayName
+
+    column IpAddress
+        dataType: string
+        lineageTag: 888524d6-8661-419e-a39e-13d10a3dfb91
+        summarizeBy: none
+        sourceColumn: IpAddress
+
+    column City
+        dataType: string
+        lineageTag: 9309652a-eb95-42b6-9b61-b25e99043c47
+        summarizeBy: none
+        sourceColumn: City
+
+    column CountryOrRegion
+        dataType: string
+        lineageTag: 2f659f33-c0e5-4cfa-a76a-8b5ea0063c9e
+        summarizeBy: none
+        sourceColumn: CountryOrRegion
+
+    column ClientAppUsed
+        dataType: string
+        lineageTag: 9b714aaf-4133-4673-a10d-9cbe51e94cde
+        summarizeBy: none
+        sourceColumn: ClientAppUsed
+
+    column IsInteractive
+        dataType: boolean
+        lineageTag: f5a07653-088d-49c7-af14-b1c0d868094b
+        summarizeBy: none
+        sourceColumn: IsInteractive
+
+    column ErrorCode
+        dataType: int64
+        lineageTag: c8187024-da20-4424-bfb9-177320a9a863
+        summarizeBy: none
+        sourceColumn: ErrorCode
+
+    column ConditionalAccessStatus
+        dataType: string
+        lineageTag: c5023ce6-3318-4e4b-9830-ca0d9ad6257d
+        summarizeBy: none
+        sourceColumn: ConditionalAccessStatus
+
+    partition GuestSignIns = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-signins.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"IsInteractive", type logical}, {"ErrorCode", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
