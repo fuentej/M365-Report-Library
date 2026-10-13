@@ -60,8 +60,8 @@ table GroupLifecycleCoverage
     measure 'Coverage Status (Display)' = 
             VAR SnapshotDate = [Selected Snapshot Date]
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecycleCoverage), GroupLifecycleCoverage[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(GroupLifecycleCoverage[CoverageStatus]), GroupLifecycleCoverage[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "No coverage record", Value)
+            VAR FoundValue = CALCULATE(MAX(GroupLifecycleCoverage[CoverageStatus]), GroupLifecycleCoverage[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "No coverage record", FoundValue)
         lineageTag: 94d5a8dc-0b0d-53f2-b3cb-d7ac4ef82833
 
     partition GroupLifecycleCoverage = m

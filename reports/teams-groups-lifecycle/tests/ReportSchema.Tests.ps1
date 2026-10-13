@@ -103,7 +103,7 @@ Describe 'The schema validator actually catches structural problems' {
     #>
     BeforeAll {
         $script:SampleVisualPath = Join-Path $script:ReportRoot `
-            'TeamsGroupsLifecycle.Report/definition/pages/overview/visuals/card-groups/visual.json'
+            'TeamsGroupsLifecycle.Report/definition/pages/groups-nobody-owns/visuals/owners-tile-1/visual.json'
         $script:SampleVisual = Get-Content -LiteralPath $script:SampleVisualPath -Raw | ConvertFrom-Json -AsHashtable
     }
 

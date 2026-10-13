@@ -7,5 +7,104 @@
       "type": "SharedResources"
     }
   },
-  "layoutOptimization": "None"
+  "layoutOptimization": "None",
+  "resourcePackages": [
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "icon-owner-left.svg",
+          "path": "icon-owner-left.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-people.svg",
+          "path": "icon-people.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-globe.svg",
+          "path": "icon-globe.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-trash.svg",
+          "path": "icon-trash.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-moon.svg",
+          "path": "icon-moon.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-infinity.svg",
+          "path": "icon-infinity.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-clock.svg",
+          "path": "icon-clock.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-archive.svg",
+          "path": "icon-archive.svg",
+          "type": "Image"
+        }
+      ]
+    }
+  ],
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "FilterAnonymizeMode",
+        "displayName": "Anonymize names",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "AnonymizeMode"
+              }
+            },
+            "Property": "Mode"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User",
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "requireSingleSelect": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "FilterGroupKind",
+        "displayName": "Group or Team",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GroupKind"
+              }
+            },
+            "Property": "Label"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User"
+      }
+    ]
+  }
 }

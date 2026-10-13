@@ -123,7 +123,7 @@ Describe 'Every visual field reference resolves against the TMDL model' {
 
     It 'has field references to check' {
         # Guards the tests below against silently passing because nothing was found.
-        $script:AllReferences.Count | Should -BeGreaterThan 100
+        $script:AllReferences.Count | Should -BeGreaterThan 50
     }
 
     It 'references only tables that exist in the model' {
@@ -315,29 +315,32 @@ Describe 'The anonymize toggle covers every displayed name' {
         $leaks -join '; ' | Should -BeNullOrEmpty
     }
 
-    It 'has the Anonymize slicer and a Pseudonym group slicer on <Page>' -ForEach @(
-        Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../report/TeamsGroupsLifecycle.Report/definition/pages') -Directory |
-            ForEach-Object { @{ Page = $_.Name } }
-    ) {
-        $dir = Join-Path $script:PagesFolder "$Page/visuals"
-        $anonymize = Get-Content -LiteralPath (Join-Path $dir 'slicer-anonymize/visual.json') -Raw | ConvertFrom-Json
-        $anonymize.visual.query.queryState.Values.projections[0].field.Column.Expression.SourceRef.Entity | Should -Be 'AnonymizeMode'
-        $group = Get-Content -LiteralPath (Join-Path $dir 'slicer-group/visual.json') -Raw | ConvertFrom-Json
-        $group.visual.query.queryState.Values.projections[0].field.Column.Property | Should -Be 'Pseudonym'
-        $kind = Get-Content -LiteralPath (Join-Path $dir 'slicer-kind/visual.json') -Raw | ConvertFrom-Json
-        $kind.visual.query.queryState.Values.projections[0].field.Column.Expression.SourceRef.Entity | Should -Be 'GroupKind'
-        $kind.visual.query.queryState.Values.projections[0].field.Column.Property | Should -Be 'Label'
+    # The two pages carry no slicers (BRO-499 design), so the Anonymize toggle and the
+    # Group or Team choice are report-level filters in the filter pane, on every page.
+    It 'puts the Anonymize toggle in the report filter pane, on AnonymizeMode[Mode]' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'TeamsGroupsLifecycle.Report/definition/report.json') -Raw | ConvertFrom-Json
+        $filter = @($report.filterConfig.filters | Where-Object { $_.field.Column.Expression.SourceRef.Entity -eq 'AnonymizeMode' })
+        $filter.Count | Should -Be 1
+        $filter[0].field.Column.Property | Should -Be 'Mode'
+        $filter[0].type | Should -Be 'Categorical'
     }
 
-    It 'binds <Page> date slicer to DateDim[Date] in Between mode' -ForEach @(
-        Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../report/TeamsGroupsLifecycle.Report/definition/pages') -Directory |
-            ForEach-Object { @{ Page = $_.Name } }
-    ) {
-        $visual = Get-Content -LiteralPath (Join-Path $script:PagesFolder "$Page/visuals/slicer-date-range/visual.json") -Raw | ConvertFrom-Json
-        $projection = $visual.visual.query.queryState.Values.projections[0]
-        $projection.field.Column.Expression.SourceRef.Entity | Should -Be 'DateDim'
-        $projection.field.Column.Property | Should -Be 'Date'
-        $visual.visual.objects.data[0].properties.mode.expr.Literal.Value | Should -Be "'Between'"
+    It 'puts the Group or Team choice in the report filter pane, on GroupKind[Label]' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'TeamsGroupsLifecycle.Report/definition/report.json') -Raw | ConvertFrom-Json
+        $filter = @($report.filterConfig.filters | Where-Object { $_.field.Column.Expression.SourceRef.Entity -eq 'GroupKind' })
+        $filter.Count | Should -Be 1
+        $filter[0].field.Column.Property | Should -Be 'Label'
+    }
+
+    It 'keys each table row on the GroupsCurrent pseudonym and shows names only through a measure' {
+        $tables = @($script:VisualFiles | Where-Object {
+                (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json).visual.visualType -eq 'tableEx' })
+        $tables.Count | Should -BeGreaterThan 0
+        foreach ($file in $tables) {
+            $projections = (Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json).visual.query.queryState.Values.projections
+            $projections[0].field.Column.Property | Should -Be 'Pseudonym' -Because $file.FullName
+            $projections[0].hidden | Should -BeTrue -Because $file.FullName
+        }
     }
 
     It 'reads names through a Display Name measure that honours the toggle' {

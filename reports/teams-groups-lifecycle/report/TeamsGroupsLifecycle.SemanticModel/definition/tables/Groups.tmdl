@@ -160,6 +160,155 @@ table Groups
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Listed owners whose account is enabled in the latest users.csv: a working owner.
+    column WorkingOwnerCount = COUNTROWS(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Enabled"))
+        dataType: int64
+        formatString: #,0
+        lineageTag: 7cb09a44-07e0-4269-a92b-ed4cd8c3e81e
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Listed owners missing from users.csv. Whether they still work is unknown.
+    column UnknownStateOwnerCount = COUNTROWS(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Unknown"))
+        dataType: int64
+        formatString: #,0
+        lineageTag: ad389ac6-af4b-43d2-b74f-e9b0d8746812
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Graph listed the owners (or said there are none) and none of them has an enabled account. An unknown owner list, or an owner missing from users.csv, is not counted as no working owner.
+    column HasNoWorkingOwner = Groups[OwnerStatus] <> "Owner unknown" && Groups[WorkingOwnerCount] = 0 && Groups[UnknownStateOwnerCount] = 0
+        dataType: boolean
+        lineageTag: b90568e1-08c4-4e8a-b07f-f5d6c9b1d21b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Listed owners whose account is disabled. Read through Departed Owner (Display), which honours the Anonymize toggle.
+    column DepartedOwnerNames = CONCATENATEX(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Disabled"), GroupOwners[OwnerDisplayName], ", ", GroupOwners[OwnerDisplayName])
+        dataType: string
+        lineageTag: cea70e0c-a8b3-4d25-b837-058cdd7f4980
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column DepartedOwnerPseudonyms = CONCATENATEX(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Disabled"), GroupOwners[Pseudonym], ", ", GroupOwners[Pseudonym])
+        dataType: string
+        lineageTag: 24f240af-c118-41c7-91d9-d537892c703b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The departed owner's manager from the latest users.csv. Blank when no listed owner is disabled or users.csv has no manager.
+    column DepartedOwnerManager = LOOKUPVALUE(UsersCurrent[ManagerUserPrincipalName], UsersCurrent[Id], MINX(FILTER(RELATEDTABLE(GroupOwners), GroupOwners[OwnerAccountState] = "Disabled"), GroupOwners[OwnerId]))
+        dataType: string
+        lineageTag: 637aac58-ef17-43f0-8feb-a6426d80d79c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Who created the group, from the creation audit record whose TargetGroupId (the TeamGuid) is this group. AddGroup records carry no TargetGroupId, so only team creations name a creator. Audit (Standard) keeps 180 days.
+    column Creator =
+            VAR GroupId = Groups[Id]
+            VAR Events = FILTER(GroupCreationEvents, GroupCreationEvents[TargetGroupId] = GroupId)
+            RETURN MAXX(TOPN(1, Events, GroupCreationEvents[CreationTime], ASC), GroupCreationEvents[UserId])
+        dataType: string
+        lineageTag: 1d0c6b8e-eccc-4fd1-80d4-bb97b3ac2f9d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The departed owner's manager, else the person who created the group. Blank when neither is on record.
+    column SuggestedOwner =
+            VAR Manager = Groups[DepartedOwnerManager]
+            VAR CreatedBy = Groups[Creator]
+            RETURN IF(NOT ISBLANK(Manager), LEFT(Manager, SEARCH("@", Manager & "@") - 1) & " (manager)", IF(NOT ISBLANK(CreatedBy), LEFT(CreatedBy, SEARCH("@", CreatedBy & "@") - 1) & " (creator)", BLANK()))
+        dataType: string
+        lineageTag: eb06aea1-0e73-4e00-b8dd-2e2bf02e2d7f
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column SuggestedOwnerPseudonym =
+            VAR Manager = Groups[DepartedOwnerManager]
+            VAR GroupId = Groups[Id]
+            VAR Events = FILTER(GroupCreationEvents, GroupCreationEvents[TargetGroupId] = GroupId)
+            VAR CreatorPseudo = MAXX(TOPN(1, Events, GroupCreationEvents[CreationTime], ASC), GroupCreationEvents[CreatorPseudonym])
+            VAR ManagerPseudo = LOOKUPVALUE(UsersCurrent[Pseudonym], UsersCurrent[UserPrincipalName], Manager)
+            RETURN IF(NOT ISBLANK(Manager), COALESCE(ManagerPseudo, "Unmatched user") & " (manager)", IF(NOT ISBLANK(CreatorPseudo), CreatorPseudo & " (creator)", BLANK()))
+        dataType: string
+        lineageTag: 1436c4c6-834c-4a50-b0ed-f3d6e28bc96a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// From group-activity.csv on the same snapshot. Blank when the usage report has no row for the group.
+    column MemberCount = LOOKUPVALUE(GroupActivity[MemberCount], GroupActivity[SnapshotKey], Groups[SnapshotKey])
+        dataType: int64
+        formatString: #,0
+        lineageTag: 39b9af19-f9a6-4188-98c1-a3007cc53cd6
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column OutsideMemberCount = LOOKUPVALUE(GroupActivity[ExternalMemberCount], GroupActivity[SnapshotKey], Groups[SnapshotKey])
+        dataType: int64
+        formatString: #,0
+        lineageTag: 9c168439-ee74-4c29-bbcd-c9d4c53f6b59
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column FileCount = LOOKUPVALUE(GroupActivity[SharePointTotalFileCount], GroupActivity[SnapshotKey], Groups[SnapshotKey])
+        dataType: int64
+        formatString: #,0
+        lineageTag: d3f9014a-77c9-47e1-b838-d6a7ffa7b4c2
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column LastActivityDate = LOOKUPVALUE(GroupActivity[LastActivityDate], GroupActivity[SnapshotKey], Groups[SnapshotKey])
+        dataType: dateTime
+        formatString: yyyy-MM-dd
+        lineageTag: 5eaf9f2e-f978-46b3-a991-2f730fc6d03c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Days from the last activity date to the RunDate. Blank, not 0, when the date is unknown.
+    column DaysQuiet = LOOKUPVALUE(GroupActivity[DaysSinceLastActivity], GroupActivity[SnapshotKey], Groups[SnapshotKey])
+        dataType: int64
+        formatString: #,0
+        lineageTag: 91f97db3-2d3c-4922-bd01-0fafffff1786
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column QuietBandOrder =
+            VAR d = Groups[DaysQuiet]
+            RETURN IF(ISBLANK(d), 6, IF(d <= 30, 1, IF(d <= 90, 2, IF(d <= 180, 3, IF(d <= 365, 4, 5)))))
+        dataType: int64
+        lineageTag: 4eb53a74-5ad9-4a2b-8d13-8f1c498dc1bb
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Days since last activity. Dead means more than 90 days.
+    column QuietBand =
+            VAR d = Groups[DaysQuiet]
+            RETURN IF(ISBLANK(d), "No activity date", IF(d <= 30, "0-30 days", IF(d <= 90, "31-90", IF(d <= 180, "91-180", IF(d <= 365, "181-365", "365+")))))
+        dataType: string
+        lineageTag: 057793b3-62bd-45d0-a9b6-3b135b677788
+        summarizeBy: none
+        isDataTypeInferred: false
+        sortByColumn: QuietBandOrder
+
+    /// Covered, NotCovered or Unknown from group-lifecycle-coverage.csv on the same snapshot. Blank when there is no row.
+    column CoverageStatus = MAXX(RELATEDTABLE(GroupLifecycleCoverage), GroupLifecycleCoverage[CoverageStatus])
+        dataType: string
+        lineageTag: 4f29a425-0b66-4ff1-9e72-77f6a3a447c3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column ExpiryCoverageLabel = SWITCH(Groups[CoverageStatus], "Covered", "covered by expiration", "NotCovered", "never expires", "coverage unknown")
+        dataType: string
+        lineageTag: 98ce2768-c6da-463d-b3fd-fedf8cd6de7d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    column IsArchivedTeam = COUNTROWS(FILTER(RELATEDTABLE(TeamArchiveStatus), TeamArchiveStatus[IsArchived] = TRUE())) > 0
+        dataType: boolean
+        lineageTag: 0e9beda1-9de3-4ee7-81fc-ca0435a77902
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest snapshot RunDate inside the current date slicer, ignoring the visual's own group axis.
     measure 'Selected Snapshot Date' = CALCULATE(MAX(Groups[RunDate]), ALLSELECTED(Groups), ALLSELECTED(GroupsCurrent))
         formatString: Short Date
@@ -260,24 +409,24 @@ table Groups
     measure 'Owner Status (Display)' = 
             VAR SnapshotDate = [Selected Snapshot Date]
             VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Owner unknown", Value)
+            VAR FoundValue = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "Owner unknown", FoundValue)
         lineageTag: 4fc5568b-a890-5ead-a113-d89a9eeb3fa2
 
     measure 'Owner Count (Display)' = 
             VAR SnapshotDate = [Selected Snapshot Date]
             VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
-            VAR Status = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            VAR FoundStatus = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
             VAR Listed = CALCULATE(MAX(Groups[OwnerListedCount]), Groups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || Status = "Owner unknown", "Unknown", FORMAT(Listed, "#,0"))
+            RETURN IF(OnSnapshot = 0 || FoundStatus = "Owner unknown", "Unknown", FORMAT(Listed, "#,0"))
         lineageTag: 7e02658d-dc70-55d1-9824-fe55b43bdc20
 
     measure 'Disabled Owners (Display)' = 
             VAR SnapshotDate = [Selected Snapshot Date]
             VAR OnSnapshot = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
-            VAR Status = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
-            VAR Disabled = CALCULATE(MAX(Groups[DisabledOwnerCount]), Groups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || Status = "Owner unknown", "Unknown", FORMAT(Disabled, "#,0"))
+            VAR FoundStatus = CALCULATE(MAX(Groups[OwnerStatus]), Groups[RunDate] = SnapshotDate)
+            VAR DisabledCount = CALCULATE(MAX(Groups[DisabledOwnerCount]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || FoundStatus = "Owner unknown", "Unknown", FORMAT(DisabledCount, "#,0"))
         lineageTag: 2aadda22-41d3-56c2-aa5b-c6deb763ddf9
 
     measure 'Expiration Date (Display)' = 
@@ -293,6 +442,260 @@ table Groups
             VAR Days = CALCULATE(MAX(Groups[DaysToExpiry]), Groups[RunDate] = SnapshotDate)
             RETURN IF(OnSnapshot = 0, "Unknown", IF(ISBLANK(Days), "No expiration date", FORMAT(Days, "#,0") & " days"))
         lineageTag: 60df43d9-6552-5129-a797-5fd95944f5dd
+
+    /// Header line on the Groups nobody owns page.
+    measure 'Lifecycle Run Header' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN "Run " & FORMAT(SnapshotDate, "yyyy-MM-dd") & " · " & FORMAT([Group Count], "#,0") & " groups, " & FORMAT([Team Count], "#,0") & " teams"
+        lineageTag: f65c2fbf-75e2-4029-b330-9cdbab03f864
+
+    /// Header line on The graveyard page.
+    measure 'Expiration Policy Header' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR PolicyScope = [Policy Scope]
+            VAR Lifetime = [Expiration Policy Lifetime]
+            VAR ScopeText = SWITCH(PolicyScope, "Selected", "selected groups only", "All", "all groups", "None", "turned off", "scope unknown")
+            VAR PolicyText = IF(PolicyScope = "No policy row", "none recorded", Lifetime & ", " & ScopeText)
+            RETURN "Run " & FORMAT(SnapshotDate, "yyyy-MM-dd") & " · expiration policy: " & PolicyText
+        lineageTag: f379b2e1-4dc7-4693-91fa-c9a57b6fd4d9
+
+    /// Shown in the footer only when the users carry the example.com sample domain.
+    measure 'Sample Data Note' = IF(COUNTROWS(FILTER(UsersCurrent, RIGHT(UsersCurrent[UserPrincipalName], 12) = "@example.com")) > 0, " · sample data, example.com", "")
+        lineageTag: 2ff8bea9-dacd-4b54-8d6e-12e41d3b5992
+
+    measure 'Owners Page Sources' = "Sources: groups.csv · group-owners.csv · users.csv · group-activity.csv · group-creation-events.csv · deleted-groups.csv" & [Sample Data Note]
+        lineageTag: a2bb39bc-b462-4f76-bc5c-93c297ce913a
+
+    measure 'Graveyard Page Sources' = "Sources: groups.csv · group-activity.csv · group-lifecycle-policies.csv · group-lifecycle-coverage.csv" & [Sample Data Note]
+        lineageTag: bb5639e1-4cd8-419a-9056-fef285ef1091
+
+    /// Groups on the snapshot where no listed owner has an enabled account.
+    measure 'Groups Without Working Owner' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: 7d71e6e7-8eef-4727-a0fc-844c6b1fd59c
+
+    measure 'People In Groups Without Working Owner' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[MemberCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: 4340d62c-e41c-4b62-811f-da1acde78490
+
+    measure 'Outside Members In Groups Without Working Owner' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[OutsideMemberCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: 0c4f114d-b6d0-4852-a55c-1a9280aef006
+
+    measure 'Files In Groups Without Working Owner' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[FileCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: 60b7c4ab-95de-47b1-9422-9f7632f9f81b
+
+    /// Headline sentence. Files are rounded to the nearest thousand.
+    measure 'Groups Without Working Owner Headline' =
+            VAR N = [Groups Without Working Owner]
+            VAR P = COALESCE([People In Groups Without Working Owner], 0)
+            VAR X = COALESCE([Outside Members In Groups Without Working Owner], 0)
+            VAR F = COALESCE([Files In Groups Without Working Owner], 0)
+            VAR Rounded = ROUND(F, -3)
+            VAR FilesText = IF(F < 1000 || Rounded = F, FORMAT(F, "#,0"), IF(Rounded > F, "nearly ", "over ") & FORMAT(Rounded, "#,0"))
+            RETURN IF(COALESCE(N, 0) = 0, "Every group has a working owner.", FORMAT(N, "#,0") & IF(N = 1, " group has no working owner. It holds ", " groups have no working owner. Together they hold ") & FORMAT(P, "#,0") & " people, " & FORMAT(X, "#,0") & " of them from outside, and " & FilesText & " files.")
+        lineageTag: 7177b20c-c6d8-41cf-a7d7-5e693f72782a
+
+    measure 'Ownerless Group Name' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            RETURN IF(InScope, [Group Display Name])
+        lineageTag: 4b9ea96c-a2a6-439d-8429-2d2eccaeaa07
+
+    measure 'Ownerless Group Kind' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            RETURN IF(InScope, MAX(GroupsCurrent[IsTeamLabel]))
+        lineageTag: dde768a8-d415-4413-b9ac-02fdbec98fc0
+
+    /// Left: the disabled owner, or Never had one when Graph listed no owner.
+    measure 'Departed Owner (Display)' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Names = CALCULATE(MAX(Groups[DepartedOwnerNames]), Groups[RunDate] = SnapshotDate)
+            VAR Pseudos = CALCULATE(MAX(Groups[DepartedOwnerPseudonyms]), Groups[RunDate] = SnapshotDate)
+            VAR Shown = IF(Mode = "Anonymize", Pseudos, Names)
+            RETURN IF(InScope, IF(ISBLANK(Shown) || Shown = "", "Never had one", "Left: " & Shown))
+        lineageTag: 6d8ac6c5-c34e-420f-bc4b-ca250ad9a78a
+
+    measure 'Departed Owner Color' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            VAR Names = CALCULATE(MAX(Groups[DepartedOwnerNames]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(InScope, IF(ISBLANK(Names) || Names = "", "#D98A00", "#C62828"))
+        lineageTag: 0d946ee3-d4cc-4fcf-92f4-0db461933886
+
+    measure 'Ownerless Members' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[MemberCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: ab95255f-233b-47f4-9e49-9f7cbaf304bf
+
+    /// The same figure as Ownerless Members, drawn as a bar beside the number.
+    measure 'Ownerless Members Bar' = [Ownerless Members]
+        formatString: #,0
+        lineageTag: bee6563d-081a-42c8-b42e-bad33dbcde14
+
+    measure 'Ownerless Outside Members' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[OutsideMemberCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: c6c530e6-5f4a-4486-8f22-5b2e724cec6a
+
+    measure 'Ownerless Files' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[FileCount]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: #,0
+        lineageTag: 45279953-3aa4-4240-ae06-740e6eb57cb7
+
+    measure 'Ownerless Last Activity' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(MAX(Groups[LastActivityDate]), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE())
+        formatString: yyyy-MM-dd
+        lineageTag: 7b89e3fb-2334-4c66-9704-ea3d90ea8dcc
+
+    measure 'Ownerless Outside Color' = IF(COALESCE([Ownerless Outside Members], 0) > 0, "#C62828", "#8A9099")
+        lineageTag: 7e2ce812-7b53-47ca-a598-77a52b4ad13a
+
+    measure 'Dead Outside Color' = IF(COALESCE([Dead Outside Members], 0) > 0, "#C62828", "#8A9099")
+        lineageTag: 11910721-92b4-4a13-865f-fe3588980fcf
+
+    /// Whether the expiration policy covers the group.
+    measure 'Ownerless Expires' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            VAR FoundStatus = CALCULATE(MAX(Groups[CoverageStatus]), Groups[RunDate] = SnapshotDate)
+            RETURN IF(InScope, SWITCH(FoundStatus, "Covered", "Covered", "NotCovered", "Never expires", "Unknown"))
+        lineageTag: 72b021f0-9c11-4853-8ac2-f5cdfaddea84
+
+    measure 'Ownerless Expires Color' = IF([Ownerless Expires] = "Never expires", "#C62828", "#8A9099")
+        lineageTag: f07d44e3-f1c1-478c-9c28-8e9388b6b4fa
+
+    /// The departed owner's manager, else the group's creator.
+    measure 'Suggested Owner (Display)' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[HasNoWorkingOwner] = TRUE()) > 0
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Real = CALCULATE(MAX(Groups[SuggestedOwner]), Groups[RunDate] = SnapshotDate)
+            VAR Pseudo = CALCULATE(MAX(Groups[SuggestedOwnerPseudonym]), Groups[RunDate] = SnapshotDate)
+            VAR Shown = IF(Mode = "Anonymize", Pseudo, Real)
+            RETURN IF(InScope, IF(ISBLANK(Shown), "no manager or creator on record", Shown))
+        lineageTag: 74dc130a-79a7-4654-b117-34dd17a2b5b9
+
+    measure 'Suggested Owner Color' = IF([Suggested Owner (Display)] = "no manager or creator on record", "#8A9099", "#1F2A37")
+        lineageTag: 0ecb57b1-86a9-412c-8e0c-a5447a7605dc
+
+    measure 'Groups Quiet Over 90 Days' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90)
+        formatString: #,0
+        lineageTag: 258b5384-7922-4ee0-a58f-4e58be7da635
+
+    measure 'Groups Quiet Over 90 Days (Display)' = FORMAT(COALESCE([Groups Quiet Over 90 Days], 0), "#,0") & " of " & FORMAT(COALESCE([Group Count], 0), "#,0")
+        lineageTag: 2adf3e4c-25db-41ce-840f-61d02902ac15
+
+    /// No activity for more than 90 days and not covered by the expiration policy.
+    measure 'Dead Never-Expiring Groups' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN COALESCE(CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered"), 0)
+        formatString: #,0
+        lineageTag: bc78761d-ba2c-4749-9d4d-8e7c8d21e4f7
+
+    measure 'Never-Expiring Groups' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN COALESCE(CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[CoverageStatus] = "NotCovered"), 0)
+        formatString: #,0
+        lineageTag: 175a2733-a744-428c-9ec9-26b4b9566dac
+
+    measure 'Quiet Teams' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN COALESCE(CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[IsTeam] = TRUE(), NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90), 0)
+        formatString: #,0
+        lineageTag: 63e28114-4da9-4239-85af-096de95b6140
+
+    measure 'Quiet Teams Archived' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN COALESCE(CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, Groups[IsTeam] = TRUE(), NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[IsArchivedTeam] = TRUE()), 0)
+        formatString: #,0
+        lineageTag: 48c75e5e-3fa1-4a3c-809f-16ef7800fa2d
+
+    measure 'Quiet Teams Archived (Display)' = FORMAT([Quiet Teams Archived], "#,0") & " of " & FORMAT([Quiet Teams], "#,0")
+        lineageTag: a3f5bc8f-8d0d-442f-8e82-5c97c1630fd0
+
+    /// Plotted by QuietBand and ExpiryCoverageLabel.
+    measure 'Groups By Quiet Band' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate)
+        formatString: #,0
+        lineageTag: 6bcc880e-bfb8-4302-88a8-d7d2953fef2a
+
+    measure 'One Fix Title' = SWITCH([Policy Scope], "Selected", "Apply the expiration policy to all groups", "All", "The expiration policy already covers all groups", "Create a group expiration policy")
+        lineageTag: 50a958dc-7de0-4872-b7f0-c01c55d461e3
+
+    measure 'One Fix Detail' =
+            VAR PolicyScope = [Policy Scope]
+            VAR N = [Never-Expiring Groups]
+            VAR D = [Dead Never-Expiring Groups]
+            RETURN SWITCH(PolicyScope, "Selected", "It covers selected groups only, so " & FORMAT(N, "#,0") & " groups, " & FORMAT(D, "#,0") & " of them dead, can never expire.", "All", "Every group is covered; dead groups expire on their own.", "No group expires today, so " & FORMAT(N, "#,0") & " groups, " & FORMAT(D, "#,0") & " of them dead, can never expire.")
+        lineageTag: 07db8153-0d1c-4393-84f4-7770429c9565
+
+    measure 'Dead Group Name' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered") > 0
+            RETURN IF(InScope, [Group Display Name])
+        lineageTag: 19748153-b8f4-4448-a612-0a5c5df91801
+
+    measure 'Dead Quiet Days' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(MAX(Groups[DaysQuiet]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered")
+        formatString: "#,0"" days"""
+        lineageTag: 95912000-63f0-42af-afdd-806902f1230a
+
+    measure 'Dead Members' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[MemberCount]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered")
+        formatString: #,0
+        lineageTag: 9c109b82-628d-4934-b496-c76f4332b4e9
+
+    measure 'Dead Outside Members' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[OutsideMemberCount]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered")
+        formatString: #,0
+        lineageTag: fc34430e-7e01-42be-812f-5b0a1f10a0d6
+
+    measure 'Dead Files' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(SUM(Groups[FileCount]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysQuiet]), Groups[DaysQuiet] > 90, Groups[CoverageStatus] = "NotCovered")
+        formatString: #,0
+        lineageTag: 420fb78b-dcf7-4887-92c5-5a6152aca7b2
+
+    measure 'Past Expiration Group Name' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            VAR InScope = CALCULATE(COUNTROWS(Groups), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] < 0) > 0
+            RETURN IF(InScope, [Group Display Name])
+        lineageTag: 5e23e4aa-373c-4054-8416-a0326a83edd7
+
+    measure 'Expired On' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(MAX(Groups[ExpirationDateTime]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] < 0)
+        formatString: yyyy-MM-dd
+        lineageTag: 78f85815-2f28-472f-8933-f9020ba7b645
+
+    measure 'Last Renewed' =
+            VAR SnapshotDate = [Selected Snapshot Date]
+            RETURN CALCULATE(MAX(Groups[RenewedDateTime]), Groups[RunDate] = SnapshotDate, NOT ISBLANK(Groups[DaysToExpiry]), Groups[DaysToExpiry] < 0)
+        formatString: yyyy-MM-dd
+        lineageTag: 1bd7d69d-202f-4afc-9323-33e22ff350b8
 
     partition Groups = m
         mode: import

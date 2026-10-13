@@ -55,8 +55,8 @@ table TeamArchiveStatus
     measure 'Archive Status' = 
             VAR SnapshotDate = [Selected Snapshot Date]
             VAR OnSnapshot = CALCULATE(COUNTROWS(TeamArchiveStatus), TeamArchiveStatus[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(TeamArchiveStatus[ArchiveLabel]), TeamArchiveStatus[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "No archive record", Value)
+            VAR FoundValue = CALCULATE(MAX(TeamArchiveStatus[ArchiveLabel]), TeamArchiveStatus[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "No archive record", FoundValue)
         lineageTag: 3a6852b0-7c7c-5021-8fa7-0aa0c47df2cc
 
     partition TeamArchiveStatus = m

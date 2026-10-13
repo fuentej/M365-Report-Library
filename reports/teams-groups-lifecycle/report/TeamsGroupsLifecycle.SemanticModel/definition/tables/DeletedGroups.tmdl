@@ -112,6 +112,17 @@ table DeletedGroups
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Position in the recycle bin strip: 1 is the restorable group with the fewest days left. Blank once the purge date has passed.
+    column RestoreSlot =
+            VAR d = DeletedGroups[DaysToPurge]
+            VAR r = DeletedGroups[RunDate]
+            VAR i = DeletedGroups[Id]
+            RETURN IF(ISBLANK(d) || d < 0, BLANK(), 1 + COUNTROWS(FILTER(DeletedGroups, DeletedGroups[RunDate] = r && NOT ISBLANK(DeletedGroups[DaysToPurge]) && DeletedGroups[DaysToPurge] >= 0 && (DeletedGroups[DaysToPurge] < d || (DeletedGroups[DaysToPurge] = d && DeletedGroups[Id] < i)))))
+        dataType: int64
+        lineageTag: ef1d114f-da7d-4abc-bbc4-3c20bd8aa7ae
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Zero means no deleted-groups.csv row on the snapshot; the collector cannot tell none from a refused call.
     measure 'Soft-Deleted Groups' = 
             VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
@@ -148,15 +159,15 @@ table DeletedGroups
     measure 'Deleted Date (Display)' = 
             VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(DeletedGroups[DeletedDateTime]), DeletedGroups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
+            VAR FoundValue = CALCULATE(MAX(DeletedGroups[DeletedDateTime]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "Unknown", FORMAT(FoundValue, "yyyy-MM-dd"))
         lineageTag: 169d5910-b6d5-591f-ae9c-ded01b03ecd7
 
     measure 'Purge Date (Display)' = 
             VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(DeletedGroups[PurgeDateTime]), DeletedGroups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", FORMAT(Value, "yyyy-MM-dd"))
+            VAR FoundValue = CALCULATE(MAX(DeletedGroups[PurgeDateTime]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "Unknown", FORMAT(FoundValue, "yyyy-MM-dd"))
         lineageTag: ada530ec-e856-5eff-86bd-552c13b86eaf
 
     measure 'Days To Purge (Display)' = 
@@ -168,9 +179,131 @@ table DeletedGroups
     measure 'Deleted Kind (Display)' = 
             VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
             VAR OnSnapshot = CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(DeletedGroups[DeletedKind]), DeletedGroups[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0 || ISBLANK(Value), "Unknown", Value)
+            VAR FoundValue = CALCULATE(MAX(DeletedGroups[DeletedKind]), DeletedGroups[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0 || ISBLANK(FoundValue), "Unknown", FoundValue)
         lineageTag: ebc1eb7b-c6b9-5685-978b-8ef95d940977
+
+    /// Soft-deleted groups whose purge date has not passed, so they can still be restored.
+    measure 'Restorable Deleted Groups' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN COALESCE(CALCULATE(COUNTROWS(DeletedGroups), DeletedGroups[RunDate] = SnapshotDate, NOT ISBLANK(DeletedGroups[DaysToPurge]), DeletedGroups[DaysToPurge] >= 0), 0)
+        formatString: #,0
+        lineageTag: 61e70812-ae57-4f32-98ec-3ce25c6236f2
+
+    /// Days left to restore the restorable group in this recycle bin slot.
+    measure 'Recycle Bin Days Left 1' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 1)
+        formatString: #,0
+        lineageTag: 09c17fe2-7623-4239-82e9-738ba90c8378
+
+    measure 'Recycle Bin Group 1' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 1)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 1)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 772a4cbd-6ff2-4996-b226-3c2a9581e97c
+
+    measure 'Recycle Bin Color 1' =
+            VAR Days = [Recycle Bin Days Left 1]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: a2d01028-675a-440c-a92d-e9e9dee78771
+
+    measure 'Recycle Bin Days Left 2' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 2)
+        formatString: #,0
+        lineageTag: b4451ba2-01fa-42c3-8868-72be2354e6ae
+
+    measure 'Recycle Bin Group 2' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 2)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 2)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 7dc88c11-1353-4881-a097-8aeed956ecd5
+
+    measure 'Recycle Bin Color 2' =
+            VAR Days = [Recycle Bin Days Left 2]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: cc15ec25-5614-4ef3-9c5b-2b8db9d93d08
+
+    measure 'Recycle Bin Days Left 3' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 3)
+        formatString: #,0
+        lineageTag: d3e1313a-9744-41ff-80af-fcc5e8aad23c
+
+    measure 'Recycle Bin Group 3' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 3)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 3)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: ffd4b9f2-e124-42fa-95c4-6665489d0c81
+
+    measure 'Recycle Bin Color 3' =
+            VAR Days = [Recycle Bin Days Left 3]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: ae855dad-ade8-42a9-9157-3afb453a5adf
+
+    measure 'Recycle Bin Days Left 4' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 4)
+        formatString: #,0
+        lineageTag: 45a733b4-e5c0-41d9-a2b6-70b32551e2b2
+
+    measure 'Recycle Bin Group 4' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 4)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 4)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 059ac34e-edae-4ee1-987c-e41b6283f5d0
+
+    measure 'Recycle Bin Color 4' =
+            VAR Days = [Recycle Bin Days Left 4]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: f39ad114-74f4-4036-8f76-8f841e99fda0
+
+    measure 'Recycle Bin Days Left 5' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 5)
+        formatString: #,0
+        lineageTag: 60893eab-92e2-4f07-b156-d027bedcd237
+
+    measure 'Recycle Bin Group 5' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 5)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 5)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: bfa7c7c1-4976-4fec-ade0-865d6fb7a27f
+
+    measure 'Recycle Bin Color 5' =
+            VAR Days = [Recycle Bin Days Left 5]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: 43d638c1-d426-479b-814a-8bb8df68123c
+
+    measure 'Recycle Bin Days Left 6' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            RETURN CALCULATE(MAX(DeletedGroups[DaysToPurge]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 6)
+        formatString: #,0
+        lineageTag: f92eba7c-39c3-45c7-adc8-358be7f72756
+
+    measure 'Recycle Bin Group 6' =
+            VAR SnapshotDate = CALCULATE(MAX(DeletedGroups[RunDate]), ALLSELECTED(DeletedGroups))
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR RealName = CALCULATE(MAX(DeletedGroups[DisplayName]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 6)
+            VAR Pseudo = CALCULATE(MAX(DeletedGroups[Pseudonym]), DeletedGroups[RunDate] = SnapshotDate, DeletedGroups[RestoreSlot] = 6)
+            RETURN IF(Mode = "Anonymize", Pseudo, RealName)
+        lineageTag: 71430967-75e0-41ed-b027-036496cc9999
+
+    measure 'Recycle Bin Color 6' =
+            VAR Days = [Recycle Bin Days Left 6]
+            RETURN IF(ISBLANK(Days), "#8A9099", IF(Days < 10, "#C62828", IF(Days < 20, "#D98A00", "#138A8A")))
+        lineageTag: d0b53d13-b453-4636-a58d-166573ada9a5
 
     partition DeletedGroups = m
         mode: import
