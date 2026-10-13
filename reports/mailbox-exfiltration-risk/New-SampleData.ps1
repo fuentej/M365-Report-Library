@@ -195,6 +195,20 @@ foreach ($snapshot in $snapshotDates) {
     }
     Export-AppendCsv -Path (Join-Path $OutputPath 'transport-rules.csv') -Rows @($transportRows) -Column $schema.TransportRules -KeyColumn @('RunDate', 'Guid')
 
+    # The default policy plus one custom policy that allows forwarding for one group.
+    $policyRows = @(
+        [pscustomobject]@{
+            RunDate = $runDate; Name = 'Default'; Guid = [guid]::new(1, 4, 5, [byte[]](1, 2, 3, 4, 5, 6, 7, 8)).ToString()
+            IsDefault = 'True'; AutoForwardingMode = 'Off'; RuleName = ''; RuleState = ''; AppliesTo = 'All senders not covered by an enabled custom policy'
+        }
+        [pscustomobject]@{
+            RunDate = $runDate; Name = 'Sales forwarding exception'; Guid = [guid]::new(2, 4, 5, [byte[]](1, 2, 3, 4, 5, 6, 7, 8)).ToString()
+            IsDefault = 'False'; AutoForwardingMode = 'On'; RuleName = 'Sales forwarding exception'; RuleState = 'Enabled'
+            AppliesTo = 'Groups: Sales Team'
+        }
+    )
+    Export-AppendCsv -Path (Join-Path $OutputPath 'outbound-spam-policies.csv') -Rows @($policyRows) -Column $schema.OutboundSpamPolicies -KeyColumn @('RunDate', 'Guid')
+
     $faRows = foreach ($i in 0..($users.Count - 1)) {
         if (($i % 8) -ne 3) { continue }
         [pscustomobject]@{
