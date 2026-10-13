@@ -103,6 +103,19 @@ Describe 'The sample CSVs match the collectors' {
         }
     }
 
+    It 'shows no active files or page views in a usage period that ends before the last activity' {
+        # The report covers the period ending on ReportRefreshDate; a site last active before it has nothing in it.
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv'))
+        foreach ($row in $rows) {
+            $windowStart = ([datetime]$row.ReportRefreshDate).AddDays(-[int]$row.ReportPeriod)
+            $inWindow = $row.LastActivityDate -ne '' -and [datetime]$row.LastActivityDate -ge $windowStart
+            if ($inWindow) { continue }
+            $row.ActiveFileCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod) was last active $($row.LastActivityDate)"
+            $row.PageViewCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod)"
+            $row.VisitedPageCount | Should -Be '0' -Because "$($row.SiteUrl) D$($row.ReportPeriod)"
+        }
+    }
+
     It 'has a site of each type and each sharing level in spo-sites.csv' {
         $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'spo-sites.csv'))
         @($rows | Where-Object { $_.IsTeamsConnected -eq 'True' }).Count | Should -BeGreaterOrEqual 1
