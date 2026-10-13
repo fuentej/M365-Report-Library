@@ -231,8 +231,11 @@ If the folder is missing or empty the file is header only and `run.log` says the
 Learn does not state the file format or the exact header text, so **the file format (CSV) and every header are
 UNVERIFIED**: headers are matched ignoring case, spaces and punctuation; a column not found is left empty and named in
 `run.log`; a file with no agent or credit column is skipped; non-`.csv` files are named in `run.log` and not read. Rows with the
-same key inside a file are summed. A row already written is not written again, so overlapping downloads do not double count and a
-re-download does not update a number already written. Availability by cloud is **UNVERIFIED** in all three clouds (the page does not say).
+same key inside a file are summed; a credit value that is not a number is named in `run.log` and not added up; credits on a row with
+no agent name are kept with an empty `AgentName` and named in `run.log`; a date is read as UTC with the invariant culture (month first for `9/1/2026`; ISO `2026-09-01` is safe), and one that cannot be read is kept as written and named in
+`run.log`. A row already written is not written again, so overlapping downloads do not double count and a
+re-download does not update a number already written. Without a `Date` column, a download for another timeframe that repeats an
+agent, feature and channel is skipped (`run.log` says so): use a new output folder for each timeframe. Availability by cloud is **UNVERIFIED** in all three clouds (the page does not say).
 
 ### `agent-audit-events.csv`: event, appended from the latest `CreationTime`, key `Id`
 

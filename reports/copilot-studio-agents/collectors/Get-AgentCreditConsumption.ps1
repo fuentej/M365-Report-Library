@@ -179,6 +179,9 @@ foreach ($file in $csvFiles) {
 
     $fileEnvironment = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
     $groups = [ordered]@{}
+    $noAgentRows = 0
+    $unreadDates = 0
+    $unreadCredits = [System.Collections.Generic.List[string]]::new()
     foreach ($record in $records) {
         $row = [ordered]@{}
         foreach ($column in $aliases.Keys) {
@@ -190,27 +193,51 @@ foreach ($file in $csvFiles) {
             if ([datetime]::TryParse($row['Date'], [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal, [ref]$parsed)) {
                 $row['Date'] = $parsed.ToString('yyyy-MM-dd')
             }
+            else { $unreadDates++ }
         }
         if (-not $row['EnvironmentName']) { $row['EnvironmentName'] = $fileEnvironment }
-        if (-not $row['AgentName']) { continue }
+        if (-not $row['AgentName']) {
+            # A blank line is not data, but credits with no agent name still count toward the environment total.
+            if (-not $row['BilledCredits'] -and -not $row['NonBilledCredits']) { continue }
+            $noAgentRows++
+        }
 
         $groupKey = ($keyColumns | ForEach-Object { $row[$_] }) -join "`u{1F}"
         if (-not $groups.Contains($groupKey)) {
-            $groups[$groupKey] = [pscustomobject]@{ Row = $row; Billed = 0.0; NonBilled = 0.0; BilledText = $null; NonBilledText = $null }
+            $groups[$groupKey] = [pscustomobject]@{ Row = $row; Billed = 0.0; NonBilled = 0.0; HasBilled = $false; HasNonBilled = $false; BilledText = $null; NonBilledText = $null }
         }
         $group = $groups[$groupKey]
-        foreach ($pair in @(@('BilledCredits', 'Billed', 'BilledText'), @('NonBilledCredits', 'NonBilled', 'NonBilledText'))) {
+        foreach ($pair in @(@('BilledCredits', 'Billed', 'HasBilled', 'BilledText'), @('NonBilledCredits', 'NonBilled', 'HasNonBilled', 'NonBilledText'))) {
             $text = $row[$pair[0]]
+            if (-not $text) { continue }
             $number = ConvertTo-CreditNumber $text
-            if ($null -ne $number) { $group.($pair[1]) += $number }
-            elseif ($text -and $null -eq $group.($pair[2])) { $group.($pair[2]) = $text }
+            if ($null -ne $number) {
+                $group.($pair[1]) += $number
+                $group.($pair[2]) = $true
+                continue
+            }
+            $unreadCredits.Add(('{0} "{1}"' -f $pair[0], $text))
+            if ($null -eq $group.($pair[3])) { $group.($pair[3]) = $text }
         }
+    }
+
+    if ($noAgentRows -gt 0) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+            'in {0}: {1} row(s) with credits have no agent name. They are kept with an empty AgentName so the credits still count.' -f $file.Name, $noAgentRows)
+    }
+    if ($unreadDates -gt 0) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+            'in {0}: {1} row(s) have a date that could not be read. The date is kept as written, so a row for the same day written in another format would not be recognised as a duplicate.' -f $file.Name, $unreadDates)
+    }
+    if ($unreadCredits.Count -gt 0) {
+        Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+            'in {0}: {1} credit value(s) are not numbers and are not added up: {2}.' -f $file.Name, $unreadCredits.Count, (($unreadCredits | Select-Object -Unique -First 5) -join ', '))
     }
 
     foreach ($group in $groups.Values) {
         $row = $group.Row
-        $billed = if ($null -ne $group.BilledText) { $group.BilledText } elseif ($row['BilledCredits'] -eq '') { '' } else { [string]$group.Billed.ToString('0.####', [System.Globalization.CultureInfo]::InvariantCulture) }
-        $nonBilled = if ($null -ne $group.NonBilledText) { $group.NonBilledText } elseif ($row['NonBilledCredits'] -eq '') { '' } else { [string]$group.NonBilled.ToString('0.####', [System.Globalization.CultureInfo]::InvariantCulture) }
+        $billed = if ($group.HasBilled) { $group.Billed.ToString('0.####', [System.Globalization.CultureInfo]::InvariantCulture) } elseif ($null -ne $group.BilledText) { $group.BilledText } else { '' }
+        $nonBilled = if ($group.HasNonBilled) { $group.NonBilled.ToString('0.####', [System.Globalization.CultureInfo]::InvariantCulture) } elseif ($null -ne $group.NonBilledText) { $group.NonBilledText } else { '' }
         $allRows.Add([pscustomobject]@{
                 Date                  = $row['Date']
                 EnvironmentName       = $row['EnvironmentName']
@@ -231,6 +258,10 @@ $result = Export-AppendCsv -Path $csvPath -Rows @($allRows) -Column $columns -Ke
 if ($allRows.Count -eq 0) {
     Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
         'No file in {0} held consumption rows. Writing the header only.' -f $ConsumptionFolder)
+}
+if ($result.Skipped -gt 0 -and @($allRows | Where-Object { -not $_.Date }).Count -gt 0) {
+    Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source $source -Message (
+        '{0} row(s) were skipped as already written. Rows with no Date cannot be told apart by day, so a download for another timeframe that repeats an agent, feature and channel is skipped, not added. Use a new output folder for each timeframe.' -f $result.Skipped)
 }
 Write-CollectorLog -OutputPath $OutputPath -Source $source -Message (
     'agent-credit-consumption.csv: {0} rows written, {1} skipped, from {2} file(s).' -f $result.Written, $result.Skipped, $csvFiles.Count)

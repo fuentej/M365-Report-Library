@@ -1046,6 +1046,77 @@ Describe 'Credit consumption (the Power Platform admin center download)' {
         $log | Should -Match 'Not read, because only \.csv files are read: report\.xlsx'
     }
 
+    It 'sums the credits of rows that share a key even when the first of them has an empty credit cell' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,,0'
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,3,2'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $row = @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv'))
+        $row.Count | Should -Be 1
+        $row[0].BilledCredits | Should -Be '3'
+        $row[0].NonBilledCredits | Should -Be '2'
+    }
+
+    It 'keeps the numbers when one credit value in a group is not a number, and names the value in run.log' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0'
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,N/A,0'
+            '2026-09-02,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,N/A,0'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv'))
+        $rows[0].BilledCredits | Should -Be '5'
+        $rows[1].BilledCredits | Should -Be 'N/A'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match 'not numbers and are not added up: BilledCredits "N/A"'
+    }
+
+    It 'keeps credits that have no agent name, warns, and ignores a blank row' {
+        Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @(
+            $script:Header
+            '2026-09-01,,Generative answer,Teams,Model A,SharePoint site,9,0'
+            '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,1,0'
+            ',,,,,,,'
+        )
+
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv'))
+        $rows.Count | Should -Be 2
+        $rows[0].AgentName | Should -Be ''
+        $rows[0].BilledCredits | Should -Be '9'
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match '1 row\(s\) with credits have no agent name'
+    }
+
+    It 'warns when a date cannot be read, and when undated rows of a second download are skipped as already written' {
+        $path = Join-Path $script:downloads 'Contoso Production.csv'
+        Set-Content -LiteralPath $path -Value @($script:Header, 'sometime in September,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0')
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+        $log = Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw
+        $log | Should -Match '1 row\(s\) have a date that could not be read'
+
+        Set-Content -LiteralPath $path -Value @(
+            'Agent name,Product / AI feature,Channel,Billed credits,Non-billed credits'
+            'HR Policy Helper,Generative answer,Teams,40,2'
+        )
+        Remove-Item -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+        Set-Content -LiteralPath $path -Value @(
+            'Agent name,Product / AI feature,Channel,Billed credits,Non-billed credits'
+            'HR Policy Helper,Generative answer,Teams,55,3'
+        )
+        Invoke-CollectorScript 'Get-AgentCreditConsumption.ps1' @{ OutputPath = $script:folder; ConsumptionFolder = $script:downloads }
+
+        @(Import-Csv -LiteralPath (Join-Path $script:folder 'agent-credit-consumption.csv')).Count | Should -Be 1
+        Get-Content -LiteralPath (Join-Path $script:folder 'run.log') -Raw | Should -Match '1 row\(s\) were skipped as already written. Rows with no Date'
+    }
+
     It 'records every cloud as UNVERIFIED and still reads the files' -ForEach @(@{ Cloud = 'Commercial' }, @{ Cloud = 'GCC' }, @{ Cloud = 'GCCHigh' }) {
         $script:Schema.SourceAvailability.AgentCreditConsumption[$Cloud].Status | Should -Be 'Unverified'
         Set-Content -LiteralPath (Join-Path $script:downloads 'Contoso Production.csv') -Value @($script:Header, '2026-09-01,HR Policy Helper,Generative answer,Teams,Model A,SharePoint site,5,0')
