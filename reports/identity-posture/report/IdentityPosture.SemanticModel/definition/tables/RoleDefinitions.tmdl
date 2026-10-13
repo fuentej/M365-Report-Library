@@ -5,7 +5,8 @@ table RoleDefinitions
         dataType: string
         lineageTag: f7ef9c9f-101a-5444-aded-fdce532f9621
         summarizeBy: none
-        sourceColumn: RoleDefinitionId
+        isNameInferred
+        sourceColumn: [RoleDefinitionId]
 
     partition RoleDefinitions = calculated
         mode: import

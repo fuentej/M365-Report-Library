@@ -38,14 +38,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.[Copilot Resources Accessed]",
+              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
             }
           ]
         }

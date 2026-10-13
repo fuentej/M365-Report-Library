@@ -13,7 +13,7 @@
     - every relationship names columns that exist, and the report builds no page on
       the two beta-only sources the README lists as not collected.
 
-    Calculated tables (UsersCurrent, RoleDefinitions) and the helper tables that are
+    UsersCurrent (latest-snapshot import of users.csv), the calculated RoleDefinitions, and the helper tables that are
     not sourced from any CSV (DateDim and the AnonymizeMode toggle) are exempt from the
     CSV-mapping check. $CsvBackedTables below is the complete list of what is checked.
 #>
@@ -389,9 +389,12 @@ Describe 'Relationships and the anonymize toggle' {
     It 'keeps each user at that user''s own latest snapshot, not only the newest file date' {
         # A global MAX(RunDate) drops anyone who left before the newest snapshot,
         # and the one-side relationship then removes their historical rows.
+        # UsersCurrent is an import table (BRO-373), so the per-user maximum is a
+        # Power Query group by Id joined back to the rows.
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
-        $tmdl | Should -Match ([regex]::Escape('ALLEXCEPT(Users, Users[Id])'))
-        $tmdl | Should -Not -Match ([regex]::Escape('Users[RunDate] = MAX(Users[RunDate])'))
+        $tmdl | Should -Match ([regex]::Escape('Table.Group(Selected, {"Id"}, {{"LatestRunDate", each List.Max(List.RemoveNulls([RunDate]))'))
+        $tmdl | Should -Match ([regex]::Escape('each [RunDate] = [LatestRunDate]'))
+        $tmdl | Should -Not -Match ([regex]::Escape('List.Max(List.RemoveNulls(Selected[RunDate]))'))
     }
 }
 

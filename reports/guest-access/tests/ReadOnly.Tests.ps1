@@ -236,7 +236,7 @@ Describe 'Only read-only tenant commands are called' {
         # The unified audit log helpers (UnifiedAuditLogHelpers.ps1) also call it, for the Graph
         # audit query GETs and for the one POST described in the next Describe.
         $offenders = $script:TenantCalls | Where-Object {
-            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1'))
+            -not ($_.Name -eq 'Invoke-MgGraphRequest' -and (Split-Path $_.Path -Leaf) -in @('OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1', 'LicenseUtilizationHelpers.ps1'))
         } | Where-Object {
             $verb = $_.Name.Substring(0, $_.Name.IndexOf('-'))
             $script:AllowedVerbs -notcontains $verb
@@ -331,8 +331,12 @@ Describe 'No Graph request uses a method other than GET' {
         # and the subscription start. reports/unified-audit-log/tests/ReadOnly.Tests.ps1 pins each POST
         # to its path and to the one function that sends it, holds every other call to GET, and checks
         # that the token is read in two request functions only and never logged.
+        #
+        # The license utilization usage reports are read with GET through Invoke-MgGraphRequest.
+        # That helper file is exempt here and held to GET in two functions in
+        # reports/license-utilization/tests/ReadOnly.Tests.ps1.
         $offenders = $script:Calls |
-            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1') } |
+            Where-Object { (Split-Path $_.Path -Leaf) -notin @('CopilotStudioHelpers.ps1', 'OversharingHelpers.ps1', 'ExchangeActivityHelpers.ps1', 'SharePointOneDriveHelpers.ps1', 'TeamsActivityHelpers.ps1', 'CopilotUsageHelpers.ps1', 'EntraActivityHelpers.ps1', 'UnifiedAuditLogHelpers.ps1', 'LicenseUtilizationHelpers.ps1') } |
             Where-Object { $_.Name -in @('Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-MgGraphRequest', 'curl', 'wget') } |
             ForEach-Object { '{0}:{1} {2}' -f (Split-Path $_.Path -Leaf), $_.Ast.Extent.StartLineNumber, $_.Name }
 

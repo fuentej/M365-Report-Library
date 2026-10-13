@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Sensitivity Label Count"
                 }
               },
-              "queryRef": "Measures.[Sensitivity Label Count]",
-              "nativeQueryRef": "Measures.[Sensitivity Label Count]"
+              "queryRef": "_Measures.[Sensitivity Label Count]",
+              "nativeQueryRef": "_Measures.[Sensitivity Label Count]"
             }
           ]
         }

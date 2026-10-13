@@ -34,56 +34,56 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Applications"
                 }
               },
-              "queryRef": "Measures.[Label Applications]",
-              "nativeQueryRef": "Measures.[Label Applications]"
+              "queryRef": "_Measures.[Label Applications]",
+              "nativeQueryRef": "_Measures.[Label Applications]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Upgrades"
                 }
               },
-              "queryRef": "Measures.[Label Upgrades]",
-              "nativeQueryRef": "Measures.[Label Upgrades]"
+              "queryRef": "_Measures.[Label Upgrades]",
+              "nativeQueryRef": "_Measures.[Label Upgrades]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Downgrades"
                 }
               },
-              "queryRef": "Measures.[Label Downgrades]",
-              "nativeQueryRef": "Measures.[Label Downgrades]"
+              "queryRef": "_Measures.[Label Downgrades]",
+              "nativeQueryRef": "_Measures.[Label Downgrades]"
             },
             {
               "field": {
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Label Removals"
                 }
               },
-              "queryRef": "Measures.[Label Removals]",
-              "nativeQueryRef": "Measures.[Label Removals]"
+              "queryRef": "_Measures.[Label Removals]",
+              "nativeQueryRef": "_Measures.[Label Removals]"
             }
           ]
         }

@@ -128,9 +128,27 @@ table GroupsCurrent
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: 09479ad2-dc96-59f0-9df8-0f97c586c1c7
 
-    partition GroupsCurrent = calculated
+    partition GroupsCurrent = m
         mode: import
         source =
-            FILTER(Groups, Groups[RunDate] = MAX(Groups[RunDate]))
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\groups.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}, {"RenewedDateTime", ParseUtc, type datetime}, {"ExpirationDateTime", ParseUtc, type datetime}, {"DeletedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"SecurityEnabled", type logical}, {"MailEnabled", type logical}, {"OnPremisesSyncEnabled", type logical}, {"IsTeam", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "Mail", "GroupTypes", "SecurityEnabled", "MailEnabled", "Visibility", "CreatedDateTime", "RenewedDateTime", "ExpirationDateTime", "DeletedDateTime", "OnPremisesSyncEnabled", "ResourceProvisioningOptions", "IsTeam"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table

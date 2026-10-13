@@ -76,9 +76,24 @@ table EnvironmentsCurrent
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: 9d3796e8-e4ec-5ee2-8301-b5e5f1f489ba
 
-    partition EnvironmentsCurrent = calculated
+    partition EnvironmentsCurrent = m
         mode: import
         source =
-            FILTER(Environments, Environments[RunDate] = MAX(Environments[RunDate]))
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\environments.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"LastModifiedAt", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"IsManaged", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "EnvironmentId", "DisplayName", "Location", "EnvironmentType", "IsManaged", "EnvironmentGroup", "LastModifiedAt"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table

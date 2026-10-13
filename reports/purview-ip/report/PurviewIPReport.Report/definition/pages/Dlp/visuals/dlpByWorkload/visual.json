@@ -38,14 +38,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "Measures.[DLP Matches]",
-              "nativeQueryRef": "Measures.[DLP Matches]"
+              "queryRef": "_Measures.[DLP Matches]",
+              "nativeQueryRef": "_Measures.[DLP Matches]"
             }
           ]
         }
@@ -57,7 +57,7 @@
               "Measure": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "Measures"
+                    "Entity": "_Measures"
                   }
                 },
                 "Property": "DLP Matches"

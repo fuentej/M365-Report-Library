@@ -5,7 +5,8 @@ table Apps
         dataType: string
         lineageTag: 8645f223-faf6-5d21-bb00-27cd736eae43
         summarizeBy: none
-        sourceColumn: AppId
+        isNameInferred
+        sourceColumn: [AppId]
 
     column AppName = IFERROR(LOOKUPVALUE(AppRoleAssignments[PrincipalDisplayName], AppRoleAssignments[PrincipalId], Apps[AppId]), BLANK())
         dataType: string

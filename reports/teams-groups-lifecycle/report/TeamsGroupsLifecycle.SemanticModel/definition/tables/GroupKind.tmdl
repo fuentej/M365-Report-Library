@@ -5,7 +5,8 @@ table GroupKind
         dataType: string
         lineageTag: fedb2630-ad7d-42c7-ae2e-eb9113896f9e
         summarizeBy: none
-        sourceColumn: Label
+        isNameInferred
+        sourceColumn: [Label]
 
     partition GroupKind = calculated
         mode: import

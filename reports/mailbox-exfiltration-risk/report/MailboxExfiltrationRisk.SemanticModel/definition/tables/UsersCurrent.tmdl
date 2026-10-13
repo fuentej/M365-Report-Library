@@ -72,20 +72,24 @@ table UsersCurrent
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: f7a3ad14-7044-567c-ac3f-31e2d977056e
 
-    partition UsersCurrent = calculated
+    partition UsersCurrent = m
         mode: import
         source =
-            SELECTCOLUMNS(
-                FILTER(Users, Users[RunDate] = MAX(Users[RunDate])),
-                "RunDate", Users[RunDate],
-                "Id", Users[Id],
-                "DisplayName", Users[DisplayName],
-                "UserPrincipalName", Users[UserPrincipalName],
-                "Mail", Users[Mail],
-                "UserType", Users[UserType],
-                "AccountEnabled", Users[AccountEnabled],
-                "Department", Users[Department],
-                "JobTitle", Users[JobTitle]
-            )
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "UserPrincipalName", "Mail", "UserType", "AccountEnabled", "Department", "JobTitle"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
 
     annotation PBI_ResultType = Table

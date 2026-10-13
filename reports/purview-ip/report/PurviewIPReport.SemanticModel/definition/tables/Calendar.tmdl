@@ -7,9 +7,10 @@ table Calendar
 	column Date
 		dataType: dateTime
 		formatString: Long Date
-		sourceColumn: Date
 		isKey
 		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
 
 	column Year = YEAR(Calendar[Date])
 		dataType: int64

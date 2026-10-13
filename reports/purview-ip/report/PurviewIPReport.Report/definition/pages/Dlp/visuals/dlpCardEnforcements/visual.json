@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "DLP Enforcements"
                 }
               },
-              "queryRef": "Measures.[DLP Enforcements]",
-              "nativeQueryRef": "Measures.[DLP Enforcements]"
+              "queryRef": "_Measures.[DLP Enforcements]",
+              "nativeQueryRef": "_Measures.[DLP Enforcements]"
             }
           ]
         }

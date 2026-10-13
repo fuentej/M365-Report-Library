@@ -20,14 +20,14 @@
                 "Measure": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Measures"
+                      "Entity": "_Measures"
                     }
                   },
                   "Property": "Total Copilot Interactions"
                 }
               },
-              "queryRef": "Measures.[Total Copilot Interactions]",
-              "nativeQueryRef": "Measures.[Total Copilot Interactions]"
+              "queryRef": "_Measures.[Total Copilot Interactions]",
+              "nativeQueryRef": "_Measures.[Total Copilot Interactions]"
             }
           ]
         }
