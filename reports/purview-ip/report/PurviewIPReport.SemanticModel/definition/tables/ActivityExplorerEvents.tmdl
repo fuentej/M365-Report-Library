@@ -176,6 +176,25 @@ table ActivityExplorerEvents
 		isHidden
 		summarizeBy: none
 
+	/// BRO-502: 1 when the event took the top label (highest Labels[Priority])
+	/// off an item, by changing it to a lower-priority label or removing it.
+	/// Read by the "Label downgrades" page measures.
+	column 'Top Label Downgrade' =
+			VAR TopPriority = MAX(Labels[Priority])
+			VAR TopLabelId = MAXX(FILTER(Labels, Labels[Priority] = TopPriority), Labels[ObjectId])
+			VAR NewPriority = MAXX(FILTER(Labels, Labels[ObjectId] = ActivityExplorerEvents[SensitivityLabel]), Labels[Priority])
+			RETURN
+			    IF(
+			        ActivityExplorerEvents[OldSensitivityLabel] = TopLabelId
+			            && (ActivityExplorerEvents[SensitivityLabel] = "" || NewPriority < TopPriority),
+			        1,
+			        0
+			    )
+		dataType: int64
+		type: calculated
+		isHidden
+		summarizeBy: none
+
 	column SensitiveInfoTypeName
 		dataType: string
 		sourceColumn: SensitiveInfoTypeName

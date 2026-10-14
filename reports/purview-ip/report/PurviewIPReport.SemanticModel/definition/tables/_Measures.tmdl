@@ -190,6 +190,377 @@ table _Measures
 			)
 		displayFolder: Anonymize
 
+	/// BRO-502 page "Label downgrades". The top label is the sensitivity label
+	/// with the highest Priority in policies.csv (Restricted in the samples).
+	/// Display name of that label.
+	measure 'Top Label Name' =
+			VAR TopPriority = CALCULATE(MAX(Labels[Priority]), ALL(Labels))
+			RETURN
+			    MAXX(FILTER(ALL(Labels), Labels[Priority] = TopPriority), Labels[DisplayName])
+		displayFolder: Label downgrades
+
+	/// Events that took the top label off an item: changed it to a
+	/// lower-priority label or removed it (ActivityExplorerEvents[Top Label Downgrade]).
+	measure 'Top Label Downgrades' = CALCULATE(COUNTROWS(ActivityExplorerEvents), ActivityExplorerEvents[Top Label Downgrade] = 1) + 0
+		formatString: #,##0
+		displayFolder: Label downgrades
+
+	measure 'Top Label Downgraders' = CALCULATE(DISTINCTCOUNT(ActivityExplorerEvents[User]), ActivityExplorerEvents[Top Label Downgrade] = 1) + 0
+		formatString: #,##0
+		displayFolder: Label downgrades
+
+	/// Different non-blank justifications typed on top-label downgrades.
+	measure 'Top Label Downgrade Reasons' =
+			CALCULATE(
+			    DISTINCTCOUNT(ActivityExplorerEvents[Justification]),
+			    ActivityExplorerEvents[Top Label Downgrade] = 1,
+			    ActivityExplorerEvents[Justification] <> ""
+			) + 0
+		formatString: #,##0
+		displayFolder: Label downgrades
+
+	measure 'Top Label Downgrades Without Reason' =
+			CALCULATE(
+			    COUNTROWS(ActivityExplorerEvents),
+			    ActivityExplorerEvents[Top Label Downgrade] = 1,
+			    ActivityExplorerEvents[Justification] = ""
+			) + 0
+		formatString: #,##0
+		displayFolder: Label downgrades
+		isHidden
+
+	/// FirstDate and LastDate are DAX functions, so the variables are named
+	/// EarliestSnapshot and LatestSnapshot.
+	measure 'Top Label Items First' =
+			VAR TopName = [Top Label Name]
+			VAR EarliestSnapshot = CALCULATE(MIN(SensitivityAtRest[SnapshotDate]), ALL(SensitivityAtRest))
+			RETURN
+			    CALCULATE(
+			        SUM(SensitivityAtRest[TotalCount]),
+			        ALL(SensitivityAtRest),
+			        SensitivityAtRest[TagName] = TopName,
+			        SensitivityAtRest[SnapshotDate] = EarliestSnapshot
+			    )
+		formatString: #,##0
+		displayFolder: Label downgrades
+		isHidden
+
+	measure 'Top Label Items Latest' =
+			VAR TopName = [Top Label Name]
+			VAR LatestSnapshot = CALCULATE(MAX(SensitivityAtRest[SnapshotDate]), ALL(SensitivityAtRest))
+			RETURN
+			    CALCULATE(
+			        SUM(SensitivityAtRest[TotalCount]),
+			        ALL(SensitivityAtRest),
+			        SensitivityAtRest[TagName] = TopName,
+			        SensitivityAtRest[SnapshotDate] = LatestSnapshot
+			    )
+		formatString: #,##0
+		displayFolder: Label downgrades
+		isHidden
+
+	/// Change in items carrying the top label between the first and the
+	/// latest Content Explorer snapshot.
+	measure 'Top Label Items Change' =
+			VAR FirstItems = [Top Label Items First]
+			RETURN
+			    DIVIDE([Top Label Items Latest] - FirstItems, FirstItems)
+		formatString: +0%;-0%;0%
+		displayFolder: Label downgrades
+
+	/// Items at rest for the two highest-priority labels only; blank for every other label.
+	measure 'Top Label Items At Rest' =
+			VAR TopPriority = CALCULATE(MAX(Labels[Priority]), ALL(Labels))
+			VAR LabelPriority = MAX(SensitivityAtRest[Label Priority])
+			RETURN
+			    IF(
+			        NOT ISBLANK(LabelPriority) && LabelPriority >= TopPriority - 1,
+			        SUM(SensitivityAtRest[TotalCount])
+			    )
+		formatString: #,##0
+		displayFolder: Label downgrades
+
+	measure 'Top Reason Uses' =
+			VAR Reasons =
+			    ADDCOLUMNS(
+			        CALCULATETABLE(
+			            VALUES(ActivityExplorerEvents[Justification]),
+			            ActivityExplorerEvents[Top Label Downgrade] = 1,
+			            ActivityExplorerEvents[Justification] <> ""
+			        ),
+			        "@Uses", CALCULATE(COUNTROWS(ActivityExplorerEvents), ActivityExplorerEvents[Top Label Downgrade] = 1)
+			    )
+			RETURN
+			    MAXX(Reasons, [@Uses]) + 0
+		formatString: #,##0
+		displayFolder: Label downgrades
+		isHidden
+
+	/// The justification typed most often on top-label downgrades, in quotes.
+	measure 'Top Reason' =
+			VAR Reasons =
+			    ADDCOLUMNS(
+			        CALCULATETABLE(
+			            VALUES(ActivityExplorerEvents[Justification]),
+			            ActivityExplorerEvents[Top Label Downgrade] = 1,
+			            ActivityExplorerEvents[Justification] <> ""
+			        ),
+			        "@Uses", CALCULATE(COUNTROWS(ActivityExplorerEvents), ActivityExplorerEvents[Top Label Downgrade] = 1)
+			    )
+			VAR TopReason = TOPN(1, Reasons, [@Uses], DESC, ActivityExplorerEvents[Justification], ASC)
+			RETURN
+			    IF(
+			        ISEMPTY(Reasons),
+			        "No reason typed",
+			        """" & MAXX(TopReason, ActivityExplorerEvents[Justification]) & """"
+			    )
+		displayFolder: Label downgrades
+
+	/// Text: the multiplication sign and how many downgrades gave the top reason.
+	measure 'Top Reason Count' = UNICHAR(215) & [Top Reason Uses]
+		displayFolder: Label downgrades
+
+	measure 'Top Reason Detail' =
+			VAR Reasons =
+			    ADDCOLUMNS(
+			        CALCULATETABLE(
+			            VALUES(ActivityExplorerEvents[Justification]),
+			            ActivityExplorerEvents[Top Label Downgrade] = 1,
+			            ActivityExplorerEvents[Justification] <> ""
+			        ),
+			        "@Uses", CALCULATE(COUNTROWS(ActivityExplorerEvents), ActivityExplorerEvents[Top Label Downgrade] = 1)
+			    )
+			VAR TopReason = TOPN(1, Reasons, [@Uses], DESC, ActivityExplorerEvents[Justification], ASC)
+			VAR TopText = MAXX(TopReason, ActivityExplorerEvents[Justification])
+			VAR People =
+			    CALCULATE(
+			        DISTINCTCOUNT(ActivityExplorerEvents[User]),
+			        ActivityExplorerEvents[Top Label Downgrade] = 1,
+			        ActivityExplorerEvents[Justification] = TopText
+			    ) + 0
+			RETURN
+			    [Top Reason Uses] & " of " & [Top Label Downgrades] & " downgrades, "
+			        & People & IF(People = 1, " person", " people")
+		displayFolder: Label downgrades
+
+	measure 'Excuse Wall Subtitle' = "reasons typed to remove " & [Top Label Name]
+		displayFolder: Label downgrades
+
+	/// Workloads where the top label came off, with counts, most first.
+	measure 'Top Label Downgrade Places' =
+			VAR Places =
+			    FILTER(
+			        ADDCOLUMNS(VALUES(Workload[Workload]), "@Count", [Top Label Downgrades]),
+			        [@Count] > 0
+			    )
+			RETURN
+			    IF(
+			        ISEMPTY(Places),
+			        "No downgrades",
+			        CONCATENATEX(Places, Workload[Workload] & " " & [@Count], " " & UNICHAR(183) & " ", [@Count], DESC, Workload[Workload], ASC)
+			    )
+		displayFolder: Label downgrades
+
+	measure 'Label Downgrades Run Header' =
+			VAR FirstEvent = CALCULATE(MIN(ActivityExplorerEvents[EventDate]), ALL(ActivityExplorerEvents))
+			VAR LastEvent = CALCULATE(MAX(ActivityExplorerEvents[EventDate]), ALL(ActivityExplorerEvents))
+			VAR Snapshots = CALCULATE(DISTINCTCOUNT(ContentExplorerSnapshot[SnapshotDate]), ALL(ContentExplorerSnapshot))
+			VAR FirstSnapshot = CALCULATE(MIN(ContentExplorerSnapshot[SnapshotDate]), ALL(ContentExplorerSnapshot))
+			RETURN
+			    "Events " & FORMAT(FirstEvent, "yyyy-mm-dd") & " to " & FORMAT(LastEvent, "yyyy-mm-dd")
+			        & " " & UNICHAR(183) & " " & Snapshots & IF(Snapshots = 1, " content snapshot", " content snapshots")
+			        & " since " & FORMAT(FirstSnapshot, "yyyy-mm-dd")
+		displayFolder: Label downgrades
+
+	measure 'Top Label Trend Caption' =
+			VAR TopName = [Top Label Name]
+			VAR FirstItems = [Top Label Items First]
+			VAR LastItems = [Top Label Items Latest]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(FirstItems) || ISBLANK(LastItems), "No Content Explorer counts for " & TopName & ".",
+			        LastItems > FirstItems && [Top Label Downgrades] > 0,
+			            TopName & " items grew from " & FORMAT(FirstItems, "#,##0") & " to " & FORMAT(LastItems, "#,##0")
+			                & " while people kept stripping the label off. The label is spreading faster than it is being respected.",
+			        LastItems > FirstItems,
+			            TopName & " items grew from " & FORMAT(FirstItems, "#,##0") & " to " & FORMAT(LastItems, "#,##0") & ".",
+			        TopName & " items went from " & FORMAT(FirstItems, "#,##0") & " to " & FORMAT(LastItems, "#,##0") & "."
+			    )
+		displayFolder: Label downgrades
+
+	measure 'Label Downgrades One Fix Title' = "Stop free-text downgrades on " & [Top Label Name]
+		displayFolder: Label downgrades
+
+	/// Lead is a DAX function, so the variable is named Opening.
+	measure 'Label Downgrades One Fix Detail' =
+			VAR Reasons = [Top Label Downgrade Reasons]
+			VAR NoReason = [Top Label Downgrades Without Reason]
+			VAR Opening =
+			    SWITCH(
+			        TRUE(),
+			        [Top Label Downgrades] = 0, "No one has taken the label off yet.",
+			        Reasons = 1 && NoReason = 0, "Every reason given is the same sentence.",
+			        NoReason > 0 && Reasons = 0, "No downgrade gave a reason.",
+			        NoReason > 0,
+			            NoReason & " of " & [Top Label Downgrades] & " downgrades gave no reason; the rest used "
+			                & Reasons & IF(Reasons = 1, " sentence.", " stock sentences."),
+			        "The reasons come from " & Reasons & " stock sentences."
+			    )
+			RETURN
+			    Opening & " A justification nobody reads is not a control."
+		displayFolder: Label downgrades
+
+	/// "sample data, example.com" appears only when users.csv holds @example.com accounts.
+	measure 'Label Downgrades Sources' =
+			VAR SampleUsers = CALCULATE(COUNTROWS(Users), ALL(Users), RIGHT(Users[UserPrincipalName], 12) = "@example.com")
+			RETURN
+			    "Sources: activity-explorer-events.csv " & UNICHAR(183) & " content-explorer-snapshot.csv " & UNICHAR(183) & " policies.csv"
+			        & IF(SampleUsers > 0, " " & UNICHAR(183) & " sample data, example.com")
+		displayFolder: Label downgrades
+
+	/// Who took the top label off, for one event row. Honours the anonymize filter.
+	measure 'Downgrade Person' =
+			VAR Upn = SELECTEDVALUE(ActivityExplorerEvents[User])
+			VAR RealName = MAXX(FILTER(ALL(Users), Users[UserPrincipalName] = Upn), Users[DisplayName])
+			VAR Pseudonym = MAXX(FILTER(ALL(Users), Users[UserPrincipalName] = Upn), Users[Anonymous Display Name])
+			RETURN
+			    IF(
+			        [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			        IF(
+			            [Anonymize Toggle Value] = 1,
+			            COALESCE(Pseudonym, "Unknown user"),
+			            COALESCE(RealName, Upn)
+			        )
+			    )
+		displayFolder: Label downgrades
+
+	measure 'Downgrade File' =
+			IF(
+			    [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			    SELECTEDVALUE(ActivityExplorerEvents[ItemName])
+			)
+		displayFolder: Label downgrades
+
+	measure 'Downgrade Date' =
+			IF(
+			    [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			    FORMAT(SELECTEDVALUE(ActivityExplorerEvents[EventDate]), "yyyy-mm-dd")
+			)
+		displayFolder: Label downgrades
+
+	measure 'Downgrade Where' =
+			IF(
+			    [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			    SELECTEDVALUE(ActivityExplorerEvents[Workload])
+			)
+		displayFolder: Label downgrades
+
+	measure 'Downgrade From Label' =
+			VAR OldId = SELECTEDVALUE(ActivityExplorerEvents[OldSensitivityLabel])
+			RETURN
+			    IF(
+			        [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			        MAXX(FILTER(ALL(Labels), Labels[ObjectId] = OldId), Labels[DisplayName])
+			    )
+		displayFolder: Label downgrades
+
+	measure 'Downgrade To Label' =
+			VAR NewId = SELECTEDVALUE(ActivityExplorerEvents[SensitivityLabel])
+			VAR NewName = MAXX(FILTER(ALL(Labels), Labels[ObjectId] = NewId), Labels[DisplayName])
+			RETURN
+			    IF(
+			        [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			        UNICHAR(8594) & "  " & COALESCE(NewName, "No label")
+			    )
+		displayFolder: Label downgrades
+
+	/// USB COPY or DLP HIT when the same person later copied a file to
+	/// removable media or hit a DLP rule within the event window. At is a DAX
+	/// keyword, so the variable is named DowngradedAt.
+	measure 'Downgrade Next Tag' =
+			VAR Upn = SELECTEDVALUE(ActivityExplorerEvents[User])
+			VAR DowngradedAt = SELECTEDVALUE(ActivityExplorerEvents[Happened])
+			VAR Later =
+			    FILTER(
+			        ALL(ActivityExplorerEvents),
+			        ActivityExplorerEvents[User] = Upn && ActivityExplorerEvents[Happened] > DowngradedAt
+			    )
+			VAR Risky =
+			    FILTER(
+			        Later,
+			        ActivityExplorerEvents[Activity] IN { "FileCopiedToRemovableMedia", "DLPRuleMatch", "DLPRuleEnforce", "DLPRuleUndo" }
+			    )
+			VAR FirstRisky = TOPN(1, Risky, ActivityExplorerEvents[Happened], ASC, ActivityExplorerEvents[Activity], ASC)
+			VAR RiskyActivity = MAXX(FirstRisky, ActivityExplorerEvents[Activity])
+			RETURN
+			    IF(
+			        [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			        SWITCH(
+			            TRUE(),
+			            ISBLANK(RiskyActivity), "",
+			            RiskyActivity = "FileCopiedToRemovableMedia", "USB COPY",
+			            "DLP HIT"
+			        )
+			    )
+		displayFolder: Label downgrades
+
+	/// What the same person did next, on any file, within the event window.
+	/// A USB copy or DLP hit is shown before any other later event.
+	measure 'Downgrade Next Activity' =
+			VAR Upn = SELECTEDVALUE(ActivityExplorerEvents[User])
+			VAR DowngradedAt = SELECTEDVALUE(ActivityExplorerEvents[Happened])
+			VAR RiskySet = { "FileCopiedToRemovableMedia", "DLPRuleMatch", "DLPRuleEnforce", "DLPRuleUndo" }
+			VAR Later =
+			    FILTER(
+			        ALL(ActivityExplorerEvents),
+			        ActivityExplorerEvents[User] = Upn && ActivityExplorerEvents[Happened] > DowngradedAt
+			    )
+			VAR HasRisky = NOT ISEMPTY(FILTER(Later, ActivityExplorerEvents[Activity] IN RiskySet))
+			VAR Pool = FILTER(Later, NOT HasRisky || ActivityExplorerEvents[Activity] IN RiskySet)
+			VAR Chosen = TOPN(1, Pool, ActivityExplorerEvents[Happened], ASC, ActivityExplorerEvents[Activity], ASC)
+			VAR ChosenActivity = MAXX(Chosen, ActivityExplorerEvents[Activity])
+			VAR ChosenItem = MAXX(Chosen, ActivityExplorerEvents[ItemName])
+			VAR ChosenPolicy = MAXX(Chosen, ActivityExplorerEvents[PolicyName])
+			VAR ChosenDate = FORMAT(MAXX(Chosen, ActivityExplorerEvents[EventDate]), "yyyy-mm-dd")
+			VAR OtherEvents = COUNTROWS(Later) - 1
+			VAR Described =
+			    SWITCH(
+			        ChosenActivity,
+			        "FileCopiedToRemovableMedia", "Copied " & ChosenItem & " to removable media on " & ChosenDate,
+			        "DLPRuleMatch", "Matched " & ChosenPolicy & " on " & ChosenItem & " on " & ChosenDate,
+			        "DLPRuleEnforce", "Blocked by " & ChosenPolicy & " on " & ChosenItem & " on " & ChosenDate,
+			        "DLPRuleUndo", "Overrode " & ChosenPolicy & " on " & ChosenItem & " on " & ChosenDate,
+			        "ClassificationAdded", "Classified " & ChosenItem & " on " & ChosenDate,
+			        "NewProtection", "Applied protection to " & ChosenItem & " on " & ChosenDate,
+			        "LabelApplied", "Applied a label to " & ChosenItem & " on " & ChosenDate,
+			        "LabelChanged", "Changed the label on " & ChosenItem & " on " & ChosenDate,
+			        "CopilotInteraction", "Used Copilot on " & ChosenDate,
+			        ChosenActivity & " on " & ChosenItem & " on " & ChosenDate
+			    )
+			RETURN
+			    IF(
+			        [Top Label Downgrades] = 1 && HASONEVALUE(ActivityExplorerEvents[RecordIdentity]),
+			        IF(
+			            ISEMPTY(Later),
+			            "Nothing after",
+			            Described & IF(OtherEvents > 0, " (+" & OtherEvents & " more)")
+			        )
+			    )
+		displayFolder: Label downgrades
+
+	measure 'Downgrade Row Fill' = IF([Downgrade Next Tag] <> "", "#FCEDED", "#FFFFFF")
+		displayFolder: Label downgrades
+		isHidden
+
+	measure 'Downgrade Tag Fill' = IF([Downgrade Next Tag] <> "", "#C62828", "#FFFFFF")
+		displayFolder: Label downgrades
+		isHidden
+
+	measure 'Downgrade Next Activity Color' = IF([Downgrade Next Activity] = "Nothing after", "#9AA6B2", "#1F2A33")
+		displayFolder: Label downgrades
+		isHidden
+
 	partition _Measures = calculated
 		mode: import
 		source =

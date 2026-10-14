@@ -25,8 +25,11 @@ $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot 'schemas')).Provider
 
 # -Force: a `.platform` file is a dotfile and Get-ChildItem hides those by default
 # even though only the *name*, not a separate extension, starts with the dot.
+# StaticResources/ holds registered resources, not PBIR: the house-style theme
+# (BRO-502) names the Power BI report theme schema, which is not vendored here, and
+# the SVG icons have no schema at all. `powerbi-report-author validate` checks the theme.
 $script:AllFiles = @(Get-ChildItem -LiteralPath $script:ReportRoot -Recurse -File -Force |
-        Where-Object { $_.Extension -in '.json', '.pbir', '.pbism', '.pbip' -or $_.Name -eq '.platform' })
+        Where-Object { ($_.Extension -in '.json', '.pbir', '.pbism', '.pbip' -or $_.Name -eq '.platform') -and $_.FullName -notmatch '[\\/]StaticResources[\\/]' })
 
 $script:SchemaBearingFiles = @($script:AllFiles | Where-Object {
         $data = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
@@ -47,7 +50,7 @@ BeforeAll {
     $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot 'schemas')).ProviderPath
 
     $script:AllFiles = @(Get-ChildItem -LiteralPath $script:ReportRoot -Recurse -File -Force |
-            Where-Object { $_.Extension -in '.json', '.pbir', '.pbism', '.pbip' -or $_.Name -eq '.platform' })
+            Where-Object { ($_.Extension -in '.json', '.pbir', '.pbism', '.pbip' -or $_.Name -eq '.platform') -and $_.FullName -notmatch '[\\/]StaticResources[\\/]' })
 
     $script:SchemaBearingFiles = @($script:AllFiles | Where-Object {
             $data = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
@@ -57,7 +60,7 @@ BeforeAll {
 
 Describe 'Every PBIR/platform JSON file declares and validates against its schema' {
     It 'finds report files to check' {
-        $script:AllFiles.Count | Should -BeGreaterThan 100
+        $script:AllFiles.Count | Should -BeGreaterThan 40
     }
 
     It 'declares a `$schema` on every PBIR/PBIP file this report ships' {
@@ -101,7 +104,7 @@ Describe 'The schema validator actually catches structural problems' {
     #>
     BeforeAll {
         $script:SampleVisualPath = Join-Path $script:ReportRoot `
-            'PurviewIPReport.Report/definition/pages/Overview/visuals/ovCardEvents/visual.json'
+            'PurviewIPReport.Report/definition/pages/label-downgrades/visuals/downgrades-tile-1/visual.json'
         $script:SampleVisual = Get-Content -LiteralPath $script:SampleVisualPath -Raw | ConvertFrom-Json -AsHashtable
     }
 

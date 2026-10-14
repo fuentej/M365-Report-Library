@@ -253,19 +253,23 @@ One line per event, in the shared module's format:
 the CSVs the collectors write, so run the collectors first, or use `samples/` to explore
 with synthetic data.
 
-Pages:
+Pages, built to the approved designs in `docs/design/purview-ip/` with the shared house-style
+theme (`shared/theme/BacklogKrewHouseStyle.json`):
 
-1. Overview
-2. Label coverage
-3. Label activity
-4. DLP
-5. Retention
-6. Policy posture
-7. Copilot and AI
-8. Org decomposition
+1. **Label downgrades** (BRO-502): who took the top sensitivity label off, and what they did
+   next. The top label is the label with the highest `Priority` in `policies.csv`
+   (Restricted in the samples). A downgrade is an Activity Explorer event whose old label is
+   the top label and whose new label is blank or has a lower priority. The table lists each
+   downgrade with the same person's next event in the event window, on any file; a later
+   USB copy or DLP rule hit is shown first and flagged. The tiles count downgrades, people,
+   distinct typed reasons, and the change in top-label items between the first and the latest
+   Content Explorer snapshot.
 
-Every page has slicers for date range, workload, department and user, and an anonymize
-toggle that replaces user display names with stable pseudonyms (`User 00001`, ...).
+Page 2 (What Copilot and agents read) is a separate issue.
+
+The pages have no slicers. The anonymize toggle is a report-level filter ("Anonymize names"
+in the filter pane); choosing 1 replaces user display names with stable pseudonyms
+(`User 00001`, ...).
 
 The model has one parameter, `CsvFolder`: the path of the folder that holds the CSVs. Each
 CSV-backed table reads `CsvFolder & "\<file>.csv"` (`users.csv`, `policies.csv`,

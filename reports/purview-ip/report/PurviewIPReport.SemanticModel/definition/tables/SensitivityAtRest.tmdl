@@ -24,6 +24,20 @@ table SensitivityAtRest
 		sourceColumn: TotalCount
 		summarizeBy: sum
 
+	/// Labels[Priority] of the label this row counts, matched on display name.
+	column 'Label Priority' = MAXX(FILTER(Labels, Labels[DisplayName] = SensitivityAtRest[TagName]), Labels[Priority])
+		dataType: int64
+		type: calculated
+		isHidden
+		summarizeBy: none
+
+	/// Snapshot date as the chart's axis label ("Jul 1").
+	column 'Snapshot Label' = FORMAT(SensitivityAtRest[SnapshotDate], "mmm d")
+		dataType: string
+		type: calculated
+		summarizeBy: none
+		sortByColumn: SnapshotDate
+
 	partition SensitivityAtRest = m
 		mode: import
 		source =
