@@ -1,0 +1,107 @@
+table EmailActivityUserDetail
+    lineageTag: 0adeebb9-2690-4fe1-93ab-bff45437bbe4
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3a4905ff-ee2d-4154-bd9b-3d87ca58f301
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column QueryDate
+        dataType: string
+        lineageTag: f2421d21-3327-4cd1-8fee-3805b61126cb
+        summarizeBy: none
+        sourceColumn: QueryDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 4a2e735f-c624-4103-9fcc-f375bc513c36
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: ffa345f5-140b-4a5e-8031-67b667862700
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column DisplayName
+        dataType: string
+        lineageTag: d2231443-93fb-4191-9736-c64d914098ef
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 1d2edc45-91b8-47be-94bb-99d95751a414
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: dc8991f2-04f8-4697-9387-54a24c8826ab
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: f801cdc1-c91a-46e1-b26c-9fb82450cf81
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column SendCount
+        dataType: string
+        lineageTag: 5e4f4b7d-976d-4abc-8646-5b6c14a958b7
+        summarizeBy: none
+        sourceColumn: SendCount
+
+    column ReceiveCount
+        dataType: string
+        lineageTag: ce923f2e-d0a4-46af-8626-8394ccff4219
+        summarizeBy: none
+        sourceColumn: ReceiveCount
+
+    column ReadCount
+        dataType: string
+        lineageTag: 8d7d8be9-85e7-4af4-a6ac-444d9054e269
+        summarizeBy: none
+        sourceColumn: ReadCount
+
+    column MeetingCreatedCount
+        dataType: string
+        lineageTag: 69264de5-6285-44a0-b930-55574458389b
+        summarizeBy: none
+        sourceColumn: MeetingCreatedCount
+
+    column MeetingInteractedCount
+        dataType: string
+        lineageTag: dbf31f11-af92-49b4-8036-7ac7e57ca66c
+        summarizeBy: none
+        sourceColumn: MeetingInteractedCount
+
+    column AssignedProducts
+        dataType: string
+        lineageTag: 5d658d03-eacd-44ed-9cc2-300202c6434f
+        summarizeBy: none
+        sourceColumn: AssignedProducts
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 80bc95c8-2bf8-4218-82a1-087085458baa
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition EmailActivityUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\email-activity-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
