@@ -60,6 +60,15 @@ Describe 'The sample CSVs match the schema' {
         @(Import-Csv -LiteralPath (Join-Path $script:Samples $File)).Count | Should -BeGreaterThan 0
     }
 
+    # Enum members from https://learn.microsoft.com/graph/api/resources/simulation
+    It 'attack-simulations.csv holds only documented simulation enum values' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'attack-simulations.csv'))
+        $rows.Status | Should -BeIn @('unknown', 'draft', 'running', 'scheduled', 'succeeded', 'failed', 'canceled', 'excluded', 'unknownFutureValue')
+        $rows.AttackType | Should -BeIn @('unknown', 'social', 'cloud', 'endpoint', 'unknownFutureValue')
+        $rows.AttackTechnique | Should -BeIn @('unknown', 'credentialHarvesting', 'attachmentMalware', 'driveByUrl', 'linkInAttachment', 'linkToMalwareFile', 'unknownFutureValue', 'oAuthConsentGrant')
+        $rows.PayloadDeliveryPlatform | Should -BeIn @('unknown', 'sms', 'email', 'teams', 'unknownFutureValue')
+    }
+
     It 'uses only example.com addresses' {
         $text = Get-ChildItem -LiteralPath $script:Samples -Recurse -Filter '*.csv' | Get-Content -Raw
         $addresses = [regex]::Matches(($text -join "`n"), '[A-Za-z0-9._-]+@([A-Za-z0-9.-]+)') | ForEach-Object { $_.Groups[1].Value }

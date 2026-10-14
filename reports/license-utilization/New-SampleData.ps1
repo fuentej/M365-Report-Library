@@ -345,7 +345,7 @@ $simulationRows = foreach ($runDate in $runDates) {
     [pscustomobject]@{
         RunDate = $runDate; SimulationId = '6c2d3e4f-0001-4b7c-9d8e-0f1a2b3c4d5e'
         DisplayName = 'Credential harvest, finance team'; AttackType = 'social'; AttackTechnique = 'credentialHarvesting'
-        Status = 'completed'; IsAutomated = 'False'; PayloadDeliveryPlatform = 'email'
+        Status = 'succeeded'; IsAutomated = 'False'; PayloadDeliveryPlatform = 'email'
         LaunchDateTime = '2026-07-07T13:00:00Z'; CompletionDateTime = '2026-07-14T13:00:00Z'
     }
     [pscustomobject]@{
