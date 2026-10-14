@@ -9,3 +9,4 @@ ref table GuestMemberships
 ref table GuestSignIns
 ref table GuestInvitations
 ref table SharingEvents
+ref table GuestsCurrent
