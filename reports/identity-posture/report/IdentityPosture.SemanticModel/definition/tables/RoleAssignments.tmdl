@@ -26,6 +26,12 @@ table RoleAssignments
         summarizeBy: none
         sourceColumn: RoleDefinitionId
 
+    column RoleDisplayName
+        dataType: string
+        lineageTag: 93e4cc9f-9d61-54e9-ab79-56aa00cf4cb0
+        summarizeBy: none
+        sourceColumn: RoleDisplayName
+
     column DirectoryScopeId
         dataType: string
         lineageTag: a62bbd77-d4f6-5bf3-87d1-62df2e9dda95

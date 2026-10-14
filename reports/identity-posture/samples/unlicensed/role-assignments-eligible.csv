@@ -1,1 +1,1 @@
-"RunDate","Id","PrincipalId","RoleDefinitionId","DirectoryScopeId","AppScopeId","MemberType","StartDateTime","EndDateTime","RoleEligibilityScheduleId"
+"RunDate","Id","PrincipalId","RoleDefinitionId","RoleDisplayName","DirectoryScopeId","AppScopeId","MemberType","StartDateTime","EndDateTime","RoleEligibilityScheduleId"

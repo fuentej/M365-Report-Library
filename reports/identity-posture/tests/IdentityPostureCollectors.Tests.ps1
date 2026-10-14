@@ -150,6 +150,15 @@ BeforeAll {
         }
     }
 
+    # unifiedRoleDefinition: https://learn.microsoft.com/graph/api/resources/unifiedroledefinition
+    # A built-in role has id equal to templateId; a custom role has no templateId.
+    function New-MockRoleDefinition {
+        @(
+            [pscustomobject]@{ Id = '62e90394-69f5-4237-9190-012177145e10'; TemplateId = '62e90394-69f5-4237-9190-012177145e10'; DisplayName = 'Global Administrator'; IsBuiltIn = $true }
+            [pscustomobject]@{ Id = 'a1b2c3d4-0000-4000-8000-0000000000c1'; TemplateId = $null; DisplayName = 'Contoso Helpdesk Auditor'; IsBuiltIn = $false }
+        )
+    }
+
     # List users with signInActivity (example 11):
     # https://learn.microsoft.com/graph/api/user-list#example-11-get-users-including-their-last-sign-in-time
     # signInActivity resource: https://learn.microsoft.com/graph/api/resources/signinactivity
@@ -223,6 +232,9 @@ BeforeAll {
         @{ Script = 'Get-UserSignInActivity.ps1'; Csv = 'user-signin-activity.csv'; Key = 'UserSignInActivity'; Cmdlet = 'Get-MgUser'; Builder = 'New-MockUser' }
         @{ Script = 'Get-RiskyUsers.ps1'; Csv = 'risky-users.csv'; Key = 'RiskyUsers'; Cmdlet = 'Get-MgRiskyUser'; Builder = 'New-MockRiskyUser' }
     )
+
+    # Every role collector reads the role definitions for the display name.
+    Mock Get-MgRoleManagementDirectoryRoleDefinition -MockWith { New-MockRoleDefinition }
 }
 
 AfterAll {
@@ -596,6 +608,47 @@ Describe 'What each collector keeps' {
         $row.MemberType | Should -Be 'Direct'
         $row.EndDateTime | Should -BeNullOrEmpty
         $row.StartDateTime | Should -Be '2026-06-01T00:00:00Z'
+    }
+
+    It 'writes the role display name next to the role ID, for built-in and custom roles' -ForEach @(
+        @{ Script = 'Get-ActiveRoleAssignments.ps1'; Csv = 'role-assignments-active.csv'; Cmdlet = 'Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance'; Builder = 'New-MockActiveInstance' }
+        @{ Script = 'Get-EligibleRoleAssignments.ps1'; Csv = 'role-assignments-eligible.csv'; Cmdlet = 'Get-MgRoleManagementDirectoryRoleEligibilityScheduleInstance'; Builder = 'New-MockEligibleInstance' }
+        @{ Script = 'Get-RoleAssignments.ps1'; Csv = 'role-assignments.csv'; Cmdlet = 'Get-MgRoleManagementDirectoryRoleAssignment'; Builder = 'New-MockRoleAssignment' }
+    ) {
+        $builder = $Builder
+        Mock -CommandName $Cmdlet -MockWith {
+            $builtIn = & $builder 'row-1'
+            $custom = & $builder 'row-2'
+            $custom.RoleDefinitionId = 'a1b2c3d4-0000-4000-8000-0000000000c1'
+            $unknown = & $builder 'row-3'
+            $unknown.RoleDefinitionId = 'ffffffff-0000-4000-8000-00000000dead'
+            $builtIn, $custom, $unknown
+        }
+
+        Invoke-CollectorScript $Script @{ OutputPath = $script:folder }
+
+        $produced = Join-Path $script:folder $Csv
+        $header = (Get-HeaderText -Path $produced) -split ','
+        $header.IndexOf('RoleDisplayName') | Should -Be ($header.IndexOf('RoleDefinitionId') + 1)
+        $rows = @(Import-Csv -LiteralPath $produced)
+        $rows[0].RoleDisplayName | Should -Be 'Global Administrator'
+        $rows[1].RoleDisplayName | Should -Be 'Contoso Helpdesk Auditor'
+        $rows[2].RoleDisplayName | Should -BeNullOrEmpty
+    }
+
+    It 'keeps the collector working with the role ID only when the definitions cannot be read' -ForEach @(
+        @{ Script = 'Get-ActiveRoleAssignments.ps1'; Csv = 'role-assignments-active.csv'; Cmdlet = 'Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance'; Builder = 'New-MockActiveInstance' }
+        @{ Script = 'Get-RoleAssignments.ps1'; Csv = 'role-assignments.csv'; Cmdlet = 'Get-MgRoleManagementDirectoryRoleAssignment'; Builder = 'New-MockRoleAssignment' }
+    ) {
+        $builder = $Builder
+        Mock -CommandName $Cmdlet -MockWith { & $builder }
+        Mock Get-MgRoleManagementDirectoryRoleDefinition -MockWith { throw 'Insufficient privileges to complete the operation.' }
+
+        Invoke-CollectorScript $Script @{ OutputPath = $script:folder } 3>$null
+
+        $row = Import-Csv -LiteralPath (Join-Path $script:folder $Csv)
+        $row.RoleDefinitionId | Should -Be '62e90394-69f5-4237-9190-012177145e10'
+        $row.RoleDisplayName | Should -BeNullOrEmpty
     }
 
     It 'keeps eligible assignments in their own file' {
