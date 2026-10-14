@@ -1,0 +1,83 @@
+table CopilotInteractions
+    lineageTag: b1800bee-458f-48bd-8ac6-c3099f1e8296
+
+    column CreatedDateTime
+        dataType: string
+        lineageTag: 14d052ea-2e57-4327-bc7b-4ab010f3284f
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 5459fc69-50a7-4f8b-a27d-902b4d21d7f2
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: 74423390-1196-457b-ad98-11288a9b4621
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column SessionId
+        dataType: string
+        lineageTag: 74299316-b8cc-496f-a0af-7a0ad6b40b31
+        summarizeBy: none
+        sourceColumn: SessionId
+
+    column RequestId
+        dataType: string
+        lineageTag: c2b0445e-4786-4126-bb81-e709642a8330
+        summarizeBy: none
+        sourceColumn: RequestId
+
+    column AppClass
+        dataType: string
+        lineageTag: a547c26c-979e-42eb-aa45-f8d8d17e3937
+        summarizeBy: none
+        sourceColumn: AppClass
+
+    column InteractionType
+        dataType: string
+        lineageTag: dff1f93e-cc90-4e93-a437-ec3e0cb504f8
+        summarizeBy: none
+        sourceColumn: InteractionType
+
+    column ConversationType
+        dataType: string
+        lineageTag: 8ef53c84-5920-423e-b45f-be80db6d7628
+        summarizeBy: none
+        sourceColumn: ConversationType
+
+    column Locale
+        dataType: string
+        lineageTag: 0521801b-c1a1-4be2-a0d6-8249db2ae6cf
+        summarizeBy: none
+        sourceColumn: Locale
+
+    column ContextCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: a7b4f416-b59d-44f2-81ff-202c6cb5ba70
+        summarizeBy: none
+        sourceColumn: ContextCount
+
+    column ContextTypes
+        dataType: string
+        lineageTag: e0a76133-909a-4c82-8fb9-ceedafeba8f1
+        summarizeBy: none
+        sourceColumn: ContextTypes
+
+    partition CopilotInteractions = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\copilot-interactions.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"ContextCount", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
