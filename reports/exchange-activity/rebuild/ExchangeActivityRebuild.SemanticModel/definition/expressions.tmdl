@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\ExchangeActivityData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 6c4737df-3d15-4220-94c2-8fdf33f11fe5
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text
