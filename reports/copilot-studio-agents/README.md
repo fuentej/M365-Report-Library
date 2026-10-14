@@ -42,7 +42,7 @@ with `-AppId`, `-CertificateThumbprint`, `-TenantId` and `-Organization`).
 | `collectors/Run-All.ps1` | Runs all seven |
 | `collectors/CopilotStudioSchema.psd1` | The column order of every CSV and the per-cloud availability of every source |
 | `collectors/CopilotStudioHelpers.ps1` | Helpers the collectors dot-source: the delegated token, inventory paging and Dataverse paging |
-| `report/` | The Power BI project (PBIP): `CopilotStudioAgents.SemanticModel` (TMDL) and `CopilotStudioAgents.Report` (PBIR, seven pages). One parameter, `CsvFolder`, holds the folder the collectors wrote; it is built against `samples/` |
+| `report/` | The Power BI project (PBIP): `CopilotStudioAgents.SemanticModel` (TMDL) and `CopilotStudioAgents.Report` (PBIR, one page: Agent passports). One parameter, `CsvFolder`, holds the folder the collectors wrote; it is built against `samples/` |
 | `New-SampleData.ps1` | Regenerates `samples/` |
 | `samples/` | Generated fake data; `samples/gcc/` and `samples/gcchigh/` hold the header-only `agent-connectors.csv` |
 | `tests/` | Pester tests; every tenant call, including the sign-in, is mocked |
@@ -252,15 +252,24 @@ agent, feature and channel is skipped (`run.log` says so): use a new output fold
 ## The Power BI report
 
 Open `report/CopilotStudioAgents.pbip` in Power BI Desktop and set the `CsvFolder` parameter to the folder
-the collectors wrote (or to `samples/`). Seven pages follow the contract: Overview, Ownership, Sharing and
-authentication, Channels, Connectors and actions, Knowledge and Lifecycle. Every page has a date-range
-slicer, an agent slicer and the Anonymize toggle, which swaps agent names, environment names and the
-owner, creator and modifier ids for stable pseudonyms.
+the collectors wrote (or to `samples/`). The report has one page, **Agent passports** (BRO-504): a passport
+for every agent in the latest `agents.csv` run (sign-in, channels, reach, editors, connectors, HTTP,
+prompt, MCP and web search, last publish date and owner id), worst first, with the environments they
+live in, one fix and the drafts the audit log shows being published. The **Anonymize names** report
+filter swaps agent names, environment names and owner ids for stable pseudonyms.
+
+A passport is red when the agent is live and open to anyone (no sign-in on the Website channel), live
+with no sign-in, or live and shared with the whole tenant; amber when it is a draft with no sign-in, a
+draft the audit log shows being published, or in a personal (Developer) or Trial environment. The page
+has 12 passport slots, so a tenant with more agents shows the 12 that most need a look, and Where they
+live lists 6 environments. A note under the RECORDS DISAGREE box counts the agents and environments
+that are not shown ("Not shown: 3 more agents, 2 more environments"); the tiles and the run line count all of them.
 
 * An empty value is **Unknown**, never zero. A header-only file (the connector file in GCC and GCC High)
-  is **not collected**: its measures are blank, and the Overview shows how many of the six files hold data.
-* The inventory returns a random 200 of one resource type when an agent has more. The report shows the
-  listed count next to the `capabilitiesCounts` total and counts the agents whose rows are partial.
+  is **not collected**: its measures are blank. The passport counts connectors from `agents.csv`, so it does
+  not need the connector file.
+* The inventory returns a random 200 of one resource type when an agent has more. The passport shows the
+  `capabilitiesCounts` total, which is complete.
 * Owners, creators and modifiers are ids; no directory file exists in this folder, so owners are not
   named and an owner who is gone from the directory cannot be detected here.
 * Sharing is counts only; users and groups are not named.

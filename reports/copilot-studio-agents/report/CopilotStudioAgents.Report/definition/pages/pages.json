@@ -1,13 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
   "pageOrder": [
-    "overview",
-    "ownership",
-    "sharing-authentication",
-    "channels",
-    "connectors-actions",
-    "knowledge",
-    "lifecycle"
+    "agent-passports"
   ],
-  "activePageName": "overview"
+  "activePageName": "agent-passports"
 }

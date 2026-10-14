@@ -120,7 +120,8 @@ Describe 'Every visual field reference resolves against the TMDL model' {
 
     It 'has field references to check' {
         # Guards the tests below against silently passing because nothing was found.
-        $script:AllReferences.Count | Should -BeGreaterThan 100
+        # The one approved page (BRO-504) makes about 25 field references.
+        $script:AllReferences.Count | Should -BeGreaterThan 20
     }
 
     It 'references only tables that exist in the model' {
@@ -256,12 +257,12 @@ Describe 'The inventory totals sit next to the returned counts' {
         $measures | Should -Contain 'Agents With Partial Connector Rows'
     }
 
-    It 'shows the listed and total counts together on the connectors page' {
-        $refs = @(Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder 'connectors-actions/visuals') -Filter visual.json -Recurse |
-                ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw })
-        $text = $refs -join "`n"
-        $text | Should -Match 'Connector Operations Listed'
-        $text | Should -Match ([regex]::Escape('Connector Operations Total (capabilitiesCounts)'))
+    It 'counts connectors on the passport from the complete capabilitiesCounts total' {
+        # BRO-504 removed the connectors page that showed listed and total counts side by side.
+        # The passport shows the total, which the inventory does not cap at a random 200.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentsCurrent.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('SELECTEDVALUE(AgentsCurrent[CapabilitiesDistinctConnectors])'))
+        $tmdl | Should -Not -Match 'AgentsCurrent\[ListedConnectorCount\]'
     }
 
     It 'flags an agent whose listed operations fall below the total' {
@@ -384,35 +385,48 @@ Describe 'Relationships and the anonymize toggle' {
     }
 }
 
-Describe 'The pages say what the data cannot show' {
-    It 'says in the page titles that sharing counts are counts, not named users' {
-        $path = Join-Path $script:PagesFolder 'sharing-authentication/visuals/table-agents/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'users and groups are not named'
+Describe 'The page says what the data cannot show' {
+    # BRO-504 replaced the seven pages these checks used to read with the Agent passports page.
+    BeforeAll {
+        $script:Passports = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentsCurrent.tmdl') -Raw
+        $script:PageText = (@(Get-ChildItem -LiteralPath $script:PagesFolder -Filter visual.json -Recurse |
+                    ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw })) -join "`n"
     }
 
-    It 'says the connector inventory is not collected in GCC or GCC High' {
-        $path = Join-Path $script:PagesFolder 'connectors-actions/visuals/bar-by-connector/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'not collected in GCC or GCC High'
+    It 'shows sharing as counts of people and groups, never names' {
+        $script:Passports | Should -Match ([regex]::Escape('SELECTEDVALUE(AgentsCurrent[ViewerUserCount])'))
+        $script:Passports | Should -Match ([regex]::Escape('SELECTEDVALUE(AgentsCurrent[ViewerGroupCount])'))
+        $script:Passports | Should -Match '" people"'
     }
 
-    It 'says the owner page has no directory file to detect a missing owner' {
-        $path = Join-Path $script:PagesFolder 'ownership/visuals/table-agents/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'missing owner cannot be detected'
+    It 'reads nothing from the connector file, which GCC and GCC High do not collect' {
+        $script:PageText | Should -Not -Match '"Entity": "AgentConnectors"'
+        $script:Passports | Should -Not -Match 'AgentConnectors\['
     }
 
-    It 'plots audit events on the days they occurred' {
-        # A DateDim axis evaluates the measure for every calendar day. COUNTROWS is blank
-        # on a day with no rows, and blank plus zero is zero, so the line would plot a
-        # zero for each day from 2020 through 2035.
-        $path = Join-Path $script:PagesFolder 'lifecycle/visuals/line-audit-over-time/visual.json'
-        $text = Get-Content -LiteralPath $path -Raw
-        $text | Should -Match 'AgentAuditEvents.ActivityDate'
-        $text | Should -Not -Match 'DateDim.Date'
+    It 'shows an owner id, not a name, and leaves owner names to Premium' {
+        # There is no directory file in this report, so the owner has no name to show.
+        $script:Passports | Should -Match ([regex]::Escape('"owner id " & LEFT(OwnerKey, 4) & "..."'))
+        $script:PageText | Should -Match 'Owner names, conversations, what each agent was asked'
+        $script:PageText | Should -Match 'Premium edition at backlogkrew.com'
     }
 
-    It 'shows environment names through the anonymize toggle' {
-        $path = Join-Path $script:PagesFolder 'overview/visuals/column-by-environment/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'Environment Display Name'
+    It 'says when the audit log was not collected instead of saying the records agree' {
+        $script:Passports | Should -Match ([regex]::Escape('AuditRows = 0, "agent-audit-events.csv has no rows'))
+        $script:Passports | Should -Match '"BotUpdateOperation-BotPublish"'
+    }
+
+    It 'shows agent and environment names through the anonymize toggle' {
+        $script:Passports | Should -Match ([regex]::Escape('VAR RawName = [Agent Display Name]'))
+        $script:Passports | Should -Match ([regex]::Escape('CALCULATE([Environment Display Name], TREATAS({EnvKey}, EnvironmentsCurrent[EnvironmentId]))'))
+        $script:Passports | Should -Match ([regex]::Escape('IF(Mode = "Anonymize", EnvironmentsCurrent[Pseudonym], EnvironmentsCurrent[DisplayName])'))
+        $script:Passports | Should -Match ([regex]::Escape('IF(Mode = "Anonymize", AgentsCurrent[Pseudonym], AgentsCurrent[DisplayName])'))
+    }
+
+    It 'shows an empty sign-in, channel list or editor count as Unknown' {
+        $script:Passports | Should -Match ([regex]::Escape('ISBLANK(Auth), "Unknown"'))
+        $script:Passports | Should -Match ([regex]::Escape('IF(ISBLANK(ChannelList), "Unknown"'))
+        $script:Passports | Should -Match ([regex]::Escape('ISBLANK(EditorUsers) && ISBLANK(EditorGroups), "Unknown"'))
     }
 
     It 'labels an empty connector use or component category Unknown' {
@@ -420,12 +434,84 @@ Describe 'The pages say what the data cannot show' {
         # https://learn.microsoft.com/microsoft-copilot-studio/admin-agent-inventory#connector-properties
         $connectors = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentConnectors.tmdl') -Raw
         $connectors | Should -Match ([regex]::Escape('IF(ISBLANK(AgentConnectors[UsedAs]), "Unknown", AgentConnectors[UsedAs])'))
-        $use = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'knowledge/visuals/column-use/visual.json') -Raw
-        $use | Should -Match 'AgentConnectors.UsedAsLabel'
-
         $components = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentComponents.tmdl') -Raw
         $components | Should -Match ([regex]::Escape('IF(ISBLANK(AgentComponents[Category]), "Unknown", AgentComponents[Category])'))
-        $chart = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'connectors-actions/visuals/column-components/visual.json') -Raw
-        $chart | Should -Match 'AgentComponents.CategoryLabel'
+    }
+}
+
+Describe 'The report has the approved Agent passports page and its filter' {
+    BeforeAll {
+        $script:PageVisuals = Join-Path $script:PagesFolder 'agent-passports/visuals'
+        $script:Passports = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentsCurrent.tmdl') -Raw
+    }
+
+    It 'lists only the agent-passports page' {
+        $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json
+        @($pages.pageOrder) -join ',' | Should -Be 'agent-passports'
+        (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'agent-passports/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Agent passports'
+    }
+
+    It 'puts the anonymize toggle in the report filter pane' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'CopilotStudioAgents.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
+        $filter = @($report.filterConfig.filters | Where-Object { $_.field.Column.Property -eq 'Mode' })
+        $filter.Count | Should -Be 1
+        $filter[0].field.Column.Expression.SourceRef.Entity | Should -Be 'AnonymizeMode'
+        $filter[0].displayName | Should -Be 'Anonymize names'
+    }
+
+    It 'shows passport <N> in an image bound to [Passport <N>]' -ForEach (1..12 | ForEach-Object { @{ N = $_ } }) {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals "passports-card-$N/visual.json") -Raw | ConvertFrom-Json -AsHashtable
+        $visual.visual.visualType | Should -Be 'image'
+        $visual.visual.objects.image[0].properties.sourceField.expr.Measure.Property | Should -Be "Passport $N"
+        $script:Passports | Should -Match ([regex]::Escape("measure 'Passport $N' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = $N)"))
+    }
+
+    It 'counts the agents and environments past the slots, using the real slot counts' {
+        $slots = @(Get-ChildItem -LiteralPath $script:PageVisuals -Directory -Filter 'passports-card-*').Count
+        $slots | Should -Be 12
+        $script:Passports | Should -Match ([regex]::Escape("measure 'Passport Overflow Note'"))
+        $script:Passports | Should -Match ([regex]::Escape("VAR AgentSlots = $slots"))
+        $script:Passports | Should -Match ([regex]::Escape('COUNTROWS(AgentsCurrent) - AgentSlots'))
+        # Where They Live draws rows 1 to 6 only.
+        $script:Passports | Should -Match ([regex]::Escape('FILTER(Ranked, [RowNo] <= 6)'))
+        $script:Passports | Should -Match ([regex]::Escape('VAR EnvSlots = 6'))
+        $script:Passports | Should -Match ([regex]::Escape('COUNTROWS(EnvironmentsCurrent) - EnvSlots'))
+    }
+
+    It 'shows that note on the page' {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals 'passports-overflow-note/visual.json') -Raw | ConvertFrom-Json
+        $visual.visual.visualType | Should -Be 'cardVisual'
+        $visual.visual.query.queryState.Data.projections[0].field.Measure.Property | Should -Be 'Passport Overflow Note'
+    }
+
+    It 'marks every SVG measure as an image URL' {
+        foreach ($name in @('Passport Card', 'Where They Live Image') + (1..12 | ForEach-Object { "Passport $_" })) {
+            $script:Passports | Should -Match ("(?s)measure '" + [regex]::Escape($name) + "' =.*?dataCategory: ImageUrl")
+        }
+    }
+
+    It 'orders the passports worst first and breaks ties by name and id' {
+        $script:Passports | Should -Match ([regex]::Escape('AgentsCurrent[Passport Concern] * 1000000'))
+        $script:Passports | Should -Match ([regex]::Escape('AgentsCurrent[AgentId] < ThisId'))
+    }
+
+    It 'uses no VAR name Desktop 2.158 rejects' {
+        $rejected = 'Value', 'Status', 'Scope', 'Disabled', 'Hidden', 'FirstDate', 'LastDate', 'Lead', 'At', 'Rows', 'Level', 'Key', 'Top', 'Weight'
+        $found = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
+            $text = Get-Content -LiteralPath $file.FullName -Raw
+            foreach ($name in $rejected) {
+                if ($text -cmatch "\bVAR $name\s*=") { "$($file.Name): VAR $name" }
+            }
+        }
+        $found -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'compares no column with a measure inside a CALCULATE filter' {
+        # Desktop 2.158 rejects CALCULATE(..., Table[Column] = [Measure]); read the measure into a VAR first.
+        $found = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
+            $text = Get-Content -LiteralPath $file.FullName -Raw
+            foreach ($m in [regex]::Matches($text, '\w+\[\w+\] = \[[^\]]+\]')) { "$($file.Name): $($m.Value)" }
+        }
+        $found -join '; ' | Should -BeNullOrEmpty
     }
 }

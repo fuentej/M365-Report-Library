@@ -5,7 +5,85 @@
       "name": "CY24SU10",
       "reportVersionAtImport": "5.55",
       "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "BacklogKrewHouseStyle-5a1c7e30d9.json",
+      "reportVersionAtImport": "5.55",
+      "type": "RegisteredResources"
     }
   },
-  "layoutOptimization": "None"
+  "layoutOptimization": "None",
+  "resourcePackages": [
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "BacklogKrewHouseStyle-5a1c7e30d9.json",
+          "path": "BacklogKrewHouseStyle-5a1c7e30d9.json",
+          "type": "CustomTheme"
+        },
+        {
+          "name": "icon-agent.svg",
+          "path": "icon-agent.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-check.svg",
+          "path": "icon-check.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-globe.svg",
+          "path": "icon-globe.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-house.svg",
+          "path": "icon-house.svg",
+          "type": "Image"
+        },
+        {
+          "name": "premium-dashed-box.svg",
+          "path": "premium-dashed-box.svg",
+          "type": "Image"
+        }
+      ]
+    }
+  ],
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "FilterAnonymizeMode",
+        "displayName": "Anonymize names",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "AnonymizeMode"
+              }
+            },
+            "Property": "Mode"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User",
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "requireSingleSelect": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
 }

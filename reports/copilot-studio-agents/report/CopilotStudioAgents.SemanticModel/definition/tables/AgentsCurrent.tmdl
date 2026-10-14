@@ -191,6 +191,82 @@ table AgentsCurrent
         summarizeBy: none
         isDataTypeInferred: false
 
+
+
+
+
+    /// The agent's environment type (Developer, Trial, Sandbox, Default, Production) from the latest environments.csv run. Blank when the environment is not in that run.
+    column 'Environment Type' = LOOKUPVALUE(EnvironmentsCurrent[EnvironmentType], EnvironmentsCurrent[EnvironmentId], AgentsCurrent[EnvironmentId])
+        dataType: string
+        isHidden
+        lineageTag: b6f27851-40be-5e61-a19f-f616b64aeb97
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// True when agent-audit-events.csv holds a BotPublish event for the agent.
+    column 'Audit Says Published' = COUNTROWS(FILTER(RELATEDTABLE(AgentAuditEvents), AgentAuditEvents[Operation] = "BotUpdateOperation-BotPublish")) > 0
+        dataType: boolean
+        isHidden
+        lineageTag: 37e3a1d3-7120-556e-ad9a-73409c1ec833
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The worst thing about the agent, 1 (needs a look first) to 7 (nothing found). 1 live with no sign-in on the Website channel (anyone with the link); 2 live with no sign-in; 3 live and shared with the whole tenant; 4 a draft with no sign-in; 5 a draft the audit log shows being published; 6 in a personal (Developer) or Trial environment; 7 none of these. 1 to 3 are red on the page, 4 to 6 amber.
+    column 'Passport Concern' =
+            VAR Live = AgentsCurrent[IsPublished] = TRUE()
+            VAR Draft = NOT ISBLANK(AgentsCurrent[IsPublished]) && NOT AgentsCurrent[IsPublished]
+            VAR NoSignIn = AgentsCurrent[Authentication] = "None"
+            VAR OnWebsite = CONTAINSSTRING(AgentsCurrent[Channels], "Website")
+            VAR WholeTenant = AgentsCurrent[ViewerEntireTenant] = TRUE()
+            VAR PersonalOrTrial = AgentsCurrent[Environment Type] IN {"Developer", "Trial"}
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    Live && NoSignIn && OnWebsite, 1,
+                    Live && NoSignIn, 2,
+                    Live && WholeTenant, 3,
+                    NoSignIn, 4,
+                    Draft && AgentsCurrent[Audit Says Published], 5,
+                    PersonalOrTrial, 6,
+                    7
+                )
+        dataType: int64
+        formatString: 0
+        isHidden
+        lineageTag: dfa94f20-2e97-5499-a4af-c27101405eef
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Sort key behind Passport Order: concern first, then live before draft, then most viewers.
+    column 'Passport Sort Key' = AgentsCurrent[Passport Concern] * 1000000 + IF(AgentsCurrent[IsPublished] = TRUE(), 0, 100000) + 99999 - MIN(COALESCE(AgentsCurrent[ViewerUserCount], 0), 99999)
+        dataType: int64
+        formatString: 0
+        isHidden
+        lineageTag: 8ed54ffc-a36c-5d71-a819-32bae524d9fb
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Where the agent's passport sits on the page, 1 (top left) to 12, worst first: Passport Sort Key, then name, then AgentId.
+    column 'Passport Order' =
+            VAR ThisKey = AgentsCurrent[Passport Sort Key]
+            VAR ThisName = AgentsCurrent[DisplayName]
+            VAR ThisId = AgentsCurrent[AgentId]
+            VAR Others = ALL(AgentsCurrent[Passport Sort Key], AgentsCurrent[DisplayName], AgentsCurrent[AgentId])
+            RETURN
+                COUNTROWS(
+                    FILTER(
+                        Others,
+                        AgentsCurrent[Passport Sort Key] < ThisKey
+                            || (AgentsCurrent[Passport Sort Key] = ThisKey && (AgentsCurrent[DisplayName] < ThisName || (AgentsCurrent[DisplayName] = ThisName && AgentsCurrent[AgentId] < ThisId)))
+                    )
+                ) + 1
+        dataType: int64
+        formatString: 0
+        isHidden
+        lineageTag: 682d43b9-1f4d-518e-acbd-052801b8cc4d
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// A stable AgentId-derived pseudonym when Anonymize is selected.
     measure 'Agent Display Name' = 
             VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
@@ -198,6 +274,466 @@ table AgentsCurrent
             VAR Pseudo = SELECTEDVALUE(AgentsCurrent[Pseudonym])
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: b68043b8-1e3e-5ba4-81c5-a3e7fde92c9d
+
+
+
+
+
+    /// The run line on the header band: latest agents.csv run date, agents in it and environments in the latest environments.csv run.
+    measure 'Passport Run Header' =
+            VAR RunDay = MAX(AgentsCurrent[RunDate])
+            VAR AgentTotal = COUNTROWS(AgentsCurrent) + 0
+            VAR EnvTotal = COUNTROWS(EnvironmentsCurrent) + 0
+            RETURN
+                IF(
+                    ISBLANK(RunDay),
+                    "agents.csv has no rows",
+                    "Run " & FORMAT(RunDay, "yyyy-MM-dd") & " · " & FORMAT(AgentTotal, "#,0") & IF(AgentTotal = 1, " agent, ", " agents, ")
+                        & FORMAT(EnvTotal, "#,0") & IF(EnvTotal = 1, " environment", " environments")
+                )
+        displayFolder: Agent passports
+        lineageTag: 2022c962-81e7-54d6-a02a-58f08596a0e2
+
+    /// Published agents out of all agents in the latest run, "n of N". Blank when agents.csv has no rows.
+    measure 'Published Of Agents' =
+            VAR AgentTotal = [Agent Count]
+            RETURN IF(ISBLANK(AgentTotal), BLANK(), FORMAT([Published Agents] + 0, "#,0") & " of " & FORMAT(AgentTotal, "#,0"))
+        displayFolder: Agent passports
+        lineageTag: 37694e5f-0973-5f53-a3f4-5b10aa389341
+
+    /// Live agents with no sign-in on the Website channel: anyone with the link can use them (Passport Concern 1).
+    measure 'Open To Anyone' = IF(ISEMPTY(AgentsCurrent), BLANK(), COUNTROWS(FILTER(AgentsCurrent, AgentsCurrent[Passport Concern] = 1)) + 0)
+        formatString: #,0
+        displayFolder: Agent passports
+        lineageTag: ba0e57f5-10de-5e43-a89f-7ca0ead40656
+
+    /// Agents in a personal (Developer) or Trial environment.
+    measure 'Agents In Personal Or Trial' = IF(ISEMPTY(AgentsCurrent), BLANK(), COUNTROWS(FILTER(AgentsCurrent, AgentsCurrent[Environment Type] IN {"Developer", "Trial"})) + 0)
+        formatString: #,0
+        displayFolder: Agent passports
+        lineageTag: 0267a8f6-ad2f-5245-a778-a1a6eef6cd0d
+
+    /// Agents with a red passport (Passport Concern 1 to 3): live and open to anyone, live with no sign-in, or live and shared with the whole tenant.
+    measure 'Agents Needing A Look' = IF(ISEMPTY(AgentsCurrent), BLANK(), COUNTROWS(FILTER(AgentsCurrent, AgentsCurrent[Passport Concern] <= 3)) + 0)
+        formatString: #,0
+        displayFolder: Agent passports
+        lineageTag: ffa98abb-0991-58a5-a43b-6836a5d355c2
+
+    /// The headline sentence: red passports out of all agents, then how many are open to anyone and whether they sit in one person's personal environment.
+    measure 'Passport Headline' =
+            VAR AgentTotal = COUNTROWS(AgentsCurrent) + 0
+            VAR NeedLook = [Agents Needing A Look]
+            VAR OpenCount = [Open To Anyone]
+            VAR OpenAgents = FILTER(AgentsCurrent, AgentsCurrent[Passport Concern] = 1)
+            VAR OpenPersonal = COUNTROWS(FILTER(OpenAgents, AgentsCurrent[Environment Type] = "Developer")) + 0
+            VAR OpenEnvironments = COUNTROWS(SUMMARIZE(OpenAgents, AgentsCurrent[EnvironmentId])) + 0
+            VAR FirstSentence =
+                IF(
+                    NeedLook = 0,
+                    "No agent needs a look.",
+                    FORMAT(NeedLook, "#,0") & " of " & FORMAT(AgentTotal, "#,0") & IF(NeedLook = 1, " agent needs", " agents need") & " a look."
+                )
+            VAR WhereFrom =
+                IF(
+                    OpenPersonal = OpenCount,
+                    IF(OpenEnvironments = 1, ", from one person's private environment", ", from people's private environments")
+                )
+            VAR SecondSentence =
+                IF(
+                    OpenCount > 0,
+                    " " & FORMAT(OpenCount, "#,0") & IF(OpenCount = 1, " answers", " answer") & " anyone on the internet, with no sign-in" & WhereFrom & "."
+                )
+            RETURN IF(AgentTotal = 0, BLANK(), FirstSentence & SecondSentence)
+        displayFolder: Agent passports
+        lineageTag: b37dcbb5-1877-5b22-a926-39d87528b441
+
+    /// One agent's passport as an SVG image (224 x 170 canvas px): name, live or draft, environment and its type, sign-in, channels, reach, editors, connectors and risky components, last publish date and owner. Blank unless one agent is in context. Names follow the Anonymize toggle.
+    measure 'Passport Card' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Snap = [Agents Snapshot Date]
+            VAR Font = "font-family='Segoe UI, sans-serif'"
+            VAR LabelStyle = Font & " font-size='10' fill='%235B6B78'"
+            VAR PlainStyle = Font & " font-size='10' fill='%231F2A33'"
+            VAR RedStyle = Font & " font-size='10' font-weight='600' fill='%23C62828'"
+            VAR RawName = [Agent Display Name]
+            VAR NameShort = IF(LEN(RawName) > 24, LEFT(RawName, 23) & "...", RawName)
+            VAR NameText = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(NameShort, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "%", "%25"), "#", "%23")
+            VAR EnvKey = SELECTEDVALUE(AgentsCurrent[EnvironmentId])
+            VAR EnvRaw = CALCULATE([Environment Display Name], TREATAS({EnvKey}, EnvironmentsCurrent[EnvironmentId]))
+            VAR EnvShown = IF(ISBLANK(EnvRaw), "Unknown environment", EnvRaw)
+            VAR EnvShort = IF(LEN(EnvShown) > 26, LEFT(EnvShown, 25) & "...", EnvShown)
+            VAR EnvText = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(EnvShort, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "%", "%25"), "#", "%23")
+            VAR EnvType = SELECTEDVALUE(AgentsCurrent[Environment Type])
+            VAR TagText = SWITCH(EnvType, "Developer", "PERSONAL", "Trial", "TRIAL", "Sandbox", "SANDBOX")
+            VAR TagInk = SWITCH(EnvType, "Developer", "%23C62828", "Trial", "%23A86A00", "%235B6B78")
+            VAR TagFill = SWITCH(EnvType, "Developer", "%23FBE3E3", "Trial", "%23FDF0D5", "%23EEF1F4")
+            VAR TagX = ROUND(10 + LEN(EnvShort) * 5.3 + 5, 0)
+            VAR TagWidth = ROUND(LEN(TagText) * 5.4 + 8, 0)
+            VAR Concern = SELECTEDVALUE(AgentsCurrent[Passport Concern])
+            VAR BarColor = IF(Concern <= 3, "%23C62828", IF(Concern <= 6, "%23D98A00", "%23D5DCE2"))
+            VAR Published = SELECTEDVALUE(AgentsCurrent[IsPublished])
+            VAR StateText = IF(ISBLANK(Published), "UNKNOWN", IF(Published, "LIVE", "DRAFT"))
+            VAR StateInk = IF(StateText = "LIVE", "%232E7D32", "%235B6B78")
+            VAR StateFill = IF(StateText = "LIVE", "%23E8F3E9", "%23EEF1F4")
+            VAR StateWidth = ROUND(LEN(StateText) * 6 + 10, 0)
+            VAR Auth = SELECTEDVALUE(AgentsCurrent[Authentication])
+            VAR ChannelList = SELECTEDVALUE(AgentsCurrent[Channels])
+            VAR SignInText = SWITCH(TRUE(), ISBLANK(Auth), "Unknown", Auth = "Generic OAuth 2.0", "OAuth", Auth)
+            VAR IsPublic = Auth = "None" && CONTAINSSTRING(ChannelList, "Website")
+            VAR WhereRaw = IF(ISBLANK(ChannelList), "Unknown", SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(ChannelList, ";", ", "), "&", "&amp;"), "<", "&lt;"))
+            VAR WhereBreak = IF(LEN(WhereRaw) <= 29, 0, MAXX(FILTER(GENERATESERIES(1, 30), MID(WhereRaw, [Value], 1) = " "), [Value]) + 0)
+            VAR Where1 = IF(WhereBreak > 0, LEFT(WhereRaw, WhereBreak - 1), WhereRaw)
+            VAR Where2 = IF(WhereBreak > 0, MID(WhereRaw, WhereBreak + 1, 200), "")
+            VAR ViewerUsers = SELECTEDVALUE(AgentsCurrent[ViewerUserCount])
+            VAR ViewerGroups = SELECTEDVALUE(AgentsCurrent[ViewerGroupCount])
+            VAR Tenant = SELECTEDVALUE(AgentsCurrent[ViewerEntireTenant])
+            VAR PeoplePart = IF(ISBLANK(ViewerUsers), "", FORMAT(ViewerUsers, "#,0") & IF(ViewerUsers = 1, " person", " people"))
+            VAR GroupPart = IF(ViewerGroups > 0, FORMAT(ViewerGroups, "#,0") & IF(ViewerGroups = 1, " group", " groups"), "")
+            VAR NamedReach = PeoplePart & IF(PeoplePart <> "" && GroupPart <> "", ", ", "") & GroupPart
+            VAR ReachRaw =
+                SWITCH(
+                    TRUE(),
+                    IsPublic, "Anyone with the link",
+                    Tenant = TRUE(), IF(NamedReach = "", "Whole tenant", NamedReach & " + whole tenant"),
+                    NamedReach = "", "Unknown",
+                    NamedReach
+                )
+            VAR ReachRed = IsPublic || Tenant = TRUE()
+            VAR ReachBreak = IF(LEN(ReachRaw) <= 29, 0, MAXX(FILTER(GENERATESERIES(1, 30), MID(ReachRaw, [Value], 1) = " "), [Value]) + 0)
+            VAR Reach1 = IF(ReachBreak > 0, LEFT(ReachRaw, ReachBreak - 1), ReachRaw)
+            VAR Reach2 = IF(ReachBreak > 0, MID(ReachRaw, ReachBreak + 1, 200), "")
+            VAR EditorUsers = SELECTEDVALUE(AgentsCurrent[EditorUserCount])
+            VAR EditorGroups = SELECTEDVALUE(AgentsCurrent[EditorGroupCount])
+            VAR EditorPeople = IF(EditorUsers > 0, FORMAT(EditorUsers, "#,0") & IF(EditorUsers = 1, " person", " people"), "")
+            VAR EditorGroupPart = IF(EditorGroups > 0, FORMAT(EditorGroups, "#,0") & IF(EditorGroups = 1, " group", " groups"), "")
+            VAR EditorsText =
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(EditorUsers) && ISBLANK(EditorGroups), "Unknown",
+                    EditorPeople = "" && EditorGroupPart = "", "owner only",
+                    EditorPeople & IF(EditorPeople <> "" && EditorGroupPart <> "", ", ", "") & EditorGroupPart
+                )
+            VAR Y1 = 54
+            VAR Y2 = Y1 + 12.8
+            VAR Y3 = Y2 + 12.8 + IF(Where2 <> "", 12.8, 0)
+            VAR Y4 = Y3 + 12.8 + IF(Reach2 <> "", 12.8, 0)
+            VAR FactLines =
+                "<text x='10' y='" & Y1 & "' " & LabelStyle & ">Sign-in</text><text x='52' y='" & Y1 & "' " & IF(Auth = "None", RedStyle, PlainStyle) & ">" & SignInText & "</text>"
+                    & "<text x='10' y='" & Y2 & "' " & LabelStyle & ">Where</text><text x='52' y='" & Y2 & "' " & PlainStyle & ">" & Where1 & "</text>"
+                    & IF(Where2 <> "", "<text x='52' y='" & (Y2 + 12.8) & "' " & PlainStyle & ">" & Where2 & "</text>")
+                    & "<text x='10' y='" & Y3 & "' " & LabelStyle & ">Reach</text><text x='52' y='" & Y3 & "' " & IF(ReachRed, RedStyle, PlainStyle) & ">" & Reach1 & "</text>"
+                    & IF(Reach2 <> "", "<text x='52' y='" & (Y3 + 12.8) & "' " & IF(ReachRed, RedStyle, PlainStyle) & ">" & Reach2 & "</text>")
+                    & "<text x='10' y='" & Y4 & "' " & LabelStyle & ">Editors</text><text x='52' y='" & Y4 & "' " & PlainStyle & ">" & EditorsText & "</text>"
+            VAR Connectors = SELECTEDVALUE(AgentsCurrent[CapabilitiesDistinctConnectors])
+            VAR ConnectorText = IF(ISBLANK(Connectors), "connectors unknown", FORMAT(Connectors, "#,0") & IF(Connectors = 1, " connector", " connectors"))
+            VAR ComponentSnap = [Agent Components Snapshot Date]
+            VAR HasHttp = CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = ComponentSnap, AgentComponents[Category] = "HttpRequest") > 0
+            VAR HasPrompt = CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = ComponentSnap, AgentComponents[Category] = "Prompt") > 0
+            VAR HasMcp = CALCULATE(COUNTROWS(AgentComponents), AgentComponents[RunDate] = ComponentSnap, AgentComponents[Category] = "Mcp") > 0
+            VAR HasWebSearch = SELECTEDVALUE(AgentsCurrent[IsWebSearchEnabledForKnowledge]) = TRUE()
+            VAR ChipList =
+                FILTER(
+                    UNION(
+                        ROW("Pos", 1, "Label", ConnectorText, "Hot", 0, "Shown", 1),
+                        ROW("Pos", 2, "Label", "HTTP", "Hot", 1, "Shown", IF(HasHttp, 1, 0)),
+                        ROW("Pos", 3, "Label", "Prompt", "Hot", 0, "Shown", IF(HasPrompt, 1, 0)),
+                        ROW("Pos", 4, "Label", "MCP", "Hot", 1, "Shown", IF(HasMcp, 1, 0)),
+                        ROW("Pos", 5, "Label", "Web search", "Hot", 0, "Shown", IF(HasWebSearch, 1, 0))
+                    ),
+                    [Shown] = 1
+                )
+            VAR ChipSized = ADDCOLUMNS(ChipList, "Wide", ROUND(LEN([Label]) * 5.2 + 12, 0))
+            VAR ChipEnds = ADDCOLUMNS(ChipSized, "EndAt", VAR ThisPos = [Pos] RETURN SUMX(FILTER(ChipSized, [Pos] <= ThisPos), [Wide] + 4))
+            VAR WrapFrom = MINX(FILTER(ChipEnds, [EndAt] - 4 > 204), [EndAt] - [Wide] - 4)
+            VAR TwoChipRows = NOT ISBLANK(WrapFrom)
+            VAR ChipSvg =
+                CONCATENATEX(
+                    ChipEnds,
+                    VAR StartAt = [EndAt] - [Wide] - 4
+                    VAR OnSecond = TwoChipRows && StartAt >= WrapFrom
+                    VAR ChipX = 10 + StartAt - IF(OnSecond, WrapFrom, 0)
+                    VAR ChipY = IF(TwoChipRows && NOT OnSecond, 115, 133)
+                    RETURN
+                        "<rect x='" & ChipX & "' y='" & ChipY & "' width='" & [Wide] & "' height='14' fill='%23FFFFFF' stroke='" & IF([Hot] = 1, "%23D98A00", "%23C5CED6") & "'/>"
+                            & "<text x='" & (ChipX + [Wide] / 2) & "' y='" & (ChipY + 10.2) & "' text-anchor='middle' " & Font & " font-size='9' fill='%233D4C58'>" & [Label] & "</text>",
+                    "",
+                    [Pos], ASC
+                )
+            VAR LastPublished = SELECTEDVALUE(AgentsCurrent[LastPublishedAt])
+            VAR PublishedText = IF(NOT ISBLANK(LastPublished), "Published " & FORMAT(LastPublished, "yyyy-MM-dd"), IF(StateText = "DRAFT", "Never published", "Publish date unknown"))
+            VAR OwnerKey = SELECTEDVALUE(AgentsCurrent[OwnerId])
+            VAR OwnerPseudo = CALCULATE(MAX(Agents[OwnerPseudonym]), Agents[RunDate] = Snap)
+            VAR OwnerText = IF(ISBLANK(OwnerKey), "owner unknown", IF(Mode = "Anonymize", "owner " & OwnerPseudo, "owner id " & LEFT(OwnerKey, 4) & "..."))
+            RETURN
+                IF(
+                    HASONEVALUE(AgentsCurrent[AgentId]),
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='448' height='340' viewBox='0 0 224 170'>"
+                        & "<rect x='0.5' y='0.5' width='223' height='169' fill='%23FFFFFF' stroke='%23D5DCE2'/>"
+                        & "<rect x='0' y='0' width='224' height='4' fill='" & BarColor & "'/>"
+                        & "<text x='10' y='22' " & Font & " font-size='12.5' font-weight='600' fill='%231F2A33'>" & NameText & "</text>"
+                        & "<rect x='" & (214 - StateWidth) & "' y='10' width='" & StateWidth & "' height='14' fill='" & StateFill & "'/>"
+                        & "<text x='" & (214 - StateWidth / 2) & "' y='20.3' text-anchor='middle' " & Font & " font-size='8.5' font-weight='600' fill='" & StateInk & "'>" & StateText & "</text>"
+                        & "<text x='10' y='37' " & Font & " font-size='10' fill='%233D4C58'>" & EnvText & "</text>"
+                        & IF(
+                            NOT ISBLANK(TagText),
+                            "<rect x='" & TagX & "' y='28.5' width='" & TagWidth & "' height='11' fill='" & TagFill & "'/>"
+                                & "<text x='" & (TagX + TagWidth / 2) & "' y='36.8' text-anchor='middle' " & Font & " font-size='7.5' font-weight='600' fill='" & TagInk & "'>" & TagText & "</text>"
+                        )
+                        & FactLines
+                        & ChipSvg
+                        & "<text x='10' y='159' " & Font & " font-size='8.5' fill='%238795A1'>" & PublishedText & " %C2%B7 " & OwnerText & "</text>"
+                        & "</svg>"
+                )
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 359a4e17-e911-5787-aa40-80c80da89f1a
+
+    /// The passport in slot 1 on the page (Passport Order 1).
+    measure 'Passport 1' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 1)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 9f855f96-cd47-581a-a676-4ee38b7672e5
+
+    /// The passport in slot 2 on the page (Passport Order 2).
+    measure 'Passport 2' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 2)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 10bc7b61-3500-5be3-a296-23d9cab1d6ab
+
+    /// The passport in slot 3 on the page (Passport Order 3).
+    measure 'Passport 3' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 3)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 8ca96b3d-fb7c-52fd-a72a-e2ac79a34c3b
+
+    /// The passport in slot 4 on the page (Passport Order 4).
+    measure 'Passport 4' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 4)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 974f292f-4ee0-5b55-ad45-ae3909e4aefa
+
+    /// The passport in slot 5 on the page (Passport Order 5).
+    measure 'Passport 5' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 5)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 53c0bb6f-1901-5315-ae98-8ec3991cbd4a
+
+    /// The passport in slot 6 on the page (Passport Order 6).
+    measure 'Passport 6' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 6)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 2248ea2f-6199-5920-ac7b-a0e7e19254d9
+
+    /// The passport in slot 7 on the page (Passport Order 7).
+    measure 'Passport 7' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 7)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: d54d0e79-30b9-597c-ab2e-9a85054d058b
+
+    /// The passport in slot 8 on the page (Passport Order 8).
+    measure 'Passport 8' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 8)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: e7f63182-4d64-5602-a751-5ebc66181097
+
+    /// The passport in slot 9 on the page (Passport Order 9).
+    measure 'Passport 9' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 9)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 538d0f70-84a2-5b44-a219-97ca88552424
+
+    /// The passport in slot 10 on the page (Passport Order 10).
+    measure 'Passport 10' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 10)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 1ba5bdb7-588a-5202-ad43-0d0c6fb85dc3
+
+    /// The passport in slot 11 on the page (Passport Order 11).
+    measure 'Passport 11' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 11)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: fe747f23-09af-51b8-a493-6632682fef77
+
+    /// The passport in slot 12 on the page (Passport Order 12).
+    measure 'Passport 12' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = 12)
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 8aadbd09-ff8f-583e-a5b9-8e0b695e4c8b
+
+    /// The Where they live panel as an SVG image: up to six environments, personal and trial first, each with its type and one dot per agent (up to eight). Names follow the Anonymize toggle.
+    measure 'Where They Live Image' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Font = "font-family='Segoe UI, sans-serif'"
+            VAR EnvList =
+                ADDCOLUMNS(
+                    ALL(EnvironmentsCurrent[EnvironmentId], EnvironmentsCurrent[DisplayName], EnvironmentsCurrent[Pseudonym], EnvironmentsCurrent[EnvironmentType]),
+                    "Shown", IF(Mode = "Anonymize", EnvironmentsCurrent[Pseudonym], EnvironmentsCurrent[DisplayName]),
+                    "AgentsHere",
+                        VAR EnvKey = EnvironmentsCurrent[EnvironmentId]
+                        RETURN COUNTROWS(FILTER(ALL(AgentsCurrent[AgentId], AgentsCurrent[EnvironmentId]), AgentsCurrent[EnvironmentId] = EnvKey)) + 0,
+                    "TypeRank", SWITCH(EnvironmentsCurrent[EnvironmentType], "Developer", 1, "Trial", 2, "Sandbox", 3, "Default", 4, "Production", 5, 6)
+                )
+            VAR Keyed = ADDCOLUMNS(EnvList, "SortKey", [TypeRank] * 10000 + 999 - MIN([AgentsHere], 999))
+            VAR Ranked =
+                ADDCOLUMNS(
+                    Keyed,
+                    "RowNo",
+                        VAR ThisKey = [SortKey]
+                        VAR ThisName = [Shown]
+                        VAR ThisId = EnvironmentsCurrent[EnvironmentId]
+                        RETURN
+                            COUNTROWS(
+                                FILTER(
+                                    Keyed,
+                                    [SortKey] < ThisKey || ([SortKey] = ThisKey && ([Shown] < ThisName || ([Shown] = ThisName && EnvironmentsCurrent[EnvironmentId] < ThisId)))
+                                )
+                            ) + 1
+                )
+            VAR EnvRowsSvg =
+                CONCATENATEX(
+                    FILTER(Ranked, [RowNo] <= 6),
+                    VAR RowTop = ([RowNo] - 1) * 21.8
+                    VAR EnvType = EnvironmentsCurrent[EnvironmentType]
+                    VAR NameInk = SWITCH(EnvType, "Developer", "%23C62828", "Trial", "%23D98A00", "%231F2A33")
+                    VAR DotInk = SWITCH(EnvType, "Developer", "%23C62828", "Trial", "%23D98A00", "%2316324A")
+                    VAR WeightAttr = IF(EnvType IN {"Developer", "Trial"}, " font-weight='600'", "")
+                    VAR NameRaw = IF(LEN([Shown]) > 26, LEFT([Shown], 25) & "...", [Shown])
+                    VAR NameText = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(NameRaw, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "%", "%25"), "#", "%23")
+                    VAR TypeText = IF(ISBLANK(EnvType), "Unknown", EnvType)
+                    VAR DotCount = MIN([AgentsHere], 8)
+                    VAR DotSvg = IF(DotCount > 0, CONCATENATEX(GENERATESERIES(1, DotCount), "<circle cx='" & (258 + ([Value] - 1) * 9) & "' cy='" & (RowTop + 11) & "' r='3.6' fill='" & DotInk & "'/>", ""))
+                    VAR MoreDots = IF([AgentsHere] > 8, "<text x='" & (258 + 8 * 9) & "' y='" & (RowTop + 14.5) & "' " & Font & " font-size='9' fill='%235B6B78'>+" & ([AgentsHere] - 8) & "</text>")
+                    RETURN
+                        "<text x='0' y='" & (RowTop + 14.5) & "' " & Font & " font-size='10.5'" & WeightAttr & " fill='" & NameInk & "'>" & NameText & "</text>"
+                            & "<text x='182' y='" & (RowTop + 14.5) & "' " & Font & " font-size='9.5' fill='%235B6B78'>" & TypeText & "</text>"
+                            & DotSvg & MoreDots
+                            & "<line x1='0' y1='" & (RowTop + 21.3) & "' x2='300' y2='" & (RowTop + 21.3) & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [RowNo], ASC
+                )
+            RETURN IF(COUNTROWS(Ranked) > 0, "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='264' viewBox='0 0 300 132'>" & EnvRowsSvg & "</svg>")
+        displayFolder: Agent passports
+        dataCategory: ImageUrl
+        lineageTag: 5113a2d5-bca3-51f6-aef3-230c0a6097ad
+
+    /// ONE FIX title: turn on sign-in for the agents open to anyone (or, if none, the live agents with no sign-in), else narrow the whole-tenant agents.
+    measure 'Passport One Fix Title' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR WorstConcern = MIN(AgentsCurrent[Passport Concern])
+            VAR Picked = FILTER(AgentsCurrent, AgentsCurrent[Passport Concern] = WorstConcern)
+            VAR PickedCount = COUNTROWS(Picked) + 0
+            VAR Listed =
+                ADDCOLUMNS(
+                    Picked,
+                    "Shown", IF(Mode = "Anonymize", AgentsCurrent[Pseudonym], AgentsCurrent[DisplayName]),
+                    "Nth", VAR ThisOrder = AgentsCurrent[Passport Order] RETURN COUNTROWS(FILTER(Picked, AgentsCurrent[Passport Order] <= ThisOrder))
+                )
+            VAR NameList = CONCATENATEX(Listed, [Shown] & IF([Nth] = PickedCount - 1, " and ", IF([Nth] < PickedCount - 1, ", ", "")), "", AgentsCurrent[Passport Order], ASC)
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(WorstConcern), BLANK(),
+                    WorstConcern <= 2, "Turn on sign-in for " & NameList,
+                    WorstConcern = 3, "Share " & NameList & " with named people or groups, not the whole tenant",
+                    "No live agent is open to anyone or to the whole tenant"
+                )
+        displayFolder: Agent passports
+        lineageTag: 929d5a0d-1948-5f06-aab2-5e11720062f9
+
+    /// Line 1 of the ONE FIX title. A card does not wrap its value onto a second line, so the title breaks at the last space before 42 characters.
+    measure 'Passport One Fix Title Line 1' = 
+            VAR TitleText = [Passport One Fix Title]
+            VAR BreakAt = IF(LEN(TitleText) <= 42, 0, MAXX(FILTER(GENERATESERIES(1, 43), MID(TitleText, [Value], 1) = " "), [Value]) + 0)
+            RETURN IF(BreakAt > 0, LEFT(TitleText, BreakAt - 1), TitleText)
+        displayFolder: Agent passports
+        lineageTag: 1515a0d6-6411-590a-af67-6b75cdccfa71
+
+    /// Line 2 of the ONE FIX title. A card does not wrap its value onto a second line, so the title breaks at the last space before 42 characters.
+    measure 'Passport One Fix Title Line 2' = 
+            VAR TitleText = [Passport One Fix Title]
+            VAR BreakAt = IF(LEN(TitleText) <= 42, 0, MAXX(FILTER(GENERATESERIES(1, 43), MID(TitleText, [Value], 1) = " "), [Value]) + 0)
+            RETURN IF(BreakAt > 0, MID(TitleText, BreakAt + 1, 500))
+        displayFolder: Agent passports
+        lineageTag: 1ffae300-c7a1-5563-ad95-f6acf375a91d
+
+    /// ONE FIX detail: where the agents in the title sit and what to do after the fix.
+    measure 'Passport One Fix Detail' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR WorstConcern = MIN(AgentsCurrent[Passport Concern])
+            VAR Picked = FILTER(AgentsCurrent, AgentsCurrent[Passport Concern] = WorstConcern)
+            VAR PickedCount = COUNTROWS(Picked) + 0
+            VAR SameEnvironment = COUNTROWS(SUMMARIZE(Picked, AgentsCurrent[EnvironmentId])) = 1
+            VAR EnvKey = MAXX(Picked, AgentsCurrent[EnvironmentId])
+            VAR EnvType = MAXX(Picked, AgentsCurrent[Environment Type])
+            VAR EnvName = CALCULATE([Environment Display Name], TREATAS({EnvKey}, EnvironmentsCurrent[EnvironmentId]))
+            VAR PersonalOwner = IF(Mode <> "Anonymize" && RIGHT(EnvName, 9) = " personal", LEFT(EnvName, LEN(EnvName) - 9))
+            VAR EnvPhrase =
+                SWITCH(
+                    TRUE(),
+                    NOT SameEnvironment || ISBLANK(EnvName), "",
+                    EnvType = "Developer" && NOT ISBLANK(PersonalOwner), ", in " & PersonalOwner & "'s personal environment",
+                    EnvType = "Developer", ", in a personal environment (" & EnvName & ")",
+                    ", in the " & EnvName & " environment"
+                )
+            VAR Subject = IF(PickedCount = 1, "It", IF(PickedCount = 2, "Both", "All " & FORMAT(PickedCount, "#,0")))
+            VAR Them = IF(PickedCount = 1, "it", "them")
+            VAR MoveOn = IF(SameEnvironment && EnvType IN {"Developer", "Trial"}, " Then move " & Them & " to Production.", "")
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(WorstConcern), BLANK(),
+                    WorstConcern = 1, Subject & IF(PickedCount = 1, " sits", " sit") & " on a public website with no sign-in" & EnvPhrase & "." & MoveOn,
+                    WorstConcern = 2, Subject & IF(PickedCount = 1, " is", " are") & " live with no sign-in" & EnvPhrase & ", so nobody who uses " & Them & " is identified." & MoveOn,
+                    WorstConcern = 3, Subject & IF(PickedCount = 1, " is", " are") & " live and shared with everyone in the tenant" & EnvPhrase & "." & MoveOn,
+                    "Every live agent asks for sign-in and is shared with named people or groups."
+                )
+        displayFolder: Agent passports
+        lineageTag: 0ddb0ee5-865f-5519-a5b8-e50cca8729f5
+
+    /// RECORDS DISAGREE: drafts in the inventory that agent-audit-events.csv shows being published.
+    measure 'Records Disagree Detail' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR AuditRows = COUNTROWS(ALL(AgentAuditEvents)) + 0
+            VAR Picked = FILTER(AgentsCurrent, AgentsCurrent[Audit Says Published] && NOT ISBLANK(AgentsCurrent[IsPublished]) && NOT AgentsCurrent[IsPublished])
+            VAR PickedCount = COUNTROWS(Picked) + 0
+            VAR Listed =
+                ADDCOLUMNS(
+                    Picked,
+                    "Shown", IF(Mode = "Anonymize", AgentsCurrent[Pseudonym], AgentsCurrent[DisplayName]),
+                    "Nth", VAR ThisOrder = AgentsCurrent[Passport Order] RETURN COUNTROWS(FILTER(Picked, AgentsCurrent[Passport Order] <= ThisOrder))
+                )
+            VAR NameList = CONCATENATEX(Listed, [Shown] & IF([Nth] = PickedCount - 1, " and ", IF([Nth] < PickedCount - 1, ", ", "")), "", AgentsCurrent[Passport Order], ASC)
+            VAR Them = IF(PickedCount = 1, "it", "them")
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISEMPTY(AgentsCurrent), BLANK(),
+                    AuditRows = 0, "agent-audit-events.csv has no rows, so the inventory's publish state cannot be checked against the audit log.",
+                    PickedCount = 0, "The audit log and the inventory agree on which agents are published.",
+                    "The audit log shows " & NameList & " being published. The inventory says " & IF(PickedCount = 1, "it is a draft", IF(PickedCount = 2, "both are drafts", "all " & FORMAT(PickedCount, "#,0") & " are drafts"))
+                        & ". Check who published " & Them & " and where."
+                )
+        displayFolder: Agent passports
+        lineageTag: d799acc8-df47-5a9d-a190-8adaf7b6f819
+
+    /// Footer sources. Adds "sample data, example.com" only when the Dataverse URLs are example.com, as in samples/.
+    measure 'Passport Sources' =
+            VAR IsSample = COUNTROWS(FILTER(ALL(AgentComponents[DataverseUrl]), CONTAINSSTRING(AgentComponents[DataverseUrl], "example.com"))) > 0
+            RETURN "Sources: agents.csv · environments.csv · agent-components.csv · agent-audit-events.csv" & IF(IsSample, " · sample data, example.com")
+        displayFolder: Agent passports
+        lineageTag: e4242503-13ba-5559-a0f3-89678741147b
+
+    /// The page has 12 passport slots and lists 6 environments. Agents and environments past those are counted here, so the page never drops one without saying so; the tiles and the run line count all of them.
+    measure 'Passport Overflow Note' =
+            VAR AgentSlots = 12
+            VAR EnvSlots = 6
+            VAR AgentsNotShown = COUNTROWS(AgentsCurrent) - AgentSlots
+            VAR EnvsNotShown = COUNTROWS(EnvironmentsCurrent) - EnvSlots
+            VAR AgentPart = IF(AgentsNotShown > 0, FORMAT(AgentsNotShown, "#,0") & IF(AgentsNotShown = 1, " more agent", " more agents"), "")
+            VAR EnvPart = IF(EnvsNotShown > 0, FORMAT(EnvsNotShown, "#,0") & IF(EnvsNotShown = 1, " more environment", " more environments"), "")
+            RETURN IF(AgentPart = "" && EnvPart = "", BLANK(), "Not shown: " & AgentPart & IF(AgentPart <> "" && EnvPart <> "", ", ", "") & EnvPart)
+        displayFolder: Agent passports
+        lineageTag: 4c8e1f26-7b3a-5d94-a2e0-91d6b0c35f78
 
     partition AgentsCurrent = m
         mode: import
