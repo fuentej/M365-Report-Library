@@ -1,0 +1,144 @@
+table EveryoneItemExposure
+    lineageTag: b284fc0f-f9f8-4ffb-8354-ebbebba84651
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 75389320-9646-4683-9fca-31309aa3c27d
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportEntity
+        dataType: string
+        lineageTag: 12cc369f-507b-4d9a-a4cd-6bd306e2b0e3
+        summarizeBy: none
+        sourceColumn: ReportEntity
+
+    column ReportId
+        dataType: string
+        lineageTag: 6e48e626-7398-401f-a8f3-04b5e2103f36
+        summarizeBy: none
+        sourceColumn: ReportId
+
+    column ReportDate
+        dataType: string
+        lineageTag: bea52fe6-d849-4460-a049-a78bc98e3862
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column SiteId
+        dataType: string
+        lineageTag: 622ec003-da76-42fd-ba67-de8c1d75afeb
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column WebId
+        dataType: string
+        lineageTag: d9777de7-9208-4205-ac78-ed16e23f75bd
+        summarizeBy: none
+        sourceColumn: WebId
+
+    column ListId
+        dataType: string
+        lineageTag: 1b11d513-3d19-4d0b-8954-87439c51d92c
+        summarizeBy: none
+        sourceColumn: ListId
+
+    column ScopeId
+        dataType: string
+        lineageTag: bf48a884-1c7d-4687-b924-cd0f50426c13
+        summarizeBy: none
+        sourceColumn: ScopeId
+
+    column UniqueId
+        dataType: string
+        lineageTag: 13f21432-c138-41ca-a42b-9baa1c57f7e3
+        summarizeBy: none
+        sourceColumn: UniqueId
+
+    column ListItemId
+        dataType: string
+        lineageTag: 77413dad-7967-42db-98f8-e44c6e2d0bcc
+        summarizeBy: none
+        sourceColumn: ListItemId
+
+    column ItemType
+        dataType: string
+        lineageTag: 53e7693a-dd30-43a1-8aa9-2badf553c15c
+        summarizeBy: none
+        sourceColumn: ItemType
+
+    column ItemUrl
+        dataType: string
+        lineageTag: 83e15b2b-9e2c-4efe-8bff-556a2d97c4fe
+        summarizeBy: none
+        sourceColumn: ItemUrl
+
+    column RoleDefinition
+        dataType: string
+        lineageTag: 6d96b34b-bb41-47e0-86a4-588f94cb9373
+        summarizeBy: none
+        sourceColumn: RoleDefinition
+
+    column LinkId
+        dataType: string
+        lineageTag: ecfb4ac7-964f-4193-ac61-a8aadf186d89
+        summarizeBy: none
+        sourceColumn: LinkId
+
+    column LinkScope
+        dataType: string
+        lineageTag: 26a92e22-8ffe-402c-b1e0-abe0a15745fb
+        summarizeBy: none
+        sourceColumn: LinkScope
+
+    column Recipient
+        dataType: string
+        lineageTag: 0b23b6b7-6a92-47a1-98bc-deb6edf6c821
+        summarizeBy: none
+        sourceColumn: Recipient
+
+    column ParentObjectId
+        dataType: string
+        lineageTag: cbcd425c-c365-4637-b942-f9c2fd8cd04b
+        summarizeBy: none
+        sourceColumn: ParentObjectId
+
+    column ParentGroupName
+        dataType: string
+        lineageTag: 5b6c35d5-cb1b-4696-ac82-37b38a21d66b
+        summarizeBy: none
+        sourceColumn: ParentGroupName
+
+    column ParentGroupEmail
+        dataType: string
+        lineageTag: 41bce50a-e45f-49fa-923f-ed6d70d50c0b
+        summarizeBy: none
+        sourceColumn: ParentGroupEmail
+
+    column ParentGroupType
+        dataType: string
+        lineageTag: 2838e136-fc5e-427d-a722-da2dc627ccba
+        summarizeBy: none
+        sourceColumn: ParentGroupType
+
+    column TotalUserCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 6740d998-5ffc-4900-87bb-383d3912d02c
+        summarizeBy: none
+        sourceColumn: TotalUserCount
+
+    partition EveryoneItemExposure = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\everyone-item-exposure.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"TotalUserCount", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
