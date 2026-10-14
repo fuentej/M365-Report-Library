@@ -201,31 +201,49 @@ table ConditionalAccessPolicies
         formatString: #,0
         lineageTag: 12e30919-5136-5974-baba-f797402dbd52
 
-    measure 'Policy State' = CALCULATE(MAX(ConditionalAccessPolicies[State]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Policy State' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[State]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: f601ced5-1ac6-5126-815a-073ff2cf8c71
 
-    measure 'Included Users' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeUsers]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Included Users' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[IncludeUsers]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: b3d23de8-3e35-54d3-9d78-9ef3b959a04b
 
-    measure 'Excluded Users' = CALCULATE(MAX(ConditionalAccessPolicies[ExcludeUsers]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Excluded Users' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[ExcludeUsers]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: 858c5640-7b52-585b-acf1-cb582be80afa
 
-    measure 'Included Groups' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeGroups]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Included Groups' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[IncludeGroups]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: bb7876aa-651b-5f0c-a660-7f0bdf07fdc8
 
-    measure 'Included Roles' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeRoles]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Included Roles' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[IncludeRoles]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: bcb2f6d6-81e0-5dcf-9fcb-4af516de9e2a
 
-    measure 'Included Applications' = CALCULATE(MAX(ConditionalAccessPolicies[IncludeApplications]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Included Applications' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[IncludeApplications]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: 479f24e6-d0c5-5f87-84b4-cb9f4ddf9a78
 
-    measure 'Grant Controls' = CALCULATE(MAX(ConditionalAccessPolicies[BuiltInControls]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Grant Controls' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[BuiltInControls]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: 49e5ddbe-7ac5-5558-b495-318ae6237983
 
-    measure 'Authentication Strength' = CALCULATE(MAX(ConditionalAccessPolicies[AuthenticationStrength]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Authentication Strength' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[AuthenticationStrength]), ConditionalAccessPolicies[RunDate] = Snap)
         lineageTag: cc940e45-b676-5a31-81db-4547f41030ba
 
-    measure 'Policy Modified' = CALCULATE(MAX(ConditionalAccessPolicies[ModifiedDateTime]), ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date])
+    measure 'Policy Modified' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            RETURN CALCULATE(MAX(ConditionalAccessPolicies[ModifiedDateTime]), ConditionalAccessPolicies[RunDate] = Snap)
         formatString: General Date
         lineageTag: 6bda181b-5563-5c8d-8cac-3ad6d774aebd
 

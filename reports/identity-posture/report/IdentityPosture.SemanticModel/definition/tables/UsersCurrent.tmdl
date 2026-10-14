@@ -113,10 +113,371 @@ table UsersCurrent
         lineageTag: 74ce83b3-c410-5b22-a78e-807fe86cb3d4
 
     measure 'Account Status' = 
-            VAR Rows = COUNTROWS(UsersCurrent)
+            VAR RowCount = COUNTROWS(UsersCurrent)
             VAR Enabled = SELECTEDVALUE(UsersCurrent[AccountEnabled])
-            RETURN IF(Rows = 0, BLANK(), IF(ISBLANK(Enabled), "Unknown", IF(Enabled, "Enabled", "Disabled")))
+            RETURN IF(RowCount = 0, BLANK(), IF(ISBLANK(Enabled), "Unknown", IF(Enabled, "Enabled", "Disabled")))
         lineageTag: 37fc8a90-52fa-58fa-ab3e-487691f1c738
+
+    /// Latest registration-details row for this account: Registered, Not registered, or Unknown when IsMfaRegistered is empty or the account has no row (disabled accounts are not returned). Blank when authentication-methods.csv was not collected.
+    column 'MFA Registration' =
+            VAR UserKey = UsersCurrent[Id]
+            VAR LatestRun = MAX(AuthenticationMethods[RunDate])
+            VAR Rows0 = FILTER(ALL(AuthenticationMethods), AuthenticationMethods[UserId] = UserKey && AuthenticationMethods[RunDate] = LatestRun)
+            VAR YesCount = COUNTROWS(FILTER(Rows0, AuthenticationMethods[IsMfaRegistered] = TRUE()))
+            VAR NoCount = COUNTROWS(FILTER(Rows0, AuthenticationMethods[IsMfaRegistered] = FALSE() && NOT ISBLANK(AuthenticationMethods[IsMfaRegistered])))
+            RETURN IF(COUNTROWS(ALL(AuthenticationMethods)) = 0, BLANK(), IF(YesCount > 0, "Registered", IF(NoCount > 0, "Not registered", "Unknown")))
+        dataType: string
+        lineageTag: f53be999-626b-5be0-b3fa-49414ce05349
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Table row order: Fix Sort Key at refresh, so the alphabetical tie-break uses the real names. The table sorts on this hidden column; it does not sort on a hidden measure.
+    column 'Fix Order' = [Fix Sort Key]
+        dataType: int64
+        formatString: 0
+        lineageTag: ec251bd4-9b9f-5ae8-8af6-f3cd236f6afa
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// 1 when the account holds an active directory role on the latest role snapshot (role-assignments-active.csv, or role-assignments.csv when PIM was not collected), else 0.
+    measure 'Fix Has Active Role' = 
+            VAR Holders = [Active Role Holders (Effective)]
+            RETURN IF(Holders > 0, 1, 0)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 3c73e7f7-3aa5-55ca-8f53-eb31d440a36f
+
+    /// 1 when Entra ID Protection lists the account as atRisk on the latest risky-users snapshot, else 0.
+    measure 'Fix At Risk' = IF([Risk State] = "atRisk", 1, 0)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 7f3e99ab-998f-5c49-8b0d-aaf45819deee
+
+    /// 1 when the latest registration-details row says IsMfaRegistered = False. An empty value or a missing row (disabled accounts are not returned) is not counted.
+    measure 'Fix No MFA' = IF([MFA Registered (Display)] = "No", 1, 0)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 9118dbea-1229-5b0e-a5b2-07dba07b97b0
+
+    /// 1 when the account is disabled (AccountEnabled = False). An empty AccountEnabled is not counted.
+    measure 'Fix Disabled' = 
+            VAR EnabledFlag = SELECTEDVALUE(UsersCurrent[AccountEnabled])
+            RETURN IF(NOT ISBLANK(EnabledFlag) && NOT EnabledFlag, 1, 0)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 17a45e1a-2918-5e4b-a5c7-1009d73b2b16
+
+    /// When an enabled Conditional Access policy that grants with mfa lists this account in ExcludeUsers on the latest snapshot, 1, else 0.
+    measure 'Fix Excluded From MFA Policy' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            VAR UserKey = SELECTEDVALUE(UsersCurrent[Id])
+            VAR Hits =
+                COUNTROWS(
+                    FILTER(
+                        ALL(ConditionalAccessPolicies),
+                        ConditionalAccessPolicies[RunDate] = Snap
+                            && ConditionalAccessPolicies[State] = "enabled"
+                            && CONTAINSSTRING(ConditionalAccessPolicies[BuiltInControls], "mfa")
+                            && CONTAINSSTRING(ConditionalAccessPolicies[ExcludeUsers], UserKey)
+                    )
+                )
+            RETURN IF(NOT ISBLANK(UserKey) && Hits > 0, 1, 0)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 48997ddd-3bf7-5ca1-9109-b56ae4978799
+
+    /// Why an account is "fix now", per the page footnote: 1 still at risk, has no MFA and has a successful legacy sign-in; 2 holds an active admin role and has a successful legacy sign-in; 3 is disabled but has a successful legacy sign-in; 0 otherwise. Blank outside a single account.
+    measure 'Fix Reason' = 
+            VAR LegacyOk = [Legacy Sign-Ins Succeeded]
+            RETURN
+                IF(
+                    HASONEVALUE(UsersCurrent[Id]),
+                    SWITCH(
+                        TRUE(),
+                        LegacyOk > 0 && [Fix At Risk] = 1 && [Fix No MFA] = 1, 1,
+                        LegacyOk > 0 && [Fix Has Active Role] = 1, 2,
+                        LegacyOk > 0 && [Fix Disabled] = 1, 3,
+                        0
+                    )
+                )
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: fb8edb84-8f61-5be5-bee3-6321f447bb7c
+
+    /// Accounts whose Fix Reason is 1, 2 or 3.
+    measure 'Fix Now Accounts' = IF(COUNTROWS(UsersCurrent) = 0, BLANK(), COUNTROWS(FILTER(VALUES(UsersCurrent[Id]), [Fix Reason] > 0)) + 0)
+        formatString: #,0
+        displayFolder: Accounts to fix
+        lineageTag: 6450ef2d-0509-53be-b727-405c541d53c7
+
+    /// The "n of N flagged" note beside the table title.
+    measure 'Fix Flagged Line' = 
+            VAR Flagged = [Fix Now Accounts]
+            VAR Accounts = COUNTROWS(UsersCurrent)
+            RETURN IF(ISBLANK(Accounts), BLANK(), FORMAT(Flagged, "#,0") & " of " & FORMAT(Accounts, "#,0") & " flagged")
+        displayFolder: Accounts to fix
+        lineageTag: e090b535-8199-5204-b83f-06c814068105
+
+    /// Table order, worst first: fix-now reason 1 to 3, then other accounts with a successful legacy sign-in, then active role holders, then the rest; inside each group most legacy sign-ins first, then by the name shown.
+    measure 'Fix Sort Key' = 
+            VAR GroupNo = [Fix Reason]
+            VAR LegacyOk = [Legacy Sign-Ins Succeeded] + 0
+            VAR Band = IF(GroupNo > 0, GroupNo, IF(LegacyOk > 0, 4, IF([Fix Has Active Role] = 1, 5, 6)))
+            VAR ShownName = [User Display Name]
+            VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR NamePosition =
+                COUNTROWS(
+                    FILTER(
+                        ALL(UsersCurrent),
+                        IF(ModeShown = "Anonymize", UsersCurrent[Pseudonym], UsersCurrent[DisplayName]) < ShownName
+                    )
+                ) + 1
+            RETURN IF(HASONEVALUE(UsersCurrent[Id]), Band * 100000 + (99 - MIN(LegacyOk, 99)) * 1000 + NamePosition)
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 2ac51511-f7e3-551e-a010-9fb668e21c53
+
+    /// Pink background for fix-now rows, white for the rest.
+    measure 'Fix Row Fill' = IF([Fix Reason] > 0, "#FDF0F0", "#FFFFFF")
+        displayFolder: Accounts to fix
+        lineageTag: 1f762004-8387-5158-a16c-1afbe5dccb1f
+
+    /// The Account cell: the name shown (honours the anonymize toggle) over a grey line with the department (or Guest) and the notes disabled, no MFA, <level> risk and excluded from MFA policy. An SVG in a utf8 data URI.
+    measure 'Fix Account Image' = 
+            VAR ShownName = [User Display Name]
+            VAR UserKind = SELECTEDVALUE(UsersCurrent[UserType])
+            VAR Place = IF(UserKind = "Guest", "Guest", SELECTEDVALUE(UsersCurrent[Department]))
+            VAR NoteDisabled = IF([Fix Disabled] = 1, "disabled")
+            VAR NoteMfa = IF([Fix No MFA] = 1, "no MFA")
+            VAR NoteRisk = IF([Fix At Risk] = 1, [Risk Level] & " risk")
+            VAR NoteExcluded = IF([Fix Excluded From MFA Policy] = 1, "excluded from MFA policy")
+            VAR NoteList = {(1, NoteDisabled), (2, NoteMfa), (3, NoteRisk), (4, NoteExcluded)}
+            VAR Notes = CONCATENATEX(FILTER(NoteList, [Value2] <> ""), [Value2], ", ", [Value1], ASC)
+            VAR SubRaw = Place & IF(Notes <> "", IF(Place <> "", " · ", "") & Notes)
+            VAR SubText = IF(LEN(SubRaw) > 36, LEFT(SubRaw, 34) & "...", SubRaw)
+            VAR NameSafe = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(ShownName, "%", "%25"), "·", "%C2%B7"), "&", "%26amp;"), "<", "%26lt;"), "#", "%23")
+            VAR SubSafe = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SubText, "%", "%25"), "·", "%C2%B7"), "&", "%26amp;"), "<", "%26lt;"), "#", "%23")
+            RETURN
+                IF(
+                    HASONEVALUE(UsersCurrent[Id]),
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='190' height='34' viewBox='0 0 190 34'>"
+                        & "<text x='1' y='14' font-family='Segoe UI Semibold, Segoe UI, sans-serif' font-size='12' fill='%231F2A33'>" & NameSafe & "</text>"
+                        & "<text x='1' y='29' font-family='Segoe UI, sans-serif' font-size='10' fill='%235B6B78'>" & SubSafe & "</text></svg>"
+                )
+        displayFolder: Accounts to fix
+        dataCategory: ImageUrl
+        lineageTag: 41ca6932-45d0-5182-b28c-064c567c5c22
+
+    /// Active directory roles on the latest snapshot, by name. When the account holds none, its eligible (PIM) roles followed by "(eligible)". Falls back to role-assignments.csv when the PIM file has no rows.
+    measure 'Fix Admin Role' = 
+            VAR UsePim = COUNTROWS(ALL(ActiveRoleAssignments)) > 0
+            VAR ActiveSnap = IF(UsePim, [Active Role Assignments Snapshot Date], CALCULATE(MAX(RoleAssignments[RunDate]), ALLSELECTED(RoleAssignments), ALLSELECTED(UsersCurrent)))
+            VAR PimIds = CALCULATETABLE(VALUES(ActiveRoleAssignments[RoleDefinitionId]), ActiveRoleAssignments[RunDate] = ActiveSnap)
+            VAR PlainIds = CALCULATETABLE(VALUES(RoleAssignments[RoleDefinitionId]), RoleAssignments[RunDate] = ActiveSnap)
+            VAR PimNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(PimIds, RoleDefinitions[RoleDefinitionId]))
+            VAR PlainNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(PlainIds, RoleDefinitions[RoleDefinitionId]))
+            VAR ActiveNames = IF(UsePim, PimNames, PlainNames)
+            VAR EligibleSnap = [Eligible Role Assignments Snapshot Date]
+            VAR EligibleIds = CALCULATETABLE(VALUES(EligibleRoleAssignments[RoleDefinitionId]), EligibleRoleAssignments[RunDate] = EligibleSnap)
+            VAR EligibleNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(EligibleIds, RoleDefinitions[RoleDefinitionId]))
+            RETURN
+                IF(
+                    HASONEVALUE(UsersCurrent[Id]),
+                    IF(ActiveNames <> "", ActiveNames, IF(EligibleNames <> "", EligibleNames & " (eligible)"))
+                )
+        displayFolder: Accounts to fix
+        lineageTag: 91c52556-376d-5a3b-8fc3-b23572dc28d9
+
+    /// The Legacy sign-ins, Risk and Action cells as one image (a table sizes every image column the same): successful legacy sign-ins as a bar (red on fix-now rows, teal otherwise) and the count, blank when signins.csv was not collected; a High (red), Medium or Low (amber) pill from the latest risky-users riskLevel; a red FIX NOW tag on fix-now rows.
+    measure 'Fix Signals Image' = 
+            VAR LegacyOk = [Legacy Sign-Ins Succeeded]
+            VAR Peak = MAXX(ALL(UsersCurrent[Id]), [Legacy Sign-Ins Succeeded])
+            VAR BarWidth = IF(Peak > 0, ROUND(40 * LegacyOk / Peak, 0), 0)
+            VAR FixNow = [Fix Reason] > 0
+            VAR BarColor = IF(FixNow, "%23C62828", "%23138A8A")
+            VAR LabelX = IF(LegacyOk > 0, BarWidth + 6, 1)
+            VAR LegacyPart =
+                IF(
+                    NOT ISBLANK(LegacyOk),
+                    IF(LegacyOk > 0, "<rect x='0' y='12' width='" & BarWidth & "' height='10' fill='" & BarColor & "'/>")
+                        & "<text x='" & LabelX & "' y='21.5' font-family='Segoe UI, sans-serif' font-size='11' fill='%231F2A33'>" & FORMAT(LegacyOk, "0") & "</text>"
+                )
+            VAR RiskLevelText = [Risk Level]
+            VAR Shown = SWITCH(RiskLevelText, "high", "High", "medium", "Medium", "low", "Low")
+            VAR PillFill = IF(RiskLevelText = "high", "%23FBE3E3", "%23FDF0D5")
+            VAR PillInk = IF(RiskLevelText = "high", "%23C62828", "%23A86A00")
+            VAR PillWidth = 12 + 7 * LEN(Shown)
+            VAR RiskPart =
+                IF(
+                    NOT ISBLANK(Shown),
+                    "<rect x='84' y='8' width='" & PillWidth & "' height='18' rx='2' fill='" & PillFill & "'/>"
+                        & "<text x='90' y='21' font-family='Segoe UI Semibold, Segoe UI, sans-serif' font-size='11' fill='" & PillInk & "'>" & Shown & "</text>"
+                )
+            VAR ActionPart =
+                IF(
+                    FixNow,
+                    "<rect x='140' y='7' width='50' height='20' fill='%23C62828'/>"
+                        & "<text x='165' y='21' text-anchor='middle' font-family='Segoe UI Semibold, Segoe UI, sans-serif' font-size='9.5' font-weight='600' fill='%23FFFFFF'>FIX NOW</text>"
+                )
+            RETURN
+                IF(
+                    HASONEVALUE(UsersCurrent[Id]),
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='190' height='34' viewBox='0 0 190 34'>" & LegacyPart & RiskPart & ActionPart & "</svg>"
+                )
+        displayFolder: Accounts to fix
+        dataCategory: ImageUrl
+        lineageTag: cf2f5632-a97d-53f4-b2e6-ca1e47972194
+
+    /// Enabled accounts registered for MFA on the latest registration-details snapshot, "n of N enabled". Blank when authentication-methods.csv was not collected.
+    measure 'Enabled With MFA' = 
+            VAR EnabledIds = FILTER(VALUES(UsersCurrent[Id]), CALCULATE(SELECTEDVALUE(UsersCurrent[AccountEnabled])) = TRUE())
+            VAR Registered = COUNTROWS(FILTER(EnabledIds, [MFA Registered (Display)] = "Yes")) + 0
+            RETURN IF(ISBLANK([Authentication Methods Snapshot Date]), BLANK(), FORMAT(Registered, "#,0") & " of " & FORMAT(COUNTROWS(EnabledIds), "#,0"))
+        displayFolder: Accounts to fix
+        lineageTag: 3832a769-e1bf-5cd6-980c-8f3db79a7344
+
+    /// Share of enabled accounts registered for MFA, as text for the donut centre (the n of N line under it names the figure).
+    measure 'Enabled MFA Registered %' = 
+            VAR EnabledIds = FILTER(VALUES(UsersCurrent[Id]), CALCULATE(SELECTEDVALUE(UsersCurrent[AccountEnabled])) = TRUE())
+            VAR Registered = COUNTROWS(FILTER(EnabledIds, [MFA Registered (Display)] = "Yes")) + 0
+            RETURN IF(ISBLANK([Authentication Methods Snapshot Date]), BLANK(), FORMAT(DIVIDE(Registered, COUNTROWS(EnabledIds)), "0%"))
+        displayFolder: Accounts to fix
+        lineageTag: e7476515-863c-595f-91af-13ec0127d2d7
+
+    /// Enabled accounts, for the MFA donut (sliced by UsersCurrent[MFA Registration]).
+    measure 'Enabled Accounts' = 
+            VAR Counted = CALCULATE(COUNTROWS(UsersCurrent), UsersCurrent[AccountEnabled] = TRUE())
+            RETURN IF(ISBLANK(SELECTEDVALUE(UsersCurrent[MFA Registration])) && ISFILTERED(UsersCurrent[MFA Registration]), BLANK(), Counted)
+        formatString: #,0
+        displayFolder: Accounts to fix
+        lineageTag: f3d33ed3-d9a8-59eb-b498-c8311b579f48
+
+    /// Legend line for the MFA donut.
+    measure 'MFA Legend Registered' = "Registered · " & FORMAT(CALCULATE([Enabled Accounts], UsersCurrent[MFA Registration] = "Registered") + 0, "#,0")
+        displayFolder: Accounts to fix
+        lineageTag: 0570eae6-0c66-5552-b633-6a6562108fb3
+
+    /// Legend line for the MFA donut.
+    measure 'MFA Legend Not Registered' = "Not registered · " & FORMAT(CALCULATE([Enabled Accounts], UsersCurrent[MFA Registration] = "Not registered") + 0, "#,0")
+        displayFolder: Accounts to fix
+        lineageTag: 5f293d5e-95a5-56bf-8d55-f9c393bd1d56
+
+    /// Enabled Conditional Access policies of all policies on the latest snapshot, "n of N".
+    measure 'CA Policies Enforced' = 
+            VAR Total = [Policy Count]
+            RETURN IF(ISBLANK(Total), BLANK(), FORMAT([Enabled Policies], "#,0") & " of " & FORMAT(Total, "#,0"))
+        displayFolder: Accounts to fix
+        lineageTag: 06c4c586-b8ed-589e-8c76-d7611496412e
+
+    /// Legend line for the Conditional Access donut.
+    measure 'CA Legend Enabled' = "Enabled · " & FORMAT([Enabled Policies] + 0, "#,0")
+        displayFolder: Accounts to fix
+        lineageTag: 0dd850e1-3dab-5682-b90f-3ca30ad19c51
+
+    /// Legend line for the Conditional Access donut.
+    measure 'CA Legend Report-Only' = "Report-only · " & FORMAT([Report-Only Policies] + 0, "#,0")
+        displayFolder: Accounts to fix
+        lineageTag: 01f324c0-d8eb-500c-91fe-81459b696cb9
+
+    /// Legend line for the Conditional Access donut.
+    measure 'CA Legend Disabled' = "Disabled · " & FORMAT([Disabled Policies] + 0, "#,0")
+        displayFolder: Accounts to fix
+        lineageTag: c9b87673-53e9-565e-bfad-8428441ad108
+
+    /// The run line on the header band: latest users.csv run, how many runs since the first, and accounts in the latest run.
+    measure 'Accounts To Fix Run Header' = 
+            VAR LatestRun = CALCULATE(MAX(Users[RunDate]), ALL(Users))
+            VAR EarliestRun = CALCULATE(MIN(Users[RunDate]), ALL(Users))
+            VAR RunCount = CALCULATE(DISTINCTCOUNT(Users[RunDate]), ALL(Users))
+            VAR Accounts = CALCULATE(COUNTROWS(Users), ALL(Users), Users[RunDate] = LatestRun)
+            RETURN
+                IF(
+                    ISBLANK(LatestRun),
+                    "No users.csv rows",
+                    "Run " & FORMAT(LatestRun, "yyyy-MM-dd") & " · " & FORMAT(RunCount, "0") & IF(RunCount = 1, " run", " runs") & " since " & FORMAT(EarliestRun, "yyyy-MM-dd") & " · " & FORMAT(Accounts, "#,0") & " accounts"
+                )
+        displayFolder: Accounts to fix
+        lineageTag: 95eb3172-8e9d-5c48-a521-c0cc09720f9b
+
+    /// Footer sources line. "sample data, example.com" appears only when users.csv holds @example.com accounts.
+    measure 'Accounts To Fix Sources' = 
+            VAR SampleRows = COUNTROWS(FILTER(ALL(UsersCurrent), CONTAINSSTRING(UsersCurrent[UserPrincipalName], "@example.com")))
+            RETURN "Sources: users, authentication methods, risky users, role assignments, sign-ins, Conditional Access" & IF(SampleRows > 0, " · sample data, example.com")
+        displayFolder: Accounts to fix
+        lineageTag: e968706e-3e29-59ee-90cc-4a2e7afaa122
+
+    /// Chart series: successful legacy sign-ins of fix-now accounts, for the User Display name on the axis (only the names of the mode the anonymize toggle shows).
+    measure 'Legacy Succeeded (Fix Now)' = 
+            VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Shown = CALCULATETABLE(VALUES('User Display'[Id]), 'User Display'[Mode] = ModeShown)
+            VAR Total = CALCULATE(SUMX(VALUES(UsersCurrent[Id]), IF([Fix Reason] > 0, [Legacy Sign-Ins Succeeded])), TREATAS(Shown, UsersCurrent[Id]))
+            RETURN IF(Total > 0, Total)
+        formatString: #,0
+        displayFolder: Accounts to fix
+        lineageTag: e59a7d08-e178-54fd-9516-d627ff206195
+
+    /// Chart series: successful legacy sign-ins of accounts that are not fix-now.
+    measure 'Legacy Succeeded (Other)' = 
+            VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Shown = CALCULATETABLE(VALUES('User Display'[Id]), 'User Display'[Mode] = ModeShown)
+            VAR Total = CALCULATE(SUMX(VALUES(UsersCurrent[Id]), IF([Fix Reason] = 0, [Legacy Sign-Ins Succeeded])), TREATAS(Shown, UsersCurrent[Id]))
+            RETURN IF(Total > 0, Total)
+        formatString: #,0
+        displayFolder: Accounts to fix
+        lineageTag: c357682e-a0df-58a2-bc68-74427921860f
+
+    /// Chart series: legacy sign-ins that failed or were blocked (ErrorCode not 0).
+    measure 'Legacy Blocked' = 
+            VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Shown = CALCULATETABLE(VALUES('User Display'[Id]), 'User Display'[Mode] = ModeShown)
+            VAR Total = CALCULATE([Legacy Sign-Ins Failed or Blocked], TREATAS(Shown, UsersCurrent[Id]))
+            RETURN IF(Total > 0, Total)
+        formatString: #,0
+        displayFolder: Accounts to fix
+        lineageTag: cf869a3f-9a1b-573c-a4fa-9b749c89a974
+
+    /// Chart order (a tooltip the chart sorts on): most legacy sign-ins first, then most successful, then fix-now reason 1 to 3.
+    measure 'Legacy Chart Order' = 
+            VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR Shown = CALCULATETABLE(VALUES('User Display'[Id]), 'User Display'[Mode] = ModeShown)
+            VAR AllLegacy = CALCULATE([Legacy Sign-Ins], TREATAS(Shown, UsersCurrent[Id]))
+            VAR LegacyOk = CALCULATE([Legacy Sign-Ins Succeeded], TREATAS(Shown, UsersCurrent[Id]))
+            VAR GroupNo = CALCULATE(MAXX(VALUES(UsersCurrent[Id]), [Fix Reason]), TREATAS(Shown, UsersCurrent[Id]))
+            VAR Band = IF(GroupNo > 0, GroupNo, 4)
+            RETURN IF(AllLegacy > 0, AllLegacy * 1000 + LegacyOk * 100 + (10 - Band))
+        formatString: 0
+        displayFolder: Accounts to fix
+        lineageTag: 47a15d9b-c41c-5450-9a36-41f5aae5ddb5
+
+    /// Chart caption: the account whose successful legacy sign-in in signins.csv is furthest past its LastSignInDateTime in the latest user-signin-activity.csv snapshot.
+    measure 'Legacy Caption' = 
+            VAR ActivitySnap = [User Sign-In Activity Snapshot Date]
+            VAR Gaps =
+                ADDCOLUMNS(
+                    VALUES(UsersCurrent[Id]),
+                    "@LastSeen", CALCULATE(MAX(UserSignInActivity[LastSignInDateTime]), UserSignInActivity[RunDate] = ActivitySnap),
+                    "@LegacyOk", CALCULATE(MAX(SignIns[CreatedDateTime]), SignIns[Outcome] = "Succeeded")
+                )
+            VAR Later = FILTER(Gaps, NOT ISBLANK([@LastSeen]) && NOT ISBLANK([@LegacyOk]) && [@LegacyOk] > [@LastSeen])
+            VAR Picked = TOPN(1, Later, [@LegacyOk] - [@LastSeen], DESC, UsersCurrent[Id], ASC)
+            VAR PickedId = MAXX(Picked, UsersCurrent[Id])
+            VAR PickedName = CALCULATE([User Display Name], UsersCurrent[Id] = PickedId)
+            VAR LastSeen = MAXX(Picked, [@LastSeen])
+            VAR LegacyOk = MAXX(Picked, [@LegacyOk])
+            VAR Others = COUNTROWS(Later) - 1
+            RETURN
+                IF(
+                    ISBLANK(ActivitySnap) || COUNTROWS(ALL(SignIns)) = 0,
+                    BLANK(),
+                    IF(
+                        COUNTROWS(Later) = 0,
+                        "No successful legacy sign-in is later than the account's last sign-in in the activity report.",
+                        PickedName & "'s last sign-in reads " & FORMAT(LastSeen, "yyyy-MM-dd") & " in the activity report, but the sign-in log shows a successful legacy sign-in on " & FORMAT(LegacyOk, "yyyy-MM-dd") & "."
+                            & IF(Others > 0, " " & FORMAT(Others, "0") & IF(Others = 1, " other account shows", " other accounts show") & " the same gap.")
+                    )
+                )
+        displayFolder: Accounts to fix
+        lineageTag: e66e8331-22e8-5875-b89e-45b342e50727
 
     partition UsersCurrent = m
         mode: import

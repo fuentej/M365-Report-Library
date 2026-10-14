@@ -7,6 +7,7 @@ ref table UsersCurrent
 ref table RoleDefinitions
 ref table DateDim
 ref table AnonymizeMode
+ref table 'User Display'
 ref table Users
 ref table AuthenticationMethods
 ref table ConditionalAccessPolicies

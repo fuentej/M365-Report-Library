@@ -1,0 +1,39 @@
+/// One row per account per anonymize mode: the display name for Show names, and for Anonymize the same Id-derived pseudonym as UsersCurrent[Pseudonym] (sum of each Id character code times its position, mod 9000, plus 1000). Chart axes use Name; the chart measures keep only the rows of the mode AnonymizeMode shows and reach UsersCurrent through TREATAS on Id. No relationships. An import table built from the UsersCurrent query, so it adds no calculated table.
+table 'User Display'
+    lineageTag: f06a087f-f2a1-579e-b6b3-5ac24eda44ff
+
+    column Id
+        dataType: string
+        lineageTag: 4da186cf-b499-5036-a07e-5fca64e3b171
+        summarizeBy: none
+        sourceColumn: Id
+
+    column Mode
+        dataType: string
+        lineageTag: 63c38b76-9662-54cd-a3ef-80e8ea2f6dc9
+        summarizeBy: none
+        sourceColumn: Mode
+
+    column Name
+        dataType: string
+        lineageTag: 7248d998-7d68-5ae1-b456-63623f746d11
+        summarizeBy: none
+        sourceColumn: Name
+
+    partition 'User Display' = m
+        mode: import
+        source =
+            let
+                Source = UsersCurrent,
+                Pseudonym = (id as nullable text) as nullable text =>
+                    if id = null then null
+                    else "User " & Text.PadStart(Number.ToText(Number.Mod(List.Sum(List.Transform({1..Text.Length(id)}, (i) => Character.ToNumber(Text.At(id, i - 1)) * i)), 9000) + 1000), 4, "0"),
+                Shown = Table.AddColumn(Table.RenameColumns(Table.SelectColumns(Source, {"Id", "DisplayName"}), {{"DisplayName", "Name"}}), "Mode", each "Show names", type text),
+                Anonymized = Table.AddColumn(Table.AddColumn(Table.SelectColumns(Source, {"Id"}), "Mode", each "Anonymize", type text), "Name", each Pseudonym([Id]), type text),
+                Combined = Table.Combine({Table.SelectColumns(Shown, {"Id", "Mode", "Name"}), Table.SelectColumns(Anonymized, {"Id", "Mode", "Name"})}),
+                Typed = Table.TransformColumnTypes(Combined, {{"Id", type text}, {"Mode", type text}, {"Name", type text}})
+            in
+                Typed
+
+    annotation PBI_ResultType = Table
+

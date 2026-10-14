@@ -5,7 +5,90 @@
       "name": "CY24SU10",
       "reportVersionAtImport": "5.55",
       "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "BacklogKrewHouseStyle-4e1b7d9c02.json",
+      "reportVersionAtImport": "5.55",
+      "type": "RegisteredResources"
     }
   },
-  "layoutOptimization": "None"
+  "layoutOptimization": "None",
+  "resourcePackages": [
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "BacklogKrewHouseStyle-4e1b7d9c02.json",
+          "path": "BacklogKrewHouseStyle-4e1b7d9c02.json",
+          "type": "CustomTheme"
+        },
+        {
+          "name": "icon-warning.svg",
+          "path": "icon-warning.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-people.svg",
+          "path": "icon-people.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-lock.svg",
+          "path": "icon-lock.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-plug.svg",
+          "path": "icon-plug.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-key.svg",
+          "path": "icon-key.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-shield.svg",
+          "path": "icon-shield.svg",
+          "type": "Image"
+        }
+      ]
+    }
+  ],
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "FilterAnonymizeMode",
+        "displayName": "Anonymize names",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "AnonymizeMode"
+              }
+            },
+            "Property": "Mode"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "User",
+        "objects": {
+          "general": [
+            {
+              "properties": {
+                "requireSingleSelect": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "true"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
 }
