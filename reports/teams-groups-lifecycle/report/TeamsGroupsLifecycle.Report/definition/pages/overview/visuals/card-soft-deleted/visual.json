@@ -26,7 +26,8 @@
                   "Property": "Soft-Deleted Groups"
                 }
               },
-              "queryRef": "DeletedGroups.Soft-Deleted Groups"
+              "queryRef": "DeletedGroups.Soft-Deleted Groups",
+              "nativeQueryRef": "Soft-Deleted Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Soft-deleted"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Soft-deleted'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

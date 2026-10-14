@@ -26,7 +26,8 @@
                   "Property": "Unknown Channels"
                 }
               },
-              "queryRef": "Agents.Unknown Channels"
+              "queryRef": "Agents.Unknown Channels",
+              "nativeQueryRef": "Unknown Channels"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Channels unknown (no value returned)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Channels unknown (no value returned)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

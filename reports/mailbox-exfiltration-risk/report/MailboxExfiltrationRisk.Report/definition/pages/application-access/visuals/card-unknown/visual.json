@@ -26,7 +26,8 @@
                   "Property": "Consents With Unknown Mail Scope"
                 }
               },
-              "queryRef": "DelegatedConsents.Consents With Unknown Mail Scope"
+              "queryRef": "DelegatedConsents.Consents With Unknown Mail Scope",
+              "nativeQueryRef": "Consents With Unknown Mail Scope"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Unknown mail scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Unknown mail scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

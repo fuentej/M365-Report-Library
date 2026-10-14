@@ -26,7 +26,8 @@
                   "Property": "Legacy Sign-Ins Succeeded"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins Succeeded"
+              "queryRef": "SignIns.Legacy Sign-Ins Succeeded",
+              "nativeQueryRef": "Legacy Sign-Ins Succeeded"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Succeeded (at least)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Succeeded (at least)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "TargetDomainsLabel"
                 }
               },
-              "queryRef": "InboxRules.TargetDomainsLabel"
+              "queryRef": "InboxRules.TargetDomainsLabel",
+              "nativeQueryRef": "TargetDomainsLabel",
+              "displayName": "Target domains"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Inbox Rules"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules"
+              "queryRef": "InboxRules.Inbox Rules",
+              "nativeQueryRef": "Inbox Rules"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules by target domain (hidden rules are read but not flagged)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules by target domain (hidden rules are read but not flagged)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

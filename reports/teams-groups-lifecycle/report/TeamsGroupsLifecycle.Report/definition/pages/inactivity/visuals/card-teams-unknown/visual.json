@@ -26,7 +26,8 @@
                   "Property": "Teams With Unknown Last Activity"
                 }
               },
-              "queryRef": "TeamActivity.Teams With Unknown Last Activity"
+              "queryRef": "TeamActivity.Teams With Unknown Last Activity",
+              "nativeQueryRef": "Teams With Unknown Last Activity"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Teams, last activity unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Teams, last activity unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

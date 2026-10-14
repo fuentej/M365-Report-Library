@@ -26,7 +26,8 @@
                   "Property": "Groups Without Expiration Date"
                 }
               },
-              "queryRef": "Groups.Groups Without Expiration Date"
+              "queryRef": "Groups.Groups Without Expiration Date",
+              "nativeQueryRef": "Groups Without Expiration Date"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "No expiration date set"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'No expiration date set'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

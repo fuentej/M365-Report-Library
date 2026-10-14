@@ -26,7 +26,8 @@
                   "Property": "Date"
                 }
               },
-              "queryRef": "DateDim.Date"
+              "queryRef": "DateDim.Date",
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "Agent Count (All Snapshots)"
                 }
               },
-              "queryRef": "Agents.Agent Count (All Snapshots)"
+              "queryRef": "Agents.Agent Count (All Snapshots)",
+              "nativeQueryRef": "Agent Count (All Snapshots)"
             },
             {
               "field": {
@@ -56,7 +58,8 @@
                   "Property": "Published Agents (All Snapshots)"
                 }
               },
-              "queryRef": "Agents.Published Agents (All Snapshots)"
+              "queryRef": "Agents.Published Agents (All Snapshots)",
+              "nativeQueryRef": "Published Agents (All Snapshots)"
             }
           ]
         }
@@ -66,8 +69,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Agents by snapshot date"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Agents by snapshot date'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

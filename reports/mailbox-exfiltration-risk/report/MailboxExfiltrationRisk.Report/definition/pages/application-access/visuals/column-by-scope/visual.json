@@ -26,7 +26,9 @@
                   "Property": "MailScopeLabel"
                 }
               },
-              "queryRef": "DelegatedConsents.MailScopeLabel"
+              "queryRef": "DelegatedConsents.MailScopeLabel",
+              "nativeQueryRef": "MailScopeLabel",
+              "displayName": "Mail scope"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Delegated Consents"
                 }
               },
-              "queryRef": "DelegatedConsents.Delegated Consents"
+              "queryRef": "DelegatedConsents.Delegated Consents",
+              "nativeQueryRef": "Delegated Consents"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Consents by mail scope (Unknown: not read)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Consents by mail scope (Unknown: not read)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

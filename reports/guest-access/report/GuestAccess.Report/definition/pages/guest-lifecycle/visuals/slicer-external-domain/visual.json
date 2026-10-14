@@ -26,7 +26,9 @@
                   "Property": "ExternalDomain"
                 }
               },
-              "queryRef": "GuestsCurrent.ExternalDomain"
+              "queryRef": "GuestsCurrent.ExternalDomain",
+              "nativeQueryRef": "ExternalDomain",
+              "displayName": "External domain"
             }
           ]
         }
@@ -36,8 +38,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "External domain"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'External domain'"
+                }
+              }
+            }
           }
         }
       ]

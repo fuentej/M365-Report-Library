@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GroupsCurrent.Pseudonym"
+              "queryRef": "GroupsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Group"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Group Display Name"
                 }
               },
-              "queryRef": "GroupsCurrent.Group Display Name"
+              "queryRef": "GroupsCurrent.Group Display Name",
+              "nativeQueryRef": "Group Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Team Last Activity"
                 }
               },
-              "queryRef": "TeamActivity.Team Last Activity"
+              "queryRef": "TeamActivity.Team Last Activity",
+              "nativeQueryRef": "Team Last Activity"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Team Days Inactive (Display)"
                 }
               },
-              "queryRef": "TeamActivity.Team Days Inactive (Display)"
+              "queryRef": "TeamActivity.Team Days Inactive (Display)",
+              "nativeQueryRef": "Team Days Inactive (Display)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Group Last Activity"
                 }
               },
-              "queryRef": "GroupActivity.Group Last Activity"
+              "queryRef": "GroupActivity.Group Last Activity",
+              "nativeQueryRef": "Group Last Activity"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Group Days Inactive (Display)"
                 }
               },
-              "queryRef": "GroupActivity.Group Days Inactive (Display)"
+              "queryRef": "GroupActivity.Group Days Inactive (Display)",
+              "nativeQueryRef": "Group Days Inactive (Display)"
             }
           ]
         }
@@ -101,8 +108,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Last activity by group; empty means unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Last activity by group; empty means unknown'"
+                }
+              }
+            }
           }
         }
       ]

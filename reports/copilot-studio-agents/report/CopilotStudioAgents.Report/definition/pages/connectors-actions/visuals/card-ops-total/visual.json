@@ -26,7 +26,8 @@
                   "Property": "Connector Operations Total (capabilitiesCounts)"
                 }
               },
-              "queryRef": "Agents.Connector Operations Total (capabilitiesCounts)"
+              "queryRef": "Agents.Connector Operations Total (capabilitiesCounts)",
+              "nativeQueryRef": "Connector Operations Total (capabilitiesCounts)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Connector operations total (capabilitiesCounts)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Connector operations total (capabilitiesCounts)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

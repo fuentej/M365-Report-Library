@@ -26,7 +26,8 @@
                   "Property": "MFA Registered %"
                 }
               },
-              "queryRef": "AuthenticationMethods.MFA Registered %"
+              "queryRef": "AuthenticationMethods.MFA Registered %",
+              "nativeQueryRef": "MFA Registered %"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "MFA registered (unknown status excluded)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'MFA registered (unknown status excluded)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

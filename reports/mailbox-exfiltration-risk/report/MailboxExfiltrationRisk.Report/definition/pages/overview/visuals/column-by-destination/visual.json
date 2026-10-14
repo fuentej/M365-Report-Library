@@ -26,7 +26,9 @@
                   "Property": "DestinationType"
                 }
               },
-              "queryRef": "MailboxForwarding.DestinationType"
+              "queryRef": "MailboxForwarding.DestinationType",
+              "nativeQueryRef": "DestinationType",
+              "displayName": "Destination type"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes",
+              "nativeQueryRef": "Forwarding Mailboxes"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Forwarding mailboxes by destination (Unknown: accepted domains not read)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Forwarding mailboxes by destination (Unknown: accepted domains not read)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

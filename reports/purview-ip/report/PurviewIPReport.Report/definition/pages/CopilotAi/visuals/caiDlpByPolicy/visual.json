@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "CopilotAccessedResources.PolicyName",
-              "nativeQueryRef": "CopilotAccessedResources.PolicyName"
+              "nativeQueryRef": "PolicyName",
+              "displayName": "DLP policy"
             },
             {
               "field": {
@@ -40,12 +41,34 @@
                   "Property": "Copilot DLP Matches"
                 }
               },
-              "queryRef": "_Measures.[Copilot DLP Matches]",
-              "nativeQueryRef": "_Measures.[Copilot DLP Matches]"
+              "queryRef": "_Measures.Copilot DLP Matches",
+              "nativeQueryRef": "Copilot DLP Matches"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot DLP matches by policy'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

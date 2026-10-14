@@ -26,7 +26,8 @@
                   "Property": "Enabled Mail Flow Rules"
                 }
               },
-              "queryRef": "TransportRules.Enabled Mail Flow Rules"
+              "queryRef": "TransportRules.Enabled Mail Flow Rules",
+              "nativeQueryRef": "Enabled Mail Flow Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Enabled"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Enabled'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

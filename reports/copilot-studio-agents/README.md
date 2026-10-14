@@ -38,7 +38,8 @@ with `-AppId`, `-CertificateThumbprint`, `-TenantId` and `-Organization`).
 | `collectors/Get-AgentComponents.ps1` | `agent-components.csv`: knowledge sources, tools, HTTP request actions, prompts and MCP actions, from Dataverse |
 | `collectors/Get-AgentModifications.ps1` | `agent-modifications.csv`: last modified date and modifier, from Dataverse |
 | `collectors/Get-AgentAuditEvents.ps1` | `agent-audit-events.csv`: authoring events from the unified audit log |
-| `collectors/Run-All.ps1` | Runs all six |
+| `collectors/Get-AgentCreditConsumption.ps1` | `agent-credit-consumption.csv`: Copilot Credits consumed per agent, read from the consumption report an admin downloads from the Power Platform admin center (no sign-in; see below) |
+| `collectors/Run-All.ps1` | Runs all seven |
 | `collectors/CopilotStudioSchema.psd1` | The column order of every CSV and the per-cloud availability of every source |
 | `collectors/CopilotStudioHelpers.ps1` | Helpers the collectors dot-source: the delegated token, inventory paging and Dataverse paging |
 | `report/` | The Power BI project (PBIP): `CopilotStudioAgents.SemanticModel` (TMDL) and `CopilotStudioAgents.Report` (PBIR, seven pages). One parameter, `CsvFolder`, holds the folder the collectors wrote; it is built against `samples/` |
@@ -203,6 +204,38 @@ Timestamps are UTC (`yyyy-MM-ddTHH:mm:ssZ`). Lists are joined with `;`.
 | `AgentId`, `Name`, `CreatedOn` | The `bot` row |
 | `ModifiedOn`, `ModifiedBy` | Last modified and the modifier's system user id. The inventory has no modified field |
 | `PublishedOn` | `bot.published` |
+
+### `agent-credit-consumption.csv`: usage rows from a downloaded report, key = all columns except the credits
+
+Copilot Credits are billed per environment and per agent, not per user. Nothing reads them from the tenant: no
+supported API for per-agent consumption was found. The Power Platform API
+[entitlement insight](https://learn.microsoft.com/rest/api/power-platform/licensing/entitlement-insight) operations return a
+resource id, a consumed value and a metadata object, with no documented entitlement id for Copilot Credits, no agent
+name, channel or day. So an admin downloads the report and `Get-AgentCreditConsumption.ps1 -ConsumptionFolder <folder>`
+reads it ([Learn](https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#download-detailed-copilot-consumption-for-an-environment)):
+Licensing, Copilot Studio, Environments, select the environment, Copilot Credits capacity, **Copilot credit
+consumption details**, **Download**. Save one `.csv` per environment, **named after the environment**, in the folder.
+If the folder is missing or empty the file is header only and `run.log` says the download is missing.
+
+| Column | Meaning |
+| --- | --- |
+| `Date` | The day, as `yyyy-MM-dd`. **UNVERIFIED**: Learn lists no date column. Empty when the report has none, and `run.log` then says the rows are totals for the downloaded timeframe, not per day |
+| `EnvironmentName` | An `Environment` column if the report has one (**UNVERIFIED**), else the file name |
+| `AgentName` | Learn column "Agent name" |
+| `Product`, `Feature` | Learn column "Product / AI feature". `Feature` takes an AI feature column; `Product` a separate product column if there is one (**UNVERIFIED**) |
+| `Channel`, `Model` | Learn columns "Channel" and "LLM model" |
+| `KnowledgeSourceOrTool` | Learn column "Knowledge sources / Tool used" |
+| `BilledCredits`, `NonBilledCredits` | Learn columns "Billed credits / Non-billed credits": credits that deducted capacity or were billed, and credits that did not |
+| `SourceFile` | The downloaded file the row came from |
+
+Learn does not state the file format or the exact header text, so **the file format (CSV) and every header are
+UNVERIFIED**: headers are matched ignoring case, spaces and punctuation; a column not found is left empty and named in
+`run.log`; a file with no agent or credit column is skipped; non-`.csv` files are named in `run.log` and not read. Rows with the
+same key inside a file are summed; a credit value that is not a number is named in `run.log` and not added up; credits on a row with
+no agent name are kept with an empty `AgentName` and named in `run.log`; a date is read as UTC with the invariant culture (month first for `9/1/2026`; ISO `2026-09-01` is safe), and one that cannot be read is kept as written and named in
+`run.log`. A row already written is not written again, so overlapping downloads do not double count and a
+re-download does not update a number already written. Without a `Date` column, a download for another timeframe that repeats an
+agent, feature and channel is skipped (`run.log` says so): use a new output folder for each timeframe. Availability by cloud is **UNVERIFIED** in all three clouds (the page does not say).
 
 ### `agent-audit-events.csv`: event, appended from the latest `CreationTime`, key `Id`
 

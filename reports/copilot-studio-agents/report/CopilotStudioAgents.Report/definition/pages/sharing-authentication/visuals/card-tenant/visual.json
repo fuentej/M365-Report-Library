@@ -26,7 +26,8 @@
                   "Property": "Agents Shared With Entire Tenant"
                 }
               },
-              "queryRef": "Agents.Agents Shared With Entire Tenant"
+              "queryRef": "Agents.Agents Shared With Entire Tenant",
+              "nativeQueryRef": "Agents Shared With Entire Tenant"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Shared with the entire tenant"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Shared with the entire tenant'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

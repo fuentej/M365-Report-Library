@@ -26,12 +26,49 @@
                   "Property": "Total Events"
                 }
               },
-              "queryRef": "_Measures.[Total Events]",
-              "nativeQueryRef": "_Measures.[Total Events]"
+              "queryRef": "_Measures.Total Events",
+              "nativeQueryRef": "Total Events"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Activity Explorer events'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

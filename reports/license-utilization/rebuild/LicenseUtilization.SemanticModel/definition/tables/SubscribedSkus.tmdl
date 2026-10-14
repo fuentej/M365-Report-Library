@@ -1,0 +1,83 @@
+table SubscribedSkus
+    lineageTag: 4196aefa-b0eb-420f-bb2b-fb7184287b29
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 271236a5-8ada-4e06-8baa-fea067caa4ae
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column SkuId
+        dataType: string
+        lineageTag: 4c87c818-2165-4b91-819d-4dd6e40c287c
+        summarizeBy: none
+        sourceColumn: SkuId
+
+    column SkuPartNumber
+        dataType: string
+        lineageTag: 391eeedc-2e31-49fb-93dc-7ba33f5fd886
+        summarizeBy: none
+        sourceColumn: SkuPartNumber
+
+    column AppliesTo
+        dataType: string
+        lineageTag: 3c65e337-a34e-4e8c-87a6-df004b56b8e9
+        summarizeBy: none
+        sourceColumn: AppliesTo
+
+    column CapabilityStatus
+        dataType: string
+        lineageTag: c4d13e8a-4c1b-4d3a-80a5-914a4c160dd7
+        summarizeBy: none
+        sourceColumn: CapabilityStatus
+
+    column ConsumedUnits
+        dataType: int64
+        lineageTag: 904d2ae4-64c0-4375-a988-ed890287815f
+        summarizeBy: none
+        sourceColumn: ConsumedUnits
+
+    column PrepaidEnabled
+        dataType: int64
+        lineageTag: e8809a72-754a-4ac2-bb1e-43c372d02567
+        summarizeBy: none
+        sourceColumn: PrepaidEnabled
+
+    column PrepaidSuspended
+        dataType: int64
+        lineageTag: c6f6ca3d-0c38-4fba-afc7-4683b5d593d5
+        summarizeBy: none
+        sourceColumn: PrepaidSuspended
+
+    column PrepaidWarning
+        dataType: int64
+        lineageTag: 1bcb504d-7a15-40ec-a6c4-6cbbb60bf30a
+        summarizeBy: none
+        sourceColumn: PrepaidWarning
+
+    column PrepaidLockedOut
+        dataType: int64
+        lineageTag: 6b0da26a-dc3f-46de-b7c5-38da57d3492f
+        summarizeBy: none
+        sourceColumn: PrepaidLockedOut
+
+    column FreeUnits
+        dataType: int64
+        lineageTag: 58163058-de75-473f-9b4a-068f2cb32bd8
+        summarizeBy: none
+        sourceColumn: FreeUnits
+
+    partition SubscribedSkus = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\subscribed-skus.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"ConsumedUnits", Int64.Type}, {"PrepaidEnabled", Int64.Type}, {"PrepaidSuspended", Int64.Type}, {"PrepaidWarning", Int64.Type}, {"PrepaidLockedOut", Int64.Type}, {"FreeUnits", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

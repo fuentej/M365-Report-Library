@@ -26,7 +26,8 @@
                   "Property": "Tenant-Wide Mail Consents"
                 }
               },
-              "queryRef": "DelegatedConsents.Tenant-Wide Mail Consents"
+              "queryRef": "DelegatedConsents.Tenant-Wide Mail Consents",
+              "nativeQueryRef": "Tenant-Wide Mail Consents"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Tenant-wide, mail scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Tenant-wide, mail scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

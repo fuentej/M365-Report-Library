@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "User Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.User Display Name"
+              "queryRef": "UsersCurrent.User Display Name",
+              "nativeQueryRef": "User Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Legacy Sign-Ins"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins"
+              "queryRef": "SignIns.Legacy Sign-Ins",
+              "nativeQueryRef": "Legacy Sign-Ins"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Legacy Sign-Ins Succeeded"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins Succeeded"
+              "queryRef": "SignIns.Legacy Sign-Ins Succeeded",
+              "nativeQueryRef": "Legacy Sign-Ins Succeeded"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Legacy Sign-Ins Failed or Blocked"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked"
+              "queryRef": "SignIns.Legacy Sign-Ins Failed or Blocked",
+              "nativeQueryRef": "Legacy Sign-Ins Failed or Blocked"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Last Legacy Sign-In"
                 }
               },
-              "queryRef": "SignIns.Last Legacy Sign-In"
+              "queryRef": "SignIns.Last Legacy Sign-In",
+              "nativeQueryRef": "Last Legacy Sign-In"
             }
           ]
         }
@@ -101,8 +108,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Legacy sign-ins per user (interactive sign-ins only; non-interactive are not collected)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Legacy sign-ins per user (interactive sign-ins only; non-interactive are not collected)'"
+                }
+              }
+            }
           }
         }
       ]

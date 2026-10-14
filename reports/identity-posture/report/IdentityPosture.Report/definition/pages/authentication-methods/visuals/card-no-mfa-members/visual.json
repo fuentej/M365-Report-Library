@@ -26,7 +26,8 @@
                   "Property": "No MFA Method (Members)"
                 }
               },
-              "queryRef": "AuthenticationMethods.No MFA Method (Members)"
+              "queryRef": "AuthenticationMethods.No MFA Method (Members)",
+              "nativeQueryRef": "No MFA Method (Members)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Members with no MFA method"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Members with no MFA method'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

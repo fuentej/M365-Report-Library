@@ -26,7 +26,8 @@
                   "Property": "Organization Auditing"
                 }
               },
-              "queryRef": "AuditConfiguration.Organization Auditing"
+              "queryRef": "AuditConfiguration.Organization Auditing",
+              "nativeQueryRef": "Organization Auditing"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mailbox auditing on by default"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mailbox auditing on by default'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

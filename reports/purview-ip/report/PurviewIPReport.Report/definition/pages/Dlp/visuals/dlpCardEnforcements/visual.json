@@ -26,12 +26,49 @@
                   "Property": "DLP Enforcements"
                 }
               },
-              "queryRef": "_Measures.[DLP Enforcements]",
-              "nativeQueryRef": "_Measures.[DLP Enforcements]"
+              "queryRef": "_Measures.DLP Enforcements",
+              "nativeQueryRef": "DLP Enforcements"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP rule enforcements'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

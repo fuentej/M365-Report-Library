@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "ExchangeActivityRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "5407b3f5-4391-4947-b807-2c3ce37ac34a"
+  }
+}

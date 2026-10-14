@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "Guests.Pseudonym"
+              "queryRef": "Guests.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Guest"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Guest Display Name"
                 }
               },
-              "queryRef": "Guests.Guest Display Name"
+              "queryRef": "Guests.Guest Display Name",
+              "nativeQueryRef": "Guest Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "External Domain"
                 }
               },
-              "queryRef": "Guests.External Domain"
+              "queryRef": "Guests.External Domain",
+              "nativeQueryRef": "External Domain"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Last Sign-In Source"
                 }
               },
-              "queryRef": "Guests.Last Sign-In Source"
+              "queryRef": "Guests.Last Sign-In Source",
+              "nativeQueryRef": "Last Sign-In Source"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Days Since Last Sign-In (Display)"
                 }
               },
-              "queryRef": "Guests.Days Since Last Sign-In (Display)"
+              "queryRef": "Guests.Days Since Last Sign-In (Display)",
+              "nativeQueryRef": "Days Since Last Sign-In (Display)"
             },
             {
               "field": {
@@ -91,7 +97,8 @@
                   "Property": "Dormant Guest Status"
                 }
               },
-              "queryRef": "Guests.Dormant Guest Status"
+              "queryRef": "Guests.Dormant Guest Status",
+              "nativeQueryRef": "Dormant Guest Status"
             }
           ]
         }
@@ -101,8 +108,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Days since last sign-in, with the derived/unknown flag"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Days since last sign-in, with the derived/unknown flag'"
+                }
+              }
+            }
           }
         }
       ]

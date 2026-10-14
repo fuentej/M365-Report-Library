@@ -26,7 +26,8 @@
                   "Property": "Redirect Or Blind Copy Rules"
                 }
               },
-              "queryRef": "TransportRules.Redirect Or Blind Copy Rules"
+              "queryRef": "TransportRules.Redirect Or Blind Copy Rules",
+              "nativeQueryRef": "Redirect Or Blind Copy Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail flow rules that redirect or blind copy"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail flow rules that redirect or blind copy'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

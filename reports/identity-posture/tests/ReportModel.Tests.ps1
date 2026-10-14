@@ -408,7 +408,7 @@ Describe 'No page is built on a beta-only source' {
 
     It 'says in the page titles that the legacy sign-in counts are a lower bound' {
         $cards = Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder 'legacy-authentication/visuals') -Filter visual.json -Recurse |
-            ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable).visual.visualContainerObjects.title[0].properties.text }
+            ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable).visual.visualContainerObjects.title[0].properties.text.expr.Literal.Value }
         @($cards | Where-Object { $_ -match 'at least' }).Count | Should -BeGreaterOrEqual 4
     }
 

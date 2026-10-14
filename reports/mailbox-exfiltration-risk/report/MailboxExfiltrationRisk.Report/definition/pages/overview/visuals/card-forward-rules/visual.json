@@ -26,7 +26,8 @@
                   "Property": "Forward Or Redirect Rules"
                 }
               },
-              "queryRef": "InboxRules.Forward Or Redirect Rules"
+              "queryRef": "InboxRules.Forward Or Redirect Rules",
+              "nativeQueryRef": "Forward Or Redirect Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Inbox rules that forward or redirect"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Inbox rules that forward or redirect'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

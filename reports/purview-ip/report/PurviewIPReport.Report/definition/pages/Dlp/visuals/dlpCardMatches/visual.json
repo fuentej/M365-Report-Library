@@ -26,12 +26,49 @@
                   "Property": "DLP Matches"
                 }
               },
-              "queryRef": "_Measures.[DLP Matches]",
-              "nativeQueryRef": "_Measures.[DLP Matches]"
+              "queryRef": "_Measures.DLP Matches",
+              "nativeQueryRef": "DLP Matches"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'DLP rule matches'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

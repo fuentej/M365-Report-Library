@@ -26,7 +26,8 @@
                   "Property": "No MFA Method (Guests)"
                 }
               },
-              "queryRef": "AuthenticationMethods.No MFA Method (Guests)"
+              "queryRef": "AuthenticationMethods.No MFA Method (Guests)",
+              "nativeQueryRef": "No MFA Method (Guests)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Guests with no MFA method"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Guests with no MFA method'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -222,8 +222,11 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 13
     }
 
-    It 'maps every sample CSV the collectors write to a table' {
-        $samples = @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -File | ForEach-Object Name | Sort-Object)
+    It 'maps every sample CSV the collectors write to a table, apart from those collected before the report reads them' {
+        # outbound-spam-policies.csv (BRO-496) is collected for the approved Exit routes page; its
+        # table is added in the report's design pass, not in the collector change.
+        $notYetInReport = @('outbound-spam-policies.csv')
+        $samples = @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -File | ForEach-Object Name | Where-Object { $_ -notin $notYetInReport } | Sort-Object)
         $samples -join ',' | Should -Be ((@($script:CsvBackedTables.Values) | Sort-Object) -join ',')
     }
 

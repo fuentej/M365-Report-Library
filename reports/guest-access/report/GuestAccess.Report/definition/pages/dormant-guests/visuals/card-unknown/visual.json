@@ -26,7 +26,8 @@
                   "Property": "Unknown Last Sign-In Guests"
                 }
               },
-              "queryRef": "Guests.Unknown Last Sign-In Guests"
+              "queryRef": "Guests.Unknown Last Sign-In Guests",
+              "nativeQueryRef": "Unknown Last Sign-In Guests"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Unknown last sign-in"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Unknown last sign-in'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

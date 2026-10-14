@@ -26,7 +26,8 @@
                   "Property": "Knowledge Connector Operations"
                 }
               },
-              "queryRef": "AgentConnectors.Knowledge Connector Operations"
+              "queryRef": "AgentConnectors.Knowledge Connector Operations",
+              "nativeQueryRef": "Knowledge Connector Operations"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Knowledge connector operations"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Knowledge connector operations'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -6,8 +6,10 @@ BeforeAll {
 }
 
 Describe 'The collectors follow the contract doc' {
-    It 'has a collector for each of the six source rows' {
-        $script:Schema.SourceAvailability.Keys.Count | Should -Be 6
+    It 'has a collector for each of the six source rows, plus the credit consumption download' {
+        # The consumption download is not one of the contract's six source rows (BRO-497).
+        $script:Schema.SourceAvailability.Keys.Count | Should -Be 7
+        Test-Path -LiteralPath (Join-Path $PSScriptRoot '../collectors/Get-AgentCreditConsumption.ps1') | Should -BeTrue
         foreach ($script in 'Get-PowerPlatformEnvironments', 'Get-CopilotStudioAgents', 'Get-AgentConnectors', 'Get-AgentComponents', 'Get-AgentModifications', 'Get-AgentAuditEvents') {
             Test-Path -LiteralPath (Join-Path $PSScriptRoot "../collectors/$script.ps1") | Should -BeTrue
         }

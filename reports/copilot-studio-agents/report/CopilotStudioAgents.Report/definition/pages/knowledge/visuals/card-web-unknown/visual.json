@@ -26,7 +26,8 @@
                   "Property": "Unknown Web Search Setting"
                 }
               },
-              "queryRef": "Agents.Unknown Web Search Setting"
+              "queryRef": "Agents.Unknown Web Search Setting",
+              "nativeQueryRef": "Unknown Web Search Setting"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Web search setting unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Web search setting unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

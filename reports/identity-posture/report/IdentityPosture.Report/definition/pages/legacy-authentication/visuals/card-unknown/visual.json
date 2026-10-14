@@ -26,7 +26,8 @@
                   "Property": "Legacy Sign-Ins Outcome Unknown"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins Outcome Unknown"
+              "queryRef": "SignIns.Legacy Sign-Ins Outcome Unknown",
+              "nativeQueryRef": "Legacy Sign-Ins Outcome Unknown"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Outcome unknown (no error code)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Outcome unknown (no error code)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

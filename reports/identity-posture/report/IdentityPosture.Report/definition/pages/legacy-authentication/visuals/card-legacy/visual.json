@@ -26,7 +26,8 @@
                   "Property": "Legacy Sign-Ins"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins"
+              "queryRef": "SignIns.Legacy Sign-Ins",
+              "nativeQueryRef": "Legacy Sign-Ins"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Legacy sign-ins (at least; interactive only)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Legacy sign-ins (at least; interactive only)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

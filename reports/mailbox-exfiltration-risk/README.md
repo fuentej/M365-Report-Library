@@ -24,6 +24,7 @@ Nothing here writes to the tenant.
 | `collectors/Get-SendOnBehalf.ps1` | `send-on-behalf.csv`: Send on Behalf grants |
 | `collectors/Get-InboxRules.ps1` | `inbox-rules.csv`: inbox rules that forward, redirect or delete |
 | `collectors/Get-TransportRules.ps1` | `transport-rules.csv`: mail flow rules that redirect or blind-copy |
+| `collectors/Get-OutboundSpamPolicies.ps1` | `outbound-spam-policies.csv`: each outbound spam filter policy with its automatic external forwarding setting and who it applies to |
 | `collectors/Get-MailboxFullAccess.ps1` | `mailbox-full-access.csv`: Full Access grants |
 | `collectors/Get-SendAsPermissions.ps1` | `send-as-permissions.csv`: Send As grants |
 | `collectors/Get-DelegatedConsents.ps1` | `delegated-consents.csv`: delegated permission grants |
@@ -31,7 +32,7 @@ Nothing here writes to the tenant.
 | `collectors/Get-MailboxChangeEvents.ps1` | `mailbox-change-events.csv`: audit events for rule, forwarding and permission changes |
 | `collectors/Get-MailAccessEvents.ps1` | `mail-access-events.csv`: audit events for mail accessed and sent |
 | `collectors/Get-AuditConfiguration.ps1` | `audit-configuration.csv`: whether auditing is on and what each mailbox logs |
-| `collectors/Run-All.ps1` | Runs the shared users collector and all twelve of the above; signs in once to Exchange Online and once to Graph |
+| `collectors/Run-All.ps1` | Runs the shared users collector and all thirteen of the above; signs in once to Exchange Online and once to Graph |
 | `collectors/MailboxExfiltrationSchema.psd1` | The column order of every CSV, the per-cloud availability of every source |
 | `collectors/MailboxExfiltrationHelpers.ps1` | Helpers the collectors dot-source: availability, external-domain test, audit search |
 | `report/` | The Power BI project (PBIP): semantic model in TMDL and a seven-page report in PBIR. One parameter, `CsvFolder`, holds the folder the collectors write to |
@@ -66,6 +67,7 @@ test tenant.
 | Mailbox forwarding, send on behalf, full access, send as | View-Only Recipients ("View recipient properties"), **UNVERIFIED** | |
 | Inbox rules | UNVERIFIED | The cmdlet page says it does **not** work for View-Only Organization Management or the Entra Global Reader role |
 | Transport rules | View-Only Configuration ("Views all of the organization and mail flow (non-recipient) settings"), **UNVERIFIED** | |
+| Outbound spam policies | View-Only Configuration (organization settings), **UNVERIFIED** | |
 | Delegated consents | `Directory.Read.All` (application and delegated); signed in, Global Reader or Directory Readers ([list oauth2PermissionGrants](https://learn.microsoft.com/graph/api/oauth2permissiongrant-list)) | |
 | App role assignments | `Application.Read.All` (application and delegated); signed in, Directory Readers ([list appRoleAssignedTo](https://learn.microsoft.com/graph/api/serviceprincipal-list-approleassignedto)) | Global Reader is not in that page's role list |
 | Audit events | Audit Reader role group (View-Only Audit Logs); Audit Manager also works ([audit permissions](https://learn.microsoft.com/purview/audit-get-started#step-2-assign-permissions-to-search-the-audit-log)) | `Set-Mailbox` records are visible only to unrestricted admins ([admin units](https://learn.microsoft.com/purview/audit-search#scoping-access-to-audit-logs-using-administrative-units)) |
@@ -115,6 +117,7 @@ service description, which lists features, not cmdlets.
 | Mailbox forwarding, send on behalf | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-mailbox) | [Available](https://learn.microsoft.com/office365/servicedescriptions/office-365-platform-service-description/office-365-us-government/exchange-online-for-us-government-environments#exchange-online-features) ("Remote Windows PowerShell access" row) | Available (same row) |
 | Inbox rules | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-inboxrule) | Available ("Inbox rules" row) | Available (same row) |
 | Transport rules | [Available](https://learn.microsoft.com/exchange/security-and-compliance/mail-flow-rules/mail-flow-rules) | Available ("Mail flow rules" row) | Available (same row) |
+| Outbound spam policies (`Get-HostedOutboundSpamFilterPolicy`, `Get-HostedOutboundSpamFilterRule`) | [Available](https://learn.microsoft.com/powershell/module/exchangepowershell/get-hostedoutboundspamfilterpolicy) (cmdlet page: Exchange Online) | UNVERIFIED (the service description lists features, not cmdlets) | UNVERIFIED (same) |
 | Full Access, Send As | [Available](https://learn.microsoft.com/exchange/recipients-in-exchange-online/manage-permissions-for-recipients) | Available ("Delegate access" row) | Available (same row) |
 | Delegated consents, app role assignments | [Available](https://learn.microsoft.com/graph/api/oauth2permissiongrant-list) | [Available](https://learn.microsoft.com/graph/deployments) (global endpoint) | Available (US Government L4 endpoint) |
 | Mailbox change and mail access audit events | [Available](https://learn.microsoft.com/purview/audit-solutions-overview#comparison-of-key-capabilities) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-deployments) (Audit (Standard)) | [Available](https://learn.microsoft.com/office365/servicedescriptions/microsoft-365-service-descriptions/microsoft-365-tenantlevel-services-licensing-guidance/plan-for-microsoft-purview-gcc-high-deployments) (Audit (Standard)) |
@@ -204,6 +207,18 @@ rows per run, tagged `RunDate`.
 | `RedirectMessageTo`, `BlindCopyTo` | The redirect and blind-copy actions |
 | `CopyTo`, `AddToRecipients` | Actions that add visible Cc and To recipients, for context |
 | `TargetDomains`, `HasExternalTarget` | As in `inbox-rules.csv` |
+
+### `outbound-spam-policies.csv`: snapshot; one row per outbound spam filter policy
+
+| Column | Meaning |
+| --- | --- |
+| `RunDate` | Date of the run |
+| `Name`, `Guid`, `IsDefault` | The policy and whether it is the default policy |
+| `AutoForwardingMode` | `Automatic`, `On` or `Off`, as returned. `Off` blocks automatic external forwarding set by Inbox rules and mailbox forwarding; it does not block forwarding done by mail flow rules. `Automatic` behaves like `On` or `Off` depending on the organization ([Learn](https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding)) |
+| `RuleName`, `RuleState` | The outbound spam filter rule that scopes a custom policy; empty for the default policy and for a policy with no rule |
+| `AppliesTo` | `All senders not covered by an enabled custom policy` for the default policy (it has the lowest priority). For a custom policy, the rule's `From`, `FromMemberOf` and `SenderDomainIs` as `Users: ... AND Groups: ... AND Domains: ...` (a sender must match every type listed), then `EXCEPT` and the rule's `ExceptIfFrom`, `ExceptIfFromMemberOf` and `ExceptIfSenderDomainIs` ([Learn](https://learn.microsoft.com/defender-office-365/outbound-spam-policies-configure)). `No one (no rule)` when the policy has no rule; `No one (rule disabled)` when its rule is disabled |
+
+When the sign-in cannot read the policies or the rules, the file is header only and `run.log` names the role.
 
 ### `mailbox-full-access.csv`: snapshot
 

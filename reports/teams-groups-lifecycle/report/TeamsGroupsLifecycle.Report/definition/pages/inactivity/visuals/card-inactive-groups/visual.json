@@ -26,7 +26,8 @@
                   "Property": "Inactive Groups (90+ Days)"
                 }
               },
-              "queryRef": "GroupActivity.Inactive Groups (90+ Days)"
+              "queryRef": "GroupActivity.Inactive Groups (90+ Days)",
+              "nativeQueryRef": "Inactive Groups (90+ Days)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Groups inactive 90+ days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Groups inactive 90+ days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

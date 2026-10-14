@@ -1,0 +1,280 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-mailboxusagedetail",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.RunDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "ReportRefreshDate"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.ReportRefreshDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "UserPrincipalName"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.UserPrincipalName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "DisplayName"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.DisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "IsDeleted"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.IsDeleted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "DeletedDate"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.DeletedDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "CreatedDate"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.CreatedDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "LastActivityDate"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.LastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "ItemCount"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.ItemCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "StorageUsedByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.StorageUsedByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "IssueWarningQuotaByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.IssueWarningQuotaByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "ProhibitSendQuotaByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.ProhibitSendQuotaByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "ProhibitSendReceiveQuotaByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.ProhibitSendReceiveQuotaByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "DeletedItemCount"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.DeletedItemCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "DeletedItemSizeByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.DeletedItemSizeByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "DeletedItemQuotaByte"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.DeletedItemQuotaByte"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "HasArchive"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.HasArchive"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "ReportPeriod"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.ReportPeriod"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "MailboxUsageDetail"
+                    }
+                  },
+                  "Property": "QuotaStatus"
+                }
+              },
+              "queryRef": "MailboxUsageDetail.QuotaStatus"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "MailboxUsageDetail (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}

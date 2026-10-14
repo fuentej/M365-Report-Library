@@ -26,7 +26,9 @@
                   "Property": "OwnerAccountState"
                 }
               },
-              "queryRef": "GroupOwners.OwnerAccountState"
+              "queryRef": "GroupOwners.OwnerAccountState",
+              "nativeQueryRef": "OwnerAccountState",
+              "displayName": "Owner account state"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Owner Assignments"
                 }
               },
-              "queryRef": "GroupOwners.Owner Assignments"
+              "queryRef": "GroupOwners.Owner Assignments",
+              "nativeQueryRef": "Owner Assignments"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Owner assignments by account state (joined to users.csv)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Owner assignments by account state (joined to users.csv)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

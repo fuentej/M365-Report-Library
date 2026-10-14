@@ -26,7 +26,8 @@
                   "Property": "Full Access Delegates"
                 }
               },
-              "queryRef": "MailboxFullAccess.Full Access Delegates"
+              "queryRef": "MailboxFullAccess.Full Access Delegates",
+              "nativeQueryRef": "Full Access Delegates"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Full Access delegates"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Full Access delegates'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

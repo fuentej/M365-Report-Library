@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "AgentsCurrent.Pseudonym"
+              "queryRef": "AgentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Agent"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Agent Display Name"
                 }
               },
-              "queryRef": "AgentsCurrent.Agent Display Name"
+              "queryRef": "AgentsCurrent.Agent Display Name",
+              "nativeQueryRef": "Agent Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Knowledge Source Components"
                 }
               },
-              "queryRef": "AgentComponents.Knowledge Source Components"
+              "queryRef": "AgentComponents.Knowledge Source Components",
+              "nativeQueryRef": "Knowledge Source Components"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Knowledge Connector Operations"
                 }
               },
-              "queryRef": "AgentConnectors.Knowledge Connector Operations"
+              "queryRef": "AgentConnectors.Knowledge Connector Operations",
+              "nativeQueryRef": "Knowledge Connector Operations"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Web Search Knowledge (Display)"
                 }
               },
-              "queryRef": "Agents.Web Search Knowledge (Display)"
+              "queryRef": "Agents.Web Search Knowledge (Display)",
+              "nativeQueryRef": "Web Search Knowledge (Display)"
             }
           ]
         }
@@ -88,8 +94,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Knowledge per agent"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Knowledge per agent'"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,12 +26,49 @@
                   "Property": "Label Removals"
                 }
               },
-              "queryRef": "_Measures.[Label Removals]",
-              "nativeQueryRef": "_Measures.[Label Removals]"
+              "queryRef": "_Measures.Label Removals",
+              "nativeQueryRef": "Label Removals"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Labels removed'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

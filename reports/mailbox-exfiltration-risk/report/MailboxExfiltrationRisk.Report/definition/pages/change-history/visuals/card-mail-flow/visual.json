@@ -26,7 +26,8 @@
                   "Property": "Mail Flow Rule Changes"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Mail Flow Rule Changes"
+              "queryRef": "MailboxChangeEvents.Mail Flow Rule Changes",
+              "nativeQueryRef": "Mail Flow Rule Changes"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail flow rule changes"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail flow rule changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "HTTP Request Actions"
                 }
               },
-              "queryRef": "AgentComponents.HTTP Request Actions"
+              "queryRef": "AgentComponents.HTTP Request Actions",
+              "nativeQueryRef": "HTTP Request Actions"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "HTTP request actions"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'HTTP request actions'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

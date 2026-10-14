@@ -26,7 +26,8 @@
                   "Property": "Sources With Data (of 9)"
                 }
               },
-              "queryRef": "Users.Sources With Data (of 9)"
+              "queryRef": "Users.Sources With Data (of 9)",
+              "nativeQueryRef": "Sources With Data (of 9)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Sources with data (of 9). A header-only file is not collected"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sources with data (of 9). A header-only file is not collected'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

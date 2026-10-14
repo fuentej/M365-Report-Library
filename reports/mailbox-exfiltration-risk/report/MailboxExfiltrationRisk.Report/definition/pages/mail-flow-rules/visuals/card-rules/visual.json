@@ -26,7 +26,8 @@
                   "Property": "Mail Flow Rules"
                 }
               },
-              "queryRef": "TransportRules.Mail Flow Rules"
+              "queryRef": "TransportRules.Mail Flow Rules",
+              "nativeQueryRef": "Mail Flow Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules with a redirect or copy action"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules with a redirect or copy action'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]
