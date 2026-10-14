@@ -7,3 +7,4 @@ ref table Guests
 ref table Users
 ref table GuestMemberships
 ref table GuestSignIns
+ref table GuestInvitations
