@@ -1,0 +1,4 @@
+"RunDate","CallRowId","UserId","UserPrincipalName","StartDateTime","DurationSeconds","CallType","UsageCountryCode","LicenseCapability","InventoryType"
+"2026-09-01","7d3e4f50-0001-4c8d-ae9f-1a2b3c4d5e6f","3e9570b9-983c-5c10-5a95-c4e6f7719fb7","avery.abara@example.com","2026-08-27T14:02:11Z","219","user_out","US","MCOPSTNU","Subscriber"
+"2026-09-01","7d3e4f50-0002-4c8d-ae9f-1a2b3c4d5e6f","f6bb6972-78a0-e4cb-8834-935b1ad496f7","blake.brandt@example.com","2026-08-28T09:41:50Z","64","user_in","US","MCOPSTNU","Subscriber"
+"2026-09-01","7d3e4f50-0003-4c8d-ae9f-1a2b3c4d5e6f","eb9a7e3a-feb1-ee97-7b5a-40816562b871","casey.chaudhry@example.com","2026-08-30T16:20:03Z","842","user_out","US","MCOPSTNU","Subscriber"

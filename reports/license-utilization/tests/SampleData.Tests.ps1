@@ -18,6 +18,9 @@ BeforeAll {
         'license-details.csv'      = 'LicenseDetails'
         'user-signin-activity.csv' = 'UserSignInActivity'
         'report-settings.csv'      = 'ReportSettings'
+        'access-reviews.csv'       = 'AccessReviewDefinitions'
+        'attack-simulations.csv'   = 'AttackSimulations'
+        'teams-pstn-calls.csv'     = 'TeamsPstnCalls'
     }
     $script:UsageFiles = @{
         ActiveUserUsage = 'usage-active-users.csv'; EmailActivityUsage = 'usage-email-activity.csv'
@@ -29,7 +32,7 @@ BeforeAll {
 
 Describe 'The sample CSVs match the schema' {
     It '<File> has the columns the schema lists' -ForEach @(
-        foreach ($file in 'subscribed-skus.csv', 'sku-service-plans.csv', 'user-licenses.csv', 'license-details.csv', 'user-signin-activity.csv', 'report-settings.csv') { @{ File = $file } }
+        foreach ($file in 'subscribed-skus.csv', 'sku-service-plans.csv', 'user-licenses.csv', 'license-details.csv', 'user-signin-activity.csv', 'report-settings.csv', 'access-reviews.csv', 'attack-simulations.csv', 'teams-pstn-calls.csv') { @{ File = $file } }
     ) {
         $key = $script:StateFiles[$File]
         (Get-CsvHeaderColumn -Path (Join-Path $script:Samples $File)) -join ',' | Should -Be ($script:Schema[$key] -join ',')
@@ -45,6 +48,25 @@ Describe 'The sample CSVs match the schema' {
         $path = Join-Path $script:Samples "gcchigh/$($script:UsageFiles[$Key])"
         (Get-CsvHeaderColumn -Path $path) -join ',' | Should -Be ((Get-UsageColumn -Header $script:Schema.UsageReports[$Key]) -join ',')
         @(Import-Csv -LiteralPath $path).Count | Should -Be 0
+    }
+
+    It 'holds a header-only attack-simulations.csv for GCC High, where the doc marks it NotAvailable' {
+        $path = Join-Path $script:Samples 'gcchigh/attack-simulations.csv'
+        (Get-CsvHeaderColumn -Path $path) -join ',' | Should -Be ($script:Schema.AttackSimulations -join ',')
+        @(Import-Csv -LiteralPath $path).Count | Should -Be 0
+    }
+
+    It 'has rows in each License value sample' -ForEach @(@{ File = 'access-reviews.csv' }, @{ File = 'attack-simulations.csv' }, @{ File = 'teams-pstn-calls.csv' }) {
+        @(Import-Csv -LiteralPath (Join-Path $script:Samples $File)).Count | Should -BeGreaterThan 0
+    }
+
+    # Enum members from https://learn.microsoft.com/graph/api/resources/simulation
+    It 'attack-simulations.csv holds only documented simulation enum values' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'attack-simulations.csv'))
+        $rows.Status | Should -BeIn @('unknown', 'draft', 'running', 'scheduled', 'succeeded', 'failed', 'canceled', 'excluded', 'unknownFutureValue')
+        $rows.AttackType | Should -BeIn @('unknown', 'social', 'cloud', 'endpoint', 'unknownFutureValue')
+        $rows.AttackTechnique | Should -BeIn @('unknown', 'credentialHarvesting', 'attachmentMalware', 'driveByUrl', 'linkInAttachment', 'linkToMalwareFile', 'unknownFutureValue', 'oAuthConsentGrant')
+        $rows.PayloadDeliveryPlatform | Should -BeIn @('unknown', 'sms', 'email', 'teams', 'unknownFutureValue')
     }
 
     It 'uses only example.com addresses' {
