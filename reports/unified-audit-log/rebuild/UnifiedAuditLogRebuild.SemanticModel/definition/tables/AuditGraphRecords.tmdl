@@ -1,0 +1,87 @@
+table AuditGraphRecords
+    lineageTag: ec018c9f-dfff-40f3-89ef-cca8f3723311
+
+    column CreationTime
+        dataType: string
+        lineageTag: daf5d8ca-e599-4abd-9f0f-ff1484fae296
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column RecordId
+        dataType: string
+        lineageTag: 39621ed4-59e8-4bef-b355-8b88c34bcd9e
+        summarizeBy: none
+        sourceColumn: RecordId
+
+    column RecordType
+        dataType: string
+        lineageTag: df89c872-d40c-477d-8096-ef414b64f21d
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Operation
+        dataType: string
+        lineageTag: 46922c00-5e5f-45af-a711-d3983532de2a
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column Workload
+        dataType: string
+        lineageTag: 94e49d1b-2281-48c6-86b3-b7208013c2be
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column UserId
+        dataType: string
+        lineageTag: 6d9b4cef-c90b-489d-b293-715822344f22
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column ObjectId
+        dataType: string
+        lineageTag: 9e7ae0c2-813a-4fe2-a2a0-5531cb7171dc
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column ClientIP
+        dataType: string
+        lineageTag: ecb091d9-0fb1-4b74-9538-2a07e952bf02
+        summarizeBy: none
+        sourceColumn: ClientIP
+
+    column ResultStatus
+        dataType: string
+        lineageTag: c5e7e939-7e72-4403-bff7-4d73f0b6dd3a
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column OrganizationId
+        dataType: string
+        lineageTag: 8fb9222b-5f76-4e93-930a-7a685edd42b2
+        summarizeBy: none
+        sourceColumn: OrganizationId
+
+    column QueryId
+        dataType: string
+        lineageTag: ba5b5d4f-5e86-4731-87f1-d374b042e7f8
+        summarizeBy: none
+        sourceColumn: QueryId
+
+    column AuditData
+        dataType: string
+        lineageTag: e19a1252-c209-4c8d-99ca-b22cac4f8467
+        summarizeBy: none
+        sourceColumn: AuditData
+
+    partition AuditGraphRecords = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-graph-records.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
