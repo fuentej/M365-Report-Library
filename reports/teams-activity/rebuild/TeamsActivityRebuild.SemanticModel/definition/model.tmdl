@@ -6,3 +6,4 @@ model Model
 ref table TeamsUserActivityUserDetail
 ref table TeamsUserActivityCounts
 ref table TeamsDeviceUsageUserDetail
+ref table TeamsTeamActivityDetail

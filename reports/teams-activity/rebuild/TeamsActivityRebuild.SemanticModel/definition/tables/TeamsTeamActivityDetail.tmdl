@@ -1,0 +1,131 @@
+table TeamsTeamActivityDetail
+    lineageTag: 7b0dc0fa-22ec-48b8-b48b-ea7f47a674fe
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: c3b978a7-e897-4cb1-a9a2-64ff71aa584c
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 51d2c543-57ff-4b6f-b242-364b2e5449b6
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 7f305285-f776-4797-96bd-68f6f8e8bafe
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column TeamId
+        dataType: string
+        lineageTag: e18c15ac-c139-40ef-873f-e7789d6eb686
+        summarizeBy: none
+        sourceColumn: TeamId
+
+    column TeamName
+        dataType: string
+        lineageTag: 4ec79d3d-6b6d-4c80-a78b-4114014f601c
+        summarizeBy: none
+        sourceColumn: TeamName
+
+    column TeamType
+        dataType: string
+        lineageTag: e83f0652-0e83-415c-bf55-84922604c83d
+        summarizeBy: none
+        sourceColumn: TeamType
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 700a9065-832f-4d76-a3a2-8effed9e3db6
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column ActiveUsers
+        dataType: string
+        lineageTag: 09701e6a-cecf-4e93-9499-6cfa4fe023b7
+        summarizeBy: none
+        sourceColumn: ActiveUsers
+
+    column ActiveChannels
+        dataType: string
+        lineageTag: b59d9360-5f05-4d7f-9d03-91b87dbf07bc
+        summarizeBy: none
+        sourceColumn: ActiveChannels
+
+    column Guests
+        dataType: string
+        lineageTag: 2a9f8126-9dcd-441c-b393-f5aa633f9057
+        summarizeBy: none
+        sourceColumn: Guests
+
+    column Reactions
+        dataType: string
+        lineageTag: 86f8a63e-9519-4393-9388-5a8c02a96eaf
+        summarizeBy: none
+        sourceColumn: Reactions
+
+    column MeetingsOrganized
+        dataType: string
+        lineageTag: 23d67920-b43f-474e-824f-333e41fe6032
+        summarizeBy: none
+        sourceColumn: MeetingsOrganized
+
+    column PostMessages
+        dataType: string
+        lineageTag: 728476e2-fe7d-4fe7-827a-2fb41832bb08
+        summarizeBy: none
+        sourceColumn: PostMessages
+
+    column ReplyMessages
+        dataType: string
+        lineageTag: 2bd76408-3b74-4039-b13f-1398783a67ab
+        summarizeBy: none
+        sourceColumn: ReplyMessages
+
+    column ChannelMessages
+        dataType: string
+        lineageTag: 1d5231e2-24c0-42a0-a7c1-712e41ed35e2
+        summarizeBy: none
+        sourceColumn: ChannelMessages
+
+    column UrgentMessages
+        dataType: string
+        lineageTag: 30e1040c-fc8f-4b34-8787-cfc74efe885b
+        summarizeBy: none
+        sourceColumn: UrgentMessages
+
+    column Mentions
+        dataType: string
+        lineageTag: 776e9136-9665-4e02-9f53-815c25c1396c
+        summarizeBy: none
+        sourceColumn: Mentions
+
+    column ActiveSharedChannels
+        dataType: string
+        lineageTag: 0d4bc6d3-d431-44c5-88dc-86e1626af892
+        summarizeBy: none
+        sourceColumn: ActiveSharedChannels
+
+    column ActiveExternalUsers
+        dataType: string
+        lineageTag: 32b0c668-1295-4d6f-bb3b-a3c54a1d0f6a
+        summarizeBy: none
+        sourceColumn: ActiveExternalUsers
+
+    partition TeamsTeamActivityDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\teams-team-activity-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
