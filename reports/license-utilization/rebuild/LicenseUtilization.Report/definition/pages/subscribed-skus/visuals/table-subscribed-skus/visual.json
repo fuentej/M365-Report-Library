@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "SubscribedSkus.RunDate"
+              "queryRef": "SubscribedSkus.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "SkuId"
                 }
               },
-              "queryRef": "SubscribedSkus.SkuId"
+              "queryRef": "SubscribedSkus.SkuId",
+              "nativeQueryRef": "SkuId"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "SkuPartNumber"
                 }
               },
-              "queryRef": "SubscribedSkus.SkuPartNumber"
+              "queryRef": "SubscribedSkus.SkuPartNumber",
+              "nativeQueryRef": "SkuPartNumber"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "AppliesTo"
                 }
               },
-              "queryRef": "SubscribedSkus.AppliesTo"
+              "queryRef": "SubscribedSkus.AppliesTo",
+              "nativeQueryRef": "AppliesTo"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "CapabilityStatus"
                 }
               },
-              "queryRef": "SubscribedSkus.CapabilityStatus"
+              "queryRef": "SubscribedSkus.CapabilityStatus",
+              "nativeQueryRef": "CapabilityStatus"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "ConsumedUnits"
                 }
               },
-              "queryRef": "SubscribedSkus.ConsumedUnits"
+              "queryRef": "SubscribedSkus.ConsumedUnits",
+              "nativeQueryRef": "ConsumedUnits"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "PrepaidEnabled"
                 }
               },
-              "queryRef": "SubscribedSkus.PrepaidEnabled"
+              "queryRef": "SubscribedSkus.PrepaidEnabled",
+              "nativeQueryRef": "PrepaidEnabled"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "PrepaidSuspended"
                 }
               },
-              "queryRef": "SubscribedSkus.PrepaidSuspended"
+              "queryRef": "SubscribedSkus.PrepaidSuspended",
+              "nativeQueryRef": "PrepaidSuspended"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "PrepaidWarning"
                 }
               },
-              "queryRef": "SubscribedSkus.PrepaidWarning"
+              "queryRef": "SubscribedSkus.PrepaidWarning",
+              "nativeQueryRef": "PrepaidWarning"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "PrepaidLockedOut"
                 }
               },
-              "queryRef": "SubscribedSkus.PrepaidLockedOut"
+              "queryRef": "SubscribedSkus.PrepaidLockedOut",
+              "nativeQueryRef": "PrepaidLockedOut"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "FreeUnits"
                 }
               },
-              "queryRef": "SubscribedSkus.FreeUnits"
+              "queryRef": "SubscribedSkus.FreeUnits",
+              "nativeQueryRef": "FreeUnits"
             }
           ]
         }

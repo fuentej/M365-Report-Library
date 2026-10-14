@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "Sites.RunDate"
+              "queryRef": "Sites.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "SiteId"
                 }
               },
-              "queryRef": "Sites.SiteId"
+              "queryRef": "Sites.SiteId",
+              "nativeQueryRef": "SiteId"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "Name"
                 }
               },
-              "queryRef": "Sites.Name"
+              "queryRef": "Sites.Name",
+              "nativeQueryRef": "Name"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "WebUrl"
                 }
               },
-              "queryRef": "Sites.WebUrl"
+              "queryRef": "Sites.WebUrl",
+              "nativeQueryRef": "WebUrl"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "IsPersonalSite"
                 }
               },
-              "queryRef": "Sites.IsPersonalSite"
+              "queryRef": "Sites.IsPersonalSite",
+              "nativeQueryRef": "IsPersonalSite"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "HostName"
                 }
               },
-              "queryRef": "Sites.HostName"
+              "queryRef": "Sites.HostName",
+              "nativeQueryRef": "HostName"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "DataLocationCode"
                 }
               },
-              "queryRef": "Sites.DataLocationCode"
+              "queryRef": "Sites.DataLocationCode",
+              "nativeQueryRef": "DataLocationCode"
             }
           ]
         }

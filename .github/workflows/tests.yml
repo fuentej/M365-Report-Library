@@ -33,3 +33,54 @@ jobs:
           # non-zero code. Pester also stores that count in $LASTEXITCODE; leave
           # through it so the step is red even if a later Pester stops calling exit.
           exit $LASTEXITCODE
+
+  pbir-validate:
+    name: PBIR validate
+    runs-on: ubuntu-latest
+
+    env:
+      # Pinned so CI does not change under the reports. Bump on purpose.
+      POWERBI_REPORT_AUTHORING_CLI_VERSION: 0.5.0
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install powerbi-report-author
+        run: |
+          npm install -g "@microsoft/powerbi-report-authoring-cli@${POWERBI_REPORT_AUTHORING_CLI_VERSION}"
+          powerbi-report-author --version
+
+      - name: Validate every .pbip under reports/
+        run: |
+          # Every .pbip is found at run time, so a new report is checked without
+          # editing this job. Warnings (PBIR_SCHEMA_UNREACHABLE when the runner
+          # cannot fetch the schemas) do not fail it; any error does.
+          mapfile -t projects < <(find reports -name '*.pbip' -type f | sort)
+          if [ "${#projects[@]}" -eq 0 ]; then
+            echo "::error::No .pbip found under reports/"
+            exit 1
+          fi
+          failed=0
+          for pbip in "${projects[@]}"; do
+            echo "::group::${pbip}"
+            out="$(powerbi-report-author validate "${pbip}" --pretty)" || true
+            echo "${out}"
+            echo "::endgroup::"
+            errors="$(jq -r '.data.errorCount // empty' <<< "${out}" 2>/dev/null || true)"
+            if [ -z "${errors}" ]; then
+              echo "::error file=${pbip}::validate did not return an errorCount"
+              failed=1
+            elif [ "${errors}" -gt 0 ]; then
+              echo "::error file=${pbip}::${errors} PBIR error(s)"
+              failed=1
+            else
+              echo "${pbip}: errorCount 0"
+            fi
+          done
+          exit "${failed}"

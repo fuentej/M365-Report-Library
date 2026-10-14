@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "MailboxUsageDetail.RunDate"
+              "queryRef": "MailboxUsageDetail.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "ReportRefreshDate"
                 }
               },
-              "queryRef": "MailboxUsageDetail.ReportRefreshDate"
+              "queryRef": "MailboxUsageDetail.ReportRefreshDate",
+              "nativeQueryRef": "ReportRefreshDate"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "UserPrincipalName"
                 }
               },
-              "queryRef": "MailboxUsageDetail.UserPrincipalName"
+              "queryRef": "MailboxUsageDetail.UserPrincipalName",
+              "nativeQueryRef": "UserPrincipalName"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "DisplayName"
                 }
               },
-              "queryRef": "MailboxUsageDetail.DisplayName"
+              "queryRef": "MailboxUsageDetail.DisplayName",
+              "nativeQueryRef": "DisplayName"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "IsDeleted"
                 }
               },
-              "queryRef": "MailboxUsageDetail.IsDeleted"
+              "queryRef": "MailboxUsageDetail.IsDeleted",
+              "nativeQueryRef": "IsDeleted"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "DeletedDate"
                 }
               },
-              "queryRef": "MailboxUsageDetail.DeletedDate"
+              "queryRef": "MailboxUsageDetail.DeletedDate",
+              "nativeQueryRef": "DeletedDate"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "CreatedDate"
                 }
               },
-              "queryRef": "MailboxUsageDetail.CreatedDate"
+              "queryRef": "MailboxUsageDetail.CreatedDate",
+              "nativeQueryRef": "CreatedDate"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "LastActivityDate"
                 }
               },
-              "queryRef": "MailboxUsageDetail.LastActivityDate"
+              "queryRef": "MailboxUsageDetail.LastActivityDate",
+              "nativeQueryRef": "LastActivityDate"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "ItemCount"
                 }
               },
-              "queryRef": "MailboxUsageDetail.ItemCount"
+              "queryRef": "MailboxUsageDetail.ItemCount",
+              "nativeQueryRef": "ItemCount"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "StorageUsedByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.StorageUsedByte"
+              "queryRef": "MailboxUsageDetail.StorageUsedByte",
+              "nativeQueryRef": "StorageUsedByte"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "IssueWarningQuotaByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.IssueWarningQuotaByte"
+              "queryRef": "MailboxUsageDetail.IssueWarningQuotaByte",
+              "nativeQueryRef": "IssueWarningQuotaByte"
             },
             {
               "field": {
@@ -169,7 +180,8 @@
                   "Property": "ProhibitSendQuotaByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.ProhibitSendQuotaByte"
+              "queryRef": "MailboxUsageDetail.ProhibitSendQuotaByte",
+              "nativeQueryRef": "ProhibitSendQuotaByte"
             },
             {
               "field": {
@@ -182,7 +194,8 @@
                   "Property": "ProhibitSendReceiveQuotaByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.ProhibitSendReceiveQuotaByte"
+              "queryRef": "MailboxUsageDetail.ProhibitSendReceiveQuotaByte",
+              "nativeQueryRef": "ProhibitSendReceiveQuotaByte"
             },
             {
               "field": {
@@ -195,7 +208,8 @@
                   "Property": "DeletedItemCount"
                 }
               },
-              "queryRef": "MailboxUsageDetail.DeletedItemCount"
+              "queryRef": "MailboxUsageDetail.DeletedItemCount",
+              "nativeQueryRef": "DeletedItemCount"
             },
             {
               "field": {
@@ -208,7 +222,8 @@
                   "Property": "DeletedItemSizeByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.DeletedItemSizeByte"
+              "queryRef": "MailboxUsageDetail.DeletedItemSizeByte",
+              "nativeQueryRef": "DeletedItemSizeByte"
             },
             {
               "field": {
@@ -221,7 +236,8 @@
                   "Property": "DeletedItemQuotaByte"
                 }
               },
-              "queryRef": "MailboxUsageDetail.DeletedItemQuotaByte"
+              "queryRef": "MailboxUsageDetail.DeletedItemQuotaByte",
+              "nativeQueryRef": "DeletedItemQuotaByte"
             },
             {
               "field": {
@@ -234,7 +250,8 @@
                   "Property": "HasArchive"
                 }
               },
-              "queryRef": "MailboxUsageDetail.HasArchive"
+              "queryRef": "MailboxUsageDetail.HasArchive",
+              "nativeQueryRef": "HasArchive"
             },
             {
               "field": {
@@ -247,7 +264,8 @@
                   "Property": "ReportPeriod"
                 }
               },
-              "queryRef": "MailboxUsageDetail.ReportPeriod"
+              "queryRef": "MailboxUsageDetail.ReportPeriod",
+              "nativeQueryRef": "ReportPeriod"
             },
             {
               "field": {
@@ -260,7 +278,8 @@
                   "Property": "QuotaStatus"
                 }
               },
-              "queryRef": "MailboxUsageDetail.QuotaStatus"
+              "queryRef": "MailboxUsageDetail.QuotaStatus",
+              "nativeQueryRef": "QuotaStatus"
             }
           ]
         }

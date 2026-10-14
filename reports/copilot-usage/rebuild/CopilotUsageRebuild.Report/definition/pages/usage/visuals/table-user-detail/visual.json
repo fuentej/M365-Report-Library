@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.RunDate"
+              "queryRef": "CopilotUsageUserDetail.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "ReportRefreshDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.ReportRefreshDate"
+              "queryRef": "CopilotUsageUserDetail.ReportRefreshDate",
+              "nativeQueryRef": "ReportRefreshDate"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "UserPrincipalName"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.UserPrincipalName"
+              "queryRef": "CopilotUsageUserDetail.UserPrincipalName",
+              "nativeQueryRef": "UserPrincipalName"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "DisplayName"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.DisplayName"
+              "queryRef": "CopilotUsageUserDetail.DisplayName",
+              "nativeQueryRef": "DisplayName"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "LastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.LastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.LastActivityDate",
+              "nativeQueryRef": "LastActivityDate"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "CopilotChatLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.CopilotChatLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.CopilotChatLastActivityDate",
+              "nativeQueryRef": "CopilotChatLastActivityDate"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "MicrosoftTeamsCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.MicrosoftTeamsCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.MicrosoftTeamsCopilotLastActivityDate",
+              "nativeQueryRef": "MicrosoftTeamsCopilotLastActivityDate"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "WordCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.WordCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.WordCopilotLastActivityDate",
+              "nativeQueryRef": "WordCopilotLastActivityDate"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "ExcelCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.ExcelCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.ExcelCopilotLastActivityDate",
+              "nativeQueryRef": "ExcelCopilotLastActivityDate"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "PowerPointCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.PowerPointCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.PowerPointCopilotLastActivityDate",
+              "nativeQueryRef": "PowerPointCopilotLastActivityDate"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "OutlookCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.OutlookCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.OutlookCopilotLastActivityDate",
+              "nativeQueryRef": "OutlookCopilotLastActivityDate"
             },
             {
               "field": {
@@ -169,7 +180,8 @@
                   "Property": "OneNoteCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.OneNoteCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.OneNoteCopilotLastActivityDate",
+              "nativeQueryRef": "OneNoteCopilotLastActivityDate"
             },
             {
               "field": {
@@ -182,7 +194,8 @@
                   "Property": "LoopCopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.LoopCopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.LoopCopilotLastActivityDate",
+              "nativeQueryRef": "LoopCopilotLastActivityDate"
             },
             {
               "field": {
@@ -195,7 +208,8 @@
                   "Property": "ReportPeriod"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.ReportPeriod"
+              "queryRef": "CopilotUsageUserDetail.ReportPeriod",
+              "nativeQueryRef": "ReportPeriod"
             },
             {
               "field": {
@@ -208,7 +222,8 @@
                   "Property": "PromptsSubmittedAllApps"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedAllApps"
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedAllApps",
+              "nativeQueryRef": "PromptsSubmittedAllApps"
             },
             {
               "field": {
@@ -221,7 +236,8 @@
                   "Property": "PromptsSubmittedCopilotChatWork"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWork"
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWork",
+              "nativeQueryRef": "PromptsSubmittedCopilotChatWork"
             },
             {
               "field": {
@@ -234,7 +250,8 @@
                   "Property": "PromptsSubmittedCopilotChatWeb"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWeb"
+              "queryRef": "CopilotUsageUserDetail.PromptsSubmittedCopilotChatWeb",
+              "nativeQueryRef": "PromptsSubmittedCopilotChatWeb"
             },
             {
               "field": {
@@ -247,7 +264,8 @@
                   "Property": "ActiveUsageDaysAllApps"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.ActiveUsageDaysAllApps"
+              "queryRef": "CopilotUsageUserDetail.ActiveUsageDaysAllApps",
+              "nativeQueryRef": "ActiveUsageDaysAllApps"
             },
             {
               "field": {
@@ -260,7 +278,8 @@
                   "Property": "CopilotChatWorkLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.CopilotChatWorkLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.CopilotChatWorkLastActivityDate",
+              "nativeQueryRef": "CopilotChatWorkLastActivityDate"
             },
             {
               "field": {
@@ -273,7 +292,8 @@
                   "Property": "CopilotChatWebLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.CopilotChatWebLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.CopilotChatWebLastActivityDate",
+              "nativeQueryRef": "CopilotChatWebLastActivityDate"
             },
             {
               "field": {
@@ -286,7 +306,8 @@
                   "Property": "Microsoft365CopilotLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.Microsoft365CopilotLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.Microsoft365CopilotLastActivityDate",
+              "nativeQueryRef": "Microsoft365CopilotLastActivityDate"
             },
             {
               "field": {
@@ -299,7 +320,8 @@
                   "Property": "EdgeLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.EdgeLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.EdgeLastActivityDate",
+              "nativeQueryRef": "EdgeLastActivityDate"
             },
             {
               "field": {
@@ -312,7 +334,8 @@
                   "Property": "CopilotAgentLastActivityDate"
                 }
               },
-              "queryRef": "CopilotUsageUserDetail.CopilotAgentLastActivityDate"
+              "queryRef": "CopilotUsageUserDetail.CopilotAgentLastActivityDate",
+              "nativeQueryRef": "CopilotAgentLastActivityDate"
             }
           ]
         }
