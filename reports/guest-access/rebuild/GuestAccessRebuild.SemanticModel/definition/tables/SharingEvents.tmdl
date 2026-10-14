@@ -1,0 +1,79 @@
+table SharingEvents
+    lineageTag: 508e15b5-381f-4b95-8f89-59ae703878ea
+
+    column CreationTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: a9c566af-7076-4ed3-a8ef-6de23d5785bf
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: dd34c24e-0bb8-4521-8c7b-6d7dbf390baf
+        summarizeBy: none
+        sourceColumn: Id
+
+    column Operation
+        dataType: string
+        lineageTag: 2ac9aebf-c2f4-4634-8b2a-ca30e479b79c
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column UserId
+        dataType: string
+        lineageTag: fd48da5f-9f90-4258-af44-46da04d27863
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Workload
+        dataType: string
+        lineageTag: 4f34ce69-f74a-46be-bd08-8a5da9a3a485
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column SiteUrl
+        dataType: string
+        lineageTag: 1eb047ee-48b2-436f-a569-b316230cde73
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column ObjectId
+        dataType: string
+        lineageTag: 26e13275-2d48-4a96-ad12-1fe7912b0a4e
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column SourceFileName
+        dataType: string
+        lineageTag: 2078b690-077b-4afe-8937-1c5605afd9ed
+        summarizeBy: none
+        sourceColumn: SourceFileName
+
+    column TargetUserOrGroupName
+        dataType: string
+        lineageTag: 8ec0433d-2e12-4b58-bd18-d3ad9a2cdf28
+        summarizeBy: none
+        sourceColumn: TargetUserOrGroupName
+
+    column TargetUserOrGroupType
+        dataType: string
+        lineageTag: 2d68f332-b4f0-4565-a51c-ebb7b766af4d
+        summarizeBy: none
+        sourceColumn: TargetUserOrGroupType
+
+    partition SharingEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sharing-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumns(Cleaned, {{"CreationTime", ParseUtc, type datetime}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
