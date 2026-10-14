@@ -100,8 +100,9 @@ accepts application permissions only.
 
 Three more features on that page have **no collector**, because no documented read-only Graph, Exchange or
 Security & Compliance call was found: Insider Risk Management, Communication Compliance and Defender for
-Endpoint P2 (its data sits in the Defender for Endpoint API, outside this library). The search is recorded in
-[`docs/candidates/license-utilization.md`](../../docs/candidates/license-utilization.md).
+Endpoint P2 (its data sits in the Defender for Endpoint API, outside this library). The Entra Suite card in the
+page's E7 column also has no collector: the Global Secure Access reads exist only in Graph beta. The search is
+recorded in [`docs/candidates/license-utilization.md`](../../docs/candidates/license-utilization.md).
 
 ## Names in usage reports
 

@@ -58,6 +58,7 @@ Describe 'The collectors follow the contract doc' {
         $script:Doc | Should -Match 'Insider Risk Management'
         $script:Doc | Should -Match 'Communication Compliance'
         $script:Doc | Should -Match 'Defender for Endpoint'
+        $script:Doc | Should -Match 'Entra Suite'
     }
 
     It 'leaves out the two doc rows that are not tenant calls (7 and 8)' {

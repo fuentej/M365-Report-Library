@@ -86,8 +86,8 @@ Consolidated notes:
 
 ## License value features with no read-only source (BRO-515)
 
-The approved License value page lists these E5 step-up features as "not checked". No page found documents a
-read-only Microsoft Graph, Exchange Online or Security & Compliance call for them, so nothing is built and
+The approved License value page lists these features as "not checked" (the first three are among the six it counts; Entra Suite is on the E7 column and is not counted).
+No page found documents a v1.0 read-only Microsoft Graph, Exchange Online or Security & Compliance call for them, so nothing is built and
 no table row is written.
 
 | Feature | What was looked for | Result |
@@ -95,6 +95,7 @@ no table row is written.
 | Insider Risk Management | A Graph or Security & Compliance read of insider risk policies | Learn documents the solution in [Purview](https://learn.microsoft.com/purview/insider-risk-management-solution-overview) but lists no v1.0 read API for its policies. The only Graph page found, [insiderRiskyUserApproval](https://learn.microsoft.com/graph/api/insiderriskyuserapproval-get?view=graph-rest-beta), is beta and is an Entitlement Management control configuration, not a policy list |
 | Communication Compliance | A Graph or Security & Compliance read of its policies | [Get started](https://learn.microsoft.com/purview/communication-compliance-configure) is portal-only; no read API found |
 | Defender for Endpoint P2 | A Graph read of onboarded devices or the P2 capability | The device data sits in the Defender for Endpoint API (`api.securitycenter.microsoft.com`), which is neither Graph, Exchange nor Security & Compliance, so it is outside this library's read-only sources |
+| Entra Suite (Private and Internet Access) | A Graph read of Global Secure Access deployment or the Private Access and Internet Access profiles | The card sits in the page's "What E7 adds over E5" column, shows a NOT CHECKED badge and says "Needs the Global Secure Access read". It is not one of the six features the page counts as not checked. The Global Secure Access reads, such as [Get tenantStatus](https://learn.microsoft.com/graph/api/networkaccess-tenantstatus-get?view=graph-rest-beta), exist only under `/beta/networkAccess`; Learn lists no v1.0 page for them, so nothing is built |
 
 ## Proposed report pages
 
