@@ -1,0 +1,59 @@
+table LicenseDetails
+    lineageTag: 1f4ee106-8e1f-4593-8b3f-2e603141aaee
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: bfabb9c5-1905-4f88-918f-2a63becabedf
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UserId
+        dataType: string
+        lineageTag: 0699bb95-8bd8-4bd9-b2fb-f2371db18b4c
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column SkuId
+        dataType: string
+        lineageTag: ad28bbae-a12a-4365-8600-38549724b557
+        summarizeBy: none
+        sourceColumn: SkuId
+
+    column SkuPartNumber
+        dataType: string
+        lineageTag: 07cc11ac-3f72-450b-8fac-fa3b4acd0a7f
+        summarizeBy: none
+        sourceColumn: SkuPartNumber
+
+    column ServicePlanId
+        dataType: string
+        lineageTag: cee7a2f8-fe37-4eeb-8ba1-84827ffd0be6
+        summarizeBy: none
+        sourceColumn: ServicePlanId
+
+    column ServicePlanName
+        dataType: string
+        lineageTag: 50accc4e-1d27-4285-9046-c11a9a285296
+        summarizeBy: none
+        sourceColumn: ServicePlanName
+
+    column ProvisioningStatus
+        dataType: string
+        lineageTag: 6474aa8a-4b93-44aa-b103-29323debb97b
+        summarizeBy: none
+        sourceColumn: ProvisioningStatus
+
+    partition LicenseDetails = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\license-details.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
