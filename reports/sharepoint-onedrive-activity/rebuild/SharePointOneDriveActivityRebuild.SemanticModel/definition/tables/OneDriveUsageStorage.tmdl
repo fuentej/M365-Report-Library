@@ -1,0 +1,53 @@
+table OneDriveUsageStorage
+    lineageTag: 2bfb3c0a-314c-4ef0-a814-7743977818a0
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3e0c699f-2b33-47c9-a022-3cee125f4c46
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 040037f6-f22b-4202-895a-a46c42e5701f
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column SiteType
+        dataType: string
+        lineageTag: c4be1a87-d2e4-403c-988c-5b3003267426
+        summarizeBy: none
+        sourceColumn: SiteType
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: 9c463e9f-ec74-4627-b965-1befe7f6eb59
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column ReportDate
+        dataType: string
+        lineageTag: c6fd377f-a4df-43ce-b8b4-fd9f1427ca42
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: c6cbd838-61c8-42db-993e-276f182a3a1a
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition OneDriveUsageStorage = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\onedrive-usage-storage.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
