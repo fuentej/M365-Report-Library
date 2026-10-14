@@ -1,0 +1,125 @@
+table EmailAppUsageUserDetail
+    lineageTag: 9cd89a2f-2157-4d54-91e5-26de0a9f4132
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 46d14d49-c02c-4710-8982-ef7c4367681f
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column QueryDate
+        dataType: string
+        lineageTag: 7d381161-7de9-4826-a78a-6aa57bf88410
+        summarizeBy: none
+        sourceColumn: QueryDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: d187b553-f52d-4b54-bec6-3d279e6b6d43
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 8f87c3f1-aaef-46b3-8f01-b9ee8715b91f
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column DisplayName
+        dataType: string
+        lineageTag: f9e6df42-1434-4581-a2a3-c0bd3a37f50d
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 67752391-d5d3-4fce-ab05-bbf12ae26fb2
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: 5062ac3c-8793-425c-b6bc-a38483617d6b
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 7988c01f-63fb-4a41-9f2b-6e0cc7fbe290
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column MailForMac
+        dataType: string
+        lineageTag: a477125d-f1b7-418b-a76f-2831c6cb2d7c
+        summarizeBy: none
+        sourceColumn: MailForMac
+
+    column OutlookForMac
+        dataType: string
+        lineageTag: b962d030-7047-4f84-bc3b-40b39bc74c84
+        summarizeBy: none
+        sourceColumn: OutlookForMac
+
+    column OutlookForWindows
+        dataType: string
+        lineageTag: 68acff5b-f567-43dd-b8ed-43876432917f
+        summarizeBy: none
+        sourceColumn: OutlookForWindows
+
+    column OutlookForMobile
+        dataType: string
+        lineageTag: 7377a172-3d59-416d-ac22-e7580ab74e76
+        summarizeBy: none
+        sourceColumn: OutlookForMobile
+
+    column OtherForMobile
+        dataType: string
+        lineageTag: bcb40c3a-91c4-444b-9dc8-02c2657c6546
+        summarizeBy: none
+        sourceColumn: OtherForMobile
+
+    column OutlookForWeb
+        dataType: string
+        lineageTag: 7c5bf9ee-5bf3-4d57-9eca-57ca6a392eaf
+        summarizeBy: none
+        sourceColumn: OutlookForWeb
+
+    column POP3App
+        dataType: string
+        lineageTag: a444683a-7152-4d86-be47-40c0052b3f15
+        summarizeBy: none
+        sourceColumn: POP3App
+
+    column IMAP4App
+        dataType: string
+        lineageTag: 418465b7-92bc-45de-815b-94dfc2105a5d
+        summarizeBy: none
+        sourceColumn: IMAP4App
+
+    column SMTPApp
+        dataType: string
+        lineageTag: 0f69d501-5d65-41b0-ae71-2b64f716c201
+        summarizeBy: none
+        sourceColumn: SMTPApp
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 8a1e2234-66ef-4bbe-aa53-96f7ab468ce2
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition EmailAppUsageUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\email-app-usage-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
