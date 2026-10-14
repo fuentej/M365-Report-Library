@@ -62,9 +62,9 @@ table GroupOwners
 
     column PseudonymNumber = 
             VAR IdText = GroupOwners[OwnerId]
-            VAR CharCount = LEN(IdText)
-            VAR HashSeed = SUMX(GENERATESERIES(1, CharCount), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973))
-            RETURN IF(ISBLANK(IdText), BLANK(), MOD(HashSeed, 90000) + 10000)
+            // A None or Unknown owner row has no OwnerId. GENERATESERIES refuses a blank
+            // end, so the hash is only computed inside the non-blank branch.
+            RETURN IF(ISBLANK(IdText), BLANK(), MOD(SUMX(GENERATESERIES(1, LEN(IdText)), UNICODE(MID(IdText, [Value], 1)) * MOD([Value] * [Value] * 37 + [Value] * 101, 9973)), 90000) + 10000)
         dataType: int64
         formatString: 00000
         lineageTag: a0b962f8-5f3d-5acd-8b1f-24fc7e913b09

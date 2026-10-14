@@ -250,13 +250,26 @@ the header-only `team-activity.csv` and `group-activity.csv` that GCC High write
 
 Open `report/TeamsGroupsLifecycle.pbip` in Power BI Desktop and set the `CsvFolder`
 parameter to the folder the collectors wrote (it defaults to `C:\TeamsGroupsLifecycleData`;
-point it at `samples/` to see the sample data). Six pages follow the contract: Overview,
-Ownership, Inactivity, Expiration policy, Archived and deleted, and Creation. Every page has
-a date range, a Group or Team, and a Group slicer, plus the Anonymize toggle, which swaps
-names for stable pseudonyms (`Group 12345`, `User 12345`) derived from the id.
+point it at `samples/` to see the sample data), then press Refresh. Two pages, built to the
+designs in `docs/design/teams-groups-lifecycle/`:
 
-* Counts are for the latest snapshot inside the date range. An empty value is Unknown, never
+* **Groups nobody owns**: groups with no working owner (a listed owner whose account is
+  enabled), ranked by members, with who left, outside members, files, last activity, whether
+  the expiration policy covers the group, and a suggested owner (the departed owner's manager,
+  else the person who created the group). The recycle bin strip shows the soft-deleted groups
+  that can still be restored and the days left. It has six slots, fewest days left first; a
+  red note under "days left to restore" counts any restorable groups beyond the sixth.
+* **The graveyard**: groups by days since last activity, split by expiration coverage; dead
+  groups (no activity for more than 90 days) that never expire; groups past their expiration
+  date that are still here.
+
+The filter pane holds the Anonymize toggle, which swaps names for stable pseudonyms
+(`Group 12345`, `User 12345`) derived from the id, and the Group or Team choice.
+
+* Counts are for the latest snapshot. An empty value is Unknown, never
   zero: owners Graph cannot list are "Owner unknown", an empty last activity date is
   "Unknown", and the activity cards are blank when a snapshot has no usage-report rows (the
   usage reports are not available in GCC High, and GCC is unverified).
 * `users.csv` is joined to owners to find disabled owners; an owner missing from it is Unknown.
+* The suggested creator comes from a creation record whose `TargetGroupId` is the group. `AddGroup`
+  records carry no `TargetGroupId`, so a group created that way shows no creator.

@@ -44,8 +44,8 @@ table GroupLifecyclePolicies
     measure 'Policy Scope' = 
             VAR SnapshotDate = CALCULATE(MAX(GroupLifecyclePolicies[RunDate]), ALLSELECTED(GroupLifecyclePolicies))
             VAR OnSnapshot = CALCULATE(COUNTROWS(GroupLifecyclePolicies), GroupLifecyclePolicies[RunDate] = SnapshotDate)
-            VAR Value = CALCULATE(MAX(GroupLifecyclePolicies[ManagedGroupTypes]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
-            RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(Value), "Unknown", Value))
+            VAR FoundValue = CALCULATE(MAX(GroupLifecyclePolicies[ManagedGroupTypes]), GroupLifecyclePolicies[RunDate] = SnapshotDate)
+            RETURN IF(OnSnapshot = 0, "No policy row", IF(ISBLANK(FoundValue), "Unknown", FoundValue))
         lineageTag: f73c39f3-6b33-54eb-aec3-1c7be2f5ce04
 
     partition GroupLifecyclePolicies = m
