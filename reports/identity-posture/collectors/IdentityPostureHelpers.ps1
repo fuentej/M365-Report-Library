@@ -76,6 +76,51 @@ function ConvertTo-SignInTimestamp {
     return $text
 }
 
+function Import-RoleDisplayName {
+    <#
+        .SYNOPSIS
+            Fills a hashtable with role definition ID -> role display name.
+
+        .DESCRIPTION
+            Source: Microsoft Graph list roleDefinitions
+            (https://learn.microsoft.com/graph/api/rbacapplication-list-roledefinitions).
+            It returns built-in and custom roles. Needs RoleManagement.Read.Directory,
+            which every role assignment collector already requests. Available in Global,
+            US Government L4 (GCC High), L5 and China; GCC uses the global endpoint
+            (https://learn.microsoft.com/graph/deployments).
+
+            A built-in role's id equals its templateId, so both are keyed. When the read
+            fails the map is left as it was, a warning is written and the caller writes an
+            empty name: the collector keeps working with the ID only.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][hashtable]$Into)
+
+    try {
+        foreach ($definition in @(Get-MgRoleManagementDirectoryRoleDefinition -All -ErrorAction Stop)) {
+            if ($null -eq $definition -or [string]::IsNullOrWhiteSpace([string]$definition.DisplayName)) { continue }
+            if ($definition.Id) { $Into[[string]$definition.Id] = [string]$definition.DisplayName }
+            if ($definition.TemplateId) { $Into[[string]$definition.TemplateId] = [string]$definition.DisplayName }
+        }
+    }
+    catch {
+        Write-Warning "Role display names are unavailable ($($_.Exception.Message)). RoleDisplayName is left empty."
+    }
+}
+
+function Get-RoleDisplayName {
+    <#
+        .SYNOPSIS
+            The display name for a role definition ID, or an empty string when unknown.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][hashtable]$Map, [AllowNull()][string]$RoleDefinitionId)
+
+    if ([string]::IsNullOrEmpty($RoleDefinitionId) -or -not $Map.ContainsKey($RoleDefinitionId)) { return '' }
+    return [string]$Map[$RoleDefinitionId]
+}
+
 function Test-LicenseError {
     <#
         .SYNOPSIS

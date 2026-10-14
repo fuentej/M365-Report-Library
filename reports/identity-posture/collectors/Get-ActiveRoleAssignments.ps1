@@ -54,13 +54,19 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 . (Join-Path $PSScriptRoot 'IdentityPostureHelpers.ps1')
 
 
+# Filled by -Fetch, after sign-in, and read by -Map.
+$roleNames = @{}
+
 Invoke-IdentityPostureSnapshot -Source 'ActiveRoleAssignments' -CsvName 'role-assignments-active.csv' `
     -Description 'Active role assignments (PIM)' `
     -License 'Microsoft Entra ID P2 or Microsoft Entra ID Governance and the RoleAssignmentSchedule.Read.Directory permission' `
     -KeyColumn @('RunDate', 'Id') -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect `
-    -Fetch { Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance -All -ErrorAction Stop } `
+    -Fetch {
+        Import-RoleDisplayName -Into $roleNames
+        Get-MgRoleManagementDirectoryRoleAssignmentScheduleInstance -All -ErrorAction Stop
+    } `
     -Map {
         param($assignment, $runDate)
 
@@ -69,6 +75,7 @@ Invoke-IdentityPostureSnapshot -Source 'ActiveRoleAssignments' -CsvName 'role-as
             Id               = $assignment.Id
             PrincipalId      = $assignment.PrincipalId
             RoleDefinitionId = $assignment.RoleDefinitionId
+            RoleDisplayName  = Get-RoleDisplayName -Map $roleNames -RoleDefinitionId $assignment.RoleDefinitionId
             DirectoryScopeId = $assignment.DirectoryScopeId
             AppScopeId       = $assignment.AppScopeId
             AssignmentType           = [string]$assignment.AssignmentType

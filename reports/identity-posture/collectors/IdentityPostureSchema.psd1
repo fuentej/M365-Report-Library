@@ -67,6 +67,7 @@
         'Id'
         'PrincipalId'
         'RoleDefinitionId'
+        'RoleDisplayName'
         'DirectoryScopeId'
         'AppScopeId'
         'AssignmentType'
@@ -84,6 +85,7 @@
         'Id'
         'PrincipalId'
         'RoleDefinitionId'
+        'RoleDisplayName'
         'DirectoryScopeId'
         'AppScopeId'
         'MemberType'
@@ -99,6 +101,7 @@
         'Id'
         'PrincipalId'
         'RoleDefinitionId'
+        'RoleDisplayName'
         'DirectoryScopeId'
         'AppScopeId'
     )

@@ -26,6 +26,12 @@ table EligibleRoleAssignments
         summarizeBy: none
         sourceColumn: RoleDefinitionId
 
+    column RoleDisplayName
+        dataType: string
+        lineageTag: 31518bd7-6a91-55ae-bf8c-0cbb3c02a1f5
+        summarizeBy: none
+        sourceColumn: RoleDisplayName
+
     column DirectoryScopeId
         dataType: string
         lineageTag: 65a607e7-bc60-567c-be42-548d802a1cd3

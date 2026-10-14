@@ -192,7 +192,7 @@ A change shows as a difference between two `RunDate` blocks. The API records no 
 
 | Column | Meaning |
 | --- | --- |
-| `Id`, `PrincipalId`, `RoleDefinitionId`, `DirectoryScopeId`, `AppScopeId` | The assignment |
+| `Id`, `PrincipalId`, `RoleDefinitionId`, `RoleDisplayName`, `DirectoryScopeId`, `AppScopeId` | The assignment. `RoleDisplayName` is the role's name from list roleDefinitions (built-in and custom roles); empty when the definitions cannot be read, or the ID is not in them |
 | `AssignmentType` | `Assigned` or `Activated` |
 | `MemberType` | `Inherited`, `Direct` or `Group` |
 | `StartDateTime`, `EndDateTime` | Empty `EndDateTime` is a permanent assignment |
@@ -200,13 +200,27 @@ A change shows as a difference between two `RunDate` blocks. The API records no 
 
 ### role-assignments-eligible.csv: snapshot, key `RunDate` + `Id`
 
-Same as above without `AssignmentType`, `RoleAssignmentOriginId` and
+Same as above (including `RoleDisplayName`) without `AssignmentType`, `RoleAssignmentOriginId` and
 `RoleAssignmentScheduleId`, plus `RoleEligibilityScheduleId`.
 
 ### role-assignments.csv: snapshot, key `RunDate` + `Id`
 
-`Id`, `PrincipalId`, `RoleDefinitionId`, `DirectoryScopeId`, `AppScopeId`. Active holders only;
+`Id`, `PrincipalId`, `RoleDefinitionId`, `RoleDisplayName`, `DirectoryScopeId`, `AppScopeId`. Active holders only;
 use it when `role-assignments-active.csv` is header-only because PIM is not licensed.
+
+### Role display names: availability per cloud
+
+The three role assignment collectors read `GET /roleManagement/directory/roleDefinitions`
+(`Get-MgRoleManagementDirectoryRoleDefinition`, [list roleDefinitions](https://learn.microsoft.com/graph/api/rbacapplication-list-roledefinitions))
+once per run and look `RoleDefinitionId` up against `id` (a built-in role's `id` equals its `templateId`).
+It needs `RoleManagement.Read.Directory`, which the collectors already request, and returns custom roles too.
+
+| Commercial | GCC | GCC High |
+| --- | --- | --- |
+| Available | Available (uses the global endpoint) | Available (US Government L4) |
+
+Cloud availability is from [Microsoft Graph deployments](https://learn.microsoft.com/graph/deployments).
+If the read fails the collector writes a warning and leaves `RoleDisplayName` empty, keeping the ID only.
 
 ### user-signin-activity.csv: snapshot, key `RunDate` + `UserId`
 

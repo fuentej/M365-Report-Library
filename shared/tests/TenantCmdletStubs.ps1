@@ -346,6 +346,16 @@ function global:Get-MgRoleManagementDirectoryRoleAssignment {
     throw 'Get-MgRoleManagementDirectoryRoleAssignment was called for real. Mock it in the test.'
 }
 
+function global:Get-MgRoleManagementDirectoryRoleDefinition {
+    [CmdletBinding()]
+    param(
+        [switch]$All,
+        [string]$Filter,
+        [string[]]$Property
+    )
+    throw 'Get-MgRoleManagementDirectoryRoleDefinition was called for real. Mock it in the test.'
+}
+
 function global:Get-MgRiskyUser {
     [CmdletBinding()]
     param(
