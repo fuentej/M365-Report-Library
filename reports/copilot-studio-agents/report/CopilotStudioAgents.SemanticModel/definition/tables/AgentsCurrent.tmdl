@@ -723,6 +723,18 @@ table AgentsCurrent
         displayFolder: Agent passports
         lineageTag: e4242503-13ba-5559-a0f3-89678741147b
 
+    /// The page has 12 passport slots and lists 6 environments. Agents and environments past those are counted here, so the page never drops one without saying so; the tiles and the run line count all of them.
+    measure 'Passport Overflow Note' =
+            VAR AgentSlots = 12
+            VAR EnvSlots = 6
+            VAR AgentsNotShown = COUNTROWS(AgentsCurrent) - AgentSlots
+            VAR EnvsNotShown = COUNTROWS(EnvironmentsCurrent) - EnvSlots
+            VAR AgentPart = IF(AgentsNotShown > 0, FORMAT(AgentsNotShown, "#,0") & IF(AgentsNotShown = 1, " more agent", " more agents"), "")
+            VAR EnvPart = IF(EnvsNotShown > 0, FORMAT(EnvsNotShown, "#,0") & IF(EnvsNotShown = 1, " more environment", " more environments"), "")
+            RETURN IF(AgentPart = "" && EnvPart = "", BLANK(), "Not shown: " & AgentPart & IF(AgentPart <> "" && EnvPart <> "", ", ", "") & EnvPart)
+        displayFolder: Agent passports
+        lineageTag: 4c8e1f26-7b3a-5d94-a2e0-91d6b0c35f78
+
     partition AgentsCurrent = m
         mode: import
         source =

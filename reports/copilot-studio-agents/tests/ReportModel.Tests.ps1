@@ -466,6 +466,24 @@ Describe 'The report has the approved Agent passports page and its filter' {
         $script:Passports | Should -Match ([regex]::Escape("measure 'Passport $N' = CALCULATE([Passport Card], AgentsCurrent[Passport Order] = $N)"))
     }
 
+    It 'counts the agents and environments past the slots, using the real slot counts' {
+        $slots = @(Get-ChildItem -LiteralPath $script:PageVisuals -Directory -Filter 'passports-card-*').Count
+        $slots | Should -Be 12
+        $script:Passports | Should -Match ([regex]::Escape("measure 'Passport Overflow Note'"))
+        $script:Passports | Should -Match ([regex]::Escape("VAR AgentSlots = $slots"))
+        $script:Passports | Should -Match ([regex]::Escape('COUNTROWS(AgentsCurrent) - AgentSlots'))
+        # Where They Live draws rows 1 to 6 only.
+        $script:Passports | Should -Match ([regex]::Escape('FILTER(Ranked, [RowNo] <= 6)'))
+        $script:Passports | Should -Match ([regex]::Escape('VAR EnvSlots = 6'))
+        $script:Passports | Should -Match ([regex]::Escape('COUNTROWS(EnvironmentsCurrent) - EnvSlots'))
+    }
+
+    It 'shows that note on the page' {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals 'passports-overflow-note/visual.json') -Raw | ConvertFrom-Json
+        $visual.visual.visualType | Should -Be 'cardVisual'
+        $visual.visual.query.queryState.Data.projections[0].field.Measure.Property | Should -Be 'Passport Overflow Note'
+    }
+
     It 'marks every SVG measure as an image URL' {
         foreach ($name in @('Passport Card', 'Where They Live Image') + (1..12 | ForEach-Object { "Passport $_" })) {
             $script:Passports | Should -Match ("(?s)measure '" + [regex]::Escape($name) + "' =.*?dataCategory: ImageUrl")

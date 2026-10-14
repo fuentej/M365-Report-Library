@@ -261,7 +261,9 @@ filter swaps agent names, environment names and owner ids for stable pseudonyms.
 A passport is red when the agent is live and open to anyone (no sign-in on the Website channel), live
 with no sign-in, or live and shared with the whole tenant; amber when it is a draft with no sign-in, a
 draft the audit log shows being published, or in a personal (Developer) or Trial environment. The page
-has 12 passport slots, so a tenant with more agents shows the 12 that most need a look.
+has 12 passport slots, so a tenant with more agents shows the 12 that most need a look, and Where they
+live lists 6 environments. A note under the RECORDS DISAGREE box counts the agents and environments
+that are not shown ("Not shown: 3 more agents, 2 more environments"); the tiles and the run line count all of them.
 
 * An empty value is **Unknown**, never zero. A header-only file (the connector file in GCC and GCC High)
   is **not collected**: its measures are blank. The passport counts connectors from `agents.csv`, so it does
