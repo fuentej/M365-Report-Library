@@ -7,3 +7,4 @@ ref table SignInsInteractive
 ref table SignInsNonInteractive
 ref table SignInConditionalAccess
 ref table DirectoryAudits
+ref table RetentionReference
