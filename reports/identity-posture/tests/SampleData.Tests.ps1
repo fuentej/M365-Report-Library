@@ -102,6 +102,17 @@ Describe 'The sample data uses the values the Learn pages document' {
         }
     }
 
+    It '<_> holds a GUID role definition ID and a role display name on every row' -ForEach @(
+        'role-assignments-active.csv', 'role-assignments-eligible.csv', 'role-assignments.csv'
+    ) {
+        # unifiedRoleAssignment.roleDefinitionId is a GUID:
+        # https://learn.microsoft.com/graph/api/resources/unifiedroleassignment
+        foreach ($row in Import-Csv -LiteralPath (Join-Path $script:Samples $_)) {
+            [guid]::TryParse($row.RoleDefinitionId, [ref][guid]::Empty) | Should -BeTrue -Because "'$($row.RoleDefinitionId)' is not a GUID"
+            $row.RoleDisplayName | Should -Not -BeNullOrEmpty
+        }
+    }
+
     It 'uses only the v1.0 registration method values' {
         # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
         # https://learn.microsoft.com/graph/api/authenticationmethodsroot-list-userregistrationdetails
