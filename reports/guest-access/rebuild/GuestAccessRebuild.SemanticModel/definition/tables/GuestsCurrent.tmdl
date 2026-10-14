@@ -1,0 +1,123 @@
+table GuestsCurrent
+    lineageTag: e0869db8-26b3-49c7-a775-c475be1d68f8
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1770df44-74cd-4562-9674-565677970f2b
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 34e1ce01-5d14-4eb7-aa8f-f9b4971863fb
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: 4bcf3de7-5a2a-48b6-8de9-ee62e0502761
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column Mail
+        dataType: string
+        lineageTag: 4f8752d0-407b-4ba6-b99a-af97be585328
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 8843eecb-a239-41af-bcf1-af7969d64ccb
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column ExternalDomain
+        dataType: string
+        lineageTag: f41d2066-a592-4223-a576-b514008f3d7d
+        summarizeBy: none
+        sourceColumn: ExternalDomain
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 6dec90d1-f9cb-46bf-9ed1-bbf224b69a47
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column CreationType
+        dataType: string
+        lineageTag: a8c50c96-938f-4b21-8005-254854793f06
+        summarizeBy: none
+        sourceColumn: CreationType
+
+    column ExternalUserState
+        dataType: string
+        lineageTag: e5ccfc99-645c-4d44-a0db-47f64beb312d
+        summarizeBy: none
+        sourceColumn: ExternalUserState
+
+    column ExternalUserStateChangeDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 37707151-f8ab-44e8-8bb5-569a5f5c6968
+        summarizeBy: none
+        sourceColumn: ExternalUserStateChangeDateTime
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: 4d7a2e5f-cd58-424d-94d7-8cfb185b3f6c
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column LastSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 1b35bb40-8185-4eaa-a4de-7f2e435f4b11
+        summarizeBy: none
+        sourceColumn: LastSignInDateTime
+
+    column LastNonInteractiveSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: b4597405-ffd7-4020-8d6d-c4985cb6821d
+        summarizeBy: none
+        sourceColumn: LastNonInteractiveSignInDateTime
+
+    column LastSuccessfulSignInDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 7eb9da59-4542-4795-8f9f-98c9f5be002c
+        summarizeBy: none
+        sourceColumn: LastSuccessfulSignInDateTime
+
+    partition GuestsCurrent = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guests.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                // Collector stamps are UTC "yyyy-MM-ddTHH:mm:ssZ". DateTime.FromText only
+                // accepts the Z designator when the format treats it as a literal, and that
+                // keeps the UTC clock time instead of shifting it to the model time zone.
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {
+                    {"CreatedDateTime", ParseUtc, type datetime},
+                    {"ExternalUserStateChangeDateTime", ParseUtc, type datetime},
+                    {"LastSignInDateTime", ParseUtc, type datetime},
+                    {"LastNonInteractiveSignInDateTime", ParseUtc, type datetime},
+                    {"LastSuccessfulSignInDateTime", ParseUtc, type datetime}
+                }),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "Mail", "UserPrincipalName", "ExternalDomain", "CreatedDateTime", "CreationType", "ExternalUserState", "ExternalUserStateChangeDateTime", "AccountEnabled", "LastSignInDateTime", "LastNonInteractiveSignInDateTime", "LastSuccessfulSignInDateTime"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
+
+    annotation PBI_ResultType = Table
