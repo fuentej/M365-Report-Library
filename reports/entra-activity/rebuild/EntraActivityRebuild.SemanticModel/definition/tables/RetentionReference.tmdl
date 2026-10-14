@@ -1,0 +1,68 @@
+table RetentionReference
+    lineageTag: 73d0d1a7-8d59-4d11-b2a5-81208b69d15d
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 633b1134-18cd-409d-8933-bfd834174897
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Environment
+        dataType: string
+        lineageTag: 798174ae-a3a2-45ca-82ef-73adfa3b2964
+        summarizeBy: none
+        sourceColumn: Environment
+
+    column LicenseLevel
+        dataType: string
+        lineageTag: 9d0efeb2-7ce0-487f-91d2-2eda8c256d8f
+        summarizeBy: none
+        sourceColumn: LicenseLevel
+
+    column SignInRetentionDays
+        dataType: int64
+        formatString: #,0
+        lineageTag: a8e5507b-b098-4da1-9c46-54929b968355
+        summarizeBy: none
+        sourceColumn: SignInRetentionDays
+
+    column AuditRetentionDays
+        dataType: int64
+        formatString: #,0
+        lineageTag: d258f242-090c-487a-84e1-bef94e8d96ff
+        summarizeBy: none
+        sourceColumn: AuditRetentionDays
+
+    column RiskySignInRetentionDays
+        dataType: int64
+        formatString: #,0
+        lineageTag: 18398777-501f-44be-aab4-269bbfa53825
+        summarizeBy: none
+        sourceColumn: RiskySignInRetentionDays
+
+    column RetentionStatus
+        dataType: string
+        lineageTag: b735ab2a-1168-4264-ada9-bc51d34dcf5f
+        summarizeBy: none
+        sourceColumn: RetentionStatus
+
+    column Reference
+        dataType: string
+        lineageTag: c993762f-d14a-4400-9bb2-fbca53e0d9fc
+        summarizeBy: none
+        sourceColumn: Reference
+
+    partition RetentionReference = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\retention-reference.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"SignInRetentionDays", Int64.Type}, {"AuditRetentionDays", Int64.Type}, {"RiskySignInRetentionDays", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
