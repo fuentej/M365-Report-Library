@@ -26,8 +26,7 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "Guests.RunDate",
-              "nativeQueryRef": "RunDate"
+              "queryRef": "Guests.RunDate"
             },
             {
               "field": {
