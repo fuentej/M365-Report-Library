@@ -1,0 +1,53 @@
+table SharePointSiteUsageStorage
+    lineageTag: 867c27ba-8d48-4ee0-8caa-2d0f70cf7bf4
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 7e523c5a-c0ca-49ba-8db9-e387f122cb72
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: a98d6496-a2af-4df9-9b50-1f77170c6708
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column SiteType
+        dataType: string
+        lineageTag: 4c0a228c-d2c9-4d6b-bda6-1d523fab1e03
+        summarizeBy: none
+        sourceColumn: SiteType
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: 8da17342-85d3-4e7b-a618-54fa5c18bba6
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column ReportDate
+        dataType: string
+        lineageTag: 76795269-18cb-4dfc-a690-8cfabe741ab3
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: e6462d76-9efa-4eaa-b8be-8ce9a379866a
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition SharePointSiteUsageStorage = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sharepoint-site-usage-storage.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
