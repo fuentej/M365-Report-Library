@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "UnifiedAuditLogRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "ca4929cd-18d7-47d1-b39f-7bf152f3e4ae"
+  }
+}

@@ -96,3 +96,43 @@ Describe 'The sample CSVs match the collectors' {
         $statuses | Should -Be @('CantSend', 'CantSendReceive', 'Good', 'Warning')
     }
 }
+
+Describe 'The sample data behaves like a real tenant' {
+    BeforeAll {
+        $script:Detail = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'mailbox-usage-detail.csv'))
+        $script:Storage = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'mailbox-usage-storage.csv'))
+        $script:Activity = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'email-activity-user-detail.csv'))
+    }
+
+    It 'grows mailboxes at different rates between the two runs' {
+        $growth = foreach ($upn in ($script:Detail.UserPrincipalName | Sort-Object -Unique)) {
+            $rows = @($script:Detail | Where-Object UserPrincipalName -EQ $upn | Sort-Object RunDate)
+            [int64]$rows[-1].StorageUsedByte - [int64]$rows[0].StorageUsedByte
+        }
+        @($growth | Sort-Object -Unique).Count | Should -BeGreaterThan 3
+        @($growth | Where-Object { $_ -gt 0 }).Count | Should -BeGreaterThan 0
+    }
+
+    It 'does not repeat the tenant storage trend from one week to the next' {
+        $windows = $script:Storage | Group-Object RunDate
+        $windows.Count | Should -BeGreaterOrEqual 2
+        $shapes = foreach ($window in $windows) { ($window.Group | ForEach-Object { $_.StorageUsedByte }) -join ',' }
+        @($shapes | Sort-Object -Unique).Count | Should -Be $windows.Count
+        $values = @($script:Storage | Sort-Object ReportDate | ForEach-Object { [int64]$_.StorageUsedByte })
+        $values | Should -Be @($values | Sort-Object)
+        @($values | Sort-Object -Unique).Count | Should -Be $values.Count
+    }
+
+    It 'shows no mail received for a mailbox at or over its receive limit' {
+        $latest = ($script:Detail.RunDate | Sort-Object -Descending | Select-Object -First 1)
+        $over = @($script:Detail | Where-Object { $_.RunDate -eq $latest -and [decimal]$_.StorageUsedByte -ge [decimal]$_.ProhibitSendReceiveQuotaByte })
+        $over.Count | Should -BeGreaterThan 0
+        foreach ($mailbox in $over) {
+            $row = $script:Activity | Where-Object UserPrincipalName -EQ $mailbox.UserPrincipalName
+            [int]$row.ReceiveCount | Should -Be 0 -Because $mailbox.UserPrincipalName
+            $delivered = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'message-trace.csv') | Where-Object { $_.RecipientAddress -eq $mailbox.UserPrincipalName -and $_.Status -eq 'Delivered' })
+            $delivered.Count | Should -Be 0
+        }
+        @($script:Activity | Where-Object { [int]$_.ReceiveCount -gt 0 }).Count | Should -BeGreaterThan 0
+    }
+}

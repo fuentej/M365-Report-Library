@@ -6,16 +6,17 @@ BeforeAll {
 }
 
 Describe 'The collectors follow the contract doc' {
-    It 'has a collector script for each tenant source row (1 to 6 and 5a to 5g)' {
+    It 'has a collector script for each tenant source row (1 to 6, 5a to 5g and 9 to 11)' {
         foreach ($script in 'Get-SubscribedSkus', 'Get-UserLicenses', 'Get-LicenseDetails', 'Get-UserSignInActivity', 'Get-ReportSettings',
             'Get-ActiveUserUsage', 'Get-EmailActivityUsage', 'Get-TeamsActivityUsage', 'Get-SharePointActivityUsage',
-            'Get-OneDriveActivityUsage', 'Get-M365AppUsage', 'Get-CopilotUsage') {
+            'Get-OneDriveActivityUsage', 'Get-M365AppUsage', 'Get-CopilotUsage',
+            'Get-AccessReviews', 'Get-AttackSimulations', 'Get-TeamsPstnCalls') {
             Test-Path -LiteralPath (Join-Path $PSScriptRoot "../collectors/$script.ps1") | Should -BeTrue
         }
     }
 
     It 'has an availability entry for every source with all three clouds' {
-        $script:Schema.SourceAvailability.Keys.Count | Should -Be 12
+        $script:Schema.SourceAvailability.Keys.Count | Should -Be 15
         foreach ($entry in $script:Schema.SourceAvailability.GetEnumerator()) {
             foreach ($cloud in 'Commercial', 'GCC', 'GCCHigh') {
                 $entry.Value[$cloud].Status | Should -BeIn @('Available', 'NotAvailable', 'Unverified')
@@ -50,6 +51,14 @@ Describe 'The collectors follow the contract doc' {
         # collectors untested while the workflow stays green.
         $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../../.github/workflows/tests.yml') -Raw
         $workflow | Should -Match '\./reports/license-utilization/tests'
+    }
+
+    It 'records the License value sources (9 to 11) in the doc, with the not-built features' {
+        foreach ($row in '9', '10', '11') { $script:Doc | Should -Match "(?m)^\| $row \|" }
+        $script:Doc | Should -Match 'Insider Risk Management'
+        $script:Doc | Should -Match 'Communication Compliance'
+        $script:Doc | Should -Match 'Defender for Endpoint'
+        $script:Doc | Should -Match 'Entra Suite'
     }
 
     It 'leaves out the two doc rows that are not tenant calls (7 and 8)' {

@@ -1,0 +1,89 @@
+table OneDriveUsageAccountDetail
+    lineageTag: 17555695-2a82-477e-af43-726c2e20470b
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: bef3d441-9544-40dd-89cb-77184881d3c4
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 569da2f7-b486-4cce-ac5f-091e80df369b
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column SiteUrl
+        dataType: string
+        lineageTag: 62419161-b9c4-4de8-8355-c8d6e1d8e53e
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column OwnerDisplayName
+        dataType: string
+        lineageTag: 355cc538-b32e-4255-8662-95fae637ba9c
+        summarizeBy: none
+        sourceColumn: OwnerDisplayName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 3209610f-9f25-4943-8ce1-4a42a73722d9
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 761c5f78-45f9-45fe-8da9-4b2502cabe7e
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column FileCount
+        dataType: string
+        lineageTag: 881584c5-3edb-431e-927c-8810bca4ab73
+        summarizeBy: none
+        sourceColumn: FileCount
+
+    column ActiveFileCount
+        dataType: string
+        lineageTag: 226f370e-7035-447c-a9d3-1fda2debe61c
+        summarizeBy: none
+        sourceColumn: ActiveFileCount
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: ed76095c-2078-4bae-87d2-ed71efb7f160
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column StorageAllocatedByte
+        dataType: string
+        lineageTag: d0919e66-ee82-49f4-976e-e5f8a3ebedb8
+        summarizeBy: none
+        sourceColumn: StorageAllocatedByte
+
+    column OwnerPrincipalName
+        dataType: string
+        lineageTag: 93b4e500-fa8c-46d2-a8de-9315a792849a
+        summarizeBy: none
+        sourceColumn: OwnerPrincipalName
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: a5e700fa-cdac-448c-b611-16a2be7230e3
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition OneDriveUsageAccountDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\onedrive-usage-account-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

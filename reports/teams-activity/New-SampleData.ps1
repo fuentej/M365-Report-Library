@@ -37,12 +37,22 @@ $gccHigh = Join-Path $OutputPath 'gcchigh'
 if (-not (Test-Path -LiteralPath $gccHigh)) { New-Item -Path $gccHigh -ItemType Directory -Force | Out-Null }
 
 $people = @(
-    @{ Id = '22222222-0000-0000-0000-000000000001'; Upn = 'avery.abara@example.com'; Last = '2026-10-07'; Chat = 41; Priv = 120; Calls = 6; Org = 4; Att = 12; Licensed = 'True' }
-    @{ Id = '22222222-0000-0000-0000-000000000002'; Upn = 'blake.bishop@example.com'; Last = '2026-10-06'; Chat = 8; Priv = 33; Calls = 2; Org = 0; Att = 5; Licensed = 'True' }
-    @{ Id = '22222222-0000-0000-0000-000000000003'; Upn = 'casey.cho@example.com'; Last = '2026-09-02'; Chat = 0; Priv = 0; Calls = 0; Org = 0; Att = 0; Licensed = 'True' }
-    @{ Id = '22222222-0000-0000-0000-000000000004'; Upn = 'devon.diaz@example.com'; Last = ''; Chat = 0; Priv = 0; Calls = 0; Org = 0; Att = 0; Licensed = 'False' }
+    @{ Id = '22222222-0000-0000-0000-000000000001'; Upn = 'avery.abara@example.com'; Last = '2026-10-07'; Chat = 41; Priv = 120; Calls = 6; Org = 4; Att = 12; AdOrg = 1; AdAtt = 2; Audio = 13320; Video = 5100; Share = 1740; Licensed = 'True' }
+    @{ Id = '22222222-0000-0000-0000-000000000002'; Upn = 'blake.bishop@example.com'; Last = '2026-10-06'; Chat = 8; Priv = 33; Calls = 2; Org = 0; Att = 5; AdOrg = 0; AdAtt = 1; Audio = 4260; Video = 900; Share = 240; Licensed = 'True' }
+    @{ Id = '22222222-0000-0000-0000-000000000003'; Upn = 'casey.cho@example.com'; Last = '2026-09-02'; Chat = 0; Priv = 0; Calls = 0; Org = 0; Att = 0; AdOrg = 0; AdAtt = 0; Audio = 0; Video = 0; Share = 0; Licensed = 'True' }
+    @{ Id = '22222222-0000-0000-0000-000000000004'; Upn = 'devon.diaz@example.com'; Last = ''; Chat = 0; Priv = 0; Calls = 0; Org = 0; Att = 0; AdOrg = 0; AdAtt = 0; Audio = 0; Video = 0; Share = 0; Licensed = 'False' }
 )
 $runDates = '2026-10-01', '2026-10-08'
+
+function ConvertTo-IsoDuration {
+    param([int]$Seconds)
+    $t = [timespan]::FromSeconds($Seconds)
+    $text = 'PT'
+    if ($t.Hours + 24 * $t.Days) { $text += "$($t.Hours + 24 * $t.Days)H" }
+    if ($t.Minutes) { $text += "$($t.Minutes)M" }
+    if ($t.Seconds -or $Seconds -eq 0) { $text += "$($t.Seconds)S" }
+    $text
+}
 
 # Source 1
 $rows = foreach ($run in $runDates) {
@@ -55,11 +65,11 @@ $rows = foreach ($run in $runDates) {
             TeamChatMessageCount = $p.Chat + $scale; PrivateChatMessageCount = $p.Priv + $scale; CallCount = $p.Calls; MeetingCount = $p.Att
             PostMessages = [int]($p.Chat * 0.6); ReplyMessages = [int]($p.Chat * 0.4); UrgentMessages = 0
             MeetingsOrganizedCount = $p.Org; MeetingsAttendedCount = $p.Att
-            AdHocMeetingsOrganizedCount = 0; AdHocMeetingsAttendedCount = 1
-            ScheduledOneTimeMeetingsOrganizedCount = $p.Org; ScheduledOneTimeMeetingsAttendedCount = [int]($p.Att / 2)
-            ScheduledRecurringMeetingsOrganizedCount = 0; ScheduledRecurringMeetingsAttendedCount = [int]($p.Att / 2)
-            AudioDuration = 'PT1H30M'; VideoDuration = 'PT20M'; ScreenShareDuration = 'PT5M'
-            AudioDurationInSeconds = 5400; VideoDurationInSeconds = 1200; ScreenShareDurationInSeconds = 300
+            AdHocMeetingsOrganizedCount = $p.AdOrg; AdHocMeetingsAttendedCount = $p.AdAtt
+            ScheduledOneTimeMeetingsOrganizedCount = $p.Org - $p.AdOrg; ScheduledOneTimeMeetingsAttendedCount = [int](($p.Att - $p.AdAtt) / 2)
+            ScheduledRecurringMeetingsOrganizedCount = 0; ScheduledRecurringMeetingsAttendedCount = $p.Att - $p.AdAtt - [int](($p.Att - $p.AdAtt) / 2)
+            AudioDuration = ConvertTo-IsoDuration $p.Audio; VideoDuration = ConvertTo-IsoDuration $p.Video; ScreenShareDuration = ConvertTo-IsoDuration $p.Share
+            AudioDurationInSeconds = $p.Audio; VideoDurationInSeconds = $p.Video; ScreenShareDurationInSeconds = $p.Share
             HasOtherAction = 'Yes'; IsLicensed = $p.Licensed; ReportPeriod = 30
         }
     }
@@ -70,11 +80,14 @@ Write-Sample $OutputPath 'teams-user-activity-user-detail.csv' $schema.TeamsUser
 $rows = foreach ($run in $runDates) {
     foreach ($offset in 2, 1, 0) {
         $day = ([datetime]$run).AddDays(-3 - $offset).ToString('yyyy-MM-dd')
+        $n = ([datetime]$day).DayOfYear
+        $chat = 180 + ($n * 7) % 41
+        $meetings = 60 + ($n * 13) % 29
         [pscustomobject]@{
             RunDate = $run; ReportRefreshDate = ([datetime]$run).AddDays(-3).ToString('yyyy-MM-dd'); ReportDate = $day
-            TeamChatMessages = 210 + $offset; PostMessages = 120; ReplyMessages = 90; PrivateChatMessages = 540 - $offset
-            Calls = 31; Meetings = 77; AudioDuration = 'PT40H'; VideoDuration = 'PT12H'; ScreenShareDuration = 'PT3H'
-            MeetingsOrganized = 25; MeetingsAttended = 77; ReportPeriod = 30
+            TeamChatMessages = $chat; PostMessages = [int]($chat * 0.57); ReplyMessages = $chat - [int]($chat * 0.57); PrivateChatMessages = 500 + ($n * 11) % 67
+            Calls = 24 + ($n * 5) % 13; Meetings = $meetings; AudioDuration = 'PT{0}H' -f (30 + ($n * 3) % 17); VideoDuration = 'PT{0}H' -f (9 + ($n * 5) % 7); ScreenShareDuration = 'PT{0}H' -f (2 + $n % 4)
+            MeetingsOrganized = [int]($meetings * 0.32); MeetingsAttended = $meetings; ReportPeriod = 30
         }
     }
 }

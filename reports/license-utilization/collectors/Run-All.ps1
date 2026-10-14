@@ -14,7 +14,8 @@
         report-settings.csv runs before the usage reports, so they can log that names are
         concealed. The per-user licence detail collector (source 3) makes one call per
         user and is optional: pass -IncludeLicenseDetails, and sign in as a person, since
-        the API does not support application permissions. Source 7 (the product-name
+        the API does not support application permissions. The PSTN call log (source 11) is
+        the opposite: it runs only when -AppId is given. Source 7 (the product-name
         reference) and source 8 (the admin center fallback) are not collectors.
 
     .EXAMPLE
@@ -82,7 +83,19 @@ $steps += @(
     @{ Name = 'usage-onedrive-activity'; Script = 'Get-OneDriveActivityUsage.ps1' }
     @{ Name = 'usage-m365-apps'; Script = 'Get-M365AppUsage.ps1' }
     @{ Name = 'usage-copilot'; Script = 'Get-CopilotUsage.ps1' }
+    @{ Name = 'access-reviews'; Script = 'Get-AccessReviews.ps1' }
+    @{ Name = 'attack-simulations'; Script = 'Get-AttackSimulations.ps1' }
 )
+# The PSTN call log is application-permission only
+# (https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls), so a run
+# signed in as a person leaves it out instead of failing the whole run.
+if ($AppId) {
+    $steps += @{ Name = 'teams-pstn-calls'; Script = 'Get-TeamsPstnCalls.ps1' }
+}
+else {
+    Write-CollectorLog -OutputPath $OutputPath -Level Warning -Source 'run-all' -Message (
+        'Skipping teams-pstn-calls.csv: the PSTN call log needs an application permission, so pass -AppId and -CertificateThumbprint.')
+}
 
 $failed = 0
 foreach ($step in $steps) {

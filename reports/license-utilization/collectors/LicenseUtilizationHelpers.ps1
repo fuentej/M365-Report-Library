@@ -434,9 +434,11 @@ function Get-GraphReportJsonPage {
             One page of a usage report requested as JSON. A GET.
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Uri)
+    param([Parameter(Mandatory)][string]$Uri, [hashtable]$Headers)
 
-    Invoke-MgGraphRequest -Method GET -Uri $Uri -ErrorAction Stop
+    $extra = @{}
+    if ($Headers -and $Headers.Count -gt 0) { $extra.Headers = $Headers }
+    Invoke-MgGraphRequest -Method GET -Uri $Uri @extra -ErrorAction Stop
 }
 
 function Get-GraphReportJson {
@@ -450,9 +452,11 @@ function Get-GraphReportJson {
             another host is refused rather than followed. Each item's details are
             flattened beside it, one object per detail, so the rows match the CSV form.
             https://learn.microsoft.com/graph/api/reportroot-getm365appuserdetail
+
+            Headers are sent on every page, including each next link.
     #>
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Uri)
+    param([Parameter(Mandatory)][string]$Uri, [hashtable]$Headers)
 
     $hostName = ([uri]$Uri).Host
     $next = $Uri
@@ -465,7 +469,7 @@ function Get-GraphReportJson {
             throw "The next link points at $(([uri]$next).Host), not $hostName. Refusing to follow it."
         }
 
-        $page = Get-GraphReportJsonPage -Uri $next
+        $page = Get-GraphReportJsonPage -Uri $next -Headers $Headers
         foreach ($item in @(Get-GraphAdditionalProperty -Object $page -Name 'value')) {
             if ($null -eq $item) { continue }
             $details = @(Get-GraphAdditionalProperty -Object $item -Name 'details')

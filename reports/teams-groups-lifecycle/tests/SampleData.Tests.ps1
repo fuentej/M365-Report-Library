@@ -121,6 +121,34 @@ Describe 'The sample data covers the cases the report pages ask about' {
         $operations = (Import-Csv -LiteralPath (Join-Path $script:Samples 'group-creation-events.csv')).Operation | Sort-Object -Unique
         $operations | Should -Be @('AddGroup', 'TeamCreated')
     }
+
+    It 'gives users managers who are themselves users, so a manager can be named' {
+        $users = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'users.csv') | Where-Object RunDate -EQ $script:Latest)
+        $withManager = @($users | Where-Object { $_.ManagerUserPrincipalName })
+        $withManager.Count | Should -BeGreaterThan 0
+        @($users | Where-Object { -not $_.ManagerUserPrincipalName }).Count | Should -BeGreaterThan 0
+        foreach ($user in $withManager) {
+            $manager = $users | Where-Object Id -EQ $user.ManagerId
+            $manager | Should -Not -BeNullOrEmpty -Because $user.UserPrincipalName
+            $manager.UserPrincipalName | Should -Be $user.ManagerUserPrincipalName
+            $manager.AccountEnabled | Should -Be 'True'
+        }
+    }
+
+    It 'has a creation event for every ownerless group, made by an enabled user with a manager' {
+        $users = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'users.csv') | Where-Object RunDate -EQ $script:Latest)
+        $events = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'group-creation-events.csv'))
+        $ownerless = @($script:Owners | Where-Object OwnerListStatus -EQ 'None')
+        $ownerless.Count | Should -BeGreaterThan 0
+        foreach ($owner in $ownerless) {
+            $event = @($events | Where-Object ObjectId -EQ $owner.GroupId)
+            $event.Count | Should -Be 1 -Because $owner.GroupId
+            $creator = $users | Where-Object UserPrincipalName -EQ $event[0].UserId
+            $creator | Should -Not -BeNullOrEmpty -Because $event[0].UserId
+            $creator.AccountEnabled | Should -Be 'True'
+            $creator.ManagerUserPrincipalName | Should -Not -BeNullOrEmpty
+        }
+    }
 }
 
 Describe 'New-SampleData.ps1 is deterministic' {

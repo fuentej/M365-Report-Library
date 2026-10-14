@@ -1,0 +1,113 @@
+table ItemPermissions
+    lineageTag: 6f220b62-bc22-4c72-a328-a46d997e3d66
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: ea0d4f3e-cb9d-49df-9cb7-6c724f4c9e10
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column SiteId
+        dataType: string
+        lineageTag: 10daf479-21de-4f5c-8acd-d53871c3431e
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column DriveId
+        dataType: string
+        lineageTag: 044d8bf8-2211-4a34-9f97-6a9a05d49af9
+        summarizeBy: none
+        sourceColumn: DriveId
+
+    column ItemId
+        dataType: string
+        lineageTag: b182931c-2cb8-4f04-a937-2d1927db31cc
+        summarizeBy: none
+        sourceColumn: ItemId
+
+    column ItemName
+        dataType: string
+        lineageTag: 88ffb857-d83a-483d-ae0a-eba4376ad0eb
+        summarizeBy: none
+        sourceColumn: ItemName
+
+    column ItemWebUrl
+        dataType: string
+        lineageTag: 1a6195f0-7799-4b51-a9bf-a2331094321c
+        summarizeBy: none
+        sourceColumn: ItemWebUrl
+
+    column PermissionId
+        dataType: string
+        lineageTag: 07cebd05-8de8-4ab9-9028-b9c29fe510e5
+        summarizeBy: none
+        sourceColumn: PermissionId
+
+    column Roles
+        dataType: string
+        lineageTag: 8b48fdfd-6f6d-4710-a67f-8ec4e5b9f114
+        summarizeBy: none
+        sourceColumn: Roles
+
+    column LinkScope
+        dataType: string
+        lineageTag: 636a0a26-766d-41eb-bc25-ff35413f89e2
+        summarizeBy: none
+        sourceColumn: LinkScope
+
+    column LinkType
+        dataType: string
+        lineageTag: f4e64964-3436-44ca-9e78-74da22f00c59
+        summarizeBy: none
+        sourceColumn: LinkType
+
+    column LinkPreventsDownload
+        dataType: boolean
+        lineageTag: 2f0b0ac2-2e8e-4d67-8a6e-dcbe91259e0b
+        summarizeBy: none
+        sourceColumn: LinkPreventsDownload
+
+    column HasPassword
+        dataType: boolean
+        lineageTag: c3b25877-8831-4f71-bb03-02505c1f45dd
+        summarizeBy: none
+        sourceColumn: HasPassword
+
+    column ExpirationDateTime
+        dataType: string
+        lineageTag: 16b9f35d-14e8-464c-8bf3-75b39fd2c3ae
+        summarizeBy: none
+        sourceColumn: ExpirationDateTime
+
+    column IsInherited
+        dataType: boolean
+        lineageTag: 2abb319c-16a2-4550-87b6-70116615c521
+        summarizeBy: none
+        sourceColumn: IsInherited
+
+    column InheritedFromItemId
+        dataType: string
+        lineageTag: dc2ac07b-ae84-402d-90b8-ad5dc221baea
+        summarizeBy: none
+        sourceColumn: InheritedFromItemId
+
+    column GrantedTo
+        dataType: string
+        lineageTag: 1789f954-b083-41da-a1e2-5ad5e42310b1
+        summarizeBy: none
+        sourceColumn: GrantedTo
+
+    partition ItemPermissions = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\item-permissions.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"LinkPreventsDownload", type logical}, {"HasPassword", type logical}, {"IsInherited", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -1,0 +1,171 @@
+table SignInsNonInteractive
+    lineageTag: 79d4dd30-4d73-4c40-b010-3f8be1033b1c
+
+    column CreatedDateTime
+        dataType: string
+        lineageTag: f25420fc-ade5-4efe-8479-1b71860a2e85
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 32b20207-9884-417b-b7e8-74e55ab50b4c
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: 0fc890d6-92c8-46e6-8a32-b860bc9b75bf
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 1524ddc1-3383-420e-8f3f-6d1a068384f1
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column AppId
+        dataType: string
+        lineageTag: 59f25671-5083-4291-9022-0fe0341d88c6
+        summarizeBy: none
+        sourceColumn: AppId
+
+    column AppDisplayName
+        dataType: string
+        lineageTag: 5ab11d4d-672e-4dce-be64-be6f2a37bd80
+        summarizeBy: none
+        sourceColumn: AppDisplayName
+
+    column ResourceDisplayName
+        dataType: string
+        lineageTag: 2de81c70-c95c-45bc-9147-fbd1f52cb1aa
+        summarizeBy: none
+        sourceColumn: ResourceDisplayName
+
+    column IpAddress
+        dataType: string
+        lineageTag: 2c00523e-6ec7-4e40-bd68-0dfb669f969c
+        summarizeBy: none
+        sourceColumn: IpAddress
+
+    column City
+        dataType: string
+        lineageTag: 27935c88-c05b-4b16-b89c-be022ae765b3
+        summarizeBy: none
+        sourceColumn: City
+
+    column State
+        dataType: string
+        lineageTag: ae543f24-e7a6-4d8e-8f71-b8c48789a7e3
+        summarizeBy: none
+        sourceColumn: State
+
+    column CountryOrRegion
+        dataType: string
+        lineageTag: f692ea6a-8db9-4e96-a1b9-4601f1c0fccb
+        summarizeBy: none
+        sourceColumn: CountryOrRegion
+
+    column ClientAppUsed
+        dataType: string
+        lineageTag: 311c31a9-ce8d-4bb8-b8c3-ae1019dd39cc
+        summarizeBy: none
+        sourceColumn: ClientAppUsed
+
+    column DeviceOperatingSystem
+        dataType: string
+        lineageTag: b023f09c-3cd6-47d3-a5ac-e8ef00721b01
+        summarizeBy: none
+        sourceColumn: DeviceOperatingSystem
+
+    column DeviceBrowser
+        dataType: string
+        lineageTag: 471dfcb9-2280-488d-a577-a36f38fc68e3
+        summarizeBy: none
+        sourceColumn: DeviceBrowser
+
+    column DeviceIsCompliant
+        dataType: string
+        lineageTag: afa93b25-ff0b-4b59-9978-f1f25ed2f241
+        summarizeBy: none
+        sourceColumn: DeviceIsCompliant
+
+    column DeviceIsManaged
+        dataType: string
+        lineageTag: 3fef1582-44d4-47ff-a3f9-7b27ff60805f
+        summarizeBy: none
+        sourceColumn: DeviceIsManaged
+
+    column IsInteractive
+        dataType: string
+        lineageTag: a913faa8-387e-4704-9e77-fcde78757ff0
+        summarizeBy: none
+        sourceColumn: IsInteractive
+
+    column SignInEventTypes
+        dataType: string
+        lineageTag: 3b64573d-3c6a-4a79-84b3-5c66169111d0
+        summarizeBy: none
+        sourceColumn: SignInEventTypes
+
+    column ErrorCode
+        dataType: string
+        lineageTag: 3da90d46-0ca3-463d-80b5-d0ef0cf24eb3
+        summarizeBy: none
+        sourceColumn: ErrorCode
+
+    column FailureReason
+        dataType: string
+        lineageTag: 33b99583-39f9-4aae-9f9a-06597c5efd7c
+        summarizeBy: none
+        sourceColumn: FailureReason
+
+    column AdditionalDetails
+        dataType: string
+        lineageTag: 204a3bba-5939-453b-ab21-a899aaecafa7
+        summarizeBy: none
+        sourceColumn: AdditionalDetails
+
+    column ConditionalAccessStatus
+        dataType: string
+        lineageTag: 4f22362a-e77e-486f-88e5-f8bdc8fc5566
+        summarizeBy: none
+        sourceColumn: ConditionalAccessStatus
+
+    column RiskDetail
+        dataType: string
+        lineageTag: b00e71b3-59b2-48ae-a2ea-d9fbda20b99e
+        summarizeBy: none
+        sourceColumn: RiskDetail
+
+    column RiskLevelAggregated
+        dataType: string
+        lineageTag: 15097980-2304-4c81-a617-65a9ff599ede
+        summarizeBy: none
+        sourceColumn: RiskLevelAggregated
+
+    column RiskLevelDuringSignIn
+        dataType: string
+        lineageTag: 5ef5bfe1-68c2-4180-a4da-c7c1eb202b08
+        summarizeBy: none
+        sourceColumn: RiskLevelDuringSignIn
+
+    column RiskState
+        dataType: string
+        lineageTag: 1bff9671-5f8f-4d6d-b2f7-a0b43f902fb9
+        summarizeBy: none
+        sourceColumn: RiskState
+
+    partition SignInsNonInteractive = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\signins-noninteractive.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table

@@ -319,3 +319,63 @@ foreach ($key in $usageFiles.Keys) {
     # collector writes the header only.
     Export-AppendCsv -Path (Join-Path $OutputPath "gcchigh/$($usageFiles[$key].Csv)") -Column $columns
 }
+
+# License value features (sources 9 to 11). Fixed values, no random draws, so the files
+# above do not change when these are added.
+$reviewRows = foreach ($runDate in $runDates) {
+    [pscustomobject]@{
+        RunDate = $runDate; DefinitionId = '5b1c2d3e-0001-4a6b-8c7d-9e0f1a2b3c4d'
+        DisplayName = 'Quarterly review of guest access across Microsoft 365 groups'; Status = 'InProgress'
+        ScopeQuery = "./members/microsoft.graph.user/?`$count=true&`$filter=(userType eq 'Guest')"
+        ReviewerCount = 1; RecurrencePattern = 'absoluteMonthly'
+        AutoApplyDecisionsEnabled = 'True'; RecommendationsEnabled = 'True'
+    }
+    [pscustomobject]@{
+        RunDate = $runDate; DefinitionId = '5b1c2d3e-0002-4a6b-8c7d-9e0f1a2b3c4d'
+        DisplayName = 'Review of privileged role assignments'; Status = 'NotStarted'
+        ScopeQuery = '/roleManagement/directory/roleAssignmentScheduleInstances'
+        ReviewerCount = 2; RecurrencePattern = 'absoluteMonthly'
+        AutoApplyDecisionsEnabled = 'False'; RecommendationsEnabled = 'True'
+    }
+}
+Export-AppendCsv -Path (Join-Path $OutputPath 'access-reviews.csv') -Rows @($reviewRows) `
+    -Column $schema.AccessReviewDefinitions -KeyColumn @('RunDate', 'DefinitionId')
+
+$simulationRows = foreach ($runDate in $runDates) {
+    [pscustomobject]@{
+        RunDate = $runDate; SimulationId = '6c2d3e4f-0001-4b7c-9d8e-0f1a2b3c4d5e'
+        DisplayName = 'Credential harvest, finance team'; AttackType = 'social'; AttackTechnique = 'credentialHarvesting'
+        Status = 'succeeded'; IsAutomated = 'False'; PayloadDeliveryPlatform = 'email'
+        LaunchDateTime = '2026-07-07T13:00:00Z'; CompletionDateTime = '2026-07-14T13:00:00Z'
+    }
+    [pscustomobject]@{
+        RunDate = $runDate; SimulationId = '6c2d3e4f-0002-4b7c-9d8e-0f1a2b3c4d5e'
+        DisplayName = 'Malware attachment, all staff'; AttackType = 'social'; AttackTechnique = 'attachmentMalware'
+        Status = 'scheduled'; IsAutomated = 'True'; PayloadDeliveryPlatform = 'email'
+        LaunchDateTime = '2026-09-15T13:00:00Z'; CompletionDateTime = '2026-09-22T13:00:00Z'
+    }
+}
+Export-AppendCsv -Path (Join-Path $OutputPath 'attack-simulations.csv') -Rows @($simulationRows) `
+    -Column $schema.AttackSimulations -KeyColumn @('RunDate', 'SimulationId')
+# GCC High: the Graph page marks the source unavailable, so the collector writes the header only.
+Export-AppendCsv -Path (Join-Path $OutputPath 'gcchigh/attack-simulations.csv') -Column $schema.AttackSimulations
+
+$pstnRows = @(
+    [pscustomobject]@{
+        RunDate = $runDates[-1]; CallRowId = '7d3e4f50-0001-4c8d-ae9f-1a2b3c4d5e6f'; UserId = $users[0].Id; UserPrincipalName = $users[0].Upn
+        StartDateTime = '2026-08-27T14:02:11Z'; DurationSeconds = '219'; CallType = 'user_out'; UsageCountryCode = 'US'
+        LicenseCapability = 'MCOPSTNU'; InventoryType = 'Subscriber'
+    }
+    [pscustomobject]@{
+        RunDate = $runDates[-1]; CallRowId = '7d3e4f50-0002-4c8d-ae9f-1a2b3c4d5e6f'; UserId = $users[1].Id; UserPrincipalName = $users[1].Upn
+        StartDateTime = '2026-08-28T09:41:50Z'; DurationSeconds = '64'; CallType = 'user_in'; UsageCountryCode = 'US'
+        LicenseCapability = 'MCOPSTNU'; InventoryType = 'Subscriber'
+    }
+    [pscustomobject]@{
+        RunDate = $runDates[-1]; CallRowId = '7d3e4f50-0003-4c8d-ae9f-1a2b3c4d5e6f'; UserId = $users[2].Id; UserPrincipalName = $users[2].Upn
+        StartDateTime = '2026-08-30T16:20:03Z'; DurationSeconds = '842'; CallType = 'user_out'; UsageCountryCode = 'US'
+        LicenseCapability = 'MCOPSTNU'; InventoryType = 'Subscriber'
+    }
+)
+Export-AppendCsv -Path (Join-Path $OutputPath 'teams-pstn-calls.csv') -Rows $pstnRows `
+    -Column $schema.TeamsPstnCalls -KeyColumn @('RunDate', 'CallRowId')

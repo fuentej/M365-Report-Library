@@ -88,6 +88,52 @@
         'DisplayConcealedNames'
     )
 
+    # Source 9. The E5 step-up feature "Access reviews" on the License value page.
+    # accessReviewScheduleDefinition: https://learn.microsoft.com/graph/api/accessreviewset-list-definitions
+    # ReviewerCount is the length of reviewers; RecurrencePattern is settings.recurrence.pattern.type.
+    AccessReviewDefinitions = @(
+        'RunDate'
+        'DefinitionId'
+        'DisplayName'
+        'Status'
+        'ScopeQuery'
+        'ReviewerCount'
+        'RecurrencePattern'
+        'AutoApplyDecisionsEnabled'
+        'RecommendationsEnabled'
+    )
+
+    # Source 10. The E5 step-up feature "Defender for Office P2" (Attack simulation training).
+    # simulation: https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations
+    AttackSimulations = @(
+        'RunDate'
+        'SimulationId'
+        'DisplayName'
+        'AttackType'
+        'AttackTechnique'
+        'Status'
+        'IsAutomated'
+        'PayloadDeliveryPlatform'
+        'LaunchDateTime'
+        'CompletionDateTime'
+    )
+
+    # Source 11. The E5 step-up feature "Teams Phone". One row per PSTN call in the window.
+    # The caller and callee numbers are not collected. pstnCallLogRow:
+    # https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls
+    TeamsPstnCalls = @(
+        'RunDate'
+        'CallRowId'
+        'UserId'
+        'UserPrincipalName'
+        'StartDateTime'
+        'DurationSeconds'
+        'CallType'
+        'UsageCountryCode'
+        'LicenseCapability'
+        'InventoryType'
+    )
+
     # Sources 5a to 5g. The headers of each usage report, copied from the Learn page's
     # CSV schema. A CSV column is RunDate, then each header with the characters that
     # are not letters or digits removed and each word capitalised (Outlook (Windows)
@@ -184,6 +230,9 @@
         M365AppUsage            = @('Reports.Read.All')
         CopilotUsage            = @('Reports.Read.All')
         ReportSettings          = @('ReportSettings.Read.All')
+        AccessReviewDefinitions = @('AccessReview.Read.All')
+        AttackSimulations       = @('AttackSimulation.Read.All')
+        TeamsPstnCalls          = @('CallRecords.Read.All')
     }
 
     # Availability per source and cloud, from the contract's source table.
@@ -255,6 +304,25 @@
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/adminreportsettings-get' }
             GCC        = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/deployments' }
             GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports' }
+        }
+        # Access reviews: available in US Government L4 and L5 per the page.
+        AccessReviewDefinitions = @{
+            Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/accessreviewset-list-definitions' }
+            GCC        = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/deployments' }
+            GCCHigh    = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/accessreviewset-list-definitions' }
+        }
+        # Attack simulations: the page marks US Government L4 and L5 unavailable. It does not
+        # say GCC; GCC calls the global service, so it is attempted with a warning.
+        AttackSimulations = @{
+            Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations' }
+            GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations' }
+            GCCHigh    = @{ Status = 'NotAvailable'; Reference = 'https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations' }
+        }
+        # PSTN calls: available in US Government L4 and L5. Application permission only.
+        TeamsPstnCalls = @{
+            Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls' }
+            GCC        = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/deployments' }
+            GCCHigh    = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls' }
         }
     }
 }
