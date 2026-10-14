@@ -1,0 +1,103 @@
+table CopilotAuditEvents
+    lineageTag: b8229b28-9b50-4752-83ad-b31fbd4139da
+
+    column CreationTime
+        dataType: string
+        lineageTag: 535db459-81ce-4fb0-8bca-e7b7ef1d0a35
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column Id
+        dataType: string
+        lineageTag: 8e2fc15d-12d1-4d15-8460-391cf2d9bb6e
+        summarizeBy: none
+        sourceColumn: Id
+
+    column UserId
+        dataType: string
+        lineageTag: fddc6ac7-0762-4777-9227-581b53573835
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Operation
+        dataType: string
+        lineageTag: d319518a-ed78-4cf5-bdfa-edd5a2611824
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column RecordType
+        dataType: string
+        lineageTag: b72309ba-2387-4126-8e89-6ab272f10eeb
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Workload
+        dataType: string
+        lineageTag: 33e1d7d8-1fcd-4e81-a52f-75294d51b132
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column AppHost
+        dataType: string
+        lineageTag: 3f2ec359-88b7-4bf6-8c93-34ac0c1cfad1
+        summarizeBy: none
+        sourceColumn: AppHost
+
+    column AppIdentity
+        dataType: string
+        lineageTag: 778a6e30-5503-4928-8601-b223a69b2a5b
+        summarizeBy: none
+        sourceColumn: AppIdentity
+
+    column AgentId
+        dataType: string
+        lineageTag: 5c9d7a8c-0c1f-421d-a5cf-b3b0ac6c87db
+        summarizeBy: none
+        sourceColumn: AgentId
+
+    column AgentName
+        dataType: string
+        lineageTag: 5521112a-eae3-4e31-be67-2c58e525d51c
+        summarizeBy: none
+        sourceColumn: AgentName
+
+    column MessageCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: a5b63006-0360-4595-861b-fc6d5060f05a
+        summarizeBy: none
+        sourceColumn: MessageCount
+
+    column PromptMessageCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: 8d304cf3-3bf5-4d7c-970d-7a92570d9d9a
+        summarizeBy: none
+        sourceColumn: PromptMessageCount
+
+    column AccessedResourceCount
+        dataType: int64
+        formatString: #,0
+        lineageTag: b425b303-1ce7-4f12-8842-f376a1f08eb3
+        summarizeBy: none
+        sourceColumn: AccessedResourceCount
+
+    column PluginIds
+        dataType: string
+        lineageTag: 4de45aa9-cc27-42ef-8ec6-316dff43dfac
+        summarizeBy: none
+        sourceColumn: PluginIds
+
+    partition CopilotAuditEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\copilot-audit-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"MessageCount", Int64.Type}, {"PromptMessageCount", Int64.Type}, {"AccessedResourceCount", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
