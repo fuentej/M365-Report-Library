@@ -218,21 +218,23 @@ table UsersCurrent
         displayFolder: Accounts to fix
         lineageTag: e090b535-8199-5204-b83f-06c814068105
 
-    /// Table order, worst first: fix-now reason 1 to 3, then other accounts with a successful legacy sign-in, then active role holders, then the rest; inside each group most legacy sign-ins first, then by the name shown.
+    /// Table order, worst first: fix-now reason 1 to 3, then other accounts with a successful legacy sign-in, then active role holders, then the rest; inside each group most legacy sign-ins first, then by the name shown, then by Id so every account has its own key (the table has one row per key; accounts that shared a key would merge into one row with blank cells).
     measure 'Fix Sort Key' = 
             VAR GroupNo = [Fix Reason]
             VAR LegacyOk = [Legacy Sign-Ins Succeeded] + 0
             VAR Band = IF(GroupNo > 0, GroupNo, IF(LegacyOk > 0, 4, IF([Fix Has Active Role] = 1, 5, 6)))
             VAR ShownName = [User Display Name]
             VAR ModeShown = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR UserKey = SELECTEDVALUE(UsersCurrent[Id])
             VAR NamePosition =
                 COUNTROWS(
                     FILTER(
                         ALL(UsersCurrent),
                         IF(ModeShown = "Anonymize", UsersCurrent[Pseudonym], UsersCurrent[DisplayName]) < ShownName
+                            || (IF(ModeShown = "Anonymize", UsersCurrent[Pseudonym], UsersCurrent[DisplayName]) = ShownName && UsersCurrent[Id] < UserKey)
                     )
                 ) + 1
-            RETURN IF(HASONEVALUE(UsersCurrent[Id]), Band * 100000 + (99 - MIN(LegacyOk, 99)) * 1000 + NamePosition)
+            RETURN IF(HASONEVALUE(UsersCurrent[Id]), Band * 10000000000 + (99 - MIN(LegacyOk, 99)) * 10000000 + NamePosition)
         formatString: 0
         displayFolder: Accounts to fix
         lineageTag: 2ac51511-f7e3-551e-a010-9fb668e21c53

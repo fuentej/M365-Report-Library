@@ -483,6 +483,19 @@ Describe 'The report has the approved Accounts to fix page and its filter' {
         $table.visual.query.sortDefinition.sort[0].direction | Should -Be 'Ascending'
     }
 
+    It 'gives every account its own Fix Order, so no two accounts merge into one table row' {
+        # The table has Fix Order as its only column; two accounts with one key (same name, same
+        # band, same legacy count) would show as one row with blank cells and drop out of the list.
+        $measure = [regex]::Match($script:UsersTmdl, "measure 'Fix Sort Key' =[\s\S]*?lineageTag").Value
+        $measure | Should -Not -BeNullOrEmpty
+        $measure | Should -Match ([regex]::Escape('UsersCurrent[Id] < UserKey'))
+        # Bands are scaled so the name position (1 to the number of accounts) cannot reach the legacy count digits.
+        $scales = [regex]::Match($measure, 'Band \* (\d+) \+ \(99 - MIN\(LegacyOk, 99\)\) \* (\d+) \+ NamePosition')
+        $scales.Success | Should -BeTrue
+        [int64]$scales.Groups[2].Value | Should -BeGreaterOrEqual 1000000
+        [int64]$scales.Groups[1].Value | Should -BeGreaterOrEqual (100 * [int64]$scales.Groups[2].Value)
+    }
+
     It 'flags fix now only with a successful legacy sign-in, as the footnote says' {
         $script:UsersTmdl | Should -Match ([regex]::Escape('LegacyOk > 0 && [Fix At Risk] = 1 && [Fix No MFA] = 1, 1,'))
         $script:UsersTmdl | Should -Match ([regex]::Escape('LegacyOk > 0 && [Fix Has Active Role] = 1, 2,'))
