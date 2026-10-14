@@ -1,0 +1,99 @@
+table AuditActivityFeed
+    lineageTag: 44e5c880-ffb9-432e-afe4-e73bd1fa0c5e
+
+    column ContentCreated
+        dataType: string
+        lineageTag: 988151a5-cef4-4df7-8854-4ba15d007ccc
+        summarizeBy: none
+        sourceColumn: ContentCreated
+
+    column ContentType
+        dataType: string
+        lineageTag: d467e6c6-b703-4795-aeca-75c2d3718c8c
+        summarizeBy: none
+        sourceColumn: ContentType
+
+    column ContentId
+        dataType: string
+        lineageTag: 00819f0c-7b00-4631-8627-8bc339151e7b
+        summarizeBy: none
+        sourceColumn: ContentId
+
+    column CreationTime
+        dataType: string
+        lineageTag: d9d42c05-7f7a-47f9-8e00-17125b8dbf75
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column RecordId
+        dataType: string
+        lineageTag: 248c0b65-b9be-43d2-8e8b-58b583f6ed77
+        summarizeBy: none
+        sourceColumn: RecordId
+
+    column RecordType
+        dataType: string
+        lineageTag: fb9fd58a-497d-4c9b-9ab9-b2c29bb6b9b8
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Operation
+        dataType: string
+        lineageTag: 04a19340-4292-42af-9666-f771fa848ab8
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column Workload
+        dataType: string
+        lineageTag: 982c99e0-19f5-4935-9f18-d122901828e7
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column UserId
+        dataType: string
+        lineageTag: 9ce04b5e-3eb1-40ab-a59d-47d68fdd8233
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column ObjectId
+        dataType: string
+        lineageTag: 96fdf42c-b3a8-47ad-aa4f-66f4b404834a
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column ClientIP
+        dataType: string
+        lineageTag: 1789a305-cb90-49b1-9f22-9fedb3a4423a
+        summarizeBy: none
+        sourceColumn: ClientIP
+
+    column ResultStatus
+        dataType: string
+        lineageTag: 606dede2-2d5d-44f4-9d70-c861ea146a1b
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column OrganizationId
+        dataType: string
+        lineageTag: 174850a0-12e4-49fb-adbc-1a8d4392372c
+        summarizeBy: none
+        sourceColumn: OrganizationId
+
+    column AuditData
+        dataType: string
+        lineageTag: 2b747a78-97e2-4036-8734-c90d5187dd47
+        summarizeBy: none
+        sourceColumn: AuditData
+
+    partition AuditActivityFeed = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-activity-feed.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
