@@ -1,0 +1,123 @@
+table DirectoryAudits
+    lineageTag: fa1b23e6-5144-494d-80c6-39c3ba45c8e6
+
+    column ActivityDateTime
+        dataType: string
+        lineageTag: b7bfefd4-c0a3-42ce-8e76-cb93f7c844fd
+        summarizeBy: none
+        sourceColumn: ActivityDateTime
+
+    column Id
+        dataType: string
+        lineageTag: f3bef360-dfe2-43e5-9927-998e5dc93788
+        summarizeBy: none
+        sourceColumn: Id
+
+    column ActivityDisplayName
+        dataType: string
+        lineageTag: dd8c0763-70ca-44ed-8cfd-eb89af41144e
+        summarizeBy: none
+        sourceColumn: ActivityDisplayName
+
+    column Category
+        dataType: string
+        lineageTag: de4f17ad-4143-46ef-9462-b90bf494429c
+        summarizeBy: none
+        sourceColumn: Category
+
+    column OperationType
+        dataType: string
+        lineageTag: a464a670-f11f-48c0-a09e-8db26665227a
+        summarizeBy: none
+        sourceColumn: OperationType
+
+    column Result
+        dataType: string
+        lineageTag: b395f2f1-1a4a-435a-99fc-09c90c58da00
+        summarizeBy: none
+        sourceColumn: Result
+
+    column ResultReason
+        dataType: string
+        lineageTag: a17742bf-51b8-48c1-ba2f-098624bdf400
+        summarizeBy: none
+        sourceColumn: ResultReason
+
+    column LoggedByService
+        dataType: string
+        lineageTag: 063b5fa2-628d-44ea-900a-41d8725d02a2
+        summarizeBy: none
+        sourceColumn: LoggedByService
+
+    column CorrelationId
+        dataType: string
+        lineageTag: 2ce84914-2a26-4f2c-8c61-c588ca743398
+        summarizeBy: none
+        sourceColumn: CorrelationId
+
+    column InitiatedByUserId
+        dataType: string
+        lineageTag: d6a71867-182a-48b2-8474-bc1c863968cf
+        summarizeBy: none
+        sourceColumn: InitiatedByUserId
+
+    column InitiatedByUserPrincipalName
+        dataType: string
+        lineageTag: 82eec22d-c6b7-42d4-aee3-e0747f10a56b
+        summarizeBy: none
+        sourceColumn: InitiatedByUserPrincipalName
+
+    column InitiatedByAppId
+        dataType: string
+        lineageTag: fc67582a-1a7b-409e-be31-4354af6d33b9
+        summarizeBy: none
+        sourceColumn: InitiatedByAppId
+
+    column InitiatedByAppDisplayName
+        dataType: string
+        lineageTag: 72813c7a-be54-4306-accb-2286d6d3ad51
+        summarizeBy: none
+        sourceColumn: InitiatedByAppDisplayName
+
+    column TargetResourceTypes
+        dataType: string
+        lineageTag: 52e3b578-451d-48db-aab8-70884c14bba8
+        summarizeBy: none
+        sourceColumn: TargetResourceTypes
+
+    column TargetResourceIds
+        dataType: string
+        lineageTag: 303e9938-7d40-4a51-8ef4-d2dd7f7e51c9
+        summarizeBy: none
+        sourceColumn: TargetResourceIds
+
+    column TargetResourceDisplayNames
+        dataType: string
+        lineageTag: e0ed0990-c634-4606-957d-c49e9579e1f8
+        summarizeBy: none
+        sourceColumn: TargetResourceDisplayNames
+
+    column TargetResourceUserPrincipalNames
+        dataType: string
+        lineageTag: 1aaa2a04-20b0-49fa-be4e-6b33009c7c38
+        summarizeBy: none
+        sourceColumn: TargetResourceUserPrincipalNames
+
+    column ModifiedProperties
+        dataType: string
+        lineageTag: 62b2d173-5287-41b9-b7f1-031379e94324
+        summarizeBy: none
+        sourceColumn: ModifiedProperties
+
+    partition DirectoryAudits = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\directory-audits.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
