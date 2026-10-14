@@ -1,0 +1,125 @@
+table TeamsDeviceUsageUserDetail
+    lineageTag: 70f101a6-46a7-43c2-b497-93e8a301490d
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1ba73fa5-0ac4-4b4a-9b86-07244a20a39a
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column QueryDate
+        dataType: string
+        lineageTag: 0914e9bc-80fb-4052-98b9-1245849d1347
+        summarizeBy: none
+        sourceColumn: QueryDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: dae408ca-b33b-4b6e-b533-7ed18995ff39
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserId
+        dataType: string
+        lineageTag: 306efdd7-b954-485b-874a-067bfe267c79
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 361d9603-e1b8-45df-bbcb-c3424585a9fa
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: a8631f59-7ab7-431e-a8b6-05ee9a33716f
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 780a0015-2d5a-4c75-aaae-634bcc8095b0
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: 1479b166-7d89-4fff-b64c-d8a4d16917f1
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column UsedWeb
+        dataType: string
+        lineageTag: 11c78889-9c85-4f12-8432-875cc8e93f07
+        summarizeBy: none
+        sourceColumn: UsedWeb
+
+    column UsedWindowsPhone
+        dataType: string
+        lineageTag: c40d3972-4a54-4a53-9b8e-11eb5bc55bdb
+        summarizeBy: none
+        sourceColumn: UsedWindowsPhone
+
+    column UsediOS
+        dataType: string
+        lineageTag: ecc469a3-7a7e-4e05-a7ce-9dca68788162
+        summarizeBy: none
+        sourceColumn: UsediOS
+
+    column UsedMac
+        dataType: string
+        lineageTag: 66fc0a12-5ca1-4c91-84cf-505f7cebd12a
+        summarizeBy: none
+        sourceColumn: UsedMac
+
+    column UsedAndroidPhone
+        dataType: string
+        lineageTag: eb0deb4c-a544-4413-b67e-3f41360143f7
+        summarizeBy: none
+        sourceColumn: UsedAndroidPhone
+
+    column UsedWindows
+        dataType: string
+        lineageTag: 67d5f5b5-0bb3-48d7-b565-08d89a2265e4
+        summarizeBy: none
+        sourceColumn: UsedWindows
+
+    column UsedChromeOS
+        dataType: string
+        lineageTag: cd707da2-f7fc-4c1b-ae1e-236a997dcce4
+        summarizeBy: none
+        sourceColumn: UsedChromeOS
+
+    column UsedLinux
+        dataType: string
+        lineageTag: 92fb4b8c-e000-4d18-a6e6-3d90502e696f
+        summarizeBy: none
+        sourceColumn: UsedLinux
+
+    column IsLicensed
+        dataType: string
+        lineageTag: 2c4d1590-1afd-4064-ad8a-3c1461e337b0
+        summarizeBy: none
+        sourceColumn: IsLicensed
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 80983f81-40fb-4fed-8baa-7a09e1f3f9e2
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition TeamsDeviceUsageUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\teams-device-usage-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
