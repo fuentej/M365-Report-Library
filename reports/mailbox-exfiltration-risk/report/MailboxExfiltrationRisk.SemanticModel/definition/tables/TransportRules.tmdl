@@ -105,6 +105,54 @@ table TransportRules
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Exit routes: the first target domain that is not an accepted domain, for a rule whose target is outside.
+    column OutsideDomain =
+            VAR P = SUBSTITUTE(LOWER(TransportRules[TargetDomains]), ";", "|")
+            VAR Items = ADDCOLUMNS(GENERATESERIES(1, MAX(1, PATHLENGTH(P))), "Dom", TRIM(PATHITEM(P, [Value])))
+            VAR Outside = FILTER(Items, VAR Candidate = [Dom] RETURN Candidate <> "" && NOT (COUNTROWS(FILTER(ALL(AcceptedDomains[DomainName]), VAR AcceptedName = LOWER(AcceptedDomains[DomainName]) RETURN AcceptedName = Candidate || (LEFT(AcceptedName, 2) = "*." && RIGHT(Candidate, LEN(AcceptedName) - 1) = MID(AcceptedName, 2, 300)))) > 0))
+            VAR FirstOutside = MINX(TOPN(1, Outside, [Value], ASC), [Dom])
+            RETURN IF(TransportRules[HasExternalTarget] = TRUE() && P <> "", IF(ISBLANK(FirstOutside), PATHITEM(P, 1), FirstOutside))
+        dataType: string
+        isHidden
+        lineageTag: 0eb38c25-f1de-489f-a1df-e69da6a0a49d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: an enabled mail flow rule that sends mail to an outside domain.
+    column OutsideRoute = TransportRules[State] = "Enabled" && TransportRules[HasExternalTarget] = TRUE()
+        dataType: boolean
+        isHidden
+        lineageTag: 7f038958-dd4b-4e0c-b9fa-2fd413014677
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: an outside mail flow rule in the latest run (live).
+    column ExitRoute = TransportRules[OutsideRoute] && TransportRules[RunDate] = MAX(TransportRules[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: 23cbf45b-ed18-41ef-b42a-0b017358019f
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the rule name, the key an audit event can match.
+    column RouteKey = "mfr|" & LOWER(TransportRules[Name])
+        dataType: string
+        isHidden
+        lineageTag: e40cd6a1-5e4b-492f-a456-645c617193b1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the last run in which an outside mail flow rule was seen, when it is gone from the latest run.
+    column GhostRoute =
+            VAR ThisKey = TransportRules[RouteKey]
+            VAR Seen = FILTER(ALL(TransportRules[RouteKey], TransportRules[RunDate], TransportRules[OutsideRoute]), TransportRules[RouteKey] = ThisKey && TransportRules[OutsideRoute])
+            RETURN TransportRules[OutsideRoute] && TransportRules[RunDate] < MAX(TransportRules[RunDate]) && TransportRules[RunDate] = MAXX(Seen, TransportRules[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: aaf6f637-b322-4b50-b385-175373ab56d3
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
     measure 'TransportRules Snapshot Date' = CALCULATE(MAX(TransportRules[RunDate]), ALLSELECTED(TransportRules))
         formatString: Short Date

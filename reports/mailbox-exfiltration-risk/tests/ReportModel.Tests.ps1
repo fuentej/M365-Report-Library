@@ -46,6 +46,7 @@ BeforeAll {
         MailboxChangeEvents = 'mailbox-change-events.csv'
         MailAccessEvents   = 'mail-access-events.csv'
         AuditConfiguration = 'audit-configuration.csv'
+        OutboundSpamPolicies = 'outbound-spam-policies.csv'
     }
 
     function Get-VisualFieldReference {
@@ -97,15 +98,16 @@ AfterAll {
 }
 
 Describe 'The semantic model has tables to check' {
-    It 'parses the thirteen CSV-backed tables plus the calculated and helper tables' {
-        $script:Model.Keys.Count | Should -Be 17
+    It 'parses the fourteen CSV-backed tables plus the calculated and helper tables' {
+        $script:Model.Keys.Count | Should -Be 18
         foreach ($name in $script:CsvBackedTables.Keys + @('UsersCurrent', 'Apps', 'DateDim', 'AnonymizeMode')) {
             $script:Model.ContainsKey($name) | Should -BeTrue -Because "the model should have a $name table"
         }
     }
 
     It 'finds visual.json files to check' {
-        $script:VisualFiles.Count | Should -BeGreaterThan 80
+        # The one approved Exit routes page (BRO-514) has 36 visuals.
+        $script:VisualFiles.Count | Should -BeGreaterThan 30
     }
 
     It 'lists every table in model.tmdl' {
@@ -132,7 +134,8 @@ Describe 'Every visual field reference resolves against the TMDL model' {
 
     It 'has field references to check' {
         # Guards the tests below against silently passing because nothing was found.
-        $script:AllReferences.Count | Should -BeGreaterThan 100
+        # The Exit routes page (BRO-514) binds 10 measures: most of the page is two SVG measures.
+        $script:AllReferences.Count | Should -BeGreaterThan 8
     }
 
     It 'references only tables that exist in the model' {
@@ -200,7 +203,7 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'Users' }, @{ Table = 'AcceptedDomains' }, @{ Table = 'MailboxForwarding' }, @{ Table = 'SendOnBehalf' },
         @{ Table = 'InboxRules' }, @{ Table = 'TransportRules' }, @{ Table = 'MailboxFullAccess' }, @{ Table = 'SendAsPermissions' },
         @{ Table = 'DelegatedConsents' }, @{ Table = 'AppRoleAssignments' }, @{ Table = 'MailboxChangeEvents' },
-        @{ Table = 'MailAccessEvents' }, @{ Table = 'AuditConfiguration' }
+        @{ Table = 'MailAccessEvents' }, @{ Table = 'AuditConfiguration' }, @{ Table = 'OutboundSpamPolicies' }
     ) {
         $script:Model.ContainsKey($Table) | Should -BeTrue -Because "the model should have a $Table table"
 
@@ -218,15 +221,14 @@ Describe 'Every CSV-backed table matches its sample CSV' {
     }
 
     It 'names every CSV-backed table exactly once' {
-        $script:CsvBackedTables.Keys.Count | Should -Be 13
-        (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 13
+        $script:CsvBackedTables.Keys.Count | Should -Be 14
+        (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 14
     }
 
-    It 'maps every sample CSV the collectors write to a table, apart from those collected before the report reads them' {
-        # outbound-spam-policies.csv (BRO-496) is collected for the approved Exit routes page; its
-        # table is added in the report's design pass, not in the collector change.
-        $notYetInReport = @('outbound-spam-policies.csv')
-        $samples = @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -File | ForEach-Object Name | Where-Object { $_ -notin $notYetInReport } | Sort-Object)
+    It 'maps every sample CSV the collectors write to a table' {
+        # outbound-spam-policies.csv (BRO-496) is read by the OutboundSpamPolicies table the Exit routes
+        # page (BRO-514) added for its ONE FIX.
+        $samples = @(Get-ChildItem -LiteralPath $script:Samples -Filter '*.csv' -File | ForEach-Object Name | Sort-Object)
         $samples -join ',' | Should -Be ((@($script:CsvBackedTables.Values) | Sort-Object) -join ',')
     }
 
@@ -234,7 +236,7 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'Users' }, @{ Table = 'AcceptedDomains' }, @{ Table = 'MailboxForwarding' }, @{ Table = 'SendOnBehalf' },
         @{ Table = 'InboxRules' }, @{ Table = 'TransportRules' }, @{ Table = 'MailboxFullAccess' }, @{ Table = 'SendAsPermissions' },
         @{ Table = 'DelegatedConsents' }, @{ Table = 'AppRoleAssignments' }, @{ Table = 'MailboxChangeEvents' },
-        @{ Table = 'MailAccessEvents' }, @{ Table = 'AuditConfiguration' }
+        @{ Table = 'MailAccessEvents' }, @{ Table = 'AuditConfiguration' }, @{ Table = 'OutboundSpamPolicies' }
     ) {
         Get-TableText -Name $Table | Should -Match ([regex]::Escape('File.Contents(CsvFolder & "\' + $script:CsvBackedTables[$Table] + '")'))
     }
@@ -274,9 +276,12 @@ Describe 'Internal and external forwarding are separated' {
         }
     }
 
-    It 'shows forwarding on the forwarding page by destination type' {
-        $path = Join-Path $script:PagesFolder 'mailbox-forwarding/visuals/column-by-destination/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'MailboxForwarding.DestinationType'
+    It 'counts only outside routes on the Exit routes page' {
+        # BRO-514 removed the forwarding page that charted DestinationType. The page counts a
+        # forward only when IsExternal is True, and a rule only when HasExternalTarget is True.
+        (Get-TableText -Name 'MailboxForwarding') | Should -Match ([regex]::Escape('column OutsideRoute = MailboxForwarding[IsExternal] = TRUE()'))
+        (Get-TableText -Name 'InboxRules') | Should -Match ([regex]::Escape('InboxRules[ForwardsMail] && InboxRules[HasExternalTarget] = TRUE()'))
+        (Get-TableText -Name 'TransportRules') | Should -Match ([regex]::Escape('TransportRules[State] = "Enabled" && TransportRules[HasExternalTarget] = TRUE()'))
     }
 }
 
@@ -352,7 +357,7 @@ Describe 'Relationships' {
     }
 
     It 'declares relationships' {
-        $script:Relationships.Count | Should -Be 24
+        $script:Relationships.Count | Should -Be 25
     }
 
     It 'uses unique relationship ids' {
@@ -453,35 +458,36 @@ Describe 'The anonymize toggle' {
     }
 }
 
-Describe 'The pages say what the data cannot show' {
-    It 'says hidden inbox rules are read but not flagged' {
-        $path = Join-Path $script:PagesFolder 'inbox-rules/visuals/bar-by-domain/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'hidden rules are read but not flagged'
+Describe 'The page says what the data cannot show' {
+    # BRO-514 replaced the seven pages these checks used to read with the approved Exit routes
+    # page. Checks that read the removed delegation, application access and change history pages
+    # (Send As group join, tenant-wide consent approver, dated event lines) go with them; page 2
+    # (Who else can read the mail) is a later design pass. The model checks stay.
+    BeforeAll {
+        $script:Forwarding = Get-TableText -Name 'MailboxForwarding'
+        $script:PageText = (@(Get-ChildItem -LiteralPath $script:PagesFolder -Filter visual.json -Recurse |
+                    ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw })) -join "`n"
+        function Get-MeasureText {
+            param([string]$Text, [string]$Name)
+            $match = [regex]::Match($Text, "(?s)measure '" + [regex]::Escape($Name) + "' =(.*?)\r?\n        (formatString|displayFolder):")
+            $match.Success | Should -BeTrue -Because "measure $Name should exist"
+            $match.Groups[1].Value
+        }
     }
 
-    It 'says who approved a tenant-wide consent is not collected' {
-        $path = Join-Path $script:PagesFolder 'application-access/visuals/column-by-consent/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'who approved a tenant-wide grant is not collected'
-    }
-
-    It 'says a group does not join to the mailbox slicer on the Send As table' {
-        $path = Join-Path $script:PagesFolder 'delegation/visuals/table-send-as/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'a group does not join to the mailbox slicer'
-    }
-
-    It 'plots change events on the days they occurred' {
-        # A DateDim axis evaluates the measure for every calendar day from 2020 through 2035.
-        $path = Join-Path $script:PagesFolder 'change-history/visuals/line-changes/visual.json'
-        $text = Get-Content -LiteralPath $path -Raw
-        $text | Should -Match 'MailboxChangeEvents.ActivityDate'
-        $text | Should -Not -Match 'DateDim.Date'
+    It 'still records that hidden inbox rules are read but not flagged' {
+        (Get-TableText -Name 'InboxRules') | Should -Match 'Hidden rules are read \(-IncludeHidden\) but the cmdlet documents no marker, so they are not flagged'
     }
 
     It 'shows destinations as domains, never as addresses' {
-        $text = (Get-ChildItem -LiteralPath $script:PagesFolder -Filter 'visual.json' -Recurse -File | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
-        $text | Should -Match 'MailboxForwarding.DestinationDomain'
-        $text | Should -Match 'InboxRules.TargetDomainsLabel'
-        $text | Should -Match 'TransportRules.TargetDomainsLabel'
+        $diagram = Get-MeasureText -Text $script:Forwarding -Name 'Exit Routes Diagram'
+        $diagram | Should -Match ([regex]::Escape('LOWER(MailboxForwarding[ForwardingSmtpDomain])'))
+        $diagram | Should -Match ([regex]::Escape('InboxRules[OutsideDomain]'))
+        $diagram | Should -Match ([regex]::Escape('TransportRules[OutsideDomain]'))
+        $diagram | Should -Match ([regex]::Escape('MailboxChangeEvents[RouteDomain]'))
+        foreach ($address in 'ForwardingSmtpAddress]', 'RouteAddress]', 'RedirectMessageTo]', 'BlindCopyTo]', 'ForwardTo]') {
+            $diagram | Should -Not -Match ([regex]::Escape($address))
+        }
     }
 
     It 'counts only explicit Allow Send As rows, not inherited defaults' {
@@ -493,44 +499,122 @@ Describe 'The pages say what the data cannot show' {
         $trustee.Count | Should -Be 1
         $trustee[0] | Should -Match 'IsInherited\] = FALSE\(\)'
         $trustee[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
-        $trend = @($sendAs -split "`n" | Where-Object { $_ -match "Send As Grants \(All Snapshots\)" })
-        $trend.Count | Should -Be 1
-        $trend[0] | Should -Match 'IsInherited\] = FALSE\(\)'
-        $trend[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
         $allThree = Get-TableText -Name 'MailboxFullAccess'
         $keys = @($allThree -split "`n" | Where-Object { $_ -match 'SendAsPermissions\[TrusteeKey\]' })
         $keys.Count | Should -Be 1
         $keys[0] | Should -Match 'IsInherited\] = FALSE\(\)'
         $keys[0] | Should -Match 'NOT ISBLANK\(SendAsPermissions\[IsInherited\]\)'
-        $table = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'delegation/visuals/table-send-as/visual.json') -Raw
-        $table | Should -Match 'explicit-send-as-grants'
-        $table | Should -Match '"ComparisonKind": 1'
     }
 
-    It 'keeps organization-wide mail flow rules off the mailbox trend' {
-        # Get-TransportRule is organization-wide. The other series follow the mailbox slicer.
-        # https://learn.microsoft.com/exchange/security-and-compliance/mail-flow-rules/mail-flow-rules
-        $text = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'overview/visuals/line-trend/visual.json') -Raw
-        $text | Should -Not -Match 'TransportRules'
-        $text | Should -Match 'MailboxForwarding.Forwarding Mailboxes \(All Snapshots\)'
-        $text | Should -Match 'InboxRules.Forward Or Redirect Rules \(All Snapshots\)'
+    It 'leaves organization-wide mail flow rules out of the outbound spam fix' {
+        # Automatic external forwarding Off blocks inbox rules and mailbox forwarding, not mail flow rules.
+        # https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding
+        $users = Get-MeasureText -Text $script:Forwarding -Name 'User Exit Routes'
+        $users | Should -Not -Match ([regex]::Escape('TransportRules[ExitRoute]'))
+        $detail = Get-MeasureText -Text $script:Forwarding -Name 'Exit Routes One Fix Detail'
+        $detail | Should -Match ([regex]::Escape('" mail flow rule needs its own decision."'))
+        $detail | Should -Match ([regex]::Escape('"One setting in the outbound spam policy shuts " & UserN & " of the " & LiveN & " live routes: "'))
     }
 
-    It 'plots mail access events on the days they occurred' {
-        # MailItemsAccessed, Send, SendAs and SendOnBehalf are dated audit records.
-        # https://learn.microsoft.com/purview/audit-log-activities#exchange-mailbox-activities
-        $path = Join-Path $script:PagesFolder 'change-history/visuals/line-access/visual.json'
-        $path | Should -Exist
-        $text = Get-Content -LiteralPath $path -Raw
-        $text | Should -Match 'MailAccessEvents.ActivityDate'
-        $text | Should -Match 'MailAccessEvents.Operation'
-        $text | Should -Match 'Mail Access Events'
-        $text | Should -Not -Match 'DateDim.Date'
+    It 'treats Automatic forwarding as not blocked, since it can still mean On' {
+        $policies = Get-TableText -Name 'OutboundSpamPolicies'
+        $policies | Should -Match ([regex]::Escape('OutboundSpamPolicies[AutoForwardingMode] <> "Off" || ISBLANK(OutboundSpamPolicies[AutoForwardingMode])'))
+        $policies | Should -Match ([regex]::Escape('OutboundSpamPolicies[IsDefault] = TRUE() || OutboundSpamPolicies[RuleState] = "Enabled"'))
+    }
+
+    It 'says when audit events were not collected rather than reporting no ghost routes' {
+        $playbook = Get-MeasureText -Text $script:Forwarding -Name 'Attacker Playbook Image'
+        $playbook | Should -Match ([regex]::Escape('" Audit events were not collected."'))
+        $header = Get-MeasureText -Text $script:Forwarding -Name 'Exit Routes Run Header'
+        $header | Should -Match ([regex]::Escape('"audit events not collected"'))
+    }
+
+    It 'leaves the message trace to Premium' {
+        $script:PageText | Should -Match 'Message trace for each route, with counts and subjects, is in Premium edition at backlogkrew.com'
     }
 
     It 'reads the earliest audit record across both event files' {
         $text = Get-TableText -Name 'MailboxChangeEvents'
         $text | Should -Match ([regex]::Escape('MIN(MailAccessEvents[CreationTime])'))
         $text | Should -Match ([regex]::Escape('MIN(MailboxChangeEvents[CreationTime])'))
+    }
+}
+
+Describe 'The report has the approved Exit routes page and its filter' {
+    BeforeAll {
+        $script:PageVisuals = Join-Path $script:PagesFolder 'exit-routes/visuals'
+        $script:Forwarding = Get-TableText -Name 'MailboxForwarding'
+    }
+
+    It 'lists only the exit-routes page' {
+        $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json
+        @($pages.pageOrder) -join ',' | Should -Be 'exit-routes'
+        (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'exit-routes/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Exit routes'
+    }
+
+    It 'puts the anonymize toggle in the report filter pane' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'MailboxExfiltrationRisk.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
+        $filter = @($report.filterConfig.filters | Where-Object { $_.field.Column.Property -eq 'Mode' })
+        $filter.Count | Should -Be 1
+        $filter[0].field.Column.Expression.SourceRef.Entity | Should -Be 'AnonymizeMode'
+        $filter[0].displayName | Should -Be 'Anonymize names'
+    }
+
+    It 'shows <Visual> as an image bound to [<Measure>], marked as an image URL' -ForEach @(
+        @{ Visual = 'exit-routes-diagram'; Measure = 'Exit Routes Diagram' }
+        @{ Visual = 'exit-playbook-list'; Measure = 'Attacker Playbook Image' }
+    ) {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals "$Visual/visual.json") -Raw | ConvertFrom-Json -AsHashtable
+        $visual.visual.visualType | Should -Be 'image'
+        $visual.visual.objects.image[0].properties.sourceField.expr.Measure.Property | Should -Be $Measure
+        $script:Forwarding | Should -Match ("(?s)measure '" + [regex]::Escape($Measure) + "' =.*?dataCategory: ImageUrl")
+    }
+
+    It 'binds tile <N> to [<Measure>]' -ForEach @(
+        @{ N = 1; Measure = 'Live Exit Routes' }
+        @{ N = 2; Measure = 'Ghost Exit Routes' }
+        @{ N = 3; Measure = 'No Copy Of Live Routes' }
+        @{ N = 4; Measure = 'Outside Domains' }
+    ) {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals "exit-tile-$N/visual.json") -Raw | ConvertFrom-Json -AsHashtable
+        $visual.visual.query.queryState.Data.projections[0].queryRef | Should -Be "MailboxForwarding.$Measure"
+    }
+
+    It 'shows names only through the anonymize toggle' {
+        # Every person a route names goes through the same pseudonym formula as UsersCurrent.
+        $script:Forwarding | Should -Match ([regex]::Escape('VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"'))
+        foreach ($column in 'MailboxForwarding[MailboxPseudonym]', 'InboxRules[MailboxPseudonym]', 'MailboxChangeEvents[MailboxPseudonym]') {
+            $script:Forwarding | Should -Match ([regex]::Escape("RETURN IF(Anon, $column,"))
+        }
+        foreach ($table in 'MailboxForwarding', 'InboxRules', 'MailboxChangeEvents') {
+            (Get-TableText -Name $table) | Should -Match '(?s)column MailboxPseudonym =\s+VAR K = LOWER\('
+        }
+    }
+
+    It 'keeps a ghost route to one row per route: the last run it was seen, or the last event that set it' {
+        foreach ($table in 'MailboxForwarding', 'InboxRules', 'TransportRules') {
+            (Get-TableText -Name $table) | Should -Match ([regex]::Escape("$table[RunDate] < MAX($table[RunDate]) && $table[RunDate] = MAXX(Seen, $table[RunDate])"))
+        }
+        (Get-TableText -Name 'MailboxChangeEvents') | Should -Match ([regex]::Escape('InSnapshots = 0 && MailboxChangeEvents[CreationTime] = LastSet'))
+    }
+
+    It 'uses no VAR name Desktop 2.158 rejects' {
+        $rejected = 'Value', 'Status', 'Scope', 'Disabled', 'Hidden', 'FirstDate', 'LastDate', 'Lead', 'At', 'Rows', 'Level', 'Key', 'Top', 'Weight', 'Earliest'
+        $found = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
+            $text = Get-Content -LiteralPath $file.FullName -Raw
+            foreach ($name in $rejected) {
+                if ($text -cmatch "\bVAR $name\s*=") { "$($file.Name): VAR $name" }
+            }
+        }
+        $found -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'compares no column with a measure inside a CALCULATE filter' {
+        # Desktop 2.158 rejects CALCULATE(..., Table[Column] = [Measure]); read the measure into a VAR first.
+        $found = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
+            $text = Get-Content -LiteralPath $file.FullName -Raw
+            foreach ($m in [regex]::Matches($text, '\w+\[\w+\] = \[[^\]]+\]')) { "$($file.Name): $($m.Value)" }
+        }
+        $found -join '; ' | Should -BeNullOrEmpty
     }
 }

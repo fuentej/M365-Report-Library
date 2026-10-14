@@ -105,6 +105,72 @@ table InboxRules
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Exit routes: the first target domain that is not an accepted domain, for a rule whose target is outside. When HasExternalTarget is True but every domain matches (the collector also honours MatchSubdomains, which the CSV does not carry), the first target domain.
+    column OutsideDomain =
+            VAR P = SUBSTITUTE(LOWER(InboxRules[TargetDomains]), ";", "|")
+            VAR Items = ADDCOLUMNS(GENERATESERIES(1, MAX(1, PATHLENGTH(P))), "Dom", TRIM(PATHITEM(P, [Value])))
+            VAR Outside = FILTER(Items, VAR Candidate = [Dom] RETURN Candidate <> "" && NOT (COUNTROWS(FILTER(ALL(AcceptedDomains[DomainName]), VAR AcceptedName = LOWER(AcceptedDomains[DomainName]) RETURN AcceptedName = Candidate || (LEFT(AcceptedName, 2) = "*." && RIGHT(Candidate, LEN(AcceptedName) - 1) = MID(AcceptedName, 2, 300)))) > 0))
+            VAR FirstOutside = MINX(TOPN(1, Outside, [Value], ASC), [Dom])
+            RETURN IF(InboxRules[HasExternalTarget] = TRUE() && P <> "", IF(ISBLANK(FirstOutside), PATHITEM(P, 1), FirstOutside))
+        dataType: string
+        isHidden
+        lineageTag: 0eb38c25-f1de-489f-a1df-e69da6a0a49d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the rule forwards or redirects to an outside domain and is not disabled. An empty Enabled is unknown, so the rule counts.
+    column OutsideRoute = InboxRules[ForwardsMail] && InboxRules[HasExternalTarget] = TRUE() && NOT (InboxRules[Enabled] = FALSE() && NOT ISBLANK(InboxRules[Enabled]))
+        dataType: boolean
+        isHidden
+        lineageTag: 7f038958-dd4b-4e0c-b9fa-2fd413014677
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: an outside route in the latest run (live).
+    column ExitRoute = InboxRules[OutsideRoute] && InboxRules[RunDate] = MAX(InboxRules[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: 23cbf45b-ed18-41ef-b42a-0b017358019f
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: mailbox and rule name, the key an audit event can match.
+    column RouteKey = "rule|" & LOWER(InboxRules[MailboxUserPrincipalName]) & "|" & LOWER(InboxRules[RuleName])
+        dataType: string
+        isHidden
+        lineageTag: e40cd6a1-5e4b-492f-a456-645c617193b1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the last run in which an outside route was seen, when it is gone from the latest run (set, then gone).
+    column GhostRoute =
+            VAR ThisKey = InboxRules[RouteKey]
+            VAR Seen = FILTER(ALL(InboxRules[RouteKey], InboxRules[RunDate], InboxRules[OutsideRoute]), InboxRules[RouteKey] = ThisKey && InboxRules[OutsideRoute])
+            RETURN InboxRules[OutsideRoute] && InboxRules[RunDate] < MAX(InboxRules[RunDate]) && InboxRules[RunDate] = MAXX(Seen, InboxRules[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: aaf6f637-b322-4b50-b385-175373ab56d3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the rule name does not say it forwards (no forward, fwd, redirect, copy or send in it). This report's rule for a disguised name.
+    column NameHidesForwarding = NOT (CONTAINSSTRING(InboxRules[RuleName], "forward") || CONTAINSSTRING(InboxRules[RuleName], "fwd") || CONTAINSSTRING(InboxRules[RuleName], "redirect") || CONTAINSSTRING(InboxRules[RuleName], "copy") || CONTAINSSTRING(InboxRules[RuleName], "send"))
+        dataType: boolean
+        isHidden
+        lineageTag: 7635d1f4-2d21-46a9-9222-865080ddddfb
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym for the mailbox when Anonymize is selected; the same formula as UsersCurrent[Pseudonym].
+    column MailboxPseudonym =
+            VAR K = LOWER(InboxRules[MailboxUserPrincipalName])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        isHidden
+        lineageTag: 2106c4eb-cebc-4ff8-8f10-c9f215324fc8
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
     measure 'InboxRules Snapshot Date' = CALCULATE(MAX(InboxRules[RunDate]), ALLSELECTED(InboxRules), ALLSELECTED(UsersCurrent))
         formatString: Short Date

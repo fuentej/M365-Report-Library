@@ -74,6 +74,51 @@ table MailboxForwarding
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Exit routes: the mailbox forwards to an outside domain.
+    column OutsideRoute = MailboxForwarding[IsExternal] = TRUE()
+        dataType: boolean
+        isHidden
+        lineageTag: 7f038958-dd4b-4e0c-b9fa-2fd413014677
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: an outside forward in the latest run (live).
+    column ExitRoute = MailboxForwarding[OutsideRoute] && MailboxForwarding[RunDate] = MAX(MailboxForwarding[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: 23cbf45b-ed18-41ef-b42a-0b017358019f
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the mailbox, the key an audit event can match.
+    column RouteKey = "fwd|" & LOWER(MailboxForwarding[UserPrincipalName])
+        dataType: string
+        isHidden
+        lineageTag: e40cd6a1-5e4b-492f-a456-645c617193b1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the last run in which an outside forward was seen, when it is gone from the latest run (set, then gone).
+    column GhostRoute =
+            VAR ThisKey = MailboxForwarding[RouteKey]
+            VAR Seen = FILTER(ALL(MailboxForwarding[RouteKey], MailboxForwarding[RunDate], MailboxForwarding[OutsideRoute]), MailboxForwarding[RouteKey] = ThisKey && MailboxForwarding[OutsideRoute])
+            RETURN MailboxForwarding[OutsideRoute] && MailboxForwarding[RunDate] < MAX(MailboxForwarding[RunDate]) && MailboxForwarding[RunDate] = MAXX(Seen, MailboxForwarding[RunDate])
+        dataType: boolean
+        isHidden
+        lineageTag: aaf6f637-b322-4b50-b385-175373ab56d3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym for the mailbox when Anonymize is selected; the same formula as UsersCurrent[Pseudonym].
+    column MailboxPseudonym =
+            VAR K = LOWER(MailboxForwarding[UserPrincipalName])
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        isHidden
+        lineageTag: 2106c4eb-cebc-4ff8-8f10-c9f215324fc8
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// Latest RunDate of this source inside the current date slicer, ignoring the visual's own axis. Blank when the source has no rows (header-only file): not collected, never zero.
     measure 'MailboxForwarding Snapshot Date' = CALCULATE(MAX(MailboxForwarding[RunDate]), ALLSELECTED(MailboxForwarding), ALLSELECTED(UsersCurrent))
         formatString: Short Date
@@ -131,6 +176,465 @@ table MailboxForwarding
     measure 'External Forwarding Mailboxes (All Snapshots)' = IF(COUNTROWS(MailboxForwarding) = 0, BLANK(), COUNTROWS(FILTER(MailboxForwarding, MailboxForwarding[IsExternal] = TRUE())) + 0)
         formatString: #,0
         lineageTag: 8cedd6e5-ad7f-5a9d-be98-1949b81b5eef
+
+    /// Routes that send mail outside in the latest run: mailbox forwards to an outside domain, enabled inbox rules that forward or redirect outside, and enabled mail flow rules with an outside target. Blank when none of the three files has rows.
+    measure 'Live Exit Routes' =
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxForwarding[RunDate]), ALL(MailboxForwarding))) || NOT ISBLANK(CALCULATE(MAX(InboxRules[RunDate]), ALL(InboxRules))) || NOT ISBLANK(CALCULATE(MAX(TransportRules[RunDate]), ALL(TransportRules)))
+            RETURN IF(NOT Collected, BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), ALL(MailboxForwarding), MailboxForwarding[ExitRoute] = TRUE()) + CALCULATE(COUNTROWS(InboxRules), ALL(InboxRules), InboxRules[ExitRoute] = TRUE()) + CALCULATE(COUNTROWS(TransportRules), ALL(TransportRules), TransportRules[ExitRoute] = TRUE()) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: d8702acc-40b4-4009-bebb-14b4b6b6a319
+
+    /// Live mailbox forwards and inbox rules going outside: the routes the outbound spam policy forwarding setting controls.
+    measure 'User Exit Routes' =
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxForwarding[RunDate]), ALL(MailboxForwarding))) || NOT ISBLANK(CALCULATE(MAX(InboxRules[RunDate]), ALL(InboxRules))) || NOT ISBLANK(CALCULATE(MAX(TransportRules[RunDate]), ALL(TransportRules)))
+            RETURN IF(NOT Collected, BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), ALL(MailboxForwarding), MailboxForwarding[ExitRoute] = TRUE()) + CALCULATE(COUNTROWS(InboxRules), ALL(InboxRules), InboxRules[ExitRoute] = TRUE()) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: eded3192-445d-4b79-977e-293305318dd6
+
+    /// Live mail flow rules going outside. The outbound spam policy forwarding setting does not cover them.
+    measure 'Mail Flow Exit Routes' = IF(ISBLANK(CALCULATE(MAX(TransportRules[RunDate]), ALL(TransportRules))), BLANK(), CALCULATE(COUNTROWS(TransportRules), ALL(TransportRules), TransportRules[ExitRoute] = TRUE()) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: 5a2cf688-76de-4073-b884-5b1ad2a325d3
+
+    /// Outside routes that were set and are gone: seen in an earlier run but not the latest, or set by an audit event that no run ever saw.
+    measure 'Ghost Exit Routes' =
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxForwarding[RunDate]), ALL(MailboxForwarding))) || NOT ISBLANK(CALCULATE(MAX(InboxRules[RunDate]), ALL(InboxRules))) || NOT ISBLANK(CALCULATE(MAX(TransportRules[RunDate]), ALL(TransportRules))) || COUNTROWS(ALL(MailboxChangeEvents)) > 0
+            RETURN IF(NOT Collected, BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), ALL(MailboxForwarding), MailboxForwarding[GhostRoute] = TRUE()) + CALCULATE(COUNTROWS(InboxRules), ALL(InboxRules), InboxRules[GhostRoute] = TRUE()) + CALCULATE(COUNTROWS(TransportRules), ALL(TransportRules), TransportRules[GhostRoute] = TRUE()) + CALCULATE(COUNTROWS(MailboxChangeEvents), ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute] = TRUE()) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: c104c70e-b373-475b-9c5a-259a7dfe78f7
+
+    /// Live routes that leave no copy in the mailbox: a forward with DeliverToMailboxAndForward False, an inbox rule that redirects or deletes, a mail flow rule that redirects.
+    measure 'Exit Routes Keeping No Copy' =
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxForwarding[RunDate]), ALL(MailboxForwarding))) || NOT ISBLANK(CALCULATE(MAX(InboxRules[RunDate]), ALL(InboxRules))) || NOT ISBLANK(CALCULATE(MAX(TransportRules[RunDate]), ALL(TransportRules)))
+            RETURN IF(NOT Collected, BLANK(), CALCULATE(COUNTROWS(MailboxForwarding), ALL(MailboxForwarding), MailboxForwarding[ExitRoute] = TRUE(), MailboxForwarding[DeliverToMailboxAndForward] = FALSE(), NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward])) + CALCULATE(COUNTROWS(InboxRules), ALL(InboxRules), InboxRules[ExitRoute] = TRUE(), NOT ISBLANK(InboxRules[RedirectTo]) || InboxRules[DeleteMessage] = TRUE()) + CALCULATE(COUNTROWS(TransportRules), ALL(TransportRules), TransportRules[ExitRoute] = TRUE(), TransportRules[HasRedirect] = TRUE()) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: c27b0059-5228-4853-942b-b2d46a866107
+
+    /// Tile text: live routes that keep no copy, of all live routes.
+    measure 'No Copy Of Live Routes' =
+            VAR LiveN = [Live Exit Routes]
+            RETURN IF(ISBLANK(LiveN), BLANK(), FORMAT([Exit Routes Keeping No Copy], "#,0") & " of " & FORMAT(LiveN, "#,0"))
+        displayFolder: Exit routes
+        lineageTag: 63ca34dd-24d5-4840-ae9d-411297b6c15b
+
+    /// Distinct outside domains that live and ghost routes send to.
+    measure 'Outside Domains' =
+            VAR Doms =
+                DISTINCT(
+                    UNION(
+                        SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute] || MailboxForwarding[GhostRoute]), "Dom", LOWER(MailboxForwarding[ForwardingSmtpDomain])),
+                        SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[ExitRoute] || InboxRules[GhostRoute]), "Dom", InboxRules[OutsideDomain]),
+                        SELECTCOLUMNS(FILTER(ALL(TransportRules), TransportRules[ExitRoute] || TransportRules[GhostRoute]), "Dom", TransportRules[OutsideDomain]),
+                        SELECTCOLUMNS(FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute]), "Dom", MailboxChangeEvents[RouteDomain])
+                    )
+                )
+            RETURN IF(ISBLANK([Live Exit Routes]) && ISBLANK([Ghost Exit Routes]), BLANK(), COUNTROWS(FILTER(Doms, NOT ISBLANK([Dom]) && [Dom] <> "")) + 0)
+        formatString: #,0
+        displayFolder: Exit routes
+        lineageTag: e727d7ca-d5a0-4327-ace6-547225946df7
+
+    /// The Exit routes panel as an SVG image: each live and ghost route as a box (mail flow rules, mailbox forwards and inbox rules, then ghosts by date), joined to its outside domain. Names follow the Anonymize toggle. At most 12 boxes and 5 domains.
+    measure 'Exit Routes Diagram' =
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR FwdRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute] || MailboxForwarding[GhostRoute]),
+                    "Live", IF(MailboxForwarding[ExitRoute], 1, 0),
+                    "Kind", 2,
+                    "Who", VAR U = MailboxForwarding[UserPrincipalName] RETURN IF(Anon, MailboxForwarding[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U)),
+                    "RuleText", "",
+                    "Dom", IF(ISBLANK(MailboxForwarding[ForwardingSmtpDomain]), "unknown domain", LOWER(MailboxForwarding[ForwardingSmtpDomain])),
+                    "NoCopy", IF(MailboxForwarding[DeliverToMailboxAndForward] = FALSE() && NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), 1, 0),
+                    "Invoice", 0,
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", IF(MailboxForwarding[ExitRoute] && MailboxForwarding[DeliverToMailboxAndForward] = FALSE() && NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), "NO COPY", ""),
+                    "Sub", IF(MailboxForwarding[ExitRoute], "mailbox forward " & UNICHAR(183) & " " & SWITCH(TRUE(), ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), "copy setting unknown", MailboxForwarding[DeliverToMailboxAndForward] = TRUE(), "keeps copy", "no copy"), "mailbox forward last seen " & FORMAT(MailboxForwarding[RunDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", MailboxForwarding[RunDate],
+                    "Id", MailboxForwarding[RouteKey] & "|" & FORMAT(MailboxForwarding[RunDate], "yyyyMMdd")
+                )
+            VAR RuleRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(InboxRules), InboxRules[ExitRoute] || InboxRules[GhostRoute]),
+                    "Live", IF(InboxRules[ExitRoute], 1, 0),
+                    "Kind", 3,
+                    "Who", VAR U = InboxRules[MailboxUserPrincipalName] RETURN IF(Anon, InboxRules[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U)),
+                    "RuleText", InboxRules[RuleName],
+                    "Dom", IF(ISBLANK(InboxRules[OutsideDomain]), "unknown domain", InboxRules[OutsideDomain]),
+                    "NoCopy", IF(NOT ISBLANK(InboxRules[RedirectTo]) || InboxRules[DeleteMessage] = TRUE(), 1, 0),
+                    "Invoice", IF(CONTAINSSTRING(InboxRules[RuleName], "invoice"), 1, 0),
+                    "Hides", IF(InboxRules[NameHidesForwarding], 1, 0),
+                    "Deletes", IF(InboxRules[DeleteMessage] = TRUE(), 1, 0),
+                    "Tag", IF(InboxRules[ExitRoute], SWITCH(TRUE(), InboxRules[DeleteMessage] = TRUE(), "FORWARD + DELETE", InboxRules[NameHidesForwarding], "DISGUISED", CONTAINSSTRING(InboxRules[RuleName], "invoice"), "INVOICES", ""), ""),
+                    "Sub", "inbox rule " & UNICHAR(8220) & InboxRules[RuleName] & UNICHAR(8221) & IF(InboxRules[ExitRoute], IF(NOT ISBLANK(InboxRules[RedirectTo]), " " & UNICHAR(183) & " redirect", "") & IF(InboxRules[DeleteMessage] = TRUE(), " " & UNICHAR(183) & " deletes", ""), " last seen " & FORMAT(InboxRules[RunDate], "yyyy-MM-dd") & ", gone"),
+                    "Dt", InboxRules[RunDate],
+                    "Id", InboxRules[RouteKey] & "|" & InboxRules[RuleIdentity] & "|" & FORMAT(InboxRules[RunDate], "yyyyMMdd")
+                )
+            VAR FlowRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(TransportRules), TransportRules[ExitRoute] || TransportRules[GhostRoute]),
+                    "Live", IF(TransportRules[ExitRoute], 1, 0),
+                    "Kind", 1,
+                    "Who", TransportRules[Name],
+                    "RuleText", TransportRules[Name],
+                    "Dom", IF(ISBLANK(TransportRules[OutsideDomain]), "unknown domain", TransportRules[OutsideDomain]),
+                    "NoCopy", IF(TransportRules[HasRedirect], 1, 0),
+                    "Invoice", 0,
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", IF(TransportRules[ExitRoute], "ORG-WIDE", ""),
+                    "Sub", IF(TransportRules[ExitRoute], "mail flow rule " & UNICHAR(183) & " " & SWITCH(TRUE(), TransportRules[HasRedirect], "redirect, no copy", TransportRules[HasBlindCopy], "blind copy", "copy"), "mail flow rule last seen " & FORMAT(TransportRules[RunDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", TransportRules[RunDate],
+                    "Id", TransportRules[RouteKey] & "|" & TransportRules[Guid] & "|" & FORMAT(TransportRules[RunDate], "yyyyMMdd")
+                )
+            VAR AuditRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute]),
+                    "Live", 0,
+                    "Kind", SWITCH(MailboxChangeEvents[RouteKind], "mail flow rule", 1, "mailbox forward", 2, 3),
+                    "Who", IF(MailboxChangeEvents[RouteKind] = "mail flow rule", MailboxChangeEvents[RouteRuleName], VAR U = IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN]) RETURN IF(Anon, MailboxChangeEvents[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U))),
+                    "RuleText", MailboxChangeEvents[RouteRuleName],
+                    "Dom", MailboxChangeEvents[RouteDomain],
+                    "NoCopy", 0,
+                    "Invoice", IF(MailboxChangeEvents[RouteKind] = "inbox rule" && CONTAINSSTRING(MailboxChangeEvents[RouteRuleName], "invoice"), 1, 0),
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", "",
+                    "Sub", SWITCH(MailboxChangeEvents[RouteKind], "mailbox forward", "mailbox forward set " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", now gone", "inbox rule", "inbox rule " & UNICHAR(8220) & MailboxChangeEvents[RouteRuleName] & UNICHAR(8221) & " " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", gone", "mail flow rule set " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", MailboxChangeEvents[ActivityDate],
+                    "Id", MailboxChangeEvents[RouteKey] & "|" & MailboxChangeEvents[Id]
+                )
+            VAR Routes = UNION(FlowRoutes, FwdRoutes, RuleRoutes, AuditRoutes)
+            VAR RouteCount = COUNTROWS(Routes)
+            VAR Keyed = ADDCOLUMNS(Routes, "SortKey", IF([Live] = 1, "0|" & [Kind] & "|" & IF([Tag] <> "", 0, 1) & "|" & [Who] & "|" & [Id], "1|" & FORMAT([Dt], "yyyyMMdd") & "|" & [Who] & "|" & [Id]))
+            VAR Ranked = ADDCOLUMNS(Keyed, "Rk", VAR ThisSort = [SortKey] RETURN COUNTROWS(FILTER(Keyed, [SortKey] < ThisSort)) + 1)
+            VAR Slots = IF(RouteCount > 12, 12, RouteCount)
+            VAR ShownRoutes = IF(RouteCount > 12, 11, RouteCount)
+            VAR Pitch = MIN(41.6, 494 / MAX(Slots, 1))
+            VAR BoxH = ROUND(Pitch * 0.84, 1)
+            VAR Shown = FILTER(Ranked, [Rk] <= ShownRoutes)
+            VAR DomList = ADDCOLUMNS(DISTINCT(SELECTCOLUMNS(Shown, "Dom", [Dom])), "LiveN", VAR ThisDom = [Dom] RETURN COUNTROWS(FILTER(Routes, [Dom] = ThisDom && [Live] = 1)) + 0, "GhostN", VAR ThisDom = [Dom] RETURN COUNTROWS(FILTER(Routes, [Dom] = ThisDom && [Live] = 0)) + 0)
+            VAR DomRanked = ADDCOLUMNS(DomList, "DRk", VAR ThisDom = [Dom] RETURN COUNTROWS(FILTER(DomList, [Dom] < ThisDom)) + 1)
+            VAR DomCount = COUNTROWS(DomRanked)
+            VAR DomShown = MIN(DomCount, 5)
+            VAR Span = MIN(494, MAX(Slots * Pitch, 130 * DomShown))
+            VAR Radius = MIN(56, Span / MAX(DomShown, 1) / 2 - 6)
+            VAR Curves =
+                CONCATENATEX(
+                    Shown,
+                    VAR RowTop = 40 + ([Rk] - 1) * Pitch
+                    VAR Y1 = RowTop + BoxH / 2
+                    VAR ThisDom = [Dom]
+                    VAR DRank = MAXX(FILTER(DomRanked, [Dom] = ThisDom), [DRk])
+                    VAR Y2 = 40 + (DRank - 0.5) * Span / DomShown
+                    VAR X1 = 272
+                    VAR X2 = 629 - Radius
+                    VAR MidX = (X1 + X2) / 2
+                    RETURN
+                        IF(
+                            DRank <= DomShown,
+                            "<path d='M" & X1 & " " & ROUND(Y1, 1) & " C" & ROUND(MidX, 1) & " " & ROUND(Y1, 1) & " " & ROUND(MidX, 1) & " " & ROUND(Y2, 1) & " " & ROUND(X2, 1) & " " & ROUND(Y2, 1) & "' fill='none' "
+                                & IF([Live] = 1, "stroke='" & SWITCH([Kind], 1, "%2316324A", 2, "%23138A8A", "%23D98A00") & "' stroke-width='2.2'", "stroke='%23A9B7C2' stroke-width='1.6' stroke-dasharray='4 3'") & "/>"
+                        ),
+                    "",
+                    [Rk], DESC
+                )
+            VAR Boxes =
+                CONCATENATEX(
+                    Shown,
+                    VAR RowTop = 40 + ([Rk] - 1) * Pitch
+                    VAR IsLive = [Live] = 1
+                    VAR TagText = [Tag]
+                    VAR TagW = IF(TagText = "", 0, ROUND(LEN(TagText) * 5.6 + 12, 0))
+                    VAR NameLimit = IF(TagW > 0, 32 - ROUND(TagW / 6.5, 0), 38)
+                    VAR NameRaw = IF(LEN([Who]) > NameLimit, LEFT([Who], NameLimit - 1) & UNICHAR(8230), [Who])
+                    VAR SubRaw = IF(LEN([Sub]) > 50, LEFT([Sub], 49) & UNICHAR(8230), [Sub])
+                    RETURN
+                        "<rect x='3' y='" & ROUND(RowTop, 1) & "' width='269' height='" & BoxH & "' "
+                            & IF(IsLive, "fill='%23FFFFFF' stroke='" & SWITCH([Kind], 1, "%2316324A", 2, "%23138A8A", "%23D98A00") & "' stroke-width='1.6'", "fill='%23F7F9FA' stroke='%23A9B7C2' stroke-width='1.2' stroke-dasharray='4 3'") & "/>"
+                            & "<text x='13' y='" & ROUND(RowTop + BoxH * 0.44, 1) & "' font-family='Segoe UI, sans-serif' font-size='11.5' font-weight='600' fill='" & IF(IsLive, "%231F2A33", "%235B6B78") & "'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(NameRaw, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & "<text x='13' y='" & ROUND(RowTop + BoxH * 0.84, 1) & "' font-family='Segoe UI, sans-serif' font-size='9.5' fill='" & IF(IsLive, "%233D4C58", "%235B6B78") & "'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SubRaw, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & IF(
+                                TagW > 0,
+                                "<rect x='" & (265 - TagW) & "' y='" & ROUND(RowTop + 4, 1) & "' width='" & TagW & "' height='14' fill='%23C62828'/>"
+                                    & "<text x='" & (265 - TagW / 2) & "' y='" & ROUND(RowTop + 14.2, 1) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='8.5' font-weight='600' fill='%23FFFFFF'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TagText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            ),
+                    "",
+                    [Rk], ASC
+                )
+            VAR MoreRoutes = IF(RouteCount > ShownRoutes, "<text x='13' y='" & ROUND(40 + ShownRoutes * Pitch + 16, 1) & "' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%235B6B78'>+" & (RouteCount - ShownRoutes) & " more routes</text>")
+            VAR Nodes =
+                CONCATENATEX(
+                    FILTER(DomRanked, [DRk] <= DomShown),
+                    VAR CY = 40 + ([DRk] - 0.5) * Span / DomShown
+                    VAR DomText = [Dom]
+                    VAR DotAt = SEARCH(".", DomText, 1, 0)
+                    VAR Head = IF(DotAt > 1, LEFT(DomText, DotAt - 1), DomText)
+                    VAR Tail = IF(DotAt > 1, MID(DomText, DotAt, 300), "")
+                    VAR HeadShown = IF(LEN(Head) > 16, LEFT(Head, 15) & UNICHAR(8230), Head)
+                    VAR TailShown = IF(LEN(Tail) > 20, LEFT(Tail, 19) & UNICHAR(8230), Tail)
+                    VAR Counts = IF([LiveN] > 0, [LiveN] & " live", "") & IF([LiveN] > 0 && [GhostN] > 0, " " & UNICHAR(183) & " ", "") & IF([GhostN] > 0, [GhostN] & " ghost", "")
+                    RETURN
+                        "<circle cx='629' cy='" & ROUND(CY, 1) & "' r='" & ROUND(Radius, 1) & "' fill='%2316324A'/>"
+                            & "<text x='629' y='" & ROUND(CY - 9, 1) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='12' font-weight='600' fill='%23FFFFFF'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(HeadShown, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & IF(TailShown <> "", "<text x='629' y='" & ROUND(CY + 6, 1) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' fill='%23B8C7D3'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(TailShown, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>")
+                            & "<text x='629' y='" & ROUND(CY + 22, 1) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' fill='%23FFFFFF'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Counts, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>",
+                    "",
+                    [DRk], ASC
+                )
+            VAR MoreDomains = IF(DomCount > DomShown, "<text x='629' y='" & ROUND(40 + Span + 14, 1) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%235B6B78'>+" & (DomCount - DomShown) & " more domains, lines not drawn</text>")
+            VAR NoRouteNote = IF(RouteCount = 0, "<text x='3' y='60' font-family='Segoe UI, sans-serif' font-size='11.5' fill='%235B6B78'>" & IF(ISBLANK([Live Exit Routes]), "Not collected: the forwarding, inbox rule and mail flow rule files are empty.", "No mailbox forward, inbox rule or mail flow rule sends mail outside, and none was set and then removed.") & "</text>")
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1784' height='1080' viewBox='0 0 892 540'>"
+                    & "<line x1='403' y1='14' x2='421' y2='14' stroke='%2316324A' stroke-width='3'/><text x='427' y='18' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%233D4C58'>mail flow rule</text><line x1='523' y1='14' x2='541' y2='14' stroke='%23138A8A' stroke-width='3'/><text x='547' y='18' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%233D4C58'>mailbox forward</text><line x1='649' y1='14' x2='667' y2='14' stroke='%23D98A00' stroke-width='3'/><text x='673' y='18' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%233D4C58'>inbox rule</text><line x1='746' y1='14' x2='764' y2='14' stroke='%23A9B7C2' stroke-width='3' stroke-dasharray='4 3'/><text x='770' y='18' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%233D4C58'>ghost: set, then gone</text>"
+                    & Curves & Boxes & MoreRoutes & Nodes & MoreDomains & NoRouteNote
+                    & "</svg>"
+        displayFolder: Exit routes
+        dataCategory: ImageUrl
+        lineageTag: dfd50dbe-a09a-46ea-a8ad-c7d93448c5c2
+
+    /// The Attacker playbook check panel as an SVG image: disguised rule names, invoice rules going out, routes set then gone, and rules that forward and delete. Names follow the Anonymize toggle.
+    measure 'Attacker Playbook Image' =
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR FwdRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute] || MailboxForwarding[GhostRoute]),
+                    "Live", IF(MailboxForwarding[ExitRoute], 1, 0),
+                    "Kind", 2,
+                    "Who", VAR U = MailboxForwarding[UserPrincipalName] RETURN IF(Anon, MailboxForwarding[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U)),
+                    "RuleText", "",
+                    "Dom", IF(ISBLANK(MailboxForwarding[ForwardingSmtpDomain]), "unknown domain", LOWER(MailboxForwarding[ForwardingSmtpDomain])),
+                    "NoCopy", IF(MailboxForwarding[DeliverToMailboxAndForward] = FALSE() && NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), 1, 0),
+                    "Invoice", 0,
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", IF(MailboxForwarding[ExitRoute] && MailboxForwarding[DeliverToMailboxAndForward] = FALSE() && NOT ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), "NO COPY", ""),
+                    "Sub", IF(MailboxForwarding[ExitRoute], "mailbox forward " & UNICHAR(183) & " " & SWITCH(TRUE(), ISBLANK(MailboxForwarding[DeliverToMailboxAndForward]), "copy setting unknown", MailboxForwarding[DeliverToMailboxAndForward] = TRUE(), "keeps copy", "no copy"), "mailbox forward last seen " & FORMAT(MailboxForwarding[RunDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", MailboxForwarding[RunDate],
+                    "Id", MailboxForwarding[RouteKey] & "|" & FORMAT(MailboxForwarding[RunDate], "yyyyMMdd")
+                )
+            VAR RuleRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(InboxRules), InboxRules[ExitRoute] || InboxRules[GhostRoute]),
+                    "Live", IF(InboxRules[ExitRoute], 1, 0),
+                    "Kind", 3,
+                    "Who", VAR U = InboxRules[MailboxUserPrincipalName] RETURN IF(Anon, InboxRules[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U)),
+                    "RuleText", InboxRules[RuleName],
+                    "Dom", IF(ISBLANK(InboxRules[OutsideDomain]), "unknown domain", InboxRules[OutsideDomain]),
+                    "NoCopy", IF(NOT ISBLANK(InboxRules[RedirectTo]) || InboxRules[DeleteMessage] = TRUE(), 1, 0),
+                    "Invoice", IF(CONTAINSSTRING(InboxRules[RuleName], "invoice"), 1, 0),
+                    "Hides", IF(InboxRules[NameHidesForwarding], 1, 0),
+                    "Deletes", IF(InboxRules[DeleteMessage] = TRUE(), 1, 0),
+                    "Tag", IF(InboxRules[ExitRoute], SWITCH(TRUE(), InboxRules[DeleteMessage] = TRUE(), "FORWARD + DELETE", InboxRules[NameHidesForwarding], "DISGUISED", CONTAINSSTRING(InboxRules[RuleName], "invoice"), "INVOICES", ""), ""),
+                    "Sub", "inbox rule " & UNICHAR(8220) & InboxRules[RuleName] & UNICHAR(8221) & IF(InboxRules[ExitRoute], IF(NOT ISBLANK(InboxRules[RedirectTo]), " " & UNICHAR(183) & " redirect", "") & IF(InboxRules[DeleteMessage] = TRUE(), " " & UNICHAR(183) & " deletes", ""), " last seen " & FORMAT(InboxRules[RunDate], "yyyy-MM-dd") & ", gone"),
+                    "Dt", InboxRules[RunDate],
+                    "Id", InboxRules[RouteKey] & "|" & InboxRules[RuleIdentity] & "|" & FORMAT(InboxRules[RunDate], "yyyyMMdd")
+                )
+            VAR FlowRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(TransportRules), TransportRules[ExitRoute] || TransportRules[GhostRoute]),
+                    "Live", IF(TransportRules[ExitRoute], 1, 0),
+                    "Kind", 1,
+                    "Who", TransportRules[Name],
+                    "RuleText", TransportRules[Name],
+                    "Dom", IF(ISBLANK(TransportRules[OutsideDomain]), "unknown domain", TransportRules[OutsideDomain]),
+                    "NoCopy", IF(TransportRules[HasRedirect], 1, 0),
+                    "Invoice", 0,
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", IF(TransportRules[ExitRoute], "ORG-WIDE", ""),
+                    "Sub", IF(TransportRules[ExitRoute], "mail flow rule " & UNICHAR(183) & " " & SWITCH(TRUE(), TransportRules[HasRedirect], "redirect, no copy", TransportRules[HasBlindCopy], "blind copy", "copy"), "mail flow rule last seen " & FORMAT(TransportRules[RunDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", TransportRules[RunDate],
+                    "Id", TransportRules[RouteKey] & "|" & TransportRules[Guid] & "|" & FORMAT(TransportRules[RunDate], "yyyyMMdd")
+                )
+            VAR AuditRoutes =
+                SELECTCOLUMNS(
+                    FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute]),
+                    "Live", 0,
+                    "Kind", SWITCH(MailboxChangeEvents[RouteKind], "mail flow rule", 1, "mailbox forward", 2, 3),
+                    "Who", IF(MailboxChangeEvents[RouteKind] = "mail flow rule", MailboxChangeEvents[RouteRuleName], VAR U = IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN]) RETURN IF(Anon, MailboxChangeEvents[MailboxPseudonym], COALESCE(MAXX(FILTER(ALL(Users[UserPrincipalName], Users[DisplayName]), Users[UserPrincipalName] = U), Users[DisplayName]), U))),
+                    "RuleText", MailboxChangeEvents[RouteRuleName],
+                    "Dom", MailboxChangeEvents[RouteDomain],
+                    "NoCopy", 0,
+                    "Invoice", IF(MailboxChangeEvents[RouteKind] = "inbox rule" && CONTAINSSTRING(MailboxChangeEvents[RouteRuleName], "invoice"), 1, 0),
+                    "Hides", 0,
+                    "Deletes", 0,
+                    "Tag", "",
+                    "Sub", SWITCH(MailboxChangeEvents[RouteKind], "mailbox forward", "mailbox forward set " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", now gone", "inbox rule", "inbox rule " & UNICHAR(8220) & MailboxChangeEvents[RouteRuleName] & UNICHAR(8221) & " " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", gone", "mail flow rule set " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & ", now gone"),
+                    "Dt", MailboxChangeEvents[ActivityDate],
+                    "Id", MailboxChangeEvents[RouteKey] & "|" & MailboxChangeEvents[Id]
+                )
+            VAR Routes = UNION(FlowRoutes, FwdRoutes, RuleRoutes, AuditRoutes)
+            VAR LiveRules = FILTER(Routes, [Kind] = 3 && [Live] = 1)
+            VAR HiddenRules = FILTER(LiveRules, [Hides] = 1)
+            VAR HiddenN = COUNTROWS(HiddenRules) + 0
+            VAR FirstHidden = TOPN(1, HiddenRules, [Who], ASC, [Id], ASC)
+            VAR HiddenWho = MAXX(FirstHidden, [Who])
+            VAR HiddenRule = MAXX(FirstHidden, [RuleText])
+            VAR HiddenRedirects = MAXX(FirstHidden, [NoCopy]) = 1 && MAXX(FirstHidden, [Deletes]) = 0
+            VAR HiddenDeletes = MAXX(FirstHidden, [Deletes]) = 1
+            VAR Item1 =
+                SWITCH(
+                    TRUE(),
+                    HiddenN = 0, "No outside rule hides behind a harmless name. None found.",
+                    HiddenN = 1, HiddenWho & "'s rule says " & UNICHAR(8220) & HiddenRule & UNICHAR(8221) & " but " & IF(HiddenRedirects, "redirects outside, keeping no copy.", IF(HiddenDeletes, "forwards outside and deletes the original.", "forwards outside.")),
+                    HiddenN & " outside rules have names that do not say they forward, such as " & HiddenWho & "'s " & UNICHAR(8220) & HiddenRule & UNICHAR(8221) & "."
+                )
+            VAR InvoiceRules = FILTER(Routes, [Kind] = 3 && [Invoice] = 1)
+            VAR InvoiceN = COUNTROWS(InvoiceRules) + 0
+            VAR InvoiceLive = COUNTROWS(FILTER(InvoiceRules, [Live] = 1)) + 0
+            VAR InvoiceNames = COUNTROWS(DISTINCT(SELECTCOLUMNS(InvoiceRules, "N", LOWER([RuleText]))))
+            VAR Item2 =
+                IF(
+                    InvoiceN = 0,
+                    "No rule about invoices sends mail outside. None found.",
+                    InvoiceN & IF(InvoiceN = 1, " rule", " rules") & IF(InvoiceNames = 1, " named " & UNICHAR(8220) & MAXX(InvoiceRules, [RuleText]) & UNICHAR(8221), " about invoices") & " sent mail outside; "
+                        & IF(InvoiceLive = 0, "none is still live.", InvoiceLive & IF(InvoiceLive = 1, " is", " are") & " still live.") & " Invoice forwarding is the classic vendor-fraud setup."
+                )
+            VAR GhostN = COUNTROWS(FILTER(Routes, [Live] = 0)) + 0
+            VAR AuditCollected = COUNTROWS(ALL(MailboxChangeEvents)) > 0
+            VAR Item3 =
+                IF(
+                    GhostN = 0,
+                    "No outside forward was set and then removed. None found." & IF(NOT AuditCollected, " Audit events were not collected.", ""),
+                    GhostN & IF(GhostN = 1, " outside forward was", " outside forwards were") & " set and later removed between runs."
+                )
+            VAR Deleting = FILTER(LiveRules, [Deletes] = 1)
+            VAR DeletingN = COUNTROWS(Deleting) + 0
+            VAR Item4 =
+                SWITCH(
+                    TRUE(),
+                    DeletingN = 0, "No rule both forwards outside and deletes the original. None found.",
+                    DeletingN = 1, MAXX(Deleting, [Who]) & "'s rule " & UNICHAR(8220) & MAXX(Deleting, [RuleText]) & UNICHAR(8221) & " forwards outside and deletes the original.",
+                    DeletingN & " rules forward outside and delete the original."
+                )
+            VAR ItemList =
+                UNION(
+                    ROW("N", 1, "Lead", "Disguised name.", "Body", Item1, "Ink", IF(HiddenN > 0, "%23C62828", "%23A9B7C2")),
+                    ROW("N", 2, "Lead", "Invoices going out.", "Body", Item2, "Ink", IF(InvoiceN > 0, "%23C62828", "%23A9B7C2")),
+                    ROW("N", 3, "Lead", "Covering tracks.", "Body", Item3, "Ink", IF(GhostN > 0, "%23D98A00", "%23A9B7C2")),
+                    ROW("N", 4, "Lead", "Forward plus delete.", "Body", Item4, "Ink", IF(DeletingN > 0, "%23C62828", "%23A9B7C2"))
+                )
+            VAR WithText = ADDCOLUMNS(ItemList, "Txt", SUBSTITUTE([Lead] & " " & [Body], "|", "/"))
+            VAR Wrapped =
+                ADDCOLUMNS(
+                    WithText,
+                    "Packed",
+                    VAR T0 = [Txt]
+                    VAR Sp1 = IF(LEN(T0) <= 46, LEN(T0) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T0, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L1 = LEFT(T0, Sp1 - 1)
+                    VAR T1 = IF(MID(T0, Sp1, 1) = " ", MID(T0, Sp1 + 1, 2000), MID(T0, Sp1, 2000))
+                    VAR Sp2 = IF(LEN(T1) <= 46, LEN(T1) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T1, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L2 = LEFT(T1, Sp2 - 1)
+                    VAR T2 = IF(MID(T1, Sp2, 1) = " ", MID(T1, Sp2 + 1, 2000), MID(T1, Sp2, 2000))
+                    VAR Sp3 = IF(LEN(T2) <= 46, LEN(T2) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T2, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L3 = LEFT(T2, Sp3 - 1)
+                    VAR T3 = IF(MID(T2, Sp3, 1) = " ", MID(T2, Sp3 + 1, 2000), MID(T2, Sp3, 2000))
+                    VAR Sp4 = IF(LEN(T3) <= 46, LEN(T3) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T3, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L4 = LEFT(T3, Sp4 - 1)
+                    VAR T4 = IF(MID(T3, Sp4, 1) = " ", MID(T3, Sp4 + 1, 2000), MID(T3, Sp4, 2000))
+                    VAR Sp5 = IF(LEN(T4) <= 46, LEN(T4) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T4, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L5 = LEFT(T4, Sp5 - 1)
+                    VAR T5 = IF(MID(T4, Sp5, 1) = " ", MID(T4, Sp5 + 1, 2000), MID(T4, Sp5, 2000))
+                    VAR Sp6 = IF(LEN(T5) <= 46, LEN(T5) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 47), MID(T5, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 47, LastSpace))
+                    VAR L6 = LEFT(T5, Sp6 - 1)
+                    VAR T6 = IF(MID(T5, Sp6, 1) = " ", MID(T5, Sp6 + 1, 2000), MID(T5, Sp6, 2000))
+                    RETURN L1 & IF(L2 <> "", "|" & L2) & IF(L3 <> "", "|" & L3) & IF(L4 <> "", "|" & L4) & IF(L5 <> "", "|" & L5) & IF(L6 <> "", "|" & L6)
+                )
+            VAR Sized = ADDCOLUMNS(Wrapped, "LineN", PATHLENGTH([Packed]))
+            VAR Placed = ADDCOLUMNS(Sized, "Top", VAR ThisN = [N] RETURN SUMX(FILTER(Sized, [N] < ThisN), [LineN] * 14.5 + 11) + 0)
+            VAR ItemSvg =
+                CONCATENATEX(
+                    Placed,
+                    VAR ItemTop = [Top]
+                    VAR LeadText = [Lead]
+                    VAR Packed = [Packed]
+                    VAR FirstLine = PATHITEM(Packed, 1)
+                    VAR FirstRest = MID(FirstLine, LEN(LeadText) + 1, 2000)
+                    VAR OtherLines = CONCATENATEX(FILTER(GENERATESERIES(2, MAX(2, [LineN])), [Value] <= PATHLENGTH(Packed)), VAR LineText = PATHITEM(Packed, [Value]) RETURN "<text x='22' y='" & ROUND(ItemTop + 11 + ([Value] - 1) * 14.5, 1) & "' font-family='Segoe UI, sans-serif' font-size='11' fill='%233D4C58'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(LineText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>", "", [Value], ASC)
+                    VAR RuleY = ROUND(ItemTop + [LineN] * 14.5 + 4.5, 1)
+                    RETURN
+                        "<text x='0' y='" & ROUND(ItemTop + 11, 1) & "' font-family='Segoe UI, sans-serif' font-size='11.5' font-weight='600' fill='" & [Ink] & "'>" & [N] & "</text>"
+                            & "<text x='22' y='" & ROUND(ItemTop + 11, 1) & "' font-family='Segoe UI, sans-serif' font-size='11' fill='%233D4C58'><tspan font-weight='600' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(LeadText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</tspan>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(FirstRest, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & OtherLines
+                            & "<line x1='22' y1='" & RuleY & "' x2='306' y2='" & RuleY & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [N], ASC
+                )
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='612' height='452' viewBox='0 0 306 226'>" & ItemSvg & "</svg>"
+        displayFolder: Exit routes
+        dataCategory: ImageUrl
+        lineageTag: 97b381e0-ec1e-4ea6-aa86-90991db1d073
+
+    /// ONE FIX title: the single action that closes the most live routes. Turning automatic external forwarding off closes every mailbox forward and inbox rule going outside, so it comes first while any policy that applies to someone does not block it.
+    measure 'Exit Routes One Fix Title' =
+            VAR UserN = [User Exit Routes]
+            VAR FlowN = [Mail Flow Exit Routes]
+            VAR NotBlocking = [Policies Not Blocking Forwarding]
+            VAR FlowName = CALCULATE(MIN(TransportRules[Name]), ALL(TransportRules), TransportRules[ExitRoute] = TRUE())
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK([Live Exit Routes]), "Collect the forwarding and rule files",
+                    UserN > 0 && (ISBLANK(NotBlocking) || NotBlocking > 0), "Turn automatic external forwarding off",
+                    FlowN = 1, "Turn off the " & FlowName & " mail flow rule",
+                    FlowN > 1, "Review the " & FlowN & " outside mail flow rules",
+                    UserN > 0, "Remove the " & UserN & " outside forwards",
+                    "Keep automatic external forwarding off"
+                )
+        displayFolder: Exit routes
+        lineageTag: 32d2f49f-ae80-4075-9357-29082392bcac
+
+    /// ONE FIX detail: how many live routes the action closes, and what it leaves.
+    measure 'Exit Routes One Fix Detail' =
+            VAR LiveN = [Live Exit Routes]
+            VAR UserN = [User Exit Routes]
+            VAR FlowN = [Mail Flow Exit Routes]
+            VAR FwdN = CALCULATE(COUNTROWS(MailboxForwarding), ALL(MailboxForwarding), MailboxForwarding[ExitRoute] = TRUE())
+            VAR RuleN = CALCULATE(COUNTROWS(InboxRules), ALL(InboxRules), InboxRules[ExitRoute] = TRUE())
+            VAR NotBlocking = [Policies Not Blocking Forwarding]
+            VAR FlowName = CALCULATE(MIN(TransportRules[Name]), ALL(TransportRules), TransportRules[ExitRoute] = TRUE())
+            VAR Covered = SWITCH(TRUE(), FwdN > 0 && RuleN > 0, "every mailbox forward and inbox rule going outside", FwdN > 0, "every mailbox forward going outside", "every inbox rule going outside")
+            VAR FlowNote = SWITCH(TRUE(), FlowN = 1, " The " & FlowName & " mail flow rule needs its own decision.", FlowN > 1, " The " & FlowN & " outside mail flow rules need their own decision.", "")
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(LiveN), "mailbox-forwarding.csv, inbox-rules.csv and transport-rules.csv are empty, so no route could be checked.",
+                    UserN > 0 && (ISBLANK(NotBlocking) || NotBlocking > 0), "One setting in the outbound spam policy shuts " & UserN & " of the " & LiveN & " live routes: " & Covered & "." & FlowNote,
+                    FlowN > 0 && UserN > 0, "Automatic external forwarding is already off in every outbound spam policy, so the " & UserN & " mailbox forwards and inbox rules bounce. Mail flow rules are not covered by that setting.",
+                    FlowN > 0, "It sends mail outside for the whole organization, and the outbound spam forwarding setting does not cover mail flow rules.",
+                    UserN > 0, "Automatic external forwarding is off in every outbound spam policy, so they bounce today, but they send again if the setting changes.",
+                    "No mailbox forward, inbox rule or mail flow rule sends mail outside in the latest run."
+                )
+        displayFolder: Exit routes
+        lineageTag: 625f7c06-859d-487f-bd5d-63a9c8885266
+
+    /// Header run line: the latest run, how many runs since the first, and the first mailbox change audit event.
+    measure 'Exit Routes Run Header' =
+            VAR Runs = DISTINCT(UNION(SELECTCOLUMNS(ALL(MailboxForwarding[RunDate]), "D", MailboxForwarding[RunDate]), SELECTCOLUMNS(ALL(InboxRules[RunDate]), "D", InboxRules[RunDate]), SELECTCOLUMNS(ALL(TransportRules[RunDate]), "D", TransportRules[RunDate]), SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate])))
+            VAR RunList = FILTER(Runs, NOT ISBLANK([D]))
+            VAR LatestRunDate = MAXX(RunList, [D])
+            VAR FirstRunDate = MINX(RunList, [D])
+            VAR RunN = COUNTROWS(RunList) + 0
+            VAR FirstEvent = CALCULATE(MIN(MailboxChangeEvents[CreationTime]), ALL(MailboxChangeEvents))
+            RETURN
+                IF(ISBLANK(LatestRunDate), "No run collected", "Run " & FORMAT(LatestRunDate, "yyyy-MM-dd") & " " & UNICHAR(183) & " " & RunN & IF(RunN = 1, " run since ", " runs since ") & FORMAT(FirstRunDate, "yyyy-MM-dd"))
+                    & " " & UNICHAR(183) & " " & IF(ISBLANK(FirstEvent), "audit events not collected", "audit events since " & FORMAT(FirstEvent, "yyyy-MM-dd"))
+        displayFolder: Exit routes
+        lineageTag: 2f10f5df-e03c-485b-8351-80b048df9d9b
+
+    /// Footer: the files the page reads, and "sample data, example.com" only when users.csv holds example.com accounts.
+    measure 'Exit Routes Sources' =
+            VAR IsSample = COUNTROWS(FILTER(ALL(Users[UserPrincipalName]), CONTAINSSTRING(Users[UserPrincipalName], "@example.com"))) > 0
+            RETURN "Sources: mailbox-forwarding.csv " & UNICHAR(183) & " inbox-rules.csv " & UNICHAR(183) & " transport-rules.csv " & UNICHAR(183) & " mailbox-change-events.csv " & UNICHAR(183) & " accepted-domains.csv " & UNICHAR(183) & " outbound-spam-policies.csv " & UNICHAR(183) & " users.csv" & IF(IsSample, " " & UNICHAR(183) & " sample data, example.com")
+        displayFolder: Exit routes
+        lineageTag: 7ac15bb4-108d-4331-b9e9-862b04dfb7d1
 
     partition MailboxForwarding = m
         mode: import

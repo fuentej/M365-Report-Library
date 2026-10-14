@@ -20,3 +20,4 @@ ref table AppRoleAssignments
 ref table MailboxChangeEvents
 ref table MailAccessEvents
 ref table AuditConfiguration
+ref table OutboundSpamPolicies

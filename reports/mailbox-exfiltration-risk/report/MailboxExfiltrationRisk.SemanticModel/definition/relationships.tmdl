@@ -93,3 +93,7 @@ relationship 6d1b455f-079f-5c7e-9e81-86575958147d
 relationship d9ed2296-f959-55e9-aae6-c3c7e325b4ab
     fromColumn: AppRoleAssignments.PrincipalId
     toColumn: Apps.AppId
+
+relationship 218c705d-f9a2-4e03-8e50-c8330371d6ac
+    fromColumn: OutboundSpamPolicies.RunDate
+    toColumn: DateDim.Date
