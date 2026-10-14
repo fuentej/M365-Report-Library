@@ -32,6 +32,6 @@ function global:Get-MgAdminReportSetting {
 
 function global:Invoke-MgGraphRequest {
     [CmdletBinding()]
-    param([string]$Method, [string]$Uri, [string]$OutputFilePath)
+    param([string]$Method, [string]$Uri, [System.Collections.IDictionary]$Headers, [string]$OutputFilePath)
     throw 'Invoke-MgGraphRequest was called for real. Mock it in the test.'
 }

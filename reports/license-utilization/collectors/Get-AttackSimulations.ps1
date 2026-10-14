@@ -58,13 +58,18 @@ Import-Module (Join-Path $PSScriptRoot '../../../shared/M365ReportLibrary.psm1')
 $base = (Get-M365ServiceEndpoint -Service Graph -Environment $Environment).ResourceEndpoint
 $uri = '{0}/v1.0/security/attackSimulation/simulations' -f $base
 
+# attackTechnique oAuthConsentGrant is past the enum sentinel: without this header Graph
+# returns it as unknownFutureValue
+# (https://learn.microsoft.com/graph/api/resources/simulation#properties).
+$preferUnknownEnums = @{ Prefer = 'include-unknown-enum-members' }
+
 Invoke-LicenseUtilizationSnapshot -Source 'AttackSimulations' -CsvName 'attack-simulations.csv' `
     -Description 'Attack simulation campaigns' `
     -License 'AttackSimulation.Read.All and, when signed in, Security Reader; Microsoft 365 E5 or Defender for Office 365 Plan 2' `
     -KeyColumn @('RunDate', 'SimulationId') -OutputPath $OutputPath -Environment $Environment -AppId $AppId `
     -CertificateThumbprint $CertificateThumbprint -TenantId $TenantId -Organization $Organization `
     -SchemaPath $SchemaPath -SkipConnect:$SkipConnect `
-    -Fetch { Get-GraphReportJson -Uri $uri } `
+    -Fetch { Get-GraphReportJson -Uri $uri -Headers $preferUnknownEnums } `
     -Map {
         param($simulation, $runDate)
 

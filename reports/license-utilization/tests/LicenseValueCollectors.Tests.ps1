@@ -163,6 +163,22 @@ Describe 'Paging is followed for the License value reads' {
         $rows.Count | Should -Be 2
     }
 
+    # simulation.attackTechnique: oAuthConsentGrant is returned as unknownFutureValue unless
+    # the request carries Prefer: include-unknown-enum-members.
+    # https://learn.microsoft.com/graph/api/resources/simulation#properties
+    It 'Get-AttackSimulations.ps1 sends Prefer include-unknown-enum-members on every page' {
+        Mock Invoke-MgGraphRequest -MockWith {
+            if ($Uri -like '*page=2*') { @{ value = @((New-MockSimulation -Id 'two')) } }
+            else { @{ '@odata.nextLink' = 'https://graph.microsoft.com/v1.0/next?page=2'; value = @((New-MockSimulation -Id 'one')) } }
+        }
+
+        Invoke-CollectorScript 'Get-AttackSimulations.ps1' @{ OutputPath = $script:folder }
+
+        Should -Invoke Invoke-MgGraphRequest -Times 2 -Exactly -ParameterFilter {
+            $Headers -and $Headers['Prefer'] -eq 'include-unknown-enum-members'
+        }
+    }
+
     It 'refuses a next link on another host' {
         Mock Invoke-MgGraphRequest -MockWith {
             @{ '@odata.nextLink' = 'https://example.com/v1.0/next'; value = @((New-MockAccessReview)) }
