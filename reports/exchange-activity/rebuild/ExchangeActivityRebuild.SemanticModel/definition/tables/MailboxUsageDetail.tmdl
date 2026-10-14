@@ -1,0 +1,131 @@
+table MailboxUsageDetail
+    lineageTag: 7cb44e29-fae9-4d76-89a9-14782ec9993c
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6179512c-4717-42b8-8f12-b1eccf1d999f
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 99a73ce1-f69e-4292-bdb3-439791ec057f
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 87322162-d3c3-4cad-8506-9e1fc0d5839e
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column DisplayName
+        dataType: string
+        lineageTag: 08e9dffa-2d1d-44f4-bb9c-3789b5761723
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 1d5fbb76-3466-4cb9-afbe-aa7bbbc8ad12
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: ccbf7550-8de7-46c0-bc41-d391127f18eb
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column CreatedDate
+        dataType: string
+        lineageTag: 89cb88b3-3d68-49cc-b66c-ab55d6364d1c
+        summarizeBy: none
+        sourceColumn: CreatedDate
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 5b316de0-62f6-4b46-a61e-d6c8671c744b
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column ItemCount
+        dataType: string
+        lineageTag: 809817fd-27f4-4975-9ee6-db450d17dda8
+        summarizeBy: none
+        sourceColumn: ItemCount
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: 1de5785d-71b3-4fa0-bcb8-cdded7a6e14b
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column IssueWarningQuotaByte
+        dataType: string
+        lineageTag: a6a03178-ea14-4726-a568-2606677f3119
+        summarizeBy: none
+        sourceColumn: IssueWarningQuotaByte
+
+    column ProhibitSendQuotaByte
+        dataType: string
+        lineageTag: 30447822-472e-4320-9fcb-30fc2b726ce7
+        summarizeBy: none
+        sourceColumn: ProhibitSendQuotaByte
+
+    column ProhibitSendReceiveQuotaByte
+        dataType: string
+        lineageTag: ba0a9734-4320-4cfd-8f89-8126bd9e6753
+        summarizeBy: none
+        sourceColumn: ProhibitSendReceiveQuotaByte
+
+    column DeletedItemCount
+        dataType: string
+        lineageTag: e3fc1875-f36a-42f7-aede-5f7a846c10e0
+        summarizeBy: none
+        sourceColumn: DeletedItemCount
+
+    column DeletedItemSizeByte
+        dataType: string
+        lineageTag: 3d63012e-2163-4552-aebb-df913c536856
+        summarizeBy: none
+        sourceColumn: DeletedItemSizeByte
+
+    column DeletedItemQuotaByte
+        dataType: string
+        lineageTag: 4e077b75-a8f2-42d9-89e6-8aa5b4a21d35
+        summarizeBy: none
+        sourceColumn: DeletedItemQuotaByte
+
+    column HasArchive
+        dataType: string
+        lineageTag: c2c909a3-28bf-41ba-9494-9f8178df1f84
+        summarizeBy: none
+        sourceColumn: HasArchive
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 7059d47a-d94c-484e-ab63-58fd2f340392
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column QuotaStatus
+        dataType: string
+        lineageTag: 323670ef-9ac8-4c96-ad02-4d01e3cc9778
+        summarizeBy: none
+        sourceColumn: QuotaStatus
+
+    partition MailboxUsageDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-usage-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
