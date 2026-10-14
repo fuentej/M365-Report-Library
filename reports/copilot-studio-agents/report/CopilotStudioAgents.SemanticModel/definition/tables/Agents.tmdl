@@ -436,16 +436,28 @@ table Agents
             RETURN IF(ISBLANK(Snap), BLANK(), IF(ISBLANK(V), "Unknown", V))
         lineageTag: 5e6a474f-c58e-53d7-8ac3-99dbd6ac924b
 
-    measure 'Authentication (Display)' = CALCULATE(MAX(Agents[AuthenticationLabel]), Agents[RunDate] = [Agents Snapshot Date])
+    /// Reads the snapshot date into a VAR first: Desktop 2.158 rejects a measure inside a CALCULATE column filter.
+    measure 'Authentication (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN CALCULATE(MAX(Agents[AuthenticationLabel]), Agents[RunDate] = Snap)
         lineageTag: 3abaccb0-4f6b-53b0-a6fe-09c11dfaf205
 
-    measure 'Channels (Display)' = CALCULATE(MAX(Agents[ChannelsLabel]), Agents[RunDate] = [Agents Snapshot Date])
+    /// Reads the snapshot date into a VAR first: Desktop 2.158 rejects a measure inside a CALCULATE column filter.
+    measure 'Channels (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN CALCULATE(MAX(Agents[ChannelsLabel]), Agents[RunDate] = Snap)
         lineageTag: 565b21c4-08dc-5040-b77a-1215b9cdd95e
 
-    measure 'Publish State (Display)' = CALCULATE(MAX(Agents[PublishState]), Agents[RunDate] = [Agents Snapshot Date])
+    /// Reads the snapshot date into a VAR first: Desktop 2.158 rejects a measure inside a CALCULATE column filter.
+    measure 'Publish State (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN CALCULATE(MAX(Agents[PublishState]), Agents[RunDate] = Snap)
         lineageTag: 9630e654-12c9-58fc-9d56-ebdaf1fe2a3c
 
-    measure 'Sharing Scope (Display)' = CALCULATE(MAX(Agents[SharingScope]), Agents[RunDate] = [Agents Snapshot Date])
+    /// Reads the snapshot date into a VAR first: Desktop 2.158 rejects a measure inside a CALCULATE column filter.
+    measure 'Sharing Scope (Display)' = 
+            VAR Snap = [Agents Snapshot Date]
+            RETURN CALCULATE(MAX(Agents[SharingScope]), Agents[RunDate] = Snap)
         lineageTag: 3e3753cf-99f5-5bd3-bb68-84e514224956
 
     measure 'Created (Display)' = 

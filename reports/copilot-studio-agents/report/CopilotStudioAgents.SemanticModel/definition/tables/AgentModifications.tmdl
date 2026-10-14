@@ -110,9 +110,9 @@ table AgentModifications
     measure 'Modified By (Display)' = 
             VAR Snap = [Agent Modifications Snapshot Date]
             VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
-            VAR Key = CALCULATE(MAX(AgentModifications[ModifiedBy]), AgentModifications[RunDate] = Snap)
+            VAR ModifierKey = CALCULATE(MAX(AgentModifications[ModifiedBy]), AgentModifications[RunDate] = Snap)
             VAR Pseudo = CALCULATE(MAX(AgentModifications[ModifierPseudonym]), AgentModifications[RunDate] = Snap)
-            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap)), BLANK(), IF(ISBLANK(Key), "Unknown", IF(Mode = "Anonymize", Pseudo, Key)))
+            RETURN IF(ISBLANK(CALCULATE(COUNTROWS(AgentModifications), AgentModifications[RunDate] = Snap)), BLANK(), IF(ISBLANK(ModifierKey), "Unknown", IF(Mode = "Anonymize", Pseudo, ModifierKey)))
         lineageTag: 1c6e736d-35e9-523e-9e44-8321168557a8
 
     partition AgentModifications = m
