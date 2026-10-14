@@ -1,0 +1,81 @@
+table AuditSearchCmdlet
+    lineageTag: 6bdec4ec-9f2e-4247-89e8-9f54dc08d7b9
+
+    column CreationTime
+        dataType: string
+        lineageTag: 8f0e80db-d9b0-4eb6-bdd8-caf9bbc7512e
+        summarizeBy: none
+        sourceColumn: CreationTime
+
+    column RecordId
+        dataType: string
+        lineageTag: 12cba78e-bc5b-4da3-a506-7b8d96626a7f
+        summarizeBy: none
+        sourceColumn: RecordId
+
+    column RecordType
+        dataType: string
+        lineageTag: afc15f83-ba08-4c5e-83d0-5654b2a968d4
+        summarizeBy: none
+        sourceColumn: RecordType
+
+    column Operation
+        dataType: string
+        lineageTag: 181da393-b3c1-4d48-a54d-c74b29f8da97
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column Workload
+        dataType: string
+        lineageTag: e908a0e8-2f9c-4bb6-b916-9672c054b046
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column UserId
+        dataType: string
+        lineageTag: 07e6473b-1666-4954-b092-cb56588ad834
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column ObjectId
+        dataType: string
+        lineageTag: 0a9c55c1-8882-4224-9c68-992ffbf70cb3
+        summarizeBy: none
+        sourceColumn: ObjectId
+
+    column ClientIP
+        dataType: string
+        lineageTag: 564969a6-d4e1-45ae-808d-e0442a4d2376
+        summarizeBy: none
+        sourceColumn: ClientIP
+
+    column ResultStatus
+        dataType: string
+        lineageTag: fa36fc5a-c145-4bbd-a4a2-2fd4f5d9d06a
+        summarizeBy: none
+        sourceColumn: ResultStatus
+
+    column OrganizationId
+        dataType: string
+        lineageTag: a459673d-1bd0-4525-90fd-5d9ffbc0fe7d
+        summarizeBy: none
+        sourceColumn: OrganizationId
+
+    column AuditData
+        dataType: string
+        lineageTag: e5362dc7-9995-4985-8019-32ae06964ba2
+        summarizeBy: none
+        sourceColumn: AuditData
+
+    partition AuditSearchCmdlet = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-search-cmdlet.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table

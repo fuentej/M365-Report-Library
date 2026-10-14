@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\UnifiedAuditLogData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 9e084d08-fa38-4b4d-8198-44f4afb2854c
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text
