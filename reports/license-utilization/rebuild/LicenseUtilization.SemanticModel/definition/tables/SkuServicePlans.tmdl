@@ -1,0 +1,53 @@
+table SkuServicePlans
+    lineageTag: 9577fe6e-125d-41b3-9fdf-6b1e48b6110a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 1ef8e871-6d8d-42d9-bc35-bf3c258a2dea
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column SkuId
+        dataType: string
+        lineageTag: 47b6c7db-e16b-4443-b680-9f9c7e3eb18c
+        summarizeBy: none
+        sourceColumn: SkuId
+
+    column ServicePlanId
+        dataType: string
+        lineageTag: 6e4a502b-f4c2-4d00-a5fd-f02dfba36ab9
+        summarizeBy: none
+        sourceColumn: ServicePlanId
+
+    column ServicePlanName
+        dataType: string
+        lineageTag: c813e0a4-b0dd-463e-874e-c36bd53901b3
+        summarizeBy: none
+        sourceColumn: ServicePlanName
+
+    column ProvisioningStatus
+        dataType: string
+        lineageTag: b2c21211-f0c0-496d-a8d9-0321f1875b3f
+        summarizeBy: none
+        sourceColumn: ProvisioningStatus
+
+    column AppliesTo
+        dataType: string
+        lineageTag: e6215fee-9997-41b4-9cd0-c64233ec4e26
+        summarizeBy: none
+        sourceColumn: AppliesTo
+
+    partition SkuServicePlans = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sku-service-plans.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
