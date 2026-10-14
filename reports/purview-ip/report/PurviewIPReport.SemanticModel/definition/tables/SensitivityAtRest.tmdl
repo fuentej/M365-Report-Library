@@ -24,11 +24,19 @@ table SensitivityAtRest
 		sourceColumn: TotalCount
 		summarizeBy: sum
 
-	/// Labels[Priority] of the label this row counts, matched on display name.
-	column 'Label Priority' = MAXX(FILTER(Labels, Labels[DisplayName] = SensitivityAtRest[TagName]), Labels[Priority])
+	/// Labels[Priority] of the label this row counts. Get-ContentExplorerSnapshot
+	/// writes the label's Name (not its DisplayName) as TagName, so match on Name.
+	column 'Label Priority' = MAXX(FILTER(Labels, Labels[Name] = SensitivityAtRest[TagName]), Labels[Priority])
 		dataType: int64
 		type: calculated
 		isHidden
+		summarizeBy: none
+
+	/// Display name of the label this row counts, for chart legends. Falls back
+	/// to TagName for a label that is no longer in policies.csv.
+	column 'Label Name' = COALESCE(MAXX(FILTER(Labels, Labels[Name] = SensitivityAtRest[TagName]), Labels[DisplayName]), SensitivityAtRest[TagName])
+		dataType: string
+		type: calculated
 		summarizeBy: none
 
 	/// Snapshot date as the chart's axis label ("Jul 1").

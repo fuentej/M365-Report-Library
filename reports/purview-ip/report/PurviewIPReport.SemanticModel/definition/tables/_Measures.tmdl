@@ -229,10 +229,19 @@ table _Measures
 		displayFolder: Label downgrades
 		isHidden
 
+	/// Name of the top label as Content Explorer records it: the snapshot
+	/// collector writes Get-Label Name, not DisplayName, as SensitivityAtRest[TagName].
+	measure 'Top Label Tag Name' =
+			VAR TopPriority = CALCULATE(MAX(Labels[Priority]), ALL(Labels))
+			RETURN
+			    MAXX(FILTER(ALL(Labels), Labels[Priority] = TopPriority), Labels[Name])
+		displayFolder: Label downgrades
+		isHidden
+
 	/// FirstDate and LastDate are DAX functions, so the variables are named
 	/// EarliestSnapshot and LatestSnapshot.
 	measure 'Top Label Items First' =
-			VAR TopName = [Top Label Name]
+			VAR TopName = [Top Label Tag Name]
 			VAR EarliestSnapshot = CALCULATE(MIN(SensitivityAtRest[SnapshotDate]), ALL(SensitivityAtRest))
 			RETURN
 			    CALCULATE(
@@ -246,7 +255,7 @@ table _Measures
 		isHidden
 
 	measure 'Top Label Items Latest' =
-			VAR TopName = [Top Label Name]
+			VAR TopName = [Top Label Tag Name]
 			VAR LatestSnapshot = CALCULATE(MAX(SensitivityAtRest[SnapshotDate]), ALL(SensitivityAtRest))
 			RETURN
 			    CALCULATE(

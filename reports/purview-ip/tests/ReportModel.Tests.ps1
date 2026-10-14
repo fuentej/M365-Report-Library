@@ -270,3 +270,44 @@ Describe 'The report has the approved Label downgrades page and its filter' {
         $key[0].hidden | Should -BeTrue
     }
 }
+
+Describe 'The Label downgrades page matches Content Explorer tags on the label Name' {
+    # Get-ContentExplorerSnapshot writes Get-Label's Name as SensitivityAtRest[TagName].
+    # Name and DisplayName differ in a real tenant, so a match on DisplayName finds no
+    # snapshot rows and the trend tile, caption and chart come up empty.
+    # https://learn.microsoft.com/powershell/module/exchange/get-label
+    # https://learn.microsoft.com/powershell/module/exchange/export-contentexplorerdata
+    BeforeAll {
+        $script:MeasuresTmdl = Get-Content -LiteralPath $script:Model['_Measures'].Path -Raw
+        $script:AtRestTmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'SensitivityAtRest.tmdl') -Raw
+    }
+
+    It 'has a collector that writes the label Name as the Sensitivity TagName' {
+        $collector = Get-Content -LiteralPath (Join-Path $script:Root 'reports/purview-ip/collectors/Get-ContentExplorerSnapshot.ps1') -Raw
+        $collector | Should -Match "Get-Label[\s\S]*?\`$name = Get-PurviewProperty \`$label 'Name'[\s\S]*?TagType = 'Sensitivity'; TagName = \[string\]\`$name"
+    }
+
+    It 'looks up a snapshot row''s label priority by Labels[Name]' {
+        $script:AtRestTmdl | Should -Match "column 'Label Priority' = [^\r\n]*Labels\[Name\] = SensitivityAtRest\[TagName\]"
+    }
+
+    It 'never compares Labels[DisplayName] with SensitivityAtRest[TagName]' {
+        $script:AtRestTmdl | Should -Not -Match 'Labels\[DisplayName\]\s*=\s*SensitivityAtRest\[TagName\]'
+        $script:MeasuresTmdl | Should -Not -Match 'Labels\[DisplayName\]\s*=\s*SensitivityAtRest\[TagName\]'
+    }
+
+    It 'counts first and latest snapshot items for the top label''s Name' -ForEach @(
+        @{ Measure = 'Top Label Items First' }
+        @{ Measure = 'Top Label Items Latest' }
+    ) {
+        $script:MeasuresTmdl | Should -Match "measure '$Measure' =\s*VAR TopName = \[Top Label Tag Name\]"
+        $script:MeasuresTmdl | Should -Match "measure 'Top Label Tag Name' =[\s\S]*?Labels\[Name\]\)"
+    }
+
+    It 'names the chart series by display name, not by the raw TagName' {
+        $chart = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'label-downgrades/visuals/downgrades-trend-chart/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $series = @($chart.visual.query.queryState.Series.projections | ForEach-Object { $_.queryRef })
+        $series | Should -Be @('SensitivityAtRest.Label Name')
+        $script:AtRestTmdl | Should -Match "column 'Label Name' = COALESCE\(MAXX\(FILTER\(Labels, Labels\[Name\] = SensitivityAtRest\[TagName\]\), Labels\[DisplayName\]\)"
+    }
+}
