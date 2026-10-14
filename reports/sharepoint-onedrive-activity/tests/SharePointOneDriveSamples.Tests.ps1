@@ -146,4 +146,53 @@ Describe 'The sample CSVs match the collectors' {
         @($rows | Where-Object IncompleteData -EQ 'True').Count | Should -BeGreaterThan 0
         @($rows | Where-Object { $_.CreateActionCount -eq '' }).Count | Should -BeGreaterThan 0
     }
+
+    It 'grows each site and each OneDrive at its own rate between the two runs' {
+        $growth = {
+            param($Rows, $Key)
+            $Rows | Group-Object $Key | ForEach-Object {
+                $byRun = @($_.Group | Sort-Object RunDate)
+                [long]$byRun[-1].StorageUsedByte - [long]$byRun[0].StorageUsedByte
+            }
+        }
+        $sites = @(& $growth @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv')) 'SiteUrl')
+        $sites.Count | Should -BeGreaterThan 2
+        @($sites | Select-Object -Unique).Count | Should -Be $sites.Count
+        $drives = @(& $growth @(Import-Csv -LiteralPath (Join-Path $script:Samples 'onedrive-usage-account-detail.csv')) 'OwnerPrincipalName')
+        $drives.Count | Should -BeGreaterThan 2
+        @($drives | Select-Object -Unique).Count | Should -Be $drives.Count
+    }
+
+    It 'does not grow the daily tenant storage by one identical step' {
+        foreach ($name in 'sharepoint-site-usage-storage.csv', 'onedrive-usage-storage.csv') {
+            $used = @(Import-Csv -LiteralPath (Join-Path $script:Samples $name) | Sort-Object ReportDate | ForEach-Object { [long]$_.StorageUsedByte })
+            $steps = for ($i = 1; $i -lt $used.Count; $i++) { $used[$i] - $used[$i - 1] }
+            @($steps | Select-Object -Unique).Count | Should -BeGreaterThan 1 -Because $name
+        }
+    }
+
+    It 'reports in spo-sites.csv the same usage, in MB, as the latest run of the usage reports' {
+        $sites = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'spo-sites.csv') | Where-Object { $_.StorageUsageCurrent -ne '' })
+        $latest = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv') | Where-Object RunDate -EQ '2026-10-08')
+        $sites.Count | Should -BeGreaterThan 2
+        foreach ($site in $sites) {
+            $usage = @($latest | Where-Object SiteUrl -EQ $site.Url | ForEach-Object { [long]$_.StorageUsedByte } | Select-Object -Unique)
+            $usage.Count | Should -Be 1 -Because $site.Url
+            [long]$site.StorageUsageCurrent | Should -Be ([math]::Floor($usage[0] / 1MB)) -Because $site.Url
+        }
+    }
+
+    It 'reports in drive-quota.csv the same usage as the latest run of the usage reports' {
+        $quota = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'drive-quota.csv'))
+        $latest = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'sharepoint-site-usage-detail.csv') | Where-Object RunDate -EQ '2026-10-08')
+        $matched = 0
+        foreach ($site in $latest) {
+            $drive = $quota | Where-Object SiteWebUrl -EQ $site.SiteUrl
+            if (-not $drive) { continue }
+            $matched++
+            $drive.QuotaUsed | Should -Be $site.StorageUsedByte -Because $site.SiteUrl
+        }
+        $matched | Should -BeGreaterThan 2
+        foreach ($row in $quota) { [long]$row.QuotaUsed + [long]$row.QuotaRemaining | Should -Be ([long]$row.QuotaTotal) -Because $row.DriveId }
+    }
 }

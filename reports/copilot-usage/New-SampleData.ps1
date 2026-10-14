@@ -44,45 +44,98 @@ function New-MapRow {
     [pscustomobject]$row
 }
 
-# Source 2
-$detail = @(
-    New-MapRow 'UsageUserDetailMap' @{
-        ReportRefreshDate = '2026-09-29'; UserPrincipalName = 'avery.abara@example.com'; DisplayName = 'Avery Abara'
-        LastActivityDate = '2026-09-28'; CopilotChatLastActivityDate = '2026-09-28'; MicrosoftTeamsCopilotLastActivityDate = '2026-09-25'
-        WordCopilotLastActivityDate = '2026-09-10'; OutlookCopilotLastActivityDate = '2026-09-22'; ReportPeriod = '28'
-        PromptsSubmittedAllApps = '41'; PromptsSubmittedCopilotChatWork = '30'; PromptsSubmittedCopilotChatWeb = '3'
-        ActiveUsageDaysAllApps = '12'; CopilotChatWorkLastActivityDate = '2026-09-28'; Microsoft365CopilotLastActivityDate = '2026-09-25'
+# Source 2 and 3. One seeded random drives the per-person file, and the user-count summary is
+# counted from that file, so the two cannot disagree. Same seed, same files.
+$random = [System.Random]::new(20260929)
+$refreshDate = [datetime]'2026-09-29'
+$firstNames = 'Avery', 'Casey', 'Devon', 'Emerson', 'Finley', 'Gray', 'Harper', 'Indigo', 'Jordan', 'Kai', 'Logan', 'Morgan', 'Nico', 'Oakley', 'Parker', 'Quinn', 'Reese', 'Sage', 'Tatum', 'Wren'
+$lastNames = 'Abara', 'Chaudhry', 'Dube', 'Eriksen', 'Fontaine', 'Gupta', 'Hollis', 'Iyer', 'Jansen', 'Kowalski', 'Lindqvist', 'Moreau'
+$personCount = 60
+
+# Per app: the share of people who use it, and the share of its monthly (28-day) users who were
+# also active in the last 7 days. The second number is what makes the weekly-to-monthly ratio
+# differ by app: Teams and Outlook are daily habits, PowerPoint and Loop are occasional.
+$appProfile = [ordered]@{
+    CopilotChat = @{ Column = 'CopilotChatLastActivityDate'; Adopt = 0.85; Weekly = 0.78 }
+    MicrosoftTeams = @{ Column = 'MicrosoftTeamsCopilotLastActivityDate'; Adopt = 0.70; Weekly = 0.65 }
+    Outlook = @{ Column = 'OutlookCopilotLastActivityDate'; Adopt = 0.65; Weekly = 0.55 }
+    Word = @{ Column = 'WordCopilotLastActivityDate'; Adopt = 0.55; Weekly = 0.50 }
+    Excel = @{ Column = 'ExcelCopilotLastActivityDate'; Adopt = 0.40; Weekly = 0.35 }
+    PowerPoint = @{ Column = 'PowerPointCopilotLastActivityDate'; Adopt = 0.35; Weekly = 0.18 }
+    OneNote = @{ Column = 'OneNoteCopilotLastActivityDate'; Adopt = 0.30; Weekly = 0.20 }
+    Loop = @{ Column = 'LoopCopilotLastActivityDate'; Adopt = 0.25; Weekly = 0.10 }
+}
+
+$people = foreach ($index in 0..($personCount - 1)) {
+    $first = $firstNames[$index % $firstNames.Count]
+    $last = $lastNames[$index % $lastNames.Count]
+    $values = @{
+        ReportRefreshDate = $refreshDate.ToString('yyyy-MM-dd')
+        UserPrincipalName = ('{0}.{1}@example.com' -f $first, $last).ToLowerInvariant()
+        DisplayName = "$first $last"
+        ReportPeriod = '28'
     }
-    New-MapRow 'UsageUserDetailMap' @{
-        ReportRefreshDate = '2026-09-29'; UserPrincipalName = 'casey.chaudhry@example.com'; DisplayName = 'Casey Chaudhry'
-        ReportPeriod = '28'; PromptsSubmittedAllApps = '0'; PromptsSubmittedCopilotChatWork = '0'; PromptsSubmittedCopilotChatWeb = '0'
-        ActiveUsageDaysAllApps = '0'
+    $latest = $null
+    $appDates = @{}
+    foreach ($app in $appProfile.Keys) {
+        $profile = $appProfile[$app]
+        # Adoption is random; weekly or not is spread evenly over people (not random) so each
+        # app's ratio lands near its Weekly value instead of wandering with a small count.
+        $appNumber = @($appProfile.Keys).IndexOf($app)
+        $spread = (($index * 37 + $appNumber * 11) % 100) / 100
+        if ($random.NextDouble() -ge $profile.Adopt) { continue }
+        # Some users tried the app weeks ago and stopped: past the 28-day window.
+        $daysAgo = if ($spread -lt $profile.Weekly) { $random.Next(1, 7) }
+        elseif ($random.NextDouble() -lt 0.85) { $random.Next(7, 28) }
+        else { $random.Next(28, 75) }
+        $date = $refreshDate.AddDays(-$daysAgo)
+        $appDates[$app] = $date
+        $values[$profile.Column] = $date.ToString('yyyy-MM-dd')
+        if ($null -eq $latest -or $date -gt $latest) { $latest = $date }
     }
-    New-MapRow 'UsageUserDetailMap' @{
-        ReportRefreshDate = '2026-09-29'; UserPrincipalName = 'devon.dube@example.com'; DisplayName = 'Devon Dube'
-        LastActivityDate = '2026-09-02'; ExcelCopilotLastActivityDate = '2026-09-02'; PowerPointCopilotLastActivityDate = '2026-08-14'
-        ReportPeriod = '28'; PromptsSubmittedAllApps = '5'; PromptsSubmittedCopilotChatWork = '0'; PromptsSubmittedCopilotChatWeb = '0'
-        ActiveUsageDaysAllApps = '2'; Microsoft365CopilotLastActivityDate = '2026-09-02'
+    if ($appDates.ContainsKey('CopilotChat')) {
+        $values.CopilotChatWorkLastActivityDate = $values.CopilotChatLastActivityDate
     }
-)
+    $workApps = @($appDates.Keys | Where-Object { $_ -ne 'CopilotChat' })
+    if ($workApps.Count -gt 0) {
+        $values.Microsoft365CopilotLastActivityDate = ($workApps | ForEach-Object { $appDates[$_] } | Sort-Object -Descending | Select-Object -First 1).ToString('yyyy-MM-dd')
+    }
+    if ($latest) { $values.LastActivityDate = $latest.ToString('yyyy-MM-dd') }
+
+    $inWindow = @($appDates.Values | Where-Object { $_ -ge $refreshDate.AddDays(-27) })
+    $values.ActiveUsageDaysAllApps = [string]$(if ($inWindow.Count -eq 0) { 0 } else { [math]::Min(28, $random.Next($inWindow.Count, 4 * $inWindow.Count + 4)) })
+    $chatWork = if ($appDates.ContainsKey('CopilotChat') -and $appDates.CopilotChat -ge $refreshDate.AddDays(-27)) { $random.Next(1, 40) } else { 0 }
+    $chatWeb = if ($chatWork -gt 0) { $random.Next(0, 6) } else { 0 }
+    $otherPrompts = 0
+    foreach ($app in $appDates.Keys) { if ($app -ne 'CopilotChat' -and $appDates[$app] -ge $refreshDate.AddDays(-27)) { $otherPrompts += $random.Next(1, 25) } }
+    $values.PromptsSubmittedCopilotChatWork = [string]$chatWork
+    $values.PromptsSubmittedCopilotChatWeb = [string]$chatWeb
+    $values.PromptsSubmittedAllApps = [string]($chatWork + $chatWeb + $otherPrompts)
+
+    [pscustomobject]@{ Row = (New-MapRow 'UsageUserDetailMap' $values); Dates = $appDates; Latest = $latest; Prompts = ($chatWork + $chatWeb + $otherPrompts) }
+}
+$detail = @($people.Row)
 Export-AppendCsv -Path (Join-Path $OutputPath 'copilot-usage-user-detail.csv') -Rows $detail -Column (Get-CopilotColumn -Schema $schema -MapKey 'UsageUserDetailMap') -KeyColumn 'RunDate', 'UserPrincipalName', 'ReportPeriod'
 
-# Source 3
+function Get-ActiveCount {
+    param([string]$App, [int]$Days)
+    $cutoff = $refreshDate.AddDays(1 - $Days)
+    if ($App -eq 'AnyApp') { return @($people | Where-Object { $_.Latest -and $_.Latest -ge $cutoff }).Count }
+    @($people | Where-Object { $_.Dates.ContainsKey($App) -and $_.Dates[$App] -ge $cutoff }).Count
+}
+
+$totalPrompts28 = ($people | Measure-Object -Property Prompts -Sum).Sum
 $summary = foreach ($period in '7', '28') {
-    $scale = if ($period -eq '28') { 2 } else { 1 }
-    New-MapRow 'UserCountSummaryMap' @{
-        ReportRefreshDate = '2026-09-29'; ReportPeriod = $period
-        MicrosoftTeamsEnabledUsers = '120'; MicrosoftTeamsActiveUsers = (30 * $scale).ToString()
-        WordEnabledUsers = '120'; WordActiveUsers = (20 * $scale).ToString()
-        PowerPointEnabledUsers = '120'; PowerPointActiveUsers = (10 * $scale).ToString()
-        OutlookEnabledUsers = '120'; OutlookActiveUsers = (40 * $scale).ToString()
-        ExcelEnabledUsers = '120'; ExcelActiveUsers = (12 * $scale).ToString()
-        OneNoteEnabledUsers = '120'; OneNoteActiveUsers = '2'
-        LoopEnabledUsers = '120'; LoopActiveUsers = '1'
-        AnyAppEnabledUsers = '120'; AnyAppActiveUsers = (55 * $scale).ToString()
-        CopilotChatEnabledUsers = '120'; CopilotChatActiveUsers = (48 * $scale).ToString()
-        TotalPromptsSubmitted = (900 * $scale).ToString(); AveragePromptsSubmitted = '7.5'
+    $days = [int]$period
+    $values = @{ ReportRefreshDate = $refreshDate.ToString('yyyy-MM-dd'); ReportPeriod = $period }
+    foreach ($app in 'MicrosoftTeams', 'Word', 'PowerPoint', 'Outlook', 'Excel', 'OneNote', 'Loop', 'CopilotChat', 'AnyApp') {
+        $values["$($app)EnabledUsers"] = [string]$personCount
+        $values["$($app)ActiveUsers"] = [string](Get-ActiveCount -App $app -Days $days)
     }
+    $total = if ($days -eq 28) { $totalPrompts28 } else { [int][math]::Round($totalPrompts28 * 0.3) }
+    $values.TotalPromptsSubmitted = [string]$total
+    $values.AveragePromptsSubmitted = ($total / $personCount).ToString('0.0', [cultureinfo]::InvariantCulture)
+    New-MapRow 'UserCountSummaryMap' $values
 }
 Export-AppendCsv -Path (Join-Path $OutputPath 'copilot-user-count-summary.csv') -Rows @($summary) -Column (Get-CopilotColumn -Schema $schema -MapKey 'UserCountSummaryMap') -KeyColumn 'RunDate', 'ReportPeriod'
 
@@ -91,10 +144,10 @@ $trend = foreach ($day in 0..2) {
     $date = ([datetime]'2026-09-27').AddDays($day).ToString('yyyy-MM-dd')
     New-MapRow 'UserCountTrendMap' @{
         ReportRefreshDate = '2026-09-29'; ReportDate = $date; ReportPeriod = '7'
-        MicrosoftTeamsEnabledUsers = '120'; MicrosoftTeamsActiveUsers = (20 + $day).ToString()
-        OutlookEnabledUsers = '120'; OutlookActiveUsers = (25 + $day).ToString()
-        AnyAppEnabledUsers = '120'; AnyAppActiveUsers = (40 + $day).ToString()
-        CopilotChatEnabledUsers = '120'; CopilotChatActiveUsers = (35 + $day).ToString()
+        MicrosoftTeamsEnabledUsers = '60'; MicrosoftTeamsActiveUsers = (20 + $day).ToString()
+        OutlookEnabledUsers = '60'; OutlookActiveUsers = (25 + $day).ToString()
+        AnyAppEnabledUsers = '60'; AnyAppActiveUsers = (40 + $day).ToString()
+        CopilotChatEnabledUsers = '60'; CopilotChatActiveUsers = (35 + $day).ToString()
         PromptsSubmitted = (130 + 10 * $day).ToString()
     }
 }

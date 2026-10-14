@@ -45,6 +45,11 @@ $people = @(
     @{ Id = '11111111-0000-0000-0000-000000000005'; Name = 'Finance Shared'; Used = 4 * $gb; Warn = 45 * $gb; Send = 48 * $gb; Both = 50 * $gb; Type = 'SharedMailbox'; Activity = '' }
     @{ Id = '11111111-0000-0000-0000-000000000006'; Name = 'Emery Ellis'; Used = 20 * $gb; Warn = 45 * $gb; Send = 48 * $gb; Both = 50 * $gb; Type = 'UserMailbox'; Activity = '2026-10-08' }
 )
+# Weekly growth differs per mailbox. Devon Diaz is already at the receive limit, so he cannot grow.
+$weeklyGrowth = @(0.8, 1.5, 0.3, 0, 0.1, 2.2)
+for ($i = 0; $i -lt $people.Count; $i++) { $people[$i].Growth = [int64]($weeklyGrowth[$i] * $gb) }
+$anchor = [datetime]'2026-10-01'
+
 foreach ($p in $people) {
     $first, $last = $p.Name -split ' ', 2
     $p.Upn = if ($last) { ($first + '.' + $last).ToLowerInvariant() + '@example.com' } else { $first.ToLowerInvariant() + '@example.com' }
@@ -57,7 +62,7 @@ $runDates = '2026-10-01', '2026-10-08'
 # Source 1
 $rows = foreach ($run in $runDates) {
     foreach ($p in $people) {
-        $growth = if ($run -eq '2026-10-08') { 1 * $gb } else { 0 }
+        $growth = if ($run -eq '2026-10-08') { $p.Growth } else { 0 }
         $used = [int64]($p.Used + $growth)
         [pscustomobject]@{
             RunDate = $run; ReportRefreshDate = ([datetime]$run).AddDays(-2).ToString('yyyy-MM-dd'); UserPrincipalName = $p.Upn; DisplayName = $p.Name
@@ -80,21 +85,28 @@ Write-Sample $OutputPath 'mailbox-usage-detail.csv' $schema.MailboxUsageDetail $
 Write-Sample $gccHigh 'mailbox-usage-detail.csv' $schema.MailboxUsageDetail @()
 
 # Source 2
+# The tenant total is the sum of every mailbox's storage on that day, so it follows the
+# per-mailbox growth above and each week's window holds different values.
+$baseTotal = ($people | ForEach-Object { $_.Used } | Measure-Object -Sum).Sum
+$weeklyTotalGrowth = ($people | ForEach-Object { $_.Growth } | Measure-Object -Sum).Sum
 $rows = foreach ($run in $runDates) {
     foreach ($offset in 0..3) {
         $day = ([datetime]$run).AddDays(-2 - $offset)
-        [pscustomobject]@{ RunDate = $run; ReportRefreshDate = ([datetime]$run).AddDays(-2).ToString('yyyy-MM-dd'); StorageUsedByte = [int64](181 * $gb + $offset * 100MB * -1); ReportDate = $day.ToString('yyyy-MM-dd'); ReportPeriod = 7 }
+        $total = [int64]($baseTotal + $weeklyTotalGrowth * ($day - $anchor).TotalDays / 7)
+        [pscustomobject]@{ RunDate = $run; ReportRefreshDate = ([datetime]$run).AddDays(-2).ToString('yyyy-MM-dd'); StorageUsedByte = $total; ReportDate = $day.ToString('yyyy-MM-dd'); ReportPeriod = 7 }
     }
 }
 Write-Sample $OutputPath 'mailbox-usage-storage.csv' $schema.MailboxUsageStorage $rows
 Write-Sample $gccHigh 'mailbox-usage-storage.csv' $schema.MailboxUsageStorage @()
 
 # Source 3
+# A mailbox at or over its receive limit cannot accept mail, so it shows none received.
 $rows = foreach ($p in $people) {
     $active = [bool]$p.Activity
+    $overReceiveLimit = ($p.Used + $p.Growth) -ge $p.Both
     [pscustomobject]@{
         RunDate = '2026-10-08'; QueryDate = ''; ReportRefreshDate = '2026-10-06'; UserPrincipalName = $p.Upn; DisplayName = $p.Name; IsDeleted = 'False'; DeletedDate = ''
-        LastActivityDate = $p.Activity; SendCount = if ($active) { 35 } else { 0 }; ReceiveCount = if ($active) { 210 } else { 12 }; ReadCount = if ($active) { 180 } else { 0 }
+        LastActivityDate = $p.Activity; SendCount = if ($active) { 35 } else { 0 }; ReceiveCount = if ($overReceiveLimit) { 0 } elseif ($active) { 210 } else { 12 }; ReadCount = if ($active) { 180 } else { 0 }
         MeetingCreatedCount = if ($active) { 4 } else { 0 }; MeetingInteractedCount = if ($active) { 22 } else { 0 }; AssignedProducts = 'MICROSOFT 365 E3'; ReportPeriod = 30
     }
 }
@@ -132,7 +144,7 @@ Write-Sample $OutputPath 'mailboxes.csv' $schema.Mailboxes $rows
 
 # Source 7
 $rows = foreach ($p in $people) {
-    $size = [int64]($p.Used + 1 * $gb)
+    $size = [int64]($p.Used + $p.Growth)
     [pscustomobject]@{
         RunDate = '2026-10-08'; ExternalDirectoryObjectId = $p.Id; UserPrincipalName = $p.Upn; ItemCount = 40000 + $size / 1MB
         TotalItemSize = ('{0} GB ({1:N0} bytes)' -f ($size / $gb), $size); TotalItemSizeBytes = $size; DeletedItemCount = 120

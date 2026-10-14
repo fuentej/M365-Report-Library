@@ -50,6 +50,8 @@ $snapshotDates = 5..0 | ForEach-Object { $EndDate.AddMonths(-$_) }
 $memberCount = 200
 $partnerDomainCount = 12
 $guestCount = 60
+# Where the last partner company's activity stops: more than ninety days before EndDate.
+$quietEnd = $EndDate.AddDays(-100)
 $tenantDomain = 'example.com'
 $tenantOnMicrosoft = 'example.onmicrosoft.com'
 
@@ -224,10 +226,18 @@ for ($g = 0; $g -lt $guestCount; $g++) {
     $disabled = $g -ge 10 -and $g -lt 18
     $dormant = $g -ge 18 -and $g -lt 30
 
+    # Every guest of the last partner company has gone quiet: nobody from that company
+    # has signed in for more than ninety days, so the report can show a whole partner
+    # that has stopped using the tenant.
+    $quiet = ($g % $partnerDomainCount) -eq ($partnerDomainCount - 1)
+
     # Spread invitations across the whole event window so snapshots grow over time. A
     # guest who has to have been quiet for ninety days has to have been invited long
     # enough ago for that to be true.
-    $invited = if ($dormant) {
+    $invited = if ($quiet) {
+        New-EventTime -From $eventStart -To $EndDate.AddDays(-200)
+    }
+    elseif ($dormant) {
         New-EventTime -From $eventStart -To $EndDate.AddDays(-120)
     }
     else {
@@ -244,9 +254,16 @@ for ($g = 0; $g -lt $guestCount; $g++) {
         if ($window -gt $EndDate) { $EndDate } else { $window }
     }
 
+    # One guest is invited just before the fourth snapshot and redeems just after it, so
+    # that snapshot shows them pending and the next shows them accepted.
+    if ($g -eq 40) {
+        $invited = $snapshotDates[3].AddDays(-2)
+        $accepted = $snapshotDates[3].AddDays(2)
+    }
+
     $lastSignIn = $null
     if (-not $neverAccepted) {
-        $lastSignIn = if ($dormant) {
+        $lastSignIn = if ($dormant -or $quiet) {
             $EndDate.AddDays(-$random.Next(95, 200))
         }
         else {
@@ -254,6 +271,16 @@ for ($g = 0; $g -lt $guestCount; $g++) {
         }
         if ($lastSignIn -lt $accepted) { $lastSignIn = $accepted.AddDays(1) }
         if ($lastSignIn -gt $EndDate) { $lastSignIn = $EndDate }
+    }
+
+    # A disabled account cannot sign in. The account is disabled before the end of the
+    # window, and its last successful sign-in is the day before.
+    $disabledFrom = $null
+    if ($disabled) {
+        $disabledFrom = $invited.AddDays($random.Next(30, 120))
+        $latestDisable = if ($quiet) { $quietEnd.AddDays(-5) } else { $EndDate.AddDays(-1) }
+        if ($disabledFrom -gt $latestDisable) { $disabledFrom = $latestDisable }
+        if ($lastSignIn -gt $disabledFrom.AddDays(-1)) { $lastSignIn = $disabledFrom.AddDays(-1) }
     }
 
     $guests.Add([pscustomobject]@{
@@ -267,10 +294,12 @@ for ($g = 0; $g -lt $guestCount; $g++) {
             ExternalUserState = if ($neverAccepted) { 'PendingAcceptance' } else { 'Accepted' }
             StateChanged      = if ($neverAccepted) { $invited } else { $accepted }
             AccountEnabled    = -not $disabled
-            DisabledFrom      = if ($disabled) { $invited.AddDays($random.Next(30, 120)) } else { $null }
+            DisabledFrom      = $disabledFrom
             LastSignIn        = $lastSignIn
             Inviter           = $inviters[$g % $inviters.Count]
-            Dormant           = $dormant
+            Dormant           = $dormant -or $quiet
+            Disabled          = $disabled
+            Quiet             = $quiet
         })
 }
 
@@ -470,11 +499,35 @@ foreach ($guest in $guests) {
     if ($guest.ExternalUserState -ne 'Accepted') { continue }
 
     $from = $guest.StateChanged
-    $to = if ($guest.Dormant) { $guest.LastSignIn } else { $EndDate }
+    $to = if ($guest.Dormant -or $guest.Disabled) { $guest.LastSignIn } else { $EndDate }
     if ($to -le $from) { continue }
 
     $signInCount = if ($guest.Dormant) { $random.Next(4, 15) } else { $random.Next(30, 110) }
     $place = Get-RandomItem $cities
+
+    # A disabled account is refused at sign-in. Entra records the refusal with error
+    # 500571, and none of these attempts can succeed, so they never carry a Conditional
+    # Access verdict.
+    if ($guest.Disabled) {
+        $attemptEnd = if ($guest.Quiet) { $quietEnd } else { $EndDate }
+        foreach ($attempt in 1..($random.Next(3, 9))) {
+            $signInRows.Add([pscustomobject]@{
+                    CreatedDateTime         = ConvertTo-CsvTimestamp (New-EventTime -From $guest.DisabledFrom -To $attemptEnd)
+                    Id                      = New-DeterministicGuid
+                    UserId                  = $guest.Id
+                    UserPrincipalName       = $guest.UserPrincipalName
+                    AppDisplayName          = Get-RandomItem $apps
+                    ResourceDisplayName     = Get-RandomItem $resources
+                    IpAddress               = ('203.0.113.{0}' -f $random.Next(1, 254))
+                    City                    = $place.City
+                    CountryOrRegion         = $place.Country
+                    ClientAppUsed           = Get-RandomItem $clientApps
+                    IsInteractive           = $true
+                    ErrorCode               = '500571'
+                    ConditionalAccessStatus = 'notApplied'
+                })
+        }
+    }
 
     for ($s = 0; $s -lt $signInCount; $s++) {
         $when = New-EventTime -From $from -To $to

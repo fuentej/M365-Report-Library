@@ -144,4 +144,42 @@ Describe 'The sample CSVs match the collectors' {
         $ops = (Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-audit-events.csv')).Operation | Sort-Object -Unique
         $ops | Should -Be (@($script:Schema.TeamsAuditOperations) | Sort-Object)
     }
+
+    It 'gives each person their own audio, video and screen-share time, in step with the seconds columns' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-user-activity-user-detail.csv') | Where-Object RunDate -EQ '2026-10-08')
+        foreach ($column in 'AudioDurationInSeconds', 'VideoDurationInSeconds', 'ScreenShareDurationInSeconds') {
+            @($rows.$column | Select-Object -Unique).Count | Should -BeGreaterThan 2 -Because $column
+        }
+        foreach ($r in $rows) {
+            foreach ($kind in 'Audio', 'Video', 'ScreenShare') {
+                $iso = [System.Xml.XmlConvert]::ToTimeSpan($r."${kind}Duration").TotalSeconds
+                $iso | Should -Be ([double]$r."${kind}DurationInSeconds") -Because "$($r.UserPrincipalName) $kind"
+            }
+        }
+    }
+
+    It 'shows no ad hoc meetings for a person with no meetings, and no more ad hoc than total' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-user-activity-user-detail.csv'))
+        $none = @($rows | Where-Object { [int]$_.MeetingsOrganizedCount -eq 0 -and [int]$_.MeetingsAttendedCount -eq 0 })
+        $none.Count | Should -BeGreaterThan 0
+        foreach ($r in $none) {
+            $r.AdHocMeetingsOrganizedCount | Should -Be '0' -Because $r.UserPrincipalName
+            $r.AdHocMeetingsAttendedCount | Should -Be '0' -Because $r.UserPrincipalName
+            $r.AudioDurationInSeconds | Should -Be '0' -Because $r.UserPrincipalName
+        }
+        foreach ($r in $rows) {
+            [int]$r.AdHocMeetingsOrganizedCount + [int]$r.ScheduledOneTimeMeetingsOrganizedCount + [int]$r.ScheduledRecurringMeetingsOrganizedCount | Should -Be ([int]$r.MeetingsOrganizedCount) -Because $r.UserPrincipalName
+            [int]$r.AdHocMeetingsAttendedCount + [int]$r.ScheduledOneTimeMeetingsAttendedCount + [int]$r.ScheduledRecurringMeetingsAttendedCount | Should -Be ([int]$r.MeetingsAttendedCount) -Because $r.UserPrincipalName
+        }
+        @($rows | Where-Object { [int]$_.AdHocMeetingsAttendedCount -gt 0 }).Count | Should -BeGreaterThan 0
+    }
+
+    It 'varies the daily tenant counts from day to day' {
+        $rows = @(Import-Csv -LiteralPath (Join-Path $script:Samples 'teams-user-activity-counts.csv') | Where-Object RunDate -EQ '2026-10-08')
+        $rows.Count | Should -BeGreaterThan 2
+        foreach ($column in 'TeamChatMessages', 'PrivateChatMessages', 'Calls', 'Meetings', 'MeetingsOrganized', 'AudioDuration', 'VideoDuration', 'ScreenShareDuration') {
+            @($rows.$column | Select-Object -Unique).Count | Should -Be $rows.Count -Because $column
+        }
+        foreach ($r in $rows) { [int]$r.PostMessages + [int]$r.ReplyMessages | Should -Be ([int]$r.TeamChatMessages) }
+    }
 }
