@@ -1,0 +1,47 @@
+table MailboxUsageStorage
+    lineageTag: d7abd8db-9dd8-46ce-86c5-7d4173fd97ee
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 5858db56-8057-4a0e-b76c-086f58f4b587
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: e16f61cf-4b5a-4d83-82eb-bcabdd0de1ae
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: 7c3c9daa-e655-4034-9b0e-afaa064a695f
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column ReportDate
+        dataType: string
+        lineageTag: 982c0116-88fc-46ca-a170-011f25cac109
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 14b301f4-5dbd-40c4-b0c2-26773a96fe82
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition MailboxUsageStorage = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-usage-storage.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
