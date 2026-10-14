@@ -7,3 +7,4 @@ ref table Sites
 ref table ItemPermissions
 ref table SitePermissionBreadth
 ref table EveryoneItemExposure
+ref table SharingLinkActivity
