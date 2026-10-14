@@ -5,3 +5,4 @@ model Model
 
 ref table CopilotUsageUserDetail
 ref table CopilotUserCountSummary
+ref table CopilotUserCountTrend
