@@ -308,8 +308,8 @@ table DeletedGroups
     /// The strip has six slots. Soft-deleted groups past the sixth are counted here, so the strip never drops one without saying so; the tile above counts all of them.
     measure 'Recycle Bin Overflow Note' =
             VAR Slots = 6
-            VAR Hidden = [Restorable Deleted Groups] - Slots
-            RETURN IF(Hidden > 0, "+" & FORMAT(Hidden, "#,0") & " more not shown")
+            VAR NotShown = [Restorable Deleted Groups] - Slots
+            RETURN IF(NotShown > 0, "+" & FORMAT(NotShown, "#,0") & " more not shown")
         lineageTag: 5d0b7c0e-3f6a-4b8e-9a52-1c7e4f2a8b61
 
     partition DeletedGroups = m
