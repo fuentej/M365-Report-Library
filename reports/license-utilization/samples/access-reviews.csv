@@ -1,0 +1,7 @@
+"RunDate","DefinitionId","DisplayName","Status","ScopeQuery","ReviewerCount","RecurrencePattern","AutoApplyDecisionsEnabled","RecommendationsEnabled"
+"2026-08-18","5b1c2d3e-0001-4a6b-8c7d-9e0f1a2b3c4d","Quarterly review of guest access across Microsoft 365 groups","InProgress","./members/microsoft.graph.user/?$count=true&$filter=(userType eq 'Guest')","1","absoluteMonthly","True","True"
+"2026-08-18","5b1c2d3e-0002-4a6b-8c7d-9e0f1a2b3c4d","Review of privileged role assignments","NotStarted","/roleManagement/directory/roleAssignmentScheduleInstances","2","absoluteMonthly","False","True"
+"2026-08-25","5b1c2d3e-0001-4a6b-8c7d-9e0f1a2b3c4d","Quarterly review of guest access across Microsoft 365 groups","InProgress","./members/microsoft.graph.user/?$count=true&$filter=(userType eq 'Guest')","1","absoluteMonthly","True","True"
+"2026-08-25","5b1c2d3e-0002-4a6b-8c7d-9e0f1a2b3c4d","Review of privileged role assignments","NotStarted","/roleManagement/directory/roleAssignmentScheduleInstances","2","absoluteMonthly","False","True"
+"2026-09-01","5b1c2d3e-0001-4a6b-8c7d-9e0f1a2b3c4d","Quarterly review of guest access across Microsoft 365 groups","InProgress","./members/microsoft.graph.user/?$count=true&$filter=(userType eq 'Guest')","1","absoluteMonthly","True","True"
+"2026-09-01","5b1c2d3e-0002-4a6b-8c7d-9e0f1a2b3c4d","Review of privileged role assignments","NotStarted","/roleManagement/directory/roleAssignmentScheduleInstances","2","absoluteMonthly","False","True"

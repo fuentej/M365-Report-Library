@@ -52,6 +52,9 @@ Sample data with fake `example.com` users is in `samples/`; `New-SampleData.ps1`
 | Sign-in activity | `AuditLog.Read.All` + `User.Read.All` | Reports Reader | Microsoft Entra ID P1 or P2 |
 | Report settings | `ReportSettings.Read.All` | An Entra limited admin role | None named |
 | Usage reports (active users, email, Teams, SharePoint, OneDrive, apps) | `Reports.Read.All` | Reports Reader and similar; Global Reader and Usage Summary Reports Reader do not receive user detail rows | None named |
+| Access reviews | `AccessReview.Read.All` | Global Reader, Security Reader, User Administrator, Identity Governance Administrator or Security Administrator (group and app reviews); Security Reader, Identity Governance Administrator, Privileged Role Administrator or Security Administrator (role reviews) | Microsoft Entra ID P2 or ID Governance |
+| Attack simulations | `AttackSimulation.Read.All` | Security Reader, Security Operator, Security Administrator or Global Administrator | Microsoft 365 E5 or Defender for Office 365 Plan 2 |
+| Teams PSTN calls | `CallRecords.Read.All`, **application permission only** (delegated is not supported) | None: run with `-AppId` and `-CertificateThumbprint` | A Teams Phone licence is the population |
 | Copilot usage | `Reports.Read.All` | Company Administrator, AI Administrator, Exchange Administrator, SharePoint Administrator, Lync Administrator, Teams Service Administrator, Teams Communications Administrator or Reports Reader. The `/copilot` page does not list Global Reader | Only users with a Microsoft 365 Copilot licence are returned |
 
 The collectors request only read scopes. `Reports.Read.All`, `LicenseAssignment.Read.All` and
@@ -78,12 +81,27 @@ Only `NotAvailable` skips a source and writes the header only.
 | 5f Microsoft 365 apps | `Get-M365AppUsage` | [Available](https://learn.microsoft.com/graph/api/reportroot-getm365appuserdetail) | [Available](https://learn.microsoft.com/graph/deployments) | [NotAvailable](https://learn.microsoft.com/graph/api/reportroot-getm365appuserdetail) |
 | 5g Copilot usage | `Get-CopilotUsage` | [Available](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail) | [Available](https://learn.microsoft.com/graph/deployments) | [NotAvailable](https://learn.microsoft.com/microsoft-365-copilot/extensibility/api/admin-settings/reports/copilotreportroot-getmicrosoft365copilotusageuserdetail) |
 | 6 Report settings | `Get-ReportSettings` | [Available](https://learn.microsoft.com/graph/api/adminreportsettings-get) | [Available](https://learn.microsoft.com/graph/deployments) | **UNVERIFIED** (the [Graph page](https://learn.microsoft.com/graph/api/adminreportsettings-get) marks US Government L4 unavailable; [activity reports](https://learn.microsoft.com/microsoft-365/admin/activity-reports/activity-reports) says the API works in all environments) |
+| 9 Access reviews | `Get-AccessReviews` | [Available](https://learn.microsoft.com/graph/api/accessreviewset-list-definitions) | [Available](https://learn.microsoft.com/graph/deployments) | [Available](https://learn.microsoft.com/graph/api/accessreviewset-list-definitions) |
+| 10 Attack simulations | `Get-AttackSimulations` | [Available](https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations) | **UNVERIFIED** (the [page](https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations) marks only US Government L4 and L5) | [NotAvailable](https://learn.microsoft.com/graph/api/attacksimulationroot-list-simulations) |
+| 11 Teams PSTN calls | `Get-TeamsPstnCalls` | [Available](https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls) | [Available](https://learn.microsoft.com/graph/deployments) | [Available](https://learn.microsoft.com/graph/api/callrecords-callrecord-getpstncalls) |
 
 **Rows 7 and 8 of the contract have no collector.** Row 7 (product names for SKU and service plan ids) is a
 public reference page, not a tenant call, and the contract leaves where a dated copy lives as an open item.
 Row 8 (the GCC High fallback) is the Microsoft 365 admin center Reports > Usage page, not a Graph call; whether
 it can be read by a script in GCC High is not stated on the pages read. In GCC High the usage CSVs are
 header-only.
+
+## License value page features
+
+Sources 9 to 11 feed the approved License value page (E3/E5/E7 step-up scorecard). They cover three of its
+"not checked" features: Access reviews, Defender for Office P2 (attack simulation training) and Teams Phone.
+`Run-All.ps1` runs sources 9 and 10 always and source 11 only when `-AppId` is given, because the PSTN call log
+accepts application permissions only.
+
+Three more features on that page have **no collector**, because no documented read-only Graph, Exchange or
+Security & Compliance call was found: Insider Risk Management, Communication Compliance and Defender for
+Endpoint P2 (its data sits in the Defender for Endpoint API, outside this library). The search is recorded in
+[`docs/candidates/license-utilization.md`](../../docs/candidates/license-utilization.md).
 
 ## Names in usage reports
 
@@ -132,6 +150,9 @@ All files start with `RunDate`, the UTC date of the run.
 | `usage-sharepoint-activity.csv` | 5d | User | Files viewed or edited, synced, shared internally and externally, pages visited, last activity |
 | `usage-onedrive-activity.csv` | 5e | User | The same file counts and last activity |
 | `usage-m365-apps.csv` | 5f | User | Platform and app flags (Windows, Mac, Mobile, Web; Outlook, Word, Excel, PowerPoint, OneNote, Teams, and each per platform), last activation and activity |
+| `access-reviews.csv` | 9 | Access review definition | `DefinitionId`, `DisplayName`, `Status`, `ScopeQuery`, `ReviewerCount`, `RecurrencePattern`, `AutoApplyDecisionsEnabled`, `RecommendationsEnabled` |
+| `attack-simulations.csv` | 10 | Simulation | `SimulationId`, `DisplayName`, `AttackType`, `AttackTechnique`, `Status`, `IsAutomated`, `PayloadDeliveryPlatform`, `LaunchDateTime`, `CompletionDateTime` |
+| `teams-pstn-calls.csv` | 11 | PSTN call in the last `-Days` days (default 30, at most 90) | `CallRowId`, `UserId`, `UserPrincipalName`, `StartDateTime`, `DurationSeconds`, `CallType`, `UsageCountryCode`, `LicenseCapability`, `InventoryType`. Caller and callee numbers are not collected |
 | `usage-copilot.csv` | 5g | User | Last activity date per Copilot app, plus the v2 additions (**UNVERIFIED** spellings) |
 
 Usage CSV columns are the report's own headers with spaces and punctuation removed (`Outlook (Windows)` becomes
