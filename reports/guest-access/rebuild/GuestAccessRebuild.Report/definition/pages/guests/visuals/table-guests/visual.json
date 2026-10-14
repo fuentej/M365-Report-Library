@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "Guests.RunDate"
+              "queryRef": "Guests.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "Id"
                 }
               },
-              "queryRef": "Guests.Id"
+              "queryRef": "Guests.Id",
+              "nativeQueryRef": "Id"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "DisplayName"
                 }
               },
-              "queryRef": "Guests.DisplayName"
+              "queryRef": "Guests.DisplayName",
+              "nativeQueryRef": "DisplayName"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "Mail"
                 }
               },
-              "queryRef": "Guests.Mail"
+              "queryRef": "Guests.Mail",
+              "nativeQueryRef": "Mail"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "UserPrincipalName"
                 }
               },
-              "queryRef": "Guests.UserPrincipalName"
+              "queryRef": "Guests.UserPrincipalName",
+              "nativeQueryRef": "UserPrincipalName"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "ExternalDomain"
                 }
               },
-              "queryRef": "Guests.ExternalDomain"
+              "queryRef": "Guests.ExternalDomain",
+              "nativeQueryRef": "ExternalDomain"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "CreatedDateTime"
                 }
               },
-              "queryRef": "Guests.CreatedDateTime"
+              "queryRef": "Guests.CreatedDateTime",
+              "nativeQueryRef": "CreatedDateTime"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "CreationType"
                 }
               },
-              "queryRef": "Guests.CreationType"
+              "queryRef": "Guests.CreationType",
+              "nativeQueryRef": "CreationType"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "ExternalUserState"
                 }
               },
-              "queryRef": "Guests.ExternalUserState"
+              "queryRef": "Guests.ExternalUserState",
+              "nativeQueryRef": "ExternalUserState"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "ExternalUserStateChangeDateTime"
                 }
               },
-              "queryRef": "Guests.ExternalUserStateChangeDateTime"
+              "queryRef": "Guests.ExternalUserStateChangeDateTime",
+              "nativeQueryRef": "ExternalUserStateChangeDateTime"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "AccountEnabled"
                 }
               },
-              "queryRef": "Guests.AccountEnabled"
+              "queryRef": "Guests.AccountEnabled",
+              "nativeQueryRef": "AccountEnabled"
             },
             {
               "field": {
@@ -169,7 +180,8 @@
                   "Property": "LastSignInDateTime"
                 }
               },
-              "queryRef": "Guests.LastSignInDateTime"
+              "queryRef": "Guests.LastSignInDateTime",
+              "nativeQueryRef": "LastSignInDateTime"
             },
             {
               "field": {
@@ -182,7 +194,8 @@
                   "Property": "LastNonInteractiveSignInDateTime"
                 }
               },
-              "queryRef": "Guests.LastNonInteractiveSignInDateTime"
+              "queryRef": "Guests.LastNonInteractiveSignInDateTime",
+              "nativeQueryRef": "LastNonInteractiveSignInDateTime"
             },
             {
               "field": {
@@ -195,7 +208,8 @@
                   "Property": "LastSuccessfulSignInDateTime"
                 }
               },
-              "queryRef": "Guests.LastSuccessfulSignInDateTime"
+              "queryRef": "Guests.LastSuccessfulSignInDateTime",
+              "nativeQueryRef": "LastSuccessfulSignInDateTime"
             }
           ]
         }

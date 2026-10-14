@@ -26,7 +26,8 @@
                   "Property": "RunDate"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.RunDate"
+              "queryRef": "SharePointSiteUsageDetail.RunDate",
+              "nativeQueryRef": "RunDate"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "ReportRefreshDate"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.ReportRefreshDate"
+              "queryRef": "SharePointSiteUsageDetail.ReportRefreshDate",
+              "nativeQueryRef": "ReportRefreshDate"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "SiteId"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.SiteId"
+              "queryRef": "SharePointSiteUsageDetail.SiteId",
+              "nativeQueryRef": "SiteId"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "SiteUrl"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.SiteUrl"
+              "queryRef": "SharePointSiteUsageDetail.SiteUrl",
+              "nativeQueryRef": "SiteUrl"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "OwnerDisplayName"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.OwnerDisplayName"
+              "queryRef": "SharePointSiteUsageDetail.OwnerDisplayName",
+              "nativeQueryRef": "OwnerDisplayName"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "IsDeleted"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.IsDeleted"
+              "queryRef": "SharePointSiteUsageDetail.IsDeleted",
+              "nativeQueryRef": "IsDeleted"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "LastActivityDate"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.LastActivityDate"
+              "queryRef": "SharePointSiteUsageDetail.LastActivityDate",
+              "nativeQueryRef": "LastActivityDate"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "FileCount"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.FileCount"
+              "queryRef": "SharePointSiteUsageDetail.FileCount",
+              "nativeQueryRef": "FileCount"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "ActiveFileCount"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.ActiveFileCount"
+              "queryRef": "SharePointSiteUsageDetail.ActiveFileCount",
+              "nativeQueryRef": "ActiveFileCount"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "PageViewCount"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.PageViewCount"
+              "queryRef": "SharePointSiteUsageDetail.PageViewCount",
+              "nativeQueryRef": "PageViewCount"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "VisitedPageCount"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.VisitedPageCount"
+              "queryRef": "SharePointSiteUsageDetail.VisitedPageCount",
+              "nativeQueryRef": "VisitedPageCount"
             },
             {
               "field": {
@@ -169,7 +180,8 @@
                   "Property": "StorageUsedByte"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.StorageUsedByte"
+              "queryRef": "SharePointSiteUsageDetail.StorageUsedByte",
+              "nativeQueryRef": "StorageUsedByte"
             },
             {
               "field": {
@@ -182,7 +194,8 @@
                   "Property": "StorageAllocatedByte"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.StorageAllocatedByte"
+              "queryRef": "SharePointSiteUsageDetail.StorageAllocatedByte",
+              "nativeQueryRef": "StorageAllocatedByte"
             },
             {
               "field": {
@@ -195,7 +208,8 @@
                   "Property": "RootWebTemplate"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.RootWebTemplate"
+              "queryRef": "SharePointSiteUsageDetail.RootWebTemplate",
+              "nativeQueryRef": "RootWebTemplate"
             },
             {
               "field": {
@@ -208,7 +222,8 @@
                   "Property": "OwnerPrincipalName"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.OwnerPrincipalName"
+              "queryRef": "SharePointSiteUsageDetail.OwnerPrincipalName",
+              "nativeQueryRef": "OwnerPrincipalName"
             },
             {
               "field": {
@@ -221,7 +236,8 @@
                   "Property": "ReportPeriod"
                 }
               },
-              "queryRef": "SharePointSiteUsageDetail.ReportPeriod"
+              "queryRef": "SharePointSiteUsageDetail.ReportPeriod",
+              "nativeQueryRef": "ReportPeriod"
             }
           ]
         }

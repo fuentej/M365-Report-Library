@@ -1,0 +1,155 @@
+table SitePermissionBreadth
+    lineageTag: 0277acad-ee8f-457a-8d77-0525b675ddc2
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 0cb9d14c-f4a6-42e1-a56e-9defe8d81bfa
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Workload
+        dataType: string
+        lineageTag: 3f4a5d7f-1d3e-4e9e-9b8d-2cb6918d4d2e
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column ReportId
+        dataType: string
+        lineageTag: 1b3ccf38-9b54-4836-8869-445b9268b2ea
+        summarizeBy: none
+        sourceColumn: ReportId
+
+    column ReportDate
+        dataType: string
+        lineageTag: c58cb8a8-41d3-44a5-8bb1-a58ed7013678
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column SiteId
+        dataType: string
+        lineageTag: 6f046cc5-8596-450f-959c-9b8dfe1619ee
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column SiteName
+        dataType: string
+        lineageTag: bca4cb1b-8b25-4528-ba85-1af2b81e315e
+        summarizeBy: none
+        sourceColumn: SiteName
+
+    column SiteUrl
+        dataType: string
+        lineageTag: b58e80f2-7f8a-456c-bba9-a845c541044d
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column SiteTemplate
+        dataType: string
+        lineageTag: 85be7636-c6bd-4bdd-b506-c4e34a05264b
+        summarizeBy: none
+        sourceColumn: SiteTemplate
+
+    column PrimaryAdmin
+        dataType: string
+        lineageTag: 91ff0336-48e0-4755-96b3-5f224266a92d
+        summarizeBy: none
+        sourceColumn: PrimaryAdmin
+
+    column PrimaryAdminEmail
+        dataType: string
+        lineageTag: 2bc79938-eba5-45c7-8edf-11b0efcdf2da
+        summarizeBy: none
+        sourceColumn: PrimaryAdminEmail
+
+    column ExternalSharing
+        dataType: string
+        lineageTag: 6b95a9ff-a1c8-4c04-87e8-7d212a427fa5
+        summarizeBy: none
+        sourceColumn: ExternalSharing
+
+    column SitePrivacy
+        dataType: string
+        lineageTag: 2d5004ca-c47b-4002-8b9c-e8f2bea0701c
+        summarizeBy: none
+        sourceColumn: SitePrivacy
+
+    column SiteSensitivity
+        dataType: string
+        lineageTag: 4d48ddf1-2511-49b9-b438-6aeff820b26b
+        summarizeBy: none
+        sourceColumn: SiteSensitivity
+
+    column UsersWithAccess
+        dataType: int64
+        lineageTag: 56d24f76-ea80-431d-9080-1fd4b9a25a9f
+        summarizeBy: none
+        sourceColumn: UsersWithAccess
+
+    column GuestUserPermissions
+        dataType: int64
+        lineageTag: b5aebd92-64c0-421b-a4a5-a8ec2cf98249
+        summarizeBy: none
+        sourceColumn: GuestUserPermissions
+
+    column ExternalParticipantPermissions
+        dataType: int64
+        lineageTag: 0cdbe42e-d58c-460d-90a9-7eea4f8d2e56
+        summarizeBy: none
+        sourceColumn: ExternalParticipantPermissions
+
+    column EntraGroupPermissions
+        dataType: int64
+        lineageTag: 4f22104f-9a90-41dc-8446-f9484e1412c3
+        summarizeBy: none
+        sourceColumn: EntraGroupPermissions
+
+    column FileCount
+        dataType: int64
+        lineageTag: 44e6baec-eed6-4ef5-8f91-1912826155fe
+        summarizeBy: none
+        sourceColumn: FileCount
+
+    column ItemsWithUniquePermissions
+        dataType: int64
+        lineageTag: afda5405-7377-4825-ab15-3298e2e5d437
+        summarizeBy: none
+        sourceColumn: ItemsWithUniquePermissions
+
+    column PeopleInYourOrgLinks
+        dataType: int64
+        lineageTag: bfd3453e-01bf-43b1-b50a-6518b0691909
+        summarizeBy: none
+        sourceColumn: PeopleInYourOrgLinks
+
+    column AnyoneLinks
+        dataType: int64
+        lineageTag: bc43594f-1a9f-43d2-af58-3d8ff787c8ff
+        summarizeBy: none
+        sourceColumn: AnyoneLinks
+
+    column EeeuPermissions
+        dataType: int64
+        lineageTag: 4203ab53-8bbf-4e4b-b9c3-60e3fef9b1fb
+        summarizeBy: none
+        sourceColumn: EeeuPermissions
+
+    column EveryonePermissions
+        dataType: int64
+        lineageTag: db7ab8f5-a516-4d62-bc12-98dc3cf211aa
+        summarizeBy: none
+        sourceColumn: EveryonePermissions
+
+    partition SitePermissionBreadth = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\site-permission-breadth.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"UsersWithAccess", Int64.Type}, {"GuestUserPermissions", Int64.Type}, {"ExternalParticipantPermissions", Int64.Type}, {"EntraGroupPermissions", Int64.Type}, {"FileCount", Int64.Type}, {"ItemsWithUniquePermissions", Int64.Type}, {"PeopleInYourOrgLinks", Int64.Type}, {"AnyoneLinks", Int64.Type}, {"EeeuPermissions", Int64.Type}, {"EveryonePermissions", Int64.Type}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

@@ -26,7 +26,8 @@
                   "Property": "CreationTime"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.CreationTime"
+              "queryRef": "AuditSearchCmdlet.CreationTime",
+              "nativeQueryRef": "CreationTime"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "RecordId"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.RecordId"
+              "queryRef": "AuditSearchCmdlet.RecordId",
+              "nativeQueryRef": "RecordId"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "RecordType"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.RecordType"
+              "queryRef": "AuditSearchCmdlet.RecordType",
+              "nativeQueryRef": "RecordType"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "Operation"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.Operation"
+              "queryRef": "AuditSearchCmdlet.Operation",
+              "nativeQueryRef": "Operation"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "Workload"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.Workload"
+              "queryRef": "AuditSearchCmdlet.Workload",
+              "nativeQueryRef": "Workload"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "UserId"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.UserId"
+              "queryRef": "AuditSearchCmdlet.UserId",
+              "nativeQueryRef": "UserId"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "ObjectId"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.ObjectId"
+              "queryRef": "AuditSearchCmdlet.ObjectId",
+              "nativeQueryRef": "ObjectId"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "ClientIP"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.ClientIP"
+              "queryRef": "AuditSearchCmdlet.ClientIP",
+              "nativeQueryRef": "ClientIP"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "ResultStatus"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.ResultStatus"
+              "queryRef": "AuditSearchCmdlet.ResultStatus",
+              "nativeQueryRef": "ResultStatus"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "OrganizationId"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.OrganizationId"
+              "queryRef": "AuditSearchCmdlet.OrganizationId",
+              "nativeQueryRef": "OrganizationId"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "AuditData"
                 }
               },
-              "queryRef": "AuditSearchCmdlet.AuditData"
+              "queryRef": "AuditSearchCmdlet.AuditData",
+              "nativeQueryRef": "AuditData"
             }
           ]
         }
