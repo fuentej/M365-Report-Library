@@ -1,0 +1,110 @@
+table UsersCurrent
+    lineageTag: 668cd898-7592-4d06-bf75-5c9aa2680615
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 78907d4f-5f58-4c08-b402-ec39045eec88
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Id
+        dataType: string
+        lineageTag: 5c9811c8-398a-40fb-9d30-68f60ecbab44
+        summarizeBy: none
+        sourceColumn: Id
+
+    column DisplayName
+        dataType: string
+        lineageTag: c5b15540-c16c-48bb-ae1c-a0651a270692
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 63184288-a74a-4a42-a210-4c98306b73b8
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column Mail
+        dataType: string
+        lineageTag: eb1845cd-6dca-43f2-bb38-be212ab8ebd6
+        summarizeBy: none
+        sourceColumn: Mail
+
+    column UserType
+        dataType: string
+        lineageTag: 433e9f1b-5b50-44af-8b05-2c83cac7d728
+        summarizeBy: none
+        sourceColumn: UserType
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: 37ce6e89-821f-4da2-a6a3-2b1c20fbf3e0
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column CreatedDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: f17b470d-fe5d-41e1-be32-2a70072e08ac
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column Department
+        dataType: string
+        lineageTag: 1d4c0b59-0561-4e96-8bae-f8e41ff6bbbf
+        summarizeBy: none
+        sourceColumn: Department
+
+    column JobTitle
+        dataType: string
+        lineageTag: a9d32888-9d4a-419c-bc2e-65c0a662f7ce
+        summarizeBy: none
+        sourceColumn: JobTitle
+
+    column City
+        dataType: string
+        lineageTag: bb7e1f78-fa90-442d-b19e-c34f9951848d
+        summarizeBy: none
+        sourceColumn: City
+
+    column Country
+        dataType: string
+        lineageTag: cc379c42-3188-46ce-837c-bbb4f255063c
+        summarizeBy: none
+        sourceColumn: Country
+
+    column ManagerId
+        dataType: string
+        lineageTag: 78d92d99-18dd-4bb8-99d5-5f2995eaf78b
+        summarizeBy: none
+        sourceColumn: ManagerId
+
+    column ManagerUserPrincipalName
+        dataType: string
+        lineageTag: bc1f2d88-d780-43c2-b7e4-74e46e1912de
+        summarizeBy: none
+        sourceColumn: ManagerUserPrincipalName
+
+    partition UsersCurrent = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\users.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                Parsed = Table.TransformColumns(Cleaned, {{"CreatedDateTime", ParseUtc, type datetime}}),
+                #"Changed Type" = Table.TransformColumnTypes(Parsed, {{"RunDate", type date}, {"AccountEnabled", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "Id", "DisplayName", "UserPrincipalName", "Mail", "UserType", "AccountEnabled", "CreatedDateTime", "Department", "JobTitle", "City", "Country", "ManagerId", "ManagerUserPrincipalName"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
+
+    annotation PBI_ResultType = Table
