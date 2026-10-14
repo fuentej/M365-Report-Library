@@ -127,7 +127,9 @@ table TransportRules
         isDataTypeInferred: false
 
     /// Exit routes: an outside mail flow rule in the latest run (live).
-    column ExitRoute = TransportRules[OutsideRoute] && TransportRules[RunDate] = MAX(TransportRules[RunDate])
+    column ExitRoute =
+            VAR LatestRun = MAXX(UNION(SELECTCOLUMNS(ALL(MailboxForwarding[RunDate]), "D", MailboxForwarding[RunDate]), SELECTCOLUMNS(ALL(InboxRules[RunDate]), "D", InboxRules[RunDate]), SELECTCOLUMNS(ALL(TransportRules[RunDate]), "D", TransportRules[RunDate]), SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate])), [D])
+            RETURN TransportRules[OutsideRoute] && TransportRules[RunDate] = LatestRun
         dataType: boolean
         isHidden
         lineageTag: 23cbf45b-ed18-41ef-b42a-0b017358019f
@@ -146,7 +148,8 @@ table TransportRules
     column GhostRoute =
             VAR ThisKey = TransportRules[RouteKey]
             VAR Seen = FILTER(ALL(TransportRules[RouteKey], TransportRules[RunDate], TransportRules[OutsideRoute]), TransportRules[RouteKey] = ThisKey && TransportRules[OutsideRoute])
-            RETURN TransportRules[OutsideRoute] && TransportRules[RunDate] < MAX(TransportRules[RunDate]) && TransportRules[RunDate] = MAXX(Seen, TransportRules[RunDate])
+            VAR LatestRun = MAXX(UNION(SELECTCOLUMNS(ALL(MailboxForwarding[RunDate]), "D", MailboxForwarding[RunDate]), SELECTCOLUMNS(ALL(InboxRules[RunDate]), "D", InboxRules[RunDate]), SELECTCOLUMNS(ALL(TransportRules[RunDate]), "D", TransportRules[RunDate]), SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate])), [D])
+            RETURN TransportRules[OutsideRoute] && TransportRules[RunDate] < LatestRun && TransportRules[RunDate] = MAXX(Seen, TransportRules[RunDate])
         dataType: boolean
         isHidden
         lineageTag: aaf6f637-b322-4b50-b385-175373ab56d3

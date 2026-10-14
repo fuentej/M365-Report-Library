@@ -593,9 +593,25 @@ Describe 'The report has the approved Exit routes page and its filter' {
 
     It 'keeps a ghost route to one row per route: the last run it was seen, or the last event that set it' {
         foreach ($table in 'MailboxForwarding', 'InboxRules', 'TransportRules') {
-            (Get-TableText -Name $table) | Should -Match ([regex]::Escape("$table[RunDate] < MAX($table[RunDate]) && $table[RunDate] = MAXX(Seen, $table[RunDate])"))
+            (Get-TableText -Name $table) | Should -Match ([regex]::Escape("$table[RunDate] < LatestRun && $table[RunDate] = MAXX(Seen, $table[RunDate])"))
         }
         (Get-TableText -Name 'MailboxChangeEvents') | Should -Match ([regex]::Escape('InSnapshots = 0 && MailboxChangeEvents[CreationTime] = LastSet'))
+    }
+
+    It 'judges live and ghost routes against the latest run of the whole report, not the latest run that wrote a row' {
+        # The collectors write a snapshot row only for a forward or rule that exists, so a run that removed
+        # the last route writes nothing to that table. Its own MAX(RunDate) is then an older run, and the
+        # removed route would still read as live. Users, written every run, is part of the anchor.
+        foreach ($table in 'MailboxForwarding', 'InboxRules', 'TransportRules') {
+            $text = Get-TableText -Name $table
+            $text | Should -Not -Match ([regex]::Escape("= MAX($table[RunDate])"))
+            $text | Should -Not -Match ([regex]::Escape("< MAX($table[RunDate])"))
+            $text | Should -Match ('(?s)column ExitRoute =\s+VAR LatestRun = MAXX\(UNION\(.*?SELECTCOLUMNS\(ALL\(Users\[RunDate\]\).*?RETURN ' + [regex]::Escape("$table[OutsideRoute] && $table[RunDate] = LatestRun"))
+            $text | Should -Match ('(?s)column GhostRoute =.*?VAR LatestRun = MAXX\(UNION\(.*?SELECTCOLUMNS\(ALL\(Users\[RunDate\]\)')
+        }
+        $events = Get-TableText -Name 'MailboxChangeEvents'
+        $events | Should -Not -Match ([regex]::Escape('VAR LatestRun = SWITCH(Kind'))
+        $events | Should -Match '(?s)column GhostRoute =.*?VAR LatestRun = MAXX\(UNION\(.*?SELECTCOLUMNS\(ALL\(Users\[RunDate\]\)'
     }
 
     It 'uses no VAR name Desktop 2.158 rejects' {
