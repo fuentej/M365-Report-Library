@@ -1,0 +1,67 @@
+table GuestInvitations
+    lineageTag: 148f7f38-14b1-4c33-8cfb-c77971bb267e
+
+    column ActivityDateTime
+        dataType: dateTime
+        formatString: General Date
+        lineageTag: 0d139a65-8f07-4fe7-a44b-286b4af7272b
+        summarizeBy: none
+        sourceColumn: ActivityDateTime
+
+    column Id
+        dataType: string
+        lineageTag: 6a226b46-5f80-46f0-966e-ea824dd398b9
+        summarizeBy: none
+        sourceColumn: Id
+
+    column ActivityDisplayName
+        dataType: string
+        lineageTag: eaf23a86-9675-453a-829c-9092c9f98fd3
+        summarizeBy: none
+        sourceColumn: ActivityDisplayName
+
+    column Result
+        dataType: string
+        lineageTag: 37de2a95-baec-4460-87c2-29165f89e93f
+        summarizeBy: none
+        sourceColumn: Result
+
+    column InitiatedByUserPrincipalName
+        dataType: string
+        lineageTag: 183facb5-3971-4dcd-810e-96522d7143cf
+        summarizeBy: none
+        sourceColumn: InitiatedByUserPrincipalName
+
+    column InitiatedByAppDisplayName
+        dataType: string
+        lineageTag: 4100158c-31b0-4984-a8f2-1842b38160d8
+        summarizeBy: none
+        sourceColumn: InitiatedByAppDisplayName
+
+    column TargetUserId
+        dataType: string
+        lineageTag: 87846894-8615-4b2a-a73f-e0878690f8c4
+        summarizeBy: none
+        sourceColumn: TargetUserId
+
+    column TargetUserPrincipalName
+        dataType: string
+        lineageTag: e52d91b6-b08f-4116-9ddc-59d41949cfdb
+        summarizeBy: none
+        sourceColumn: TargetUserPrincipalName
+
+    partition GuestInvitations = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-invitations.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                ParseUtc = (value as nullable text) as nullable datetime =>
+                    if value = null then null else DateTime.FromText(value, [Format="yyyy-MM-dd'T'HH:mm:ss'Z'", Culture="en-US"]),
+                #"Changed Type" = Table.TransformColumns(Cleaned, {{"ActivityDateTime", ParseUtc, type datetime}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
