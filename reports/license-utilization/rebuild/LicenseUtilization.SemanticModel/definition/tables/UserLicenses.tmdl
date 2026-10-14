@@ -1,0 +1,89 @@
+table UserLicenses
+    lineageTag: 78bc8910-1ea9-48a2-b985-5c539076d43a
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 62f4e4c0-cff7-4a2f-86d4-e2209b9d7600
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UserId
+        dataType: string
+        lineageTag: 566f8b09-3d09-4ce8-a109-980dcda552fe
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 67ff0fcb-cf0e-4d19-8264-bcc8a46c3ad3
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column AccountEnabled
+        dataType: boolean
+        lineageTag: b005e587-068e-47b5-b0f1-387cefa362ab
+        summarizeBy: none
+        sourceColumn: AccountEnabled
+
+    column UsageLocation
+        dataType: string
+        lineageTag: 26396c35-adf9-4369-9507-dd8d0e436fb7
+        summarizeBy: none
+        sourceColumn: UsageLocation
+
+    column OfficeLocation
+        dataType: string
+        lineageTag: 4bcba366-c115-45ea-8066-bd727e306743
+        summarizeBy: none
+        sourceColumn: OfficeLocation
+
+    column SkuId
+        dataType: string
+        lineageTag: 42c26b54-50b5-42d8-87f2-d860964bc07e
+        summarizeBy: none
+        sourceColumn: SkuId
+
+    column AssignedByGroup
+        dataType: string
+        lineageTag: 3468400d-8f91-4617-8b61-70899034dda7
+        summarizeBy: none
+        sourceColumn: AssignedByGroup
+
+    column AssignmentType
+        dataType: string
+        lineageTag: a2377737-c791-47c3-aa85-c046ff30ec43
+        summarizeBy: none
+        sourceColumn: AssignmentType
+
+    column State
+        dataType: string
+        lineageTag: b74e05eb-d463-4100-a0a7-4d3087158dab
+        summarizeBy: none
+        sourceColumn: State
+
+    column Error
+        dataType: string
+        lineageTag: ad9cce14-e243-4263-979b-cc7823aa5ec3
+        summarizeBy: none
+        sourceColumn: Error
+
+    column DisabledPlans
+        dataType: string
+        lineageTag: 9f5fb4ee-b48d-40f6-816f-844e5df331fb
+        summarizeBy: none
+        sourceColumn: DisabledPlans
+
+    partition UserLicenses = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\user-licenses.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"AccountEnabled", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

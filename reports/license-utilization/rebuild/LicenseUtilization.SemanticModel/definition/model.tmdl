@@ -5,3 +5,4 @@ model Model
 
 ref table SubscribedSkus
 ref table SkuServicePlans
+ref table UserLicenses
