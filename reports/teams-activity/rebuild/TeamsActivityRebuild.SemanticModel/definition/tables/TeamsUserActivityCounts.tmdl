@@ -1,0 +1,107 @@
+table TeamsUserActivityCounts
+    lineageTag: 8836d0eb-a1f2-43cd-8d88-7ba1dbc13773
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: d04edc39-d575-4392-a4c9-00fb24cc93c0
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: 41ae929f-80c5-43bb-93bb-5a9176e47adc
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column ReportDate
+        dataType: string
+        lineageTag: 253293ba-97d1-44c9-8648-fdc828206ea0
+        summarizeBy: none
+        sourceColumn: ReportDate
+
+    column TeamChatMessages
+        dataType: string
+        lineageTag: 3ded0271-23ec-42cf-92c4-ce688984f04b
+        summarizeBy: none
+        sourceColumn: TeamChatMessages
+
+    column PostMessages
+        dataType: string
+        lineageTag: f5ff09c0-0feb-4453-8b3c-155b701d611e
+        summarizeBy: none
+        sourceColumn: PostMessages
+
+    column ReplyMessages
+        dataType: string
+        lineageTag: 9b5f6036-177c-42fb-b90d-b1b104e4ec77
+        summarizeBy: none
+        sourceColumn: ReplyMessages
+
+    column PrivateChatMessages
+        dataType: string
+        lineageTag: 63acc95e-097e-44f2-b702-2c557ec3b9a1
+        summarizeBy: none
+        sourceColumn: PrivateChatMessages
+
+    column Calls
+        dataType: string
+        lineageTag: 355ee3c5-0bd1-40e1-9804-fb7b4212c8d8
+        summarizeBy: none
+        sourceColumn: Calls
+
+    column Meetings
+        dataType: string
+        lineageTag: ba3cf164-75f4-4c26-8689-034fa6d2b7f1
+        summarizeBy: none
+        sourceColumn: Meetings
+
+    column AudioDuration
+        dataType: string
+        lineageTag: 0b4a2b03-4737-4648-b65c-63cac73b7e1f
+        summarizeBy: none
+        sourceColumn: AudioDuration
+
+    column VideoDuration
+        dataType: string
+        lineageTag: 5e1b7155-6c8b-4dab-b240-8c34566a19cc
+        summarizeBy: none
+        sourceColumn: VideoDuration
+
+    column ScreenShareDuration
+        dataType: string
+        lineageTag: 9e95fc7a-90b8-483b-9301-3e42173bc545
+        summarizeBy: none
+        sourceColumn: ScreenShareDuration
+
+    column MeetingsOrganized
+        dataType: string
+        lineageTag: b4d6ba83-91eb-44d1-8d32-2e10eeac9fef
+        summarizeBy: none
+        sourceColumn: MeetingsOrganized
+
+    column MeetingsAttended
+        dataType: string
+        lineageTag: cae3af1e-25f7-4281-9dd4-02d2a27c438c
+        summarizeBy: none
+        sourceColumn: MeetingsAttended
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 124deaf5-982e-4e40-bcc7-910c69c5bcf8
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition TeamsUserActivityCounts = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\teams-user-activity-counts.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
