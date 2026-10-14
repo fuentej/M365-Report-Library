@@ -26,7 +26,8 @@
                   "Property": "Legacy Sign-In Users"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-In Users"
+              "queryRef": "SignIns.Legacy Sign-In Users",
+              "nativeQueryRef": "Legacy Sign-In Users"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Users with a legacy sign-in (at least)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Users with a legacy sign-in (at least)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

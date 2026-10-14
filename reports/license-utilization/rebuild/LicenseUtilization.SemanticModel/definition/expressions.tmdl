@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\LicenseUtilizationData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 080c0968-ed8a-4cc5-8c57-66cbfa3b1cc3
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

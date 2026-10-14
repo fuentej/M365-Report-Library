@@ -26,12 +26,49 @@
                   "Property": "Total Copilot Interactions"
                 }
               },
-              "queryRef": "_Measures.[Total Copilot Interactions]",
-              "nativeQueryRef": "_Measures.[Total Copilot Interactions]"
+              "queryRef": "_Measures.Total Copilot Interactions",
+              "nativeQueryRef": "Total Copilot Interactions"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot interactions'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

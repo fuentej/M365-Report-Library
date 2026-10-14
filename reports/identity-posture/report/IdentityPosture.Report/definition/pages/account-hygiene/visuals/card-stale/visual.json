@@ -26,7 +26,8 @@
                   "Property": "Stale Accounts (90+ days)"
                 }
               },
-              "queryRef": "UserSignInActivity.Stale Accounts (90+ days)"
+              "queryRef": "UserSignInActivity.Stale Accounts (90+ days)",
+              "nativeQueryRef": "Stale Accounts (90+ days)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Stale (90+ days since last successful sign-in)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Stale (90+ days since last successful sign-in)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

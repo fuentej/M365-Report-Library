@@ -26,12 +26,49 @@
                   "Property": "Total Users"
                 }
               },
-              "queryRef": "_Measures.[Total Users]",
-              "nativeQueryRef": "_Measures.[Total Users]"
+              "queryRef": "_Measures.Total Users",
+              "nativeQueryRef": "Total Users"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Users'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

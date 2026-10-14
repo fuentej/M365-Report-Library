@@ -26,12 +26,49 @@
                   "Property": "Copilot Access Blocked"
                 }
               },
-              "queryRef": "_Measures.[Copilot Access Blocked]",
-              "nativeQueryRef": "_Measures.[Copilot Access Blocked]"
+              "queryRef": "_Measures.Copilot Access Blocked",
+              "nativeQueryRef": "Copilot Access Blocked"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot access blocked'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

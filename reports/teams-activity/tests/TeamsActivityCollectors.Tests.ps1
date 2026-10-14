@@ -97,6 +97,7 @@ Describe 'Cloud availability' {
         Mock Get-MgReportTeamUserActivityUserDetail { }
         Mock Get-MgReportTeamUserActivityCount { }
         Mock Get-MgReportTeamDeviceUsageUserDetail { }
+        Mock Get-MgReportTeamActivityDetail { }
         Mock Get-MgAdminReportSetting { [pscustomobject]@{ DisplayConcealedNames = $false } }
         Mock Invoke-MgGraphRequest { @{ value = @() } }
         Mock Start-Sleep { }
@@ -107,6 +108,7 @@ Describe 'Cloud availability' {
         @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Csv = 'teams-user-activity-user-detail.csv'; Key = 'TeamsUserActivityUserDetail'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail' }
         @{ Script = 'Get-TeamsUserActivityCounts.ps1'; Csv = 'teams-user-activity-counts.csv'; Key = 'TeamsUserActivityCounts'; Cmdlet = 'Get-MgReportTeamUserActivityCount' }
         @{ Script = 'Get-TeamsDeviceUsageUserDetail.ps1'; Csv = 'teams-device-usage-user-detail.csv'; Key = 'TeamsDeviceUsageUserDetail'; Cmdlet = 'Get-MgReportTeamDeviceUsageUserDetail' }
+        @{ Script = 'Get-TeamsTeamActivityDetail.ps1'; Csv = 'teams-team-activity-detail.csv'; Key = 'TeamsTeamActivityDetail'; Cmdlet = 'Get-MgReportTeamActivityDetail' }
     ) {
         Invoke-CollectorScript $Script @{ OutputPath = $script:Out; Environment = 'GCCHigh' }
 
@@ -122,6 +124,7 @@ Describe 'Cloud availability' {
         @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail' }
         @{ Script = 'Get-TeamsUserActivityCounts.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityCount' }
         @{ Script = 'Get-TeamsDeviceUsageUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamDeviceUsageUserDetail' }
+        @{ Script = 'Get-TeamsTeamActivityDetail.ps1'; Cmdlet = 'Get-MgReportTeamActivityDetail' }
     ) {
         Invoke-CollectorScript $Script @{ OutputPath = $script:Out; Environment = 'GCC'; SkipConnect = $true }
         Get-LogText $script:Out | Should -Match 'UNVERIFIED'
@@ -188,7 +191,7 @@ Describe 'Connection endpoint per -Environment' {
     }
 }
 
-Describe 'Graph usage reports (sources 1 to 3) are state snapshots stamped with the run date' {
+Describe 'Graph usage reports (sources 1 to 4) are state snapshots stamped with the run date' {
     BeforeEach {
         $script:Out = New-TestFolder
         $script:RunDate = [datetime]::UtcNow.ToString('yyyy-MM-dd')
@@ -324,10 +327,80 @@ Describe 'Graph usage reports (sources 1 to 3) are state snapshots stamped with 
         $log | Should -Not -Match 'Reports\.Read\.All'
     }
 
+    It 'retries a team activity 429 and logs a team activity that stays throttled as throttle, not a missing permission' {
+        $global:TaTest.TeamTries = 0
+        Mock Get-MgReportTeamActivityDetail {
+            $global:TaTest.TeamTries++
+            if ($global:TaTest.TeamTries -eq 1) { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value "Report Refresh Date,Team Name,Team Id,Team Type,Last Activity Date,Report Period,Active Users`n2026-10-06,Sales EMEA,team-1,Standard,2026-10-05,30,14"
+        }
+        Mock Start-Sleep { }
+        Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $global:TaTest.TeamTries | Should -Be 2
+        @(Import-Csv -LiteralPath (Join-Path $script:Out 'teams-team-activity-detail.csv')).Count | Should -Be 1
+        Get-LogText $script:Out | Should -Match 'HTTP 429'
+
+        $stuck = New-TestFolder
+        try {
+            Mock Get-MgReportTeamActivityDetail { throw 'Response status code does not indicate success: 429 (Too Many Requests).' }
+            Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $stuck; SkipConnect = $true }
+            @(Import-Csv -LiteralPath (Join-Path $stuck 'teams-team-activity-detail.csv')).Count | Should -Be 0
+            $log = Get-LogText $stuck
+            $log | Should -Match 'still throttled'
+            $log | Should -Not -Match 'Reports\.Read\.All'
+        }
+        finally { Remove-Item -LiteralPath $stuck -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    It 'writes one row per team with the report''s counts, accepts either header spelling, and drops a row with no team id' {
+        $header = 'Report Refresh Date,Team Name,Team Id,Team type,Last Activity Date,Report Period,Active users,Active Channels,Guests,Reactions,Meetings Organized,Post Messages,Reply Messages,Channel Messages,Urgent Messages,Mentions,Active Shared Channels,Active External Users'
+        $altHeader = $header -replace 'Team type', 'Team Type' -replace 'Active users', 'Active Users'
+        foreach ($h in $header, $altHeader) {
+            $folder = New-TestFolder
+            try {
+                $csv = $h + "`n2026-10-06,Sales EMEA,team-1,Standard,2026-10-05,30,14,6,2,88,9,140,310,450,3,52,1,1`n2026-10-06,Quiet team,team-2,Standard,,30,0,0,0,0,0,0,0,0,0,0,0,0`n2026-10-06,No id,,Standard,,30,0,0,0,0,0,0,0,0,0,0,0,0"
+                $global:TaTest.TeamCsv = $csv
+                Mock Get-MgReportTeamActivityDetail { Set-Content -LiteralPath $OutFile -Encoding utf8 -Value $global:TaTest.TeamCsv }
+                Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $folder; SkipConnect = $true }
+
+                $rows = @(Import-Csv -LiteralPath (Join-Path $folder 'teams-team-activity-detail.csv'))
+                $rows.Count | Should -Be 2
+                $rows[0].RunDate | Should -Be $script:RunDate
+                $rows[0].TeamId | Should -Be 'team-1'
+                $rows[0].TeamType | Should -Be 'Standard'
+                $rows[0].ActiveUsers | Should -Be '14'
+                $rows[0].ChannelMessages | Should -Be '450'
+                $rows[0].ReplyMessages | Should -Be '310'
+                $rows[0].PostMessages | Should -Be '140'
+                $rows[0].MeetingsOrganized | Should -Be '9'
+                $rows[0].LastActivityDate | Should -Be '2026-10-05'
+                $rows[1].LastActivityDate | Should -Be ''
+                Get-HeaderText (Join-Path $folder 'teams-team-activity-detail.csv') | Should -Be ($script:Schema.TeamsTeamActivityDetail -join ',')
+            }
+            finally { Remove-Item -LiteralPath $folder -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+        Should -Invoke Get-MgReportTeamActivityDetail -Times 2 -Exactly -ParameterFilter { $Period -eq 'D30' }
+    }
+
+    It 'appends a team snapshot per run date and does not repeat one run date' {
+        Mock Get-MgReportTeamActivityDetail {
+            Set-Content -LiteralPath $OutFile -Encoding utf8 -Value "Report Refresh Date,Team Name,Team Id,Team Type,Last Activity Date,Report Period,Active Users`n2026-10-06,Sales EMEA,team-1,Standard,2026-10-05,30,14"
+        }
+        Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        Invoke-CollectorScript 'Get-TeamsTeamActivityDetail.ps1' @{ OutputPath = $script:Out; SkipConnect = $true }
+        $path = Join-Path $script:Out 'teams-team-activity-detail.csv'
+        @(Import-Csv -LiteralPath $path).Count | Should -Be 1
+
+        Export-AppendCsv -Path $path -Column $script:Schema.TeamsTeamActivityDetail -Rows @(
+            [pscustomobject]@{ RunDate = '2026-09-01'; TeamId = 'team-1'; ReportPeriod = '30' }) -KeyColumn @('RunDate', 'TeamId', 'ReportPeriod')
+        @(Import-Csv -LiteralPath $path).Count | Should -Be 2
+    }
+
     It 'writes the header only and logs the refusal when <Script> is refused' -ForEach @(
         @{ Script = 'Get-TeamsUserActivityUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityUserDetail'; Csv = 'teams-user-activity-user-detail.csv'; Key = 'TeamsUserActivityUserDetail' }
         @{ Script = 'Get-TeamsUserActivityCounts.ps1'; Cmdlet = 'Get-MgReportTeamUserActivityCount'; Csv = 'teams-user-activity-counts.csv'; Key = 'TeamsUserActivityCounts' }
         @{ Script = 'Get-TeamsDeviceUsageUserDetail.ps1'; Cmdlet = 'Get-MgReportTeamDeviceUsageUserDetail'; Csv = 'teams-device-usage-user-detail.csv'; Key = 'TeamsDeviceUsageUserDetail' }
+        @{ Script = 'Get-TeamsTeamActivityDetail.ps1'; Cmdlet = 'Get-MgReportTeamActivityDetail'; Csv = 'teams-team-activity-detail.csv'; Key = 'TeamsTeamActivityDetail' }
     ) {
         Mock $Cmdlet -MockWith { throw 'Forbidden' }
         Invoke-CollectorScript $Script @{ OutputPath = $script:Out; SkipConnect = $true }
@@ -689,11 +762,12 @@ Describe 'Run-All' {
     }
     AfterEach { Remove-Item -LiteralPath $script:Out -Recurse -Force -ErrorAction SilentlyContinue }
 
-    It 'leaves seven CSVs including the lifecycle report''s team-activity.csv, after one sign-in to each service' {
+    It 'leaves eight CSVs including the lifecycle report''s team-activity.csv, after one sign-in to each service' {
         & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out
 
-        @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 7
+        @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 8
         Test-Path -LiteralPath (Join-Path $script:Out 'team-activity.csv') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:Out 'teams-team-activity-detail.csv') | Should -BeTrue
         Should -Invoke Connect-MgGraph -ModuleName M365ReportLibrary -Times 1 -Exactly -ParameterFilter { $Scopes -contains 'Reports.Read.All' -and $Scopes -contains 'ReportSettings.Read.All' -and $Scopes -notcontains 'CallRecords.Read.All' }
         Should -Invoke Connect-ExchangeOnline -ModuleName M365ReportLibrary -Times 1 -Exactly
         Should -Invoke Disconnect-ExchangeOnline -Times 1 -Exactly
@@ -702,7 +776,7 @@ Describe 'Run-All' {
     It 'leaves a header-only file for each usage report in GCC High and still reads call records and the audit log' {
         & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -Environment GCCHigh
 
-        foreach ($name in 'teams-user-activity-user-detail', 'teams-user-activity-counts', 'teams-device-usage-user-detail', 'team-activity') {
+        foreach ($name in 'teams-user-activity-user-detail', 'teams-user-activity-counts', 'teams-device-usage-user-detail', 'teams-team-activity-detail', 'team-activity') {
             Test-Path -LiteralPath (Join-Path $script:Out "$name.csv") | Should -BeTrue
             @(Import-Csv -LiteralPath (Join-Path $script:Out "$name.csv")).Count | Should -Be 0
         }
@@ -715,12 +789,13 @@ Describe 'Run-All' {
     It 'keeps running the other collectors when one stops' {
         Mock Get-MgAdminReportSetting { throw 'Forbidden' }
         & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out
-        @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 7
+        @(Get-ChildItem -LiteralPath $script:Out -Filter '*.csv').Count | Should -Be 8
     }
 
     It 'passes the period to the usage reports and the lifecycle team report' {
         & (Join-Path $script:Collectors 'Run-All.ps1') -OutputPath $script:Out -Period D90
         Should -Invoke Get-MgReportTeamUserActivityCount -Times 1 -Exactly -ParameterFilter { $Period -eq 'D90' }
-        Should -Invoke Get-MgReportTeamActivityDetail -Times 1 -Exactly -ParameterFilter { $Period -eq 'D90' }
+        # Once for teams-team-activity-detail.csv and once for the lifecycle report's team-activity.csv.
+        Should -Invoke Get-MgReportTeamActivityDetail -Times 2 -Exactly -ParameterFilter { $Period -eq 'D90' }
     }
 }

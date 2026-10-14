@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "Policies.ObjectType",
-              "nativeQueryRef": "Policies.ObjectType"
+              "nativeQueryRef": "ObjectType",
+              "displayName": "Type"
             },
             {
               "field": {
@@ -41,7 +42,8 @@
                 }
               },
               "queryRef": "Policies.DisplayName",
-              "nativeQueryRef": "Policies.DisplayName"
+              "nativeQueryRef": "DisplayName",
+              "displayName": "Name"
             },
             {
               "field": {
@@ -55,7 +57,7 @@
                 }
               },
               "queryRef": "Policies.Mode",
-              "nativeQueryRef": "Policies.Mode"
+              "nativeQueryRef": "Mode"
             },
             {
               "field": {
@@ -69,7 +71,7 @@
                 }
               },
               "queryRef": "Policies.Enabled",
-              "nativeQueryRef": "Policies.Enabled"
+              "nativeQueryRef": "Enabled"
             },
             {
               "field": {
@@ -83,7 +85,7 @@
                 }
               },
               "queryRef": "Policies.Workload",
-              "nativeQueryRef": "Policies.Workload"
+              "nativeQueryRef": "Workload"
             },
             {
               "field": {
@@ -97,11 +99,33 @@
                 }
               },
               "queryRef": "Policies.Locations",
-              "nativeQueryRef": "Policies.Locations"
+              "nativeQueryRef": "Locations"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label, DLP and retention policies and rules'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -26,7 +26,8 @@
                   "Property": "Never Accepted Guests"
                 }
               },
-              "queryRef": "Guests.Never Accepted Guests"
+              "queryRef": "Guests.Never Accepted Guests",
+              "nativeQueryRef": "Never Accepted Guests"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Never accepted"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Never accepted'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Mailbox Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.Mailbox Display Name"
+              "queryRef": "UsersCurrent.Mailbox Display Name",
+              "nativeQueryRef": "Mailbox Display Name"
             },
             {
               "field": {
@@ -52,7 +55,9 @@
                   "Property": "DestinationType"
                 }
               },
-              "queryRef": "MailboxForwarding.DestinationType"
+              "queryRef": "MailboxForwarding.DestinationType",
+              "nativeQueryRef": "DestinationType",
+              "displayName": "Destination type"
             },
             {
               "field": {
@@ -65,7 +70,9 @@
                   "Property": "DestinationDomain"
                 }
               },
-              "queryRef": "MailboxForwarding.DestinationDomain"
+              "queryRef": "MailboxForwarding.DestinationDomain",
+              "nativeQueryRef": "DestinationDomain",
+              "displayName": "Destination domain"
             },
             {
               "field": {
@@ -78,7 +85,9 @@
                   "Property": "CopyLabel"
                 }
               },
-              "queryRef": "MailboxForwarding.CopyLabel"
+              "queryRef": "MailboxForwarding.CopyLabel",
+              "nativeQueryRef": "CopyLabel",
+              "displayName": "Copy kept in mailbox"
             },
             {
               "field": {
@@ -91,7 +100,8 @@
                   "Property": "Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes",
+              "nativeQueryRef": "Forwarding Mailboxes"
             }
           ]
         }
@@ -101,8 +111,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mailboxes with forwarding set"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mailboxes with forwarding set'"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,9 @@
                   "Property": "RuleKind"
                 }
               },
-              "queryRef": "InboxRules.RuleKind"
+              "queryRef": "InboxRules.RuleKind",
+              "nativeQueryRef": "RuleKind",
+              "displayName": "Rule action"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Inbox Rules"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules"
+              "queryRef": "InboxRules.Inbox Rules",
+              "nativeQueryRef": "Inbox Rules"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules by action"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules by action'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

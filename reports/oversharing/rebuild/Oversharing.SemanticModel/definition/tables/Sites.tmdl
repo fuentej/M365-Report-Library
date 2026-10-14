@@ -1,0 +1,59 @@
+table Sites
+    lineageTag: 6d69fb2a-07ab-4082-ac94-235715af5dd7
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 9f002ba9-a40b-4e8e-a9d4-fe7237abbdfb
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column SiteId
+        dataType: string
+        lineageTag: f0ed439e-ef94-4f25-9c49-78a44347226e
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column Name
+        dataType: string
+        lineageTag: aa740168-943b-44ba-98f2-700a1efda114
+        summarizeBy: none
+        sourceColumn: Name
+
+    column WebUrl
+        dataType: string
+        lineageTag: 40b94d4b-42bd-4b1a-8040-b74f7845a620
+        summarizeBy: none
+        sourceColumn: WebUrl
+
+    column IsPersonalSite
+        dataType: boolean
+        lineageTag: d789bdba-bd25-4afa-a778-17a9fe65a9f2
+        summarizeBy: none
+        sourceColumn: IsPersonalSite
+
+    column HostName
+        dataType: string
+        lineageTag: 1c4c0338-bc78-4162-82f5-c56bee23a517
+        summarizeBy: none
+        sourceColumn: HostName
+
+    column DataLocationCode
+        dataType: string
+        lineageTag: 5c481b92-cb71-4cd9-a74f-c87bda2a56f6
+        summarizeBy: none
+        sourceColumn: DataLocationCode
+
+    partition Sites = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sites.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsPersonalSite", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

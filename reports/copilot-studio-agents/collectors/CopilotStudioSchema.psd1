@@ -106,6 +106,26 @@
         'BotComponentType'
     )
 
+    # Copilot Credits consumed per agent, read from the consumption report an admin downloads from the
+    # Power Platform admin center (not from a tenant call). The Learn page lists the report columns:
+    # Agent name; Product / AI feature; Channel; LLM model; Knowledge sources / Tool used; Billed credits /
+    # Non-billed credits. Date and EnvironmentName are UNVERIFIED as report columns: when the report has no
+    # such column, Date is empty and EnvironmentName is the file name. SourceFile is the file a row came from.
+    # https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#download-detailed-copilot-consumption-for-an-environment
+    AgentCreditConsumption = @(
+        'Date'
+        'EnvironmentName'
+        'AgentName'
+        'Product'
+        'Feature'
+        'Channel'
+        'Model'
+        'KnowledgeSourceOrTool'
+        'BilledCredits'
+        'NonBilledCredits'
+        'SourceFile'
+    )
+
     # The authoring event labels, copied exactly from
     # https://learn.microsoft.com/microsoft-copilot-studio/admin-logging-copilot-studio#see-audited-events-agent-authoring
     # CopilotInteraction (agent usage) is a record type, not one of these, and is not collected.
@@ -173,6 +193,13 @@
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/microsoft-copilot-studio/guidance/custom-analytics-strategy#copilot-studio,-dataverse,-and-analytics' }
             GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/power-platform/admin/microsoft-dynamics-365-government#dynamics-365-us-government-urls' }
             GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/power-platform/admin/microsoft-dynamics-365-government#dynamics-365-us-government-urls' }
+        }
+        # A manual download, not a call. The Learn page describes the report without saying which clouds
+        # offer it, so every cloud is UNVERIFIED. The collector only reads local files, so it attempts it anyway.
+        AgentCreditConsumption = @{
+            Commercial = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity' }
+            GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity' }
+            GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity' }
         }
         AgentAuditEvents = @{
             Commercial = @{ Status = 'Available'; Reference = 'https://learn.microsoft.com/microsoft-copilot-studio/admin-logging-copilot-studio' }

@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "EnvironmentsCurrent.Pseudonym"
+              "queryRef": "EnvironmentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Environment"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Environment Display Name"
                 }
               },
-              "queryRef": "EnvironmentsCurrent.Environment Display Name"
+              "queryRef": "EnvironmentsCurrent.Environment Display Name",
+              "nativeQueryRef": "Environment Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Agent Count"
                 }
               },
-              "queryRef": "Agents.Agent Count"
+              "queryRef": "Agents.Agent Count",
+              "nativeQueryRef": "Agent Count"
             }
           ]
         }
@@ -62,8 +66,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Agents by environment"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Agents by environment'"
+                }
+              }
+            }
           }
         }
       ]

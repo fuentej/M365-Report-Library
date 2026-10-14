@@ -26,7 +26,8 @@
                   "Property": "Dormant Guests (90+ days)"
                 }
               },
-              "queryRef": "Guests.Dormant Guests (90+ days)"
+              "queryRef": "Guests.Dormant Guests (90+ days)",
+              "nativeQueryRef": "Dormant Guests (90+ days)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Dormant 90+ days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Dormant 90+ days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

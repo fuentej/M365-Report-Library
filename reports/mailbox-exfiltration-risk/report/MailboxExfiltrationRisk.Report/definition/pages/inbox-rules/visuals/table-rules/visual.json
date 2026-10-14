@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Mailbox Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.Mailbox Display Name"
+              "queryRef": "UsersCurrent.Mailbox Display Name",
+              "nativeQueryRef": "Mailbox Display Name"
             },
             {
               "field": {
@@ -52,7 +55,9 @@
                   "Property": "RuleName"
                 }
               },
-              "queryRef": "InboxRules.RuleName"
+              "queryRef": "InboxRules.RuleName",
+              "nativeQueryRef": "RuleName",
+              "displayName": "Rule"
             },
             {
               "field": {
@@ -65,7 +70,9 @@
                   "Property": "RuleKind"
                 }
               },
-              "queryRef": "InboxRules.RuleKind"
+              "queryRef": "InboxRules.RuleKind",
+              "nativeQueryRef": "RuleKind",
+              "displayName": "Rule action"
             },
             {
               "field": {
@@ -78,7 +85,9 @@
                   "Property": "TargetScope"
                 }
               },
-              "queryRef": "InboxRules.TargetScope"
+              "queryRef": "InboxRules.TargetScope",
+              "nativeQueryRef": "TargetScope",
+              "displayName": "Target scope"
             },
             {
               "field": {
@@ -91,7 +100,9 @@
                   "Property": "TargetDomainsLabel"
                 }
               },
-              "queryRef": "InboxRules.TargetDomainsLabel"
+              "queryRef": "InboxRules.TargetDomainsLabel",
+              "nativeQueryRef": "TargetDomainsLabel",
+              "displayName": "Target domains"
             },
             {
               "field": {
@@ -104,7 +115,8 @@
                   "Property": "Inbox Rules"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules"
+              "queryRef": "InboxRules.Inbox Rules",
+              "nativeQueryRef": "Inbox Rules"
             }
           ]
         }
@@ -114,8 +126,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Rules by mailbox and target domain"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Rules by mailbox and target domain'"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "Unknown Last Sign-In"
                 }
               },
-              "queryRef": "UserSignInActivity.Unknown Last Sign-In"
+              "queryRef": "UserSignInActivity.Unknown Last Sign-In",
+              "nativeQueryRef": "Unknown Last Sign-In"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Unknown last sign-in (not proof of never signed in)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Unknown last sign-in (not proof of never signed in)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

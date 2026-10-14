@@ -26,7 +26,9 @@
                   "Property": "PublishState"
                 }
               },
-              "queryRef": "Agents.PublishState"
+              "queryRef": "Agents.PublishState",
+              "nativeQueryRef": "PublishState",
+              "displayName": "Publish state"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Agent Count"
                 }
               },
-              "queryRef": "Agents.Agent Count"
+              "queryRef": "Agents.Agent Count",
+              "nativeQueryRef": "Agent Count"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Published vs draft"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Published vs draft'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

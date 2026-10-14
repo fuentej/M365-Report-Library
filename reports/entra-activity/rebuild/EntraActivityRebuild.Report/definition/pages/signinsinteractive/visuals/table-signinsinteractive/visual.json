@@ -1,0 +1,371 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-signinsinteractive",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "CreatedDateTime"
+                }
+              },
+              "queryRef": "SignInsInteractive.CreatedDateTime"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "Id"
+                }
+              },
+              "queryRef": "SignInsInteractive.Id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "UserId"
+                }
+              },
+              "queryRef": "SignInsInteractive.UserId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "UserPrincipalName"
+                }
+              },
+              "queryRef": "SignInsInteractive.UserPrincipalName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "AppId"
+                }
+              },
+              "queryRef": "SignInsInteractive.AppId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "AppDisplayName"
+                }
+              },
+              "queryRef": "SignInsInteractive.AppDisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "ResourceDisplayName"
+                }
+              },
+              "queryRef": "SignInsInteractive.ResourceDisplayName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "IpAddress"
+                }
+              },
+              "queryRef": "SignInsInteractive.IpAddress"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "City"
+                }
+              },
+              "queryRef": "SignInsInteractive.City"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "State"
+                }
+              },
+              "queryRef": "SignInsInteractive.State"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "CountryOrRegion"
+                }
+              },
+              "queryRef": "SignInsInteractive.CountryOrRegion"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "ClientAppUsed"
+                }
+              },
+              "queryRef": "SignInsInteractive.ClientAppUsed"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "DeviceOperatingSystem"
+                }
+              },
+              "queryRef": "SignInsInteractive.DeviceOperatingSystem"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "DeviceBrowser"
+                }
+              },
+              "queryRef": "SignInsInteractive.DeviceBrowser"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "DeviceIsCompliant"
+                }
+              },
+              "queryRef": "SignInsInteractive.DeviceIsCompliant"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "DeviceIsManaged"
+                }
+              },
+              "queryRef": "SignInsInteractive.DeviceIsManaged"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "IsInteractive"
+                }
+              },
+              "queryRef": "SignInsInteractive.IsInteractive"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "SignInEventTypes"
+                }
+              },
+              "queryRef": "SignInsInteractive.SignInEventTypes"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "ErrorCode"
+                }
+              },
+              "queryRef": "SignInsInteractive.ErrorCode"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "FailureReason"
+                }
+              },
+              "queryRef": "SignInsInteractive.FailureReason"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "AdditionalDetails"
+                }
+              },
+              "queryRef": "SignInsInteractive.AdditionalDetails"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "ConditionalAccessStatus"
+                }
+              },
+              "queryRef": "SignInsInteractive.ConditionalAccessStatus"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "RiskDetail"
+                }
+              },
+              "queryRef": "SignInsInteractive.RiskDetail"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "RiskLevelAggregated"
+                }
+              },
+              "queryRef": "SignInsInteractive.RiskLevelAggregated"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "RiskLevelDuringSignIn"
+                }
+              },
+              "queryRef": "SignInsInteractive.RiskLevelDuringSignIn"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SignInsInteractive"
+                    }
+                  },
+                  "Property": "RiskState"
+                }
+              },
+              "queryRef": "SignInsInteractive.RiskState"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "SignInsInteractive (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}

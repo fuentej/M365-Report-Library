@@ -26,7 +26,8 @@
                   "Property": "Connector Operations Listed"
                 }
               },
-              "queryRef": "Agents.Connector Operations Listed"
+              "queryRef": "Agents.Connector Operations Listed",
+              "nativeQueryRef": "Connector Operations Listed"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Connector operations listed"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Connector operations listed'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

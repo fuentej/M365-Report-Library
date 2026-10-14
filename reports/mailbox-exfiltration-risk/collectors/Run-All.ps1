@@ -2,13 +2,13 @@
 
 <#
     .SYNOPSIS
-        Runs the Entra user collector and all twelve mailbox exfiltration risk collectors
+        Runs the Entra user collector and all thirteen mailbox exfiltration risk collectors
         into one output folder.
 
     .DESCRIPTION
         Signs in to Exchange Online once and to Microsoft Graph once, then runs every
         collector against those sessions (-SkipConnect), so an interactive run prompts
-        twice, not thirteen times. users.csv comes from the shared Entra users collector.
+        twice, not fourteen times. users.csv comes from the shared Entra users collector.
 
         A collector whose source is refused or unavailable in this cloud leaves a
         header-only CSV and a line in run.log without stopping the others.
@@ -105,6 +105,7 @@ try {
         @{ Name = 'send-on-behalf'; Script = 'Get-SendOnBehalf.ps1'; Arguments = $common }
         @{ Name = 'inbox-rules'; Script = 'Get-InboxRules.ps1'; Arguments = $common + $mailboxScoped }
         @{ Name = 'transport-rules'; Script = 'Get-TransportRules.ps1'; Arguments = $common }
+        @{ Name = 'outbound-spam-policies'; Script = 'Get-OutboundSpamPolicies.ps1'; Arguments = $common }
         @{ Name = 'mailbox-full-access'; Script = 'Get-MailboxFullAccess.ps1'; Arguments = $common + $mailboxScoped }
         @{ Name = 'send-as-permissions'; Script = 'Get-SendAsPermissions.ps1'; Arguments = $common }
         @{ Name = 'delegated-consents'; Script = 'Get-DelegatedConsents.ps1'; Arguments = $common }

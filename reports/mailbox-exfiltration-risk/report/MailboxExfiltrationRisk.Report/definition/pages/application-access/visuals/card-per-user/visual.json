@@ -26,7 +26,8 @@
                   "Property": "Per-User Mail Consents"
                 }
               },
-              "queryRef": "DelegatedConsents.Per-User Mail Consents"
+              "queryRef": "DelegatedConsents.Per-User Mail Consents",
+              "nativeQueryRef": "Per-User Mail Consents"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Per-user, mail scope"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Per-user, mail scope'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

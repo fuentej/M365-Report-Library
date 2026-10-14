@@ -51,7 +51,8 @@ param(
     [string]$Organization,
     [string]$AdminUrl,
 
-    # Sources 1, 2, 5 and 6. Sources 3 and 4 stay on D30 too: the trend is one row per day in the period.
+    # Sources 2, 5 and 6. Sources 3 and 4 stay on D30 too: the trend is one row per day in the period.
+    # Source 1 (sharepoint-site-usage-detail.csv) ignores it and reads D7, D30, D90 and D180 every run.
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
     [string]$Period = 'D30',
 
@@ -129,7 +130,7 @@ try {
 
     $steps = @(
         @{ Name = 'report-settings'; Script = 'Get-ReportSettings.ps1'; Arguments = $common }
-        @{ Name = 'sharepoint-site-usage-detail'; Script = 'Get-SharePointSiteUsageDetail.ps1'; Arguments = $usage }
+        @{ Name = 'sharepoint-site-usage-detail'; Script = 'Get-SharePointSiteUsageDetail.ps1'; Arguments = $common }
         @{ Name = 'onedrive-usage-account-detail'; Script = 'Get-OneDriveUsageAccountDetail.ps1'; Arguments = $usage }
         @{ Name = 'sharepoint-site-usage-storage'; Script = 'Get-SharePointSiteUsageStorage.ps1'; Arguments = $usage }
         @{ Name = 'onedrive-usage-storage'; Script = 'Get-OneDriveUsageStorage.ps1'; Arguments = $usage }

@@ -26,7 +26,9 @@
                   "Property": "ResourceDisplayName"
                 }
               },
-              "queryRef": "GuestSignIns.ResourceDisplayName"
+              "queryRef": "GuestSignIns.ResourceDisplayName",
+              "nativeQueryRef": "ResourceDisplayName",
+              "displayName": "Resource"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Sign-In Count"
                 }
               },
-              "queryRef": "GuestSignIns.Sign-In Count"
+              "queryRef": "GuestSignIns.Sign-In Count",
+              "nativeQueryRef": "Sign-In Count"
             }
           ]
         }
@@ -71,8 +74,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Sign-ins by resource"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sign-ins by resource'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

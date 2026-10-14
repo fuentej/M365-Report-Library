@@ -6,8 +6,11 @@
     # SharePoint Storage page in the admin center, is manual too; route (b), Get-SPOTenant, is a collector.
     # users.csv is not part of this report; the shared Invoke-EntraUserCollector writes it where a report wants it.
 
-    # Source 1. getSharePointSiteUsageDetail. One row per site per run and period. Storage is bytes in
-    # the Graph CSV; the admin center shows MB. Do not add the two.
+    # Source 1. getSharePointSiteUsageDetail. One row per site per run and period. The collector reads
+    # D7, D30, D90 and D180 every run, told apart by ReportPeriod (7, 30, 90 or 180); the API page lists
+    # all four for the same clouds, so one availability entry covers them.
+    # https://learn.microsoft.com/graph/api/reportroot-getsharepointsiteusagedetail
+    # Storage is bytes in the Graph CSV; the admin center shows MB. Do not add the two.
     SharePointSiteUsageDetail = @(
         'RunDate'
         'ReportRefreshDate'
@@ -120,6 +123,12 @@
 
     # Source 10. Get-SPOSite -Limit ALL -IncludePersonalSite $true, without -Detailed. The storage
     # columns are empty when the cmdlet does not return them without -Detailed.
+    # IsTeamsConnected (site connected to a team) and IsTeamsChannelConnected (site connected to a
+    # private or shared channel) come from that list. SharingCapability (Disabled,
+    # ExistingExternalUserSharingOnly, ExternalUserSharingOnly or ExternalUserAndGuestSharing) is
+    # not populated when -Limit or -Filter is given, so it is read with one Get-SPOSite -Identity
+    # call per site; it is empty when that call fails.
+    # https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite
     SpoSites = @(
         'RunDate'
         'Url'
@@ -128,6 +137,9 @@
         'StorageUsageCurrent'
         'ResourceUsageCurrent'
         'WebsCount'
+        'IsTeamsConnected'
+        'IsTeamsChannelConnected'
+        'SharingCapability'
     )
 
     # Source 11. GET /sites/getAllSites, then GET /sites/{id}/drives. One row per drive per run.
@@ -244,6 +256,13 @@
             GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-spotenant' }
         }
         SpoSites = @{
+            Commercial = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite' }
+            GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite' }
+            GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/connect-sposervice' }
+        }
+        # The per-site Get-SPOSite -Identity call that reads SharingCapability. Same cmdlet, same
+        # UNVERIFIED status as SpoSites: no page states it per cloud.
+        SpoSiteSharing = @{
             Commercial = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite' }
             GCC        = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/get-sposite' }
             GCCHigh    = @{ Status = 'Unverified'; Reference = 'https://learn.microsoft.com/powershell/module/microsoft.online.sharepoint.powershell/connect-sposervice' }

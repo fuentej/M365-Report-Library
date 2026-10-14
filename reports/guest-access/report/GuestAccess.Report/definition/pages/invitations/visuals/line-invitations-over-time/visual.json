@@ -26,7 +26,9 @@
                   "Property": "ActivityDate"
                 }
               },
-              "queryRef": "GuestInvitations.ActivityDate"
+              "queryRef": "GuestInvitations.ActivityDate",
+              "nativeQueryRef": "ActivityDate",
+              "displayName": "Invitation date"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Invitation Events"
                 }
               },
-              "queryRef": "GuestInvitations.Invitation Events"
+              "queryRef": "GuestInvitations.Invitation Events",
+              "nativeQueryRef": "Invitation Events"
             },
             {
               "field": {
@@ -56,7 +59,8 @@
                   "Property": "Redemption Events"
                 }
               },
-              "queryRef": "GuestInvitations.Redemption Events"
+              "queryRef": "GuestInvitations.Redemption Events",
+              "nativeQueryRef": "Redemption Events"
             }
           ]
         }
@@ -66,8 +70,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Invitations and redemptions over time"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Invitations and redemptions over time'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

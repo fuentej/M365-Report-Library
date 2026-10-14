@@ -27,7 +27,7 @@
                 }
               },
               "queryRef": "Users.Department",
-              "nativeQueryRef": "Users.Department"
+              "nativeQueryRef": "Department"
             }
           ]
         }

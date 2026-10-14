@@ -26,7 +26,8 @@
                   "Property": "Earliest Audit Record"
                 }
               },
-              "queryRef": "MailboxChangeEvents.Earliest Audit Record"
+              "queryRef": "MailboxChangeEvents.Earliest Audit Record",
+              "nativeQueryRef": "Earliest Audit Record"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Earliest audit record"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Earliest audit record'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

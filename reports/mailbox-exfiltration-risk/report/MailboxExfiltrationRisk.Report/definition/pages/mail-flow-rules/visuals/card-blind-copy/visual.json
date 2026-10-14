@@ -26,7 +26,8 @@
                   "Property": "Blind Copy Rules"
                 }
               },
-              "queryRef": "TransportRules.Blind Copy Rules"
+              "queryRef": "TransportRules.Blind Copy Rules",
+              "nativeQueryRef": "Blind Copy Rules"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Blind copy"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Blind copy'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]
