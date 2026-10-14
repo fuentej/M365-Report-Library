@@ -26,7 +26,8 @@
                   "Property": "Date"
                 }
               },
-              "queryRef": "DateDim.Date"
+              "queryRef": "DateDim.Date",
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -43,7 +44,8 @@
                   "Property": "No MFA Method (All Snapshots)"
                 }
               },
-              "queryRef": "AuthenticationMethods.No MFA Method (All Snapshots)"
+              "queryRef": "AuthenticationMethods.No MFA Method (All Snapshots)",
+              "nativeQueryRef": "No MFA Method (All Snapshots)"
             },
             {
               "field": {
@@ -56,7 +58,8 @@
                   "Property": "Enabled Policies (All Snapshots)"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Enabled Policies (All Snapshots)"
+              "queryRef": "ConditionalAccessPolicies.Enabled Policies (All Snapshots)",
+              "nativeQueryRef": "Enabled Policies (All Snapshots)"
             },
             {
               "field": {
@@ -69,7 +72,8 @@
                   "Property": "Users At Risk (All Snapshots)"
                 }
               },
-              "queryRef": "RiskyUsers.Users At Risk (All Snapshots)"
+              "queryRef": "RiskyUsers.Users At Risk (All Snapshots)",
+              "nativeQueryRef": "Users At Risk (All Snapshots)"
             }
           ]
         }
@@ -79,8 +83,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Trend by snapshot date"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Trend by snapshot date'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

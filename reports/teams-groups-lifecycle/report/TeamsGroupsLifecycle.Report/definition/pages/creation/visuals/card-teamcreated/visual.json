@@ -26,7 +26,8 @@
                   "Property": "Team Creation Events (TeamCreated)"
                 }
               },
-              "queryRef": "GroupCreationEvents.Team Creation Events (TeamCreated)"
+              "queryRef": "GroupCreationEvents.Team Creation Events (TeamCreated)",
+              "nativeQueryRef": "Team Creation Events (TeamCreated)"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "TeamCreated"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'TeamCreated'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

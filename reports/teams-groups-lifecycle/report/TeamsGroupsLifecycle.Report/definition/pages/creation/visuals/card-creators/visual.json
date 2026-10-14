@@ -26,7 +26,8 @@
                   "Property": "Creators Recorded"
                 }
               },
-              "queryRef": "GroupCreationEvents.Creators Recorded"
+              "queryRef": "GroupCreationEvents.Creators Recorded",
+              "nativeQueryRef": "Creators Recorded"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Creators recorded"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Creators recorded'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "High Risk Users"
                 }
               },
-              "queryRef": "RiskyUsers.High Risk Users"
+              "queryRef": "RiskyUsers.High Risk Users",
+              "nativeQueryRef": "High Risk Users"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "High risk level"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'High risk level'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

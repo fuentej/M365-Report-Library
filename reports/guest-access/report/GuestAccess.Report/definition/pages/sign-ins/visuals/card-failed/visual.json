@@ -26,7 +26,8 @@
                   "Property": "Failed Sign-Ins"
                 }
               },
-              "queryRef": "GuestSignIns.Failed Sign-Ins"
+              "queryRef": "GuestSignIns.Failed Sign-Ins",
+              "nativeQueryRef": "Failed Sign-Ins"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Failed sign-ins"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Failed sign-ins'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

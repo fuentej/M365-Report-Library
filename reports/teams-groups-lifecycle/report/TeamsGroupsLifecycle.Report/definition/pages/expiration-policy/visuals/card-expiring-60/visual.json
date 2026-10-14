@@ -26,7 +26,8 @@
                   "Property": "Expiring Within 60 Days"
                 }
               },
-              "queryRef": "Groups.Expiring Within 60 Days"
+              "queryRef": "Groups.Expiring Within 60 Days",
+              "nativeQueryRef": "Expiring Within 60 Days"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Expiring within 60 days"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Expiring within 60 days'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "Member Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.Member Display Name"
+              "queryRef": "UsersCurrent.Member Display Name",
+              "nativeQueryRef": "Member Display Name"
             },
             {
               "field": {
@@ -39,7 +40,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Department"
                 }
               },
-              "queryRef": "UsersCurrent.Department"
+              "queryRef": "UsersCurrent.Department",
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Sharing Event Count"
                 }
               },
-              "queryRef": "SharingEvents.Sharing Event Count"
+              "queryRef": "SharingEvents.Sharing Event Count",
+              "nativeQueryRef": "Sharing Event Count"
             }
           ]
         }
@@ -93,8 +98,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "By the member who shared"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'By the member who shared'"
+                }
+              }
+            }
           }
         }
       ]

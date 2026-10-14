@@ -26,7 +26,9 @@
                   "Property": "AuthenticationLabel"
                 }
               },
-              "queryRef": "Agents.AuthenticationLabel"
+              "queryRef": "Agents.AuthenticationLabel",
+              "nativeQueryRef": "AuthenticationLabel",
+              "displayName": "Authentication"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Agent Count"
                 }
               },
-              "queryRef": "Agents.Agent Count"
+              "queryRef": "Agents.Agent Count",
+              "nativeQueryRef": "Agent Count"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Agents by authentication mode (Unknown = no value returned)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Agents by authentication mode (Unknown = no value returned)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

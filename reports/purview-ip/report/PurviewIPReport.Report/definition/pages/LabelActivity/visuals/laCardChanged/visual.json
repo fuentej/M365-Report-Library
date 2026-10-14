@@ -26,12 +26,49 @@
                   "Property": "Label Changes"
                 }
               },
-              "queryRef": "_Measures.[Label Changes]",
-              "nativeQueryRef": "_Measures.[Label Changes]"
+              "queryRef": "_Measures.Label Changes",
+              "nativeQueryRef": "Label Changes"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Label changes (upgrades plus downgrades)'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

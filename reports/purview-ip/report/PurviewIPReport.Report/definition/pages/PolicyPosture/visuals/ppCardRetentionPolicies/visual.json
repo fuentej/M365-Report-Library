@@ -26,12 +26,49 @@
                   "Property": "Retention Policy Count"
                 }
               },
-              "queryRef": "_Measures.[Retention Policy Count]",
-              "nativeQueryRef": "_Measures.[Retention Policy Count]"
+              "queryRef": "_Measures.Retention Policy Count",
+              "nativeQueryRef": "Retention Policy Count"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Retention policies'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

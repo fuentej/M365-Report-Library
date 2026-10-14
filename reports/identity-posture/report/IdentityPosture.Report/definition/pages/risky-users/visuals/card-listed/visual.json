@@ -26,7 +26,8 @@
                   "Property": "Risky Users Listed"
                 }
               },
-              "queryRef": "RiskyUsers.Risky Users Listed"
+              "queryRef": "RiskyUsers.Risky Users Listed",
+              "nativeQueryRef": "Risky Users Listed"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Users Entra flags (any state)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Users Entra flags (any state)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

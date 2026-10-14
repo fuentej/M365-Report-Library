@@ -26,7 +26,8 @@
                   "Property": "Past Expiration Date"
                 }
               },
-              "queryRef": "Groups.Past Expiration Date"
+              "queryRef": "Groups.Past Expiration Date",
+              "nativeQueryRef": "Past Expiration Date"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Past expiration date"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Past expiration date'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

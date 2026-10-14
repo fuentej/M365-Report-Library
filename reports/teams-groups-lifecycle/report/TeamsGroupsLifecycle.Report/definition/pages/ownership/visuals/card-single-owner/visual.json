@@ -26,7 +26,8 @@
                   "Property": "Single-Owner Groups"
                 }
               },
-              "queryRef": "Groups.Single-Owner Groups"
+              "queryRef": "Groups.Single-Owner Groups",
+              "nativeQueryRef": "Single-Owner Groups"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "One owner"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'One owner'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -26,7 +26,8 @@
                   "Property": "Date"
                 }
               },
-              "queryRef": "DateDim.Date"
+              "queryRef": "DateDim.Date",
+              "nativeQueryRef": "Date"
             }
           ]
         },
@@ -43,7 +44,9 @@
                   "Property": "ClientAppUsed"
                 }
               },
-              "queryRef": "SignIns.ClientAppUsed"
+              "queryRef": "SignIns.ClientAppUsed",
+              "nativeQueryRef": "ClientAppUsed",
+              "displayName": "Client app (protocol)"
             }
           ]
         },
@@ -60,7 +63,8 @@
                   "Property": "Legacy Sign-Ins"
                 }
               },
-              "queryRef": "SignIns.Legacy Sign-Ins"
+              "queryRef": "SignIns.Legacy Sign-Ins",
+              "nativeQueryRef": "Legacy Sign-Ins"
             }
           ]
         }
@@ -70,8 +74,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Legacy sign-ins over time by protocol (at least)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Legacy sign-ins over time by protocol (at least)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

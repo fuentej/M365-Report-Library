@@ -26,7 +26,8 @@
                   "Property": "Unknown Last Modified"
                 }
               },
-              "queryRef": "AgentModifications.Unknown Last Modified"
+              "queryRef": "AgentModifications.Unknown Last Modified",
+              "nativeQueryRef": "Unknown Last Modified"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Last modified unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Last modified unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

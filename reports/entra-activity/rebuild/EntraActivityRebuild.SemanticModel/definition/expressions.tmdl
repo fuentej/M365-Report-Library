@@ -1,0 +1,4 @@
+expression CsvFolder = "C:\EntraActivityData" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+    lineageTag: 8de859e0-31b4-403b-b5f6-c3dcdd2b8bbe
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text

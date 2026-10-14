@@ -26,7 +26,8 @@
                   "Property": "Member Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.Member Display Name"
+              "queryRef": "UsersCurrent.Member Display Name",
+              "nativeQueryRef": "Member Display Name"
             },
             {
               "field": {
@@ -39,7 +40,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Department"
                 }
               },
-              "queryRef": "UsersCurrent.Department"
+              "queryRef": "UsersCurrent.Department",
+              "nativeQueryRef": "Department"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Invitation Events"
                 }
               },
-              "queryRef": "GuestInvitations.Invitation Events"
+              "queryRef": "GuestInvitations.Invitation Events",
+              "nativeQueryRef": "Invitation Events"
             }
           ]
         }
@@ -93,8 +98,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Top inviting members and their departments"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Top inviting members and their departments'"
+                }
+              }
+            }
           }
         }
       ]

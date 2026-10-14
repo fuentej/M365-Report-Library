@@ -26,7 +26,8 @@
                   "Property": "Inbox Rules With External Target"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules With External Target"
+              "queryRef": "InboxRules.Inbox Rules With External Target",
+              "nativeQueryRef": "Inbox Rules With External Target"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Inbox rules with an external target"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Inbox rules with an external target'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

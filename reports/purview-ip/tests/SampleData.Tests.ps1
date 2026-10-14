@@ -145,6 +145,13 @@ Describe 'Activity Explorer events cover every category' {
         @($script:Events | Where-Object { $_.ActivityCategory -eq 'Dlp' -and $_.Justification }).Count | Should -BeGreaterThan 0
     }
 
+    It 'includes the DLP enforcements and overrides the DLP page counts' {
+        # BRO-481: DLP Enforcements and DLP Overrides count DLPRuleEnforce and DLPRuleUndo;
+        # with neither in the samples, the DLP page's cards and override table were blank.
+        @($script:Events | Where-Object Activity -EQ 'DLPRuleEnforce').Count | Should -BeGreaterThan 0
+        @($script:Events | Where-Object { $_.Activity -eq 'DLPRuleUndo' -and $_.Justification }).Count | Should -BeGreaterThan 0
+    }
+
     It 'covers at least six of the seven activity categories' {
         ($script:Events.ActivityCategory | Sort-Object -Unique).Count | Should -BeGreaterOrEqual 6
     }

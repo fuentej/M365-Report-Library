@@ -26,7 +26,8 @@
                   "Property": "Policy Count"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Policy Count"
+              "queryRef": "ConditionalAccessPolicies.Policy Count",
+              "nativeQueryRef": "Policy Count"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Policies"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Policies'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "TeamsActivityRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "b23069b9-9379-4d9c-8f85-9700b0bdb5cc"
+  }
+}

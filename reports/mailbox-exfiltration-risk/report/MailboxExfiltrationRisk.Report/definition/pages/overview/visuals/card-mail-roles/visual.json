@@ -26,7 +26,8 @@
                   "Property": "Mail App Roles"
                 }
               },
-              "queryRef": "AppRoleAssignments.Mail App Roles"
+              "queryRef": "AppRoleAssignments.Mail App Roles",
+              "nativeQueryRef": "Mail App Roles"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Mail app roles"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Mail app roles'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

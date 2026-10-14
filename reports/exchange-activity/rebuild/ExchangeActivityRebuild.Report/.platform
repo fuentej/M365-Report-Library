@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "ExchangeActivityRebuild"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "cc985df2-60d6-4cd1-93a3-089bc8a73df8"
+  }
+}

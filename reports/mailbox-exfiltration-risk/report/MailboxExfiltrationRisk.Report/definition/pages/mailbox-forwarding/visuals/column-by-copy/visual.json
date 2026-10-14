@@ -26,7 +26,9 @@
                   "Property": "CopyLabel"
                 }
               },
-              "queryRef": "MailboxForwarding.CopyLabel"
+              "queryRef": "MailboxForwarding.CopyLabel",
+              "nativeQueryRef": "CopyLabel",
+              "displayName": "Copy kept in mailbox"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "Forwarding Mailboxes"
                 }
               },
-              "queryRef": "MailboxForwarding.Forwarding Mailboxes"
+              "queryRef": "MailboxForwarding.Forwarding Mailboxes",
+              "nativeQueryRef": "Forwarding Mailboxes"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Whether a copy stays in the mailbox"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Whether a copy stays in the mailbox'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

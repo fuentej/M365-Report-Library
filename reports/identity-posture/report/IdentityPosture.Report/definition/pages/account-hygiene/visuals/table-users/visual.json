@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "User Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.User Display Name"
+              "queryRef": "UsersCurrent.User Display Name",
+              "nativeQueryRef": "User Display Name"
             },
             {
               "field": {
@@ -52,7 +55,9 @@
                   "Property": "UserType"
                 }
               },
-              "queryRef": "UsersCurrent.UserType"
+              "queryRef": "UsersCurrent.UserType",
+              "nativeQueryRef": "UserType",
+              "displayName": "User type"
             },
             {
               "field": {
@@ -65,7 +70,8 @@
                   "Property": "Account Status"
                 }
               },
-              "queryRef": "UsersCurrent.Account Status"
+              "queryRef": "UsersCurrent.Account Status",
+              "nativeQueryRef": "Account Status"
             },
             {
               "field": {
@@ -78,7 +84,8 @@
                   "Property": "Last Successful Sign-In (Display)"
                 }
               },
-              "queryRef": "UserSignInActivity.Last Successful Sign-In (Display)"
+              "queryRef": "UserSignInActivity.Last Successful Sign-In (Display)",
+              "nativeQueryRef": "Last Successful Sign-In (Display)"
             },
             {
               "field": {
@@ -91,7 +98,8 @@
                   "Property": "Days Since Last Sign-In (Display)"
                 }
               },
-              "queryRef": "UserSignInActivity.Days Since Last Sign-In (Display)"
+              "queryRef": "UserSignInActivity.Days Since Last Sign-In (Display)",
+              "nativeQueryRef": "Days Since Last Sign-In (Display)"
             },
             {
               "field": {
@@ -104,7 +112,8 @@
                   "Property": "Sign-In Status"
                 }
               },
-              "queryRef": "UserSignInActivity.Sign-In Status"
+              "queryRef": "UserSignInActivity.Sign-In Status",
+              "nativeQueryRef": "Sign-In Status"
             }
           ]
         }
@@ -114,8 +123,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Sign-in recency per user"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Sign-in recency per user'"
+                }
+              }
+            }
           }
         }
       ]

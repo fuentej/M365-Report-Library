@@ -1,0 +1,175 @@
+table CopilotUsageUserDetail
+    lineageTag: 45bf2bff-31bb-4bc1-8330-efa28897f4dc
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3a79ec63-9572-462e-9e72-2232e61e2f6c
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 16a85f46-471d-4365-8466-410837a3625a
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 07873a62-00e9-4bf9-88fa-f05f729d826a
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column DisplayName
+        dataType: string
+        lineageTag: 98393e20-7636-4402-a1d2-e101cb222b30
+        summarizeBy: none
+        sourceColumn: DisplayName
+
+    column LastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 5576186e-b0c3-4ef3-a762-6dc5d9192447
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column CopilotChatLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: ce1bd503-a801-42f6-8520-2e31fcde1cc8
+        summarizeBy: none
+        sourceColumn: CopilotChatLastActivityDate
+
+    column MicrosoftTeamsCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 6920bbf5-23f9-4e68-a5c4-fce390d604a5
+        summarizeBy: none
+        sourceColumn: MicrosoftTeamsCopilotLastActivityDate
+
+    column WordCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: b6cab645-1747-4f10-8946-1ec09bb9724a
+        summarizeBy: none
+        sourceColumn: WordCopilotLastActivityDate
+
+    column ExcelCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3ebd2880-1765-48a0-b434-7fa433f0b022
+        summarizeBy: none
+        sourceColumn: ExcelCopilotLastActivityDate
+
+    column PowerPointCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: cec8c9a1-d0fd-43dc-9a2d-3aa966580dcc
+        summarizeBy: none
+        sourceColumn: PowerPointCopilotLastActivityDate
+
+    column OutlookCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 91a9d8cd-a9f8-49ac-861b-26a22a27f058
+        summarizeBy: none
+        sourceColumn: OutlookCopilotLastActivityDate
+
+    column OneNoteCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: db73a5fe-7bf4-4a3c-8307-1218437ba4b3
+        summarizeBy: none
+        sourceColumn: OneNoteCopilotLastActivityDate
+
+    column LoopCopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 2bb2bd7a-8d77-4caa-b0ce-1f53de91146b
+        summarizeBy: none
+        sourceColumn: LoopCopilotLastActivityDate
+
+    column ReportPeriod
+        dataType: int64
+        formatString: #,0
+        lineageTag: 6e138ccb-d327-4907-9c39-7d3475796864
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    column PromptsSubmittedAllApps
+        dataType: int64
+        formatString: #,0
+        lineageTag: a8a6981f-97fd-407f-84fb-7b90c7d68999
+        summarizeBy: none
+        sourceColumn: PromptsSubmittedAllApps
+
+    column PromptsSubmittedCopilotChatWork
+        dataType: int64
+        formatString: #,0
+        lineageTag: 92b4c1a5-18c0-4cf8-b935-318a7eda8e7f
+        summarizeBy: none
+        sourceColumn: PromptsSubmittedCopilotChatWork
+
+    column PromptsSubmittedCopilotChatWeb
+        dataType: int64
+        formatString: #,0
+        lineageTag: bf3a007c-47f4-4827-8372-172e87047d5f
+        summarizeBy: none
+        sourceColumn: PromptsSubmittedCopilotChatWeb
+
+    column ActiveUsageDaysAllApps
+        dataType: int64
+        formatString: #,0
+        lineageTag: 09709a29-875e-4ae1-ac53-bdc2c3c15919
+        summarizeBy: none
+        sourceColumn: ActiveUsageDaysAllApps
+
+    column CopilotChatWorkLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 7cf8d0b2-4ccb-4e69-80fd-2da9163983d2
+        summarizeBy: none
+        sourceColumn: CopilotChatWorkLastActivityDate
+
+    column CopilotChatWebLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: e4167fd5-ecfe-438e-ac9a-f1c69230ff49
+        summarizeBy: none
+        sourceColumn: CopilotChatWebLastActivityDate
+
+    column Microsoft365CopilotLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 9a017cd4-94fd-4fbe-9f6d-8133d4f4f973
+        summarizeBy: none
+        sourceColumn: Microsoft365CopilotLastActivityDate
+
+    column EdgeLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: b52d0e8a-cf72-46eb-b8cd-474c12211011
+        summarizeBy: none
+        sourceColumn: EdgeLastActivityDate
+
+    column CopilotAgentLastActivityDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3c675cfd-963d-4461-8e02-8938ac2f19a3
+        summarizeBy: none
+        sourceColumn: CopilotAgentLastActivityDate
+
+    partition CopilotUsageUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\copilot-usage-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"ReportRefreshDate", type date}, {"LastActivityDate", type date}, {"CopilotChatLastActivityDate", type date}, {"MicrosoftTeamsCopilotLastActivityDate", type date}, {"WordCopilotLastActivityDate", type date}, {"ExcelCopilotLastActivityDate", type date}, {"PowerPointCopilotLastActivityDate", type date}, {"OutlookCopilotLastActivityDate", type date}, {"OneNoteCopilotLastActivityDate", type date}, {"LoopCopilotLastActivityDate", type date}, {"ReportPeriod", Int64.Type}, {"PromptsSubmittedAllApps", Int64.Type}, {"PromptsSubmittedCopilotChatWork", Int64.Type}, {"PromptsSubmittedCopilotChatWeb", Int64.Type}, {"ActiveUsageDaysAllApps", Int64.Type}, {"CopilotChatWorkLastActivityDate", type date}, {"CopilotChatWebLastActivityDate", type date}, {"Microsoft365CopilotLastActivityDate", type date}, {"EdgeLastActivityDate", type date}, {"CopilotAgentLastActivityDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

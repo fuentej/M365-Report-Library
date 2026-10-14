@@ -26,7 +26,8 @@
                   "Property": "Agents With Web Search Knowledge"
                 }
               },
-              "queryRef": "Agents.Agents With Web Search Knowledge"
+              "queryRef": "Agents.Agents With Web Search Knowledge",
+              "nativeQueryRef": "Agents With Web Search Knowledge"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Web search as a knowledge source (Preview)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Web search as a knowledge source (Preview)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

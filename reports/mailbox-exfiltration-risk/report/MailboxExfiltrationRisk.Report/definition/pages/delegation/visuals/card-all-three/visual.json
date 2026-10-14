@@ -26,7 +26,8 @@
                   "Property": "Delegates With All Three Rights"
                 }
               },
-              "queryRef": "MailboxFullAccess.Delegates With All Three Rights"
+              "queryRef": "MailboxFullAccess.Delegates With All Three Rights",
+              "nativeQueryRef": "Delegates With All Three Rights"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Delegates holding all three"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Delegates holding all three'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

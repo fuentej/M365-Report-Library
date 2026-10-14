@@ -19,7 +19,7 @@ BeforeAll {
 Describe 'Only read-only tenant commands are called' {
     It 'calls only Connect, Disconnect, Get and Search commands on Exchange Online and Graph' {
         $offenders = $script:Calls | Where-Object {
-            $_.Name -and ($_.Name -match '^[A-Za-z]+-(EXO|Mg)' -or $_.Name -match '-(Mailbox|MailboxPermission|RecipientPermission|InboxRule|TransportRule|AcceptedDomain|OrganizationConfig|AdminAuditLogConfig|UnifiedAuditLog|ExchangeOnline)$') -and
+            $_.Name -and ($_.Name -match '^[A-Za-z]+-(EXO|Mg)' -or $_.Name -match '-(Mailbox|MailboxPermission|RecipientPermission|InboxRule|TransportRule|HostedOutboundSpamFilterPolicy|HostedOutboundSpamFilterRule|AcceptedDomain|OrganizationConfig|AdminAuditLogConfig|UnifiedAuditLog|ExchangeOnline)$') -and
             $script:AllowedVerbs -notcontains $_.Name.Substring(0, $_.Name.IndexOf('-'))
         } | ForEach-Object { '{0}: {1}' -f $_.File, $_.Name }
         $offenders -join '; ' | Should -BeNullOrEmpty
@@ -27,7 +27,7 @@ Describe 'Only read-only tenant commands are called' {
 
     It 'covers the tenant cmdlets it expects' {
         $names = $script:Calls.Name | Sort-Object -Unique
-        foreach ($expected in 'Get-EXOMailbox', 'Get-AcceptedDomain', 'Get-InboxRule', 'Get-TransportRule', 'Get-MailboxPermission',
+        foreach ($expected in 'Get-EXOMailbox', 'Get-AcceptedDomain', 'Get-InboxRule', 'Get-TransportRule', 'Get-HostedOutboundSpamFilterPolicy', 'Get-HostedOutboundSpamFilterRule', 'Get-MailboxPermission',
             'Get-RecipientPermission', 'Get-OrganizationConfig', 'Get-AdminAuditLogConfig', 'Search-UnifiedAuditLog',
             'Get-MgOauth2PermissionGrant', 'Get-MgServicePrincipal', 'Get-MgServicePrincipalAppRoleAssignedTo') {
             $names | Should -Contain $expected

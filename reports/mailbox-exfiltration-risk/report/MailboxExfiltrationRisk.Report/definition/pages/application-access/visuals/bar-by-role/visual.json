@@ -26,7 +26,9 @@
                   "Property": "AppRoleValue"
                 }
               },
-              "queryRef": "AppRoleAssignments.AppRoleValue"
+              "queryRef": "AppRoleAssignments.AppRoleValue",
+              "nativeQueryRef": "AppRoleValue",
+              "displayName": "Application permission"
             }
           ]
         },
@@ -43,7 +45,8 @@
                   "Property": "App Role Assignments"
                 }
               },
-              "queryRef": "AppRoleAssignments.App Role Assignments"
+              "queryRef": "AppRoleAssignments.App Role Assignments",
+              "nativeQueryRef": "App Role Assignments"
             }
           ]
         }
@@ -53,8 +56,48 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "App roles held on Microsoft Graph"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'App roles held on Microsoft Graph'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
           }
         }
       ]

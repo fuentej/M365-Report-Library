@@ -1,0 +1,113 @@
+table SharePointSiteUsageDetail
+    lineageTag: 0fa0a1d2-2070-4c78-89cb-7b7fe3aa32c8
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: ebe428b3-836d-4dee-bb97-a665c13b0234
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: d2d5933a-5b02-48a1-918a-f992a1a42e49
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column SiteId
+        dataType: string
+        lineageTag: 9aa86479-6505-4bd2-a28b-b9a06e0f0a95
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column SiteUrl
+        dataType: string
+        lineageTag: de873366-f014-4977-b608-9014b588e107
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column OwnerDisplayName
+        dataType: string
+        lineageTag: ac4c1471-3dc6-438f-9995-e235d15b28df
+        summarizeBy: none
+        sourceColumn: OwnerDisplayName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: 52ec7975-f05d-4099-85a9-d18978941f9a
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: f0c2e18b-4d55-4095-ab5c-18c700cb4a9f
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column FileCount
+        dataType: string
+        lineageTag: af18e18d-c940-4256-b00a-1264b78cbb26
+        summarizeBy: none
+        sourceColumn: FileCount
+
+    column ActiveFileCount
+        dataType: string
+        lineageTag: d7a31a5a-7f3a-4e96-8364-20896bbc4dfc
+        summarizeBy: none
+        sourceColumn: ActiveFileCount
+
+    column PageViewCount
+        dataType: string
+        lineageTag: 95a0eeec-11c5-46e2-8410-2bd2bf88bd29
+        summarizeBy: none
+        sourceColumn: PageViewCount
+
+    column VisitedPageCount
+        dataType: string
+        lineageTag: ce21503d-46c8-4976-98a0-e137b8fb6c20
+        summarizeBy: none
+        sourceColumn: VisitedPageCount
+
+    column StorageUsedByte
+        dataType: string
+        lineageTag: 89c27c93-9af9-4b5c-a461-14e0c6dc0d06
+        summarizeBy: none
+        sourceColumn: StorageUsedByte
+
+    column StorageAllocatedByte
+        dataType: string
+        lineageTag: 4fe29ae3-59bc-4144-a758-4ad2bfa3df5c
+        summarizeBy: none
+        sourceColumn: StorageAllocatedByte
+
+    column RootWebTemplate
+        dataType: string
+        lineageTag: 76cfb092-090d-4074-8911-fd5096721d8e
+        summarizeBy: none
+        sourceColumn: RootWebTemplate
+
+    column OwnerPrincipalName
+        dataType: string
+        lineageTag: 5710ede0-32da-4298-a65e-66ffe6ef2325
+        summarizeBy: none
+        sourceColumn: OwnerPrincipalName
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: c5df7707-1c36-49af-a27b-c41361ba0bb0
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition SharePointSiteUsageDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\sharepoint-site-usage-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

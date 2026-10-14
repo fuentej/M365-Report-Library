@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "AgentsCurrent.Pseudonym"
+              "queryRef": "AgentsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Agent"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Agent Display Name"
                 }
               },
-              "queryRef": "AgentsCurrent.Agent Display Name"
+              "queryRef": "AgentsCurrent.Agent Display Name",
+              "nativeQueryRef": "Agent Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Authentication (Display)"
                 }
               },
-              "queryRef": "Agents.Authentication (Display)"
+              "queryRef": "Agents.Authentication (Display)",
+              "nativeQueryRef": "Authentication (Display)"
             },
             {
               "field": {
@@ -65,7 +69,8 @@
                   "Property": "Sharing Scope (Display)"
                 }
               },
-              "queryRef": "Agents.Sharing Scope (Display)"
+              "queryRef": "Agents.Sharing Scope (Display)",
+              "nativeQueryRef": "Sharing Scope (Display)"
             },
             {
               "field": {
@@ -78,7 +83,8 @@
                   "Property": "Publish State (Display)"
                 }
               },
-              "queryRef": "Agents.Publish State (Display)"
+              "queryRef": "Agents.Publish State (Display)",
+              "nativeQueryRef": "Publish State (Display)"
             }
           ]
         }
@@ -88,8 +94,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Authentication and sharing per agent (counts only; users and groups are not named)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Authentication and sharing per agent (counts only; users and groups are not named)'"
+                }
+              }
+            }
           }
         }
       ]

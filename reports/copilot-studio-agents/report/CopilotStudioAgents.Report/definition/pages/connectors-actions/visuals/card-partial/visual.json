@@ -26,7 +26,8 @@
                   "Property": "Agents With Partial Connector Rows"
                 }
               },
-              "queryRef": "Agents.Agents With Partial Connector Rows"
+              "queryRef": "Agents.Agents With Partial Connector Rows",
+              "nativeQueryRef": "Agents With Partial Connector Rows"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Agents whose connector rows are partial (random 200)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Agents whose connector rows are partial (random 200)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

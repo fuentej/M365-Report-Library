@@ -26,7 +26,8 @@
                   "Property": "Inbox Rules With Unknown Target"
                 }
               },
-              "queryRef": "InboxRules.Inbox Rules With Unknown Target"
+              "queryRef": "InboxRules.Inbox Rules With Unknown Target",
+              "nativeQueryRef": "Inbox Rules With Unknown Target"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Unknown target"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Unknown target'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

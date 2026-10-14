@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "UsersCurrent.Pseudonym"
+              "queryRef": "UsersCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "User"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "User Display Name"
                 }
               },
-              "queryRef": "UsersCurrent.User Display Name"
+              "queryRef": "UsersCurrent.User Display Name",
+              "nativeQueryRef": "User Display Name"
             },
             {
               "field": {
@@ -52,7 +55,9 @@
                   "Property": "RoleDefinitionId"
                 }
               },
-              "queryRef": "RoleDefinitions.RoleDefinitionId"
+              "queryRef": "RoleDefinitions.RoleDefinitionId",
+              "nativeQueryRef": "RoleDefinitionId",
+              "displayName": "Role definition ID"
             },
             {
               "field": {
@@ -65,7 +70,8 @@
                   "Property": "Active Assignments (Effective)"
                 }
               },
-              "queryRef": "ActiveRoleAssignments.Active Assignments (Effective)"
+              "queryRef": "ActiveRoleAssignments.Active Assignments (Effective)",
+              "nativeQueryRef": "Active Assignments (Effective)"
             },
             {
               "field": {
@@ -78,7 +84,8 @@
                   "Property": "Eligible Assignments"
                 }
               },
-              "queryRef": "EligibleRoleAssignments.Eligible Assignments"
+              "queryRef": "EligibleRoleAssignments.Eligible Assignments",
+              "nativeQueryRef": "Eligible Assignments"
             },
             {
               "field": {
@@ -91,7 +98,8 @@
                   "Property": "MFA Registered (Display)"
                 }
               },
-              "queryRef": "AuthenticationMethods.MFA Registered (Display)"
+              "queryRef": "AuthenticationMethods.MFA Registered (Display)",
+              "nativeQueryRef": "MFA Registered (Display)"
             }
           ]
         }
@@ -101,8 +109,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Role holders by role definition ID, with their MFA status"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Role holders by role definition ID, with their MFA status'"
+                }
+              }
+            }
           }
         }
       ]

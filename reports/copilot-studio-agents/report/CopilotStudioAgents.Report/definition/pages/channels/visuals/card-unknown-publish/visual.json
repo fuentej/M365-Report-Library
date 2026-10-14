@@ -26,7 +26,8 @@
                   "Property": "Unknown Publish State"
                 }
               },
-              "queryRef": "Agents.Unknown Publish State"
+              "queryRef": "Agents.Unknown Publish State",
+              "nativeQueryRef": "Unknown Publish State"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Publish state unknown"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Publish state unknown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

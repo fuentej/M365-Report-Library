@@ -26,7 +26,9 @@
                   "Property": "IdentityPseudonym"
                 }
               },
-              "queryRef": "SendAsPermissions.IdentityPseudonym"
+              "queryRef": "SendAsPermissions.IdentityPseudonym",
+              "nativeQueryRef": "IdentityPseudonym",
+              "displayName": "Mailbox"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Send As Identity (Display)"
                 }
               },
-              "queryRef": "SendAsPermissions.Send As Identity (Display)"
+              "queryRef": "SendAsPermissions.Send As Identity (Display)",
+              "nativeQueryRef": "Send As Identity (Display)"
             },
             {
               "field": {
@@ -52,7 +55,9 @@
                   "Property": "TrusteePseudonym"
                 }
               },
-              "queryRef": "SendAsPermissions.TrusteePseudonym"
+              "queryRef": "SendAsPermissions.TrusteePseudonym",
+              "nativeQueryRef": "TrusteePseudonym",
+              "displayName": "Trustee"
             },
             {
               "field": {
@@ -65,7 +70,8 @@
                   "Property": "Send As Trustee (Display)"
                 }
               },
-              "queryRef": "SendAsPermissions.Send As Trustee (Display)"
+              "queryRef": "SendAsPermissions.Send As Trustee (Display)",
+              "nativeQueryRef": "Send As Trustee (Display)"
             },
             {
               "field": {
@@ -78,7 +84,8 @@
                   "Property": "Send As Grants"
                 }
               },
-              "queryRef": "SendAsPermissions.Send As Grants"
+              "queryRef": "SendAsPermissions.Send As Grants",
+              "nativeQueryRef": "Send As Grants"
             }
           ]
         }
@@ -88,8 +95,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Who can send as a mailbox or group (a group does not join to the mailbox slicer)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Who can send as a mailbox or group (a group does not join to the mailbox slicer)'"
+                }
+              }
+            }
           }
         }
       ]

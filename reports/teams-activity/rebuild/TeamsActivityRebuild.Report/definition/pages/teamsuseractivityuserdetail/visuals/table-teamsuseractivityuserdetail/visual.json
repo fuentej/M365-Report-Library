@@ -1,0 +1,462 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "table-teamsuseractivityuserdetail",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 0,
+    "width": 1240,
+    "height": 680,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "RunDate"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.RunDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "QueryDate"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.QueryDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ReportRefreshDate"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ReportRefreshDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "UserId"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.UserId"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "UserPrincipalName"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.UserPrincipalName"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "LastActivityDate"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.LastActivityDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "IsDeleted"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.IsDeleted"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "DeletedDate"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.DeletedDate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "AssignedProducts"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.AssignedProducts"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "TeamChatMessageCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.TeamChatMessageCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "PrivateChatMessageCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.PrivateChatMessageCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "CallCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.CallCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "MeetingCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.MeetingCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "PostMessages"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.PostMessages"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ReplyMessages"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ReplyMessages"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "UrgentMessages"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.UrgentMessages"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "MeetingsOrganizedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.MeetingsOrganizedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "MeetingsAttendedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.MeetingsAttendedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "AdHocMeetingsOrganizedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.AdHocMeetingsOrganizedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "AdHocMeetingsAttendedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.AdHocMeetingsAttendedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScheduledOneTimeMeetingsOrganizedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScheduledOneTimeMeetingsOrganizedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScheduledOneTimeMeetingsAttendedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScheduledOneTimeMeetingsAttendedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScheduledRecurringMeetingsOrganizedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScheduledRecurringMeetingsOrganizedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScheduledRecurringMeetingsAttendedCount"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScheduledRecurringMeetingsAttendedCount"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "AudioDuration"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.AudioDuration"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "VideoDuration"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.VideoDuration"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScreenShareDuration"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScreenShareDuration"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "AudioDurationInSeconds"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.AudioDurationInSeconds"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "VideoDurationInSeconds"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.VideoDurationInSeconds"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ScreenShareDurationInSeconds"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ScreenShareDurationInSeconds"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "HasOtherAction"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.HasOtherAction"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "IsLicensed"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.IsLicensed"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "TeamsUserActivityUserDetail"
+                    }
+                  },
+                  "Property": "ReportPeriod"
+                }
+              },
+              "queryRef": "TeamsUserActivityUserDetail.ReportPeriod"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": true,
+            "text": "TeamsUserActivityUserDetail (import table, every snapshot row)"
+          }
+        }
+      ]
+    }
+  }
+}

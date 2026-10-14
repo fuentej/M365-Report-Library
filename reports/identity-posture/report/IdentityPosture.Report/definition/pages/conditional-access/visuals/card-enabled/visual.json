@@ -26,7 +26,8 @@
                   "Property": "Enabled Policies"
                 }
               },
-              "queryRef": "ConditionalAccessPolicies.Enabled Policies"
+              "queryRef": "ConditionalAccessPolicies.Enabled Policies",
+              "nativeQueryRef": "Enabled Policies"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Enabled"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Enabled'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

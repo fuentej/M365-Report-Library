@@ -26,7 +26,9 @@
                   "Property": "Label"
                 }
               },
-              "queryRef": "GroupKind.Label"
+              "queryRef": "GroupKind.Label",
+              "nativeQueryRef": "Label",
+              "displayName": "Group or Team"
             }
           ]
         }
@@ -36,8 +38,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Group or Team"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Group or Team'"
+                }
+              }
+            }
           }
         }
       ]

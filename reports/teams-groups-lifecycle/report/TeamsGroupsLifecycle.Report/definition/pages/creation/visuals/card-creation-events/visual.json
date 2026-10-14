@@ -26,7 +26,8 @@
                   "Property": "Creation Events"
                 }
               },
-              "queryRef": "GroupCreationEvents.Creation Events"
+              "queryRef": "GroupCreationEvents.Creation Events",
+              "nativeQueryRef": "Creation Events"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Creation events (audit)"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Creation events (audit)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

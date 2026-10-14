@@ -26,7 +26,9 @@
                   "Property": "Pseudonym"
                 }
               },
-              "queryRef": "GuestsCurrent.Pseudonym"
+              "queryRef": "GuestsCurrent.Pseudonym",
+              "nativeQueryRef": "Pseudonym",
+              "displayName": "Guest"
             },
             {
               "field": {
@@ -39,7 +41,8 @@
                   "Property": "Guest Display Name"
                 }
               },
-              "queryRef": "Guests.Guest Display Name"
+              "queryRef": "Guests.Guest Display Name",
+              "nativeQueryRef": "Guest Display Name"
             },
             {
               "field": {
@@ -52,7 +55,8 @@
                   "Property": "Membership Count"
                 }
               },
-              "queryRef": "GuestMemberships.Membership Count"
+              "queryRef": "GuestMemberships.Membership Count",
+              "nativeQueryRef": "Membership Count"
             }
           ]
         }
@@ -80,8 +84,20 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Guests in the most groups"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Guests in the most groups'"
+                }
+              }
+            }
           }
         }
       ]

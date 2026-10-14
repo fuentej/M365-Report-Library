@@ -26,7 +26,8 @@
                   "Property": "Latest Audit Event"
                 }
               },
-              "queryRef": "AgentAuditEvents.Latest Audit Event"
+              "queryRef": "AgentAuditEvents.Latest Audit Event",
+              "nativeQueryRef": "Latest Audit Event"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Latest audit event"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Latest audit event'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

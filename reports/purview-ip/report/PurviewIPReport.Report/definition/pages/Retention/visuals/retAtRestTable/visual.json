@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "RetentionAtRest.TagName",
-              "nativeQueryRef": "RetentionAtRest.TagName"
+              "nativeQueryRef": "TagName",
+              "displayName": "Retention label"
             },
             {
               "field": {
@@ -41,7 +42,7 @@
                 }
               },
               "queryRef": "RetentionAtRest.Workload",
-              "nativeQueryRef": "RetentionAtRest.Workload"
+              "nativeQueryRef": "Workload"
             },
             {
               "field": {
@@ -54,12 +55,34 @@
                   "Property": "Retention Items At Rest"
                 }
               },
-              "queryRef": "_Measures.[Retention Items At Rest]",
-              "nativeQueryRef": "_Measures.[Retention Items At Rest]"
+              "queryRef": "_Measures.Retention Items At Rest",
+              "nativeQueryRef": "Retention Items At Rest"
             }
           ]
         }
       }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Items at rest by retention label and workload'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

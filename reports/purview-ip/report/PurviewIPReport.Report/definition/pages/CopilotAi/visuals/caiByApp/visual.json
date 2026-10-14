@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "CopilotAccessedResources.AppHost",
-              "nativeQueryRef": "CopilotAccessedResources.AppHost"
+              "nativeQueryRef": "AppHost",
+              "displayName": "Copilot app"
             }
           ]
         },
@@ -44,12 +45,62 @@
                   "Property": "Copilot Resources Accessed"
                 }
               },
-              "queryRef": "_Measures.[Copilot Resources Accessed]",
-              "nativeQueryRef": "_Measures.[Copilot Resources Accessed]"
+              "queryRef": "_Measures.Copilot Resources Accessed",
+              "nativeQueryRef": "Copilot Resources Accessed"
             }
           ]
         }
       }
+    },
+    "objects": {
+      "categoryAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "valueAxis": [
+        {
+          "properties": {
+            "showAxisTitle": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Copilot resources accessed by app'"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -26,7 +26,8 @@
                   "Property": "Delegated Consents"
                 }
               },
-              "queryRef": "DelegatedConsents.Delegated Consents"
+              "queryRef": "DelegatedConsents.Delegated Consents",
+              "nativeQueryRef": "Delegated Consents"
             }
           ]
         }
@@ -36,8 +37,35 @@
       "title": [
         {
           "properties": {
-            "show": true,
-            "text": "Delegated consents"
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Delegated consents'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "categoryLabels": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
           }
         }
       ]

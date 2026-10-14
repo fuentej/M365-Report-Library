@@ -8,7 +8,9 @@
         Source 1: Microsoft Graph getSharePointSiteUsageDetail
         (https://learn.microsoft.com/graph/api/reportroot-getsharepointsiteusagedetail), read with
         Get-MgReportSharePointSiteUsageDetail -OutFile.
-        One row per site per run and period. The default period is D30. Storage is in bytes here; the
+        One row per site per run and period. Every run reads all four periods the API accepts (D7, D30,
+        D90 and D180), told apart by ReportPeriod, so a site can be asked about "untouched for 7, 30, 90 or
+        180 days"; -Period narrows it to the ones named. Storage is in bytes here; the
         admin center shows MB, so the two are never added. Site Id and Site URL are empty when the
         tenant conceals names, and Site URL is also not shown when BYOK or Customer Lockbox is on
         (https://learn.microsoft.com/microsoft-365/admin/activity-reports/sharepoint-site-usage).
@@ -35,7 +37,7 @@ param(
     [string]$TenantId,
     [string]$Organization,
     [ValidateSet('D7', 'D30', 'D90', 'D180')]
-    [string]$Period = 'D30',
+    [string[]]$Period = @('D7', 'D30', 'D90', 'D180'),
 
     [switch]$SkipConnect
 )
@@ -93,8 +95,10 @@ $map = {
     }
 }
 
-Invoke-UsageReportCollector -OutputPath $OutputPath -LogSource $source -CsvName 'sharepoint-site-usage-detail.csv' -Column $columns `
-    -KeyColumn @('RunDate', 'SiteId', 'ReportPeriod') -ReportName 'SharePoint site usage' -MapRow $map -Fetch {
-        param($file)
-        Get-MgReportSharePointSiteUsageDetail -Period $Period -OutFile $file -ErrorAction Stop
-    }
+foreach ($reportPeriod in @($Period | Select-Object -Unique)) {
+    Invoke-UsageReportCollector -OutputPath $OutputPath -LogSource $source -CsvName 'sharepoint-site-usage-detail.csv' -Column $columns `
+        -KeyColumn @('RunDate', 'SiteId', 'ReportPeriod') -ReportName "SharePoint site usage ($reportPeriod)" -MapRow $map -Fetch {
+            param($file)
+            Get-MgReportSharePointSiteUsageDetail -Period $reportPeriod -OutFile $file -ErrorAction Stop
+        }
+}
