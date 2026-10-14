@@ -26,7 +26,8 @@
                   "Property": "CreatedDateTime"
                 }
               },
-              "queryRef": "SignInsInteractive.CreatedDateTime"
+              "queryRef": "SignInsInteractive.CreatedDateTime",
+              "nativeQueryRef": "CreatedDateTime"
             },
             {
               "field": {
@@ -39,7 +40,8 @@
                   "Property": "Id"
                 }
               },
-              "queryRef": "SignInsInteractive.Id"
+              "queryRef": "SignInsInteractive.Id",
+              "nativeQueryRef": "Id"
             },
             {
               "field": {
@@ -52,7 +54,8 @@
                   "Property": "UserId"
                 }
               },
-              "queryRef": "SignInsInteractive.UserId"
+              "queryRef": "SignInsInteractive.UserId",
+              "nativeQueryRef": "UserId"
             },
             {
               "field": {
@@ -65,7 +68,8 @@
                   "Property": "UserPrincipalName"
                 }
               },
-              "queryRef": "SignInsInteractive.UserPrincipalName"
+              "queryRef": "SignInsInteractive.UserPrincipalName",
+              "nativeQueryRef": "UserPrincipalName"
             },
             {
               "field": {
@@ -78,7 +82,8 @@
                   "Property": "AppId"
                 }
               },
-              "queryRef": "SignInsInteractive.AppId"
+              "queryRef": "SignInsInteractive.AppId",
+              "nativeQueryRef": "AppId"
             },
             {
               "field": {
@@ -91,7 +96,8 @@
                   "Property": "AppDisplayName"
                 }
               },
-              "queryRef": "SignInsInteractive.AppDisplayName"
+              "queryRef": "SignInsInteractive.AppDisplayName",
+              "nativeQueryRef": "AppDisplayName"
             },
             {
               "field": {
@@ -104,7 +110,8 @@
                   "Property": "ResourceDisplayName"
                 }
               },
-              "queryRef": "SignInsInteractive.ResourceDisplayName"
+              "queryRef": "SignInsInteractive.ResourceDisplayName",
+              "nativeQueryRef": "ResourceDisplayName"
             },
             {
               "field": {
@@ -117,7 +124,8 @@
                   "Property": "IpAddress"
                 }
               },
-              "queryRef": "SignInsInteractive.IpAddress"
+              "queryRef": "SignInsInteractive.IpAddress",
+              "nativeQueryRef": "IpAddress"
             },
             {
               "field": {
@@ -130,7 +138,8 @@
                   "Property": "City"
                 }
               },
-              "queryRef": "SignInsInteractive.City"
+              "queryRef": "SignInsInteractive.City",
+              "nativeQueryRef": "City"
             },
             {
               "field": {
@@ -143,7 +152,8 @@
                   "Property": "State"
                 }
               },
-              "queryRef": "SignInsInteractive.State"
+              "queryRef": "SignInsInteractive.State",
+              "nativeQueryRef": "State"
             },
             {
               "field": {
@@ -156,7 +166,8 @@
                   "Property": "CountryOrRegion"
                 }
               },
-              "queryRef": "SignInsInteractive.CountryOrRegion"
+              "queryRef": "SignInsInteractive.CountryOrRegion",
+              "nativeQueryRef": "CountryOrRegion"
             },
             {
               "field": {
@@ -169,7 +180,8 @@
                   "Property": "ClientAppUsed"
                 }
               },
-              "queryRef": "SignInsInteractive.ClientAppUsed"
+              "queryRef": "SignInsInteractive.ClientAppUsed",
+              "nativeQueryRef": "ClientAppUsed"
             },
             {
               "field": {
@@ -182,7 +194,8 @@
                   "Property": "DeviceOperatingSystem"
                 }
               },
-              "queryRef": "SignInsInteractive.DeviceOperatingSystem"
+              "queryRef": "SignInsInteractive.DeviceOperatingSystem",
+              "nativeQueryRef": "DeviceOperatingSystem"
             },
             {
               "field": {
@@ -195,7 +208,8 @@
                   "Property": "DeviceBrowser"
                 }
               },
-              "queryRef": "SignInsInteractive.DeviceBrowser"
+              "queryRef": "SignInsInteractive.DeviceBrowser",
+              "nativeQueryRef": "DeviceBrowser"
             },
             {
               "field": {
@@ -208,7 +222,8 @@
                   "Property": "DeviceIsCompliant"
                 }
               },
-              "queryRef": "SignInsInteractive.DeviceIsCompliant"
+              "queryRef": "SignInsInteractive.DeviceIsCompliant",
+              "nativeQueryRef": "DeviceIsCompliant"
             },
             {
               "field": {
@@ -221,7 +236,8 @@
                   "Property": "DeviceIsManaged"
                 }
               },
-              "queryRef": "SignInsInteractive.DeviceIsManaged"
+              "queryRef": "SignInsInteractive.DeviceIsManaged",
+              "nativeQueryRef": "DeviceIsManaged"
             },
             {
               "field": {
@@ -234,7 +250,8 @@
                   "Property": "IsInteractive"
                 }
               },
-              "queryRef": "SignInsInteractive.IsInteractive"
+              "queryRef": "SignInsInteractive.IsInteractive",
+              "nativeQueryRef": "IsInteractive"
             },
             {
               "field": {
@@ -247,7 +264,8 @@
                   "Property": "SignInEventTypes"
                 }
               },
-              "queryRef": "SignInsInteractive.SignInEventTypes"
+              "queryRef": "SignInsInteractive.SignInEventTypes",
+              "nativeQueryRef": "SignInEventTypes"
             },
             {
               "field": {
@@ -260,7 +278,8 @@
                   "Property": "ErrorCode"
                 }
               },
-              "queryRef": "SignInsInteractive.ErrorCode"
+              "queryRef": "SignInsInteractive.ErrorCode",
+              "nativeQueryRef": "ErrorCode"
             },
             {
               "field": {
@@ -273,7 +292,8 @@
                   "Property": "FailureReason"
                 }
               },
-              "queryRef": "SignInsInteractive.FailureReason"
+              "queryRef": "SignInsInteractive.FailureReason",
+              "nativeQueryRef": "FailureReason"
             },
             {
               "field": {
@@ -286,7 +306,8 @@
                   "Property": "AdditionalDetails"
                 }
               },
-              "queryRef": "SignInsInteractive.AdditionalDetails"
+              "queryRef": "SignInsInteractive.AdditionalDetails",
+              "nativeQueryRef": "AdditionalDetails"
             },
             {
               "field": {
@@ -299,7 +320,8 @@
                   "Property": "ConditionalAccessStatus"
                 }
               },
-              "queryRef": "SignInsInteractive.ConditionalAccessStatus"
+              "queryRef": "SignInsInteractive.ConditionalAccessStatus",
+              "nativeQueryRef": "ConditionalAccessStatus"
             },
             {
               "field": {
@@ -312,7 +334,8 @@
                   "Property": "RiskDetail"
                 }
               },
-              "queryRef": "SignInsInteractive.RiskDetail"
+              "queryRef": "SignInsInteractive.RiskDetail",
+              "nativeQueryRef": "RiskDetail"
             },
             {
               "field": {
@@ -325,7 +348,8 @@
                   "Property": "RiskLevelAggregated"
                 }
               },
-              "queryRef": "SignInsInteractive.RiskLevelAggregated"
+              "queryRef": "SignInsInteractive.RiskLevelAggregated",
+              "nativeQueryRef": "RiskLevelAggregated"
             },
             {
               "field": {
@@ -338,7 +362,8 @@
                   "Property": "RiskLevelDuringSignIn"
                 }
               },
-              "queryRef": "SignInsInteractive.RiskLevelDuringSignIn"
+              "queryRef": "SignInsInteractive.RiskLevelDuringSignIn",
+              "nativeQueryRef": "RiskLevelDuringSignIn"
             },
             {
               "field": {
@@ -351,7 +376,8 @@
                   "Property": "RiskState"
                 }
               },
-              "queryRef": "SignInsInteractive.RiskState"
+              "queryRef": "SignInsInteractive.RiskState",
+              "nativeQueryRef": "RiskState"
             }
           ]
         }
