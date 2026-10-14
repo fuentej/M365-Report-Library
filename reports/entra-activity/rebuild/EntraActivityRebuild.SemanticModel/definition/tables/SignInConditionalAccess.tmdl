@@ -1,0 +1,81 @@
+table SignInConditionalAccess
+    lineageTag: b093cfcd-da43-4f68-8264-d569171e2388
+
+    column CreatedDateTime
+        dataType: string
+        lineageTag: f89e8689-c02d-46be-9a59-bee89f9157f5
+        summarizeBy: none
+        sourceColumn: CreatedDateTime
+
+    column SignInId
+        dataType: string
+        lineageTag: 8ec956ae-66b2-4c56-b363-21e8ab569d54
+        summarizeBy: none
+        sourceColumn: SignInId
+
+    column UserId
+        dataType: string
+        lineageTag: ae6c3045-e40d-43a8-b885-63ae26717772
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column IsInteractive
+        dataType: string
+        lineageTag: bb685f22-10d3-4cab-9b92-7bf75957a5fe
+        summarizeBy: none
+        sourceColumn: IsInteractive
+
+    column ConditionalAccessStatus
+        dataType: string
+        lineageTag: a4d875ee-140a-44e8-8d3d-a22977ee726d
+        summarizeBy: none
+        sourceColumn: ConditionalAccessStatus
+
+    column PolicyId
+        dataType: string
+        lineageTag: 9f8cf1cd-d18d-45f9-86e8-da34adc14a26
+        summarizeBy: none
+        sourceColumn: PolicyId
+
+    column PolicyDisplayName
+        dataType: string
+        lineageTag: eabc4a98-b769-420a-8460-15aedd83fe75
+        summarizeBy: none
+        sourceColumn: PolicyDisplayName
+
+    column PolicyResult
+        dataType: string
+        lineageTag: ce94cfde-183d-4989-bee7-7d1c43bb1ec6
+        summarizeBy: none
+        sourceColumn: PolicyResult
+
+    column EnforcedGrantControls
+        dataType: string
+        lineageTag: 96cc7cfe-255b-4942-8005-089d469d1b9d
+        summarizeBy: none
+        sourceColumn: EnforcedGrantControls
+
+    column EnforcedSessionControls
+        dataType: string
+        lineageTag: a220c964-030d-4bb6-85b2-4f526ed256e0
+        summarizeBy: none
+        sourceColumn: EnforcedSessionControls
+
+    column PolicyDetailReadable
+        dataType: string
+        lineageTag: 89f225d7-82a0-4958-a9db-f5bfb96a27e8
+        summarizeBy: none
+        sourceColumn: PolicyDetailReadable
+
+    partition SignInConditionalAccess = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\signin-conditional-access.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
