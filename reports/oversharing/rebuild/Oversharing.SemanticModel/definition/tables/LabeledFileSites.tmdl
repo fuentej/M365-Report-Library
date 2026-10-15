@@ -1,0 +1,71 @@
+table LabeledFileSites
+    lineageTag: f9d93dec-67ce-49c6-871f-e9d4ddc184d1
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 11f7ae37-f704-4915-a055-acdffca96be5
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column LabelGuid
+        dataType: string
+        lineageTag: c781921a-4942-41df-8cd7-2ec4375738ca
+        summarizeBy: none
+        sourceColumn: LabelGuid
+
+    column LabelName
+        dataType: string
+        lineageTag: 8150c1f1-a0c6-4f72-a4de-266984ec6ad3
+        summarizeBy: none
+        sourceColumn: LabelName
+
+    column Workload
+        dataType: string
+        lineageTag: c5dffed0-400e-436e-8226-75aa25491f69
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column ReportId
+        dataType: string
+        lineageTag: 919e61cc-8ed4-46f2-a292-f39d3aa0b0e7
+        summarizeBy: none
+        sourceColumn: ReportId
+
+    column ReportCreatedDateTime
+        dataType: string
+        lineageTag: a8cd4636-145d-4f94-8f07-822383ededa2
+        summarizeBy: none
+        sourceColumn: ReportCreatedDateTime
+
+    column SiteId
+        dataType: string
+        lineageTag: 65d6ff2d-73f1-4d07-a54b-25ab2893e45b
+        summarizeBy: none
+        sourceColumn: SiteId
+
+    column SiteUrl
+        dataType: string
+        lineageTag: e9809d75-b3c0-4203-8392-bfb4b405f97e
+        summarizeBy: none
+        sourceColumn: SiteUrl
+
+    column ReportRow
+        dataType: string
+        lineageTag: a55d6319-b31c-4418-a79a-1637c28eaf80
+        summarizeBy: none
+        sourceColumn: ReportRow
+
+    partition LabeledFileSites = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\labeled-file-sites.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
