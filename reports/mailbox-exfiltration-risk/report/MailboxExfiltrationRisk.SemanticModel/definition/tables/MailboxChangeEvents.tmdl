@@ -95,6 +95,85 @@ table MailboxChangeEvents
         summarizeBy: none
         isDataTypeInferred: false
 
+    /// Exit routes: the kind of route an audit event sets: an SMTP forward on a mailbox (Set-Mailbox ForwardingSmtpAddress), an inbox rule or a mail flow rule.
+    column RouteKind = SWITCH(TRUE(), MailboxChangeEvents[Operation] = "Set-Mailbox" && SEARCH(";ForwardingSmtpAddress=", ";" & MailboxChangeEvents[Parameters], 1, 0) > 0, "mailbox forward", MailboxChangeEvents[Operation] IN {"New-InboxRule", "Set-InboxRule"}, "inbox rule", MailboxChangeEvents[Operation] IN {"New-TransportRule", "Set-TransportRule"}, "mail flow rule", BLANK())
+        dataType: string
+        isHidden
+        lineageTag: c5852150-c1c3-42f3-999e-5d85b48d0161
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the first recipient the event sets (the first of ForwardingSmtpAddress, ForwardTo, RedirectTo, ForwardAsAttachmentTo, RedirectMessageTo, BlindCopyTo, CopyTo, AddToRecipients in Parameters). Never shown; only its domain is.
+    column RouteAddress =
+            VAR Prm = ";" & MailboxChangeEvents[Parameters] & ";"
+            VAR KeyList = SELECTCOLUMNS({(1, ";ForwardingSmtpAddress="), (2, ";ForwardTo="), (3, ";RedirectTo="), (4, ";ForwardAsAttachmentTo="), (5, ";RedirectMessageTo="), (6, ";BlindCopyTo="), (7, ";CopyTo="), (8, ";AddToRecipients=")}, "Pos", [Value1], "ParamName", [Value2])
+            VAR Found = FILTER(ADDCOLUMNS(KeyList, "FoundAt", SEARCH([ParamName], Prm, 1, 0)), [FoundAt] > 0)
+            VAR WithText = ADDCOLUMNS(Found, "ParamText", VAR StartAt = [FoundAt] + LEN([ParamName]) RETURN MID(Prm, StartAt, SEARCH(";", Prm, StartAt, 0) - StartAt))
+            VAR Picked = MINX(TOPN(1, FILTER(WithText, [ParamText] <> ""), [Pos], ASC), [ParamText])
+            VAR FirstAddress = IF(SEARCH(",", Picked, 1, 0) > 0, LEFT(Picked, SEARCH(",", Picked, 1, 0) - 1), Picked)
+            RETURN IF(ISBLANK(MailboxChangeEvents[RouteKind]) || Picked = "", BLANK(), FirstAddress)
+        dataType: string
+        isHidden
+        lineageTag: 1c3ce542-7dc2-406b-9ace-5f810db47012
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the domain of RouteAddress.
+    column RouteDomain = VAR A = MailboxChangeEvents[RouteAddress] RETURN IF(SEARCH("@", A, 1, 0) = 0, BLANK(), LOWER(TRIM(SUBSTITUTE(SUBSTITUTE(MID(A, SEARCH("@", A, 1, 0) + 1, 300), "]", ""), ">", ""))))
+        dataType: string
+        isHidden
+        lineageTag: 0050ba57-ec80-4f3b-a962-74111326c12b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the Name parameter of a rule event.
+    column RouteRuleName = VAR Prm = ";" & MailboxChangeEvents[Parameters] & ";" VAR NameAt = SEARCH(";Name=", Prm, 1, 0) RETURN IF(NameAt = 0, BLANK(), MID(Prm, NameAt + 6, SEARCH(";", Prm, NameAt + 6, 0) - NameAt - 6))
+        dataType: string
+        isHidden
+        lineageTag: 82b8b46d-2672-4640-b5e5-14adcfa90cbc
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the same key as RouteKey on the snapshot tables.
+    column RouteKey = VAR Mbx = LOWER(IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN])) RETURN SWITCH(MailboxChangeEvents[RouteKind], "mailbox forward", "fwd|" & Mbx, "inbox rule", "rule|" & Mbx & "|" & LOWER(MailboxChangeEvents[RouteRuleName]), "mail flow rule", "mfr|" & LOWER(MailboxChangeEvents[RouteRuleName]))
+        dataType: string
+        isHidden
+        lineageTag: e40cd6a1-5e4b-492f-a456-645c617193b1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: the event sets a recipient outside the accepted domains. Blank when the accepted domains were not collected (unknown). The collector also honours MatchSubdomains, which accepted-domains.csv does not carry, so a subdomain of such a domain counts as outside here.
+    column RouteOutside = VAR D = MailboxChangeEvents[RouteDomain] RETURN IF(ISBLANK(D) || COUNTROWS(ALL(AcceptedDomains[DomainName])) = 0, BLANK(), NOT (COUNTROWS(FILTER(ALL(AcceptedDomains[DomainName]), VAR AcceptedName = LOWER(AcceptedDomains[DomainName]) RETURN AcceptedName = D || (LEFT(AcceptedName, 2) = "*." && RIGHT(D, LEN(AcceptedName) - 1) = MID(AcceptedName, 2, 300)))) > 0))
+        dataType: boolean
+        isHidden
+        lineageTag: 2b9c6c0e-1611-49c1-804d-d09ffe7114fc
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Exit routes: an audit event that set an outside route no run ever saw, on or before the latest run of that route's file (set, then gone between runs). One row per route: the latest such event.
+    column GhostRoute =
+            VAR ThisKey = MailboxChangeEvents[RouteKey]
+            VAR Kind = MailboxChangeEvents[RouteKind]
+            VAR LatestRun = MAXX(UNION(SELECTCOLUMNS(ALL(MailboxForwarding[RunDate]), "D", MailboxForwarding[RunDate]), SELECTCOLUMNS(ALL(InboxRules[RunDate]), "D", InboxRules[RunDate]), SELECTCOLUMNS(ALL(TransportRules[RunDate]), "D", TransportRules[RunDate]), SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate])), [D])
+            VAR InSnapshots = SWITCH(Kind, "mailbox forward", COUNTROWS(FILTER(ALL(MailboxForwarding[RouteKey], MailboxForwarding[OutsideRoute]), MailboxForwarding[RouteKey] = ThisKey && MailboxForwarding[OutsideRoute])), "inbox rule", COUNTROWS(FILTER(ALL(InboxRules[RouteKey], InboxRules[OutsideRoute]), InboxRules[RouteKey] = ThisKey && InboxRules[OutsideRoute])), "mail flow rule", COUNTROWS(FILTER(ALL(TransportRules[RouteKey], TransportRules[OutsideRoute]), TransportRules[RouteKey] = ThisKey && TransportRules[OutsideRoute]))) + 0
+            VAR LastSet = MAXX(FILTER(ALL(MailboxChangeEvents[RouteKey], MailboxChangeEvents[RouteOutside], MailboxChangeEvents[ResultLabel], MailboxChangeEvents[CreationTime]), MailboxChangeEvents[RouteKey] = ThisKey && MailboxChangeEvents[RouteOutside] = TRUE() && MailboxChangeEvents[ResultLabel] <> "Failed"), MailboxChangeEvents[CreationTime])
+            RETURN MailboxChangeEvents[RouteOutside] = TRUE() && MailboxChangeEvents[ResultLabel] <> "Failed" && NOT ISBLANK(LatestRun) && MailboxChangeEvents[ActivityDate] <= LatestRun && InSnapshots = 0 && MailboxChangeEvents[CreationTime] = LastSet
+        dataType: boolean
+        isHidden
+        lineageTag: aaf6f637-b322-4b50-b385-175373ab56d3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A stable pseudonym for the mailbox an event changed when Anonymize is selected; the same formula as UsersCurrent[Pseudonym].
+    column MailboxPseudonym =
+            VAR K = LOWER(IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN]))
+            RETURN IF(K = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(K)), UNICODE(MID(K, [Value], 1)) * [Value]), 9000) + 1000, "0000"))
+        dataType: string
+        isHidden
+        lineageTag: 2106c4eb-cebc-4ff8-8f10-c9f215324fc8
+        summarizeBy: none
+        isDataTypeInferred: false
+
     /// A stable pseudonym when Anonymize is selected.
     measure 'Actor (Display)' = 
             VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
@@ -136,8 +215,8 @@ table MailboxChangeEvents
     measure 'Earliest Audit Record' = 
             VAR A = CALCULATE(MIN(MailboxChangeEvents[CreationTime]), ALL(MailboxChangeEvents))
             VAR B = CALCULATE(MIN(MailAccessEvents[CreationTime]), ALL(MailAccessEvents))
-            VAR Earliest = IF(ISBLANK(A), B, IF(ISBLANK(B), A, MIN(A, B)))
-            RETURN IF(ISBLANK(Earliest), BLANK(), FORMAT(Earliest, "yyyy-MM-dd"))
+            VAR FirstRecord = IF(ISBLANK(A), B, IF(ISBLANK(B), A, MIN(A, B)))
+            RETURN IF(ISBLANK(FirstRecord), BLANK(), FORMAT(FirstRecord, "yyyy-MM-dd"))
         lineageTag: 5c703955-e7fc-50b1-a91e-73321ab268b2
 
     partition MailboxChangeEvents = m

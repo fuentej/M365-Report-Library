@@ -1,0 +1,77 @@
+table OutboundSpamPolicies
+    lineageTag: 3ad4dcfb-08b0-4034-933a-6048b61e1da8
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: f06299b6-1b0c-4b4f-af10-a2b956193bf6
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Name
+        dataType: string
+        lineageTag: 54569905-ef60-4780-b056-4d15e2bc0f10
+        summarizeBy: none
+        sourceColumn: Name
+
+    column Guid
+        dataType: string
+        lineageTag: 26cdaec8-bf8a-400f-b6b6-d915c81a5096
+        summarizeBy: none
+        sourceColumn: Guid
+
+    column IsDefault
+        dataType: boolean
+        lineageTag: 344d4f4d-7aa6-4f9a-86d0-b1d524e44e0e
+        summarizeBy: none
+        sourceColumn: IsDefault
+
+    column AutoForwardingMode
+        dataType: string
+        lineageTag: f2e70be5-b931-494d-ad64-0a96b08a739e
+        summarizeBy: none
+        sourceColumn: AutoForwardingMode
+
+    column RuleName
+        dataType: string
+        lineageTag: b14fc1fd-05fe-427e-90e8-5493b27f3dc6
+        summarizeBy: none
+        sourceColumn: RuleName
+
+    column RuleState
+        dataType: string
+        lineageTag: e7d24377-6e19-4551-9318-a34caaef6440
+        summarizeBy: none
+        sourceColumn: RuleState
+
+    column AppliesTo
+        dataType: string
+        lineageTag: d180b22c-0eb6-4167-8d76-3fc4c57da12f
+        summarizeBy: none
+        sourceColumn: AppliesTo
+
+    /// Latest RunDate of this source inside the current date slicer. Blank when the source has no rows (header-only file): not collected, never zero.
+    measure 'OutboundSpamPolicies Snapshot Date' = CALCULATE(MAX(OutboundSpamPolicies[RunDate]), ALLSELECTED(OutboundSpamPolicies))
+        formatString: Short Date
+        lineageTag: d30aa8de-ee69-429b-bd1d-b94d376b66e2
+
+    /// Policies at the latest snapshot that apply to someone (the default policy, or a custom policy whose rule is enabled) and whose AutoForwardingMode is not Off. Automatic counts: it can still mean On for an organization that was already using it (https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding). An empty mode is not known to be Off, so it counts too. Blank when the file is header-only.
+    measure 'Policies Not Blocking Forwarding' =
+            VAR Snap = [OutboundSpamPolicies Snapshot Date]
+            RETURN IF(ISBLANK(Snap), BLANK(), CALCULATE(COUNTROWS(OutboundSpamPolicies), OutboundSpamPolicies[RunDate] = Snap, OutboundSpamPolicies[AutoForwardingMode] <> "Off" || ISBLANK(OutboundSpamPolicies[AutoForwardingMode]), OutboundSpamPolicies[IsDefault] = TRUE() || OutboundSpamPolicies[RuleState] = "Enabled") + 0)
+        formatString: #,0
+        lineageTag: fb7b0eda-9875-4d6f-8ee4-5c5b16dac018
+
+    partition OutboundSpamPolicies = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\outbound-spam-policies.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsDefault", type logical}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

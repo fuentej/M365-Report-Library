@@ -35,7 +35,7 @@ Nothing here writes to the tenant.
 | `collectors/Run-All.ps1` | Runs the shared users collector and all thirteen of the above; signs in once to Exchange Online and once to Graph |
 | `collectors/MailboxExfiltrationSchema.psd1` | The column order of every CSV, the per-cloud availability of every source |
 | `collectors/MailboxExfiltrationHelpers.ps1` | Helpers the collectors dot-source: availability, external-domain test, audit search |
-| `report/` | The Power BI project (PBIP): semantic model in TMDL and a seven-page report in PBIR. One parameter, `CsvFolder`, holds the folder the collectors write to |
+| `report/` | The Power BI project (PBIP): semantic model in TMDL and a one-page report in PBIR (the approved Exit routes page; see [The report](#the-report)). One parameter, `CsvFolder`, holds the folder the collectors write to |
 | `New-SampleData.ps1` | Regenerates `samples/` |
 | `samples/` | Generated fake data |
 | `tests/` | Pester tests; every tenant call is mocked |
@@ -136,7 +136,6 @@ Online in GCC High uses `-ExchangeEnvironmentName O365USGovGCCHigh`
   approver ([resource page](https://learn.microsoft.com/graph/api/resources/oauth2permissiongrant)); that
   needs a Microsoft Entra audit source that was not verified. Per-user consent is covered by `PrincipalId`.
 * **Exchange-side app access** (for example EWS). Not researched; no source verified.
-* **The tenant-level automatic forwarding policy** (outbound spam filter). Not in the starting questions.
 * **Hidden inbox rules are read but not flagged.** `Get-InboxRule -IncludeHidden` returns them, and the
   cmdlet documents no marker for a hidden rule.
 
@@ -289,3 +288,25 @@ operation list for them, so the collector keeps the records whose operation cont
 | `AuditDisabled` | Organization row. `False` means mailbox auditing on by default is on, and overrides a mailbox-level off |
 | `UnifiedAuditLogIngestionEnabled` | Organization row. Read through Exchange Online; always `False` in Security & Compliance PowerShell |
 | `DefaultAuditSet`, `AuditAdmin`, `AuditDelegate`, `AuditOwner` | Mailbox rows. `Admin;Delegate;Owner` in `DefaultAuditSet` means the default actions |
+
+## The report
+
+One page, **Exit routes** ("Every way mail leaves the building"), built to the approved design in
+`docs/design/mailbox-exfiltration-risk/page-1-exit-routes.png` with the shared house-style theme. Page 2,
+"Who else can read the mail", is a later design pass.
+
+* **Live route**: in the latest run, a mailbox forward with `IsExternal` True, an inbox rule that forwards or
+  redirects with `HasExternalTarget` True and is not disabled, or an enabled mail flow rule with `HasExternalTarget` True.
+* **Ghost route** (set, then gone): an outside route seen in an earlier run but not the latest, or set by an audit
+  event (`Set-Mailbox` `ForwardingSmtpAddress`, `New-InboxRule` / `Set-InboxRule` with `ForwardTo`, `RedirectTo` or
+  `ForwardAsAttachmentTo`, a mail flow rule cmdlet with a recipient action) to a domain that is not accepted, on or
+  before the latest run, that no run ever saw. One row per route.
+* **Keeps no copy**: `DeliverToMailboxAndForward` False, an inbox rule that redirects or deletes, a mail flow rule
+  that redirects.
+* **Disguised name**: an outside inbox rule whose name has none of forward, fwd, redirect, copy or send.
+* **ONE FIX**: turn automatic external forwarding off while any outbound spam policy that applies to someone has
+  `AutoForwardingMode` other than `Off` (`Automatic` can still mean On). That setting closes mailbox forwards and inbox
+  rules, not mail flow rules ([Learn](https://learn.microsoft.com/defender-office-365/outbound-spam-policies-external-email-forwarding)),
+  so the box names the outside mail flow rules separately.
+* Names follow the **Anonymize names** report filter. Destinations are shown as domains, never as addresses.
+* The diagram shows at most 12 routes and 5 domains; the rest are counted ("+n more").
