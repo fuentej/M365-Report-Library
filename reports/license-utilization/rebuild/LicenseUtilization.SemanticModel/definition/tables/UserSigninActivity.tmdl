@@ -1,0 +1,53 @@
+table UserSigninActivity
+    lineageTag: b49a2ce8-3860-4b55-a4e9-a4e1f66cbf21
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 816deeea-425d-4855-95d8-3b38dafeba61
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UserId
+        dataType: string
+        lineageTag: 3d0951bb-cc1e-4c15-afc8-35e4a43bd9f2
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 269b6e2f-ee7a-4b43-bab8-5b4febfe07d5
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column LastSignInDateTime
+        dataType: string
+        lineageTag: a3b46b22-26c1-44bb-8b0e-6466991878cf
+        summarizeBy: none
+        sourceColumn: LastSignInDateTime
+
+    column LastNonInteractiveSignInDateTime
+        dataType: string
+        lineageTag: 04334d4f-8c05-489c-99f2-bb236dfbdbaa
+        summarizeBy: none
+        sourceColumn: LastNonInteractiveSignInDateTime
+
+    column LastSuccessfulSignInDateTime
+        dataType: string
+        lineageTag: de17004d-0e0c-4710-a40a-1b59b3e4aba8
+        summarizeBy: none
+        sourceColumn: LastSuccessfulSignInDateTime
+
+    partition UserSigninActivity = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\user-signin-activity.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

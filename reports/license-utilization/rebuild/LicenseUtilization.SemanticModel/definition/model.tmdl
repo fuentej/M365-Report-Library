@@ -7,3 +7,4 @@ ref table SubscribedSkus
 ref table SkuServicePlans
 ref table UserLicenses
 ref table LicenseDetails
+ref table UserSigninActivity
