@@ -1,0 +1,119 @@
+table MailboxStatistics
+    lineageTag: 0c0fe7bb-1bd8-4c11-8ca3-2a2b64c53920
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: d066ee0a-a64a-441e-8a9b-edacd0533662
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ExternalDirectoryObjectId
+        dataType: string
+        lineageTag: c2ea065b-0552-4722-babf-6c7322927531
+        summarizeBy: none
+        sourceColumn: ExternalDirectoryObjectId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: a8eb0c0b-7bc7-4a4c-9aa3-d0d6a78e59c9
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column ItemCount
+        dataType: string
+        lineageTag: e7a56abc-6d96-42dc-af50-ffc52c5dacd3
+        summarizeBy: none
+        sourceColumn: ItemCount
+
+    column TotalItemSize
+        dataType: string
+        lineageTag: 64e887ef-d9d9-45d9-8ee7-721b43b9c36b
+        summarizeBy: none
+        sourceColumn: TotalItemSize
+
+    column TotalItemSizeBytes
+        dataType: string
+        lineageTag: 8771bd85-3e99-417d-985d-6076a0ed7fc2
+        summarizeBy: none
+        sourceColumn: TotalItemSizeBytes
+
+    column DeletedItemCount
+        dataType: string
+        lineageTag: 0041d314-ab29-4439-aa27-11e964db0e24
+        summarizeBy: none
+        sourceColumn: DeletedItemCount
+
+    column TotalDeletedItemSize
+        dataType: string
+        lineageTag: a8708be1-a431-4966-83b8-e4d9a7a72e71
+        summarizeBy: none
+        sourceColumn: TotalDeletedItemSize
+
+    column TotalDeletedItemSizeBytes
+        dataType: string
+        lineageTag: c7a03fa4-13b5-4005-80ca-f918d18ca3f4
+        summarizeBy: none
+        sourceColumn: TotalDeletedItemSizeBytes
+
+    column StorageLimitStatus
+        dataType: string
+        lineageTag: 4e689e10-5b55-4267-8510-378141060b2f
+        summarizeBy: none
+        sourceColumn: StorageLimitStatus
+
+    column LastLogonTime
+        dataType: string
+        lineageTag: 65586f5d-1791-485a-9119-fab759f60ac8
+        summarizeBy: none
+        sourceColumn: LastLogonTime
+
+    column LastLogoffTime
+        dataType: string
+        lineageTag: 378d1b90-8233-4643-8fe6-46814fd59353
+        summarizeBy: none
+        sourceColumn: LastLogoffTime
+
+    column LastLoggedOnUserAccount
+        dataType: string
+        lineageTag: 63ab5c45-3ed8-4176-9548-3be57ed64155
+        summarizeBy: none
+        sourceColumn: LastLoggedOnUserAccount
+
+    column IsArchiveMailbox
+        dataType: string
+        lineageTag: 56647f8a-ea99-4a65-b5ff-88cfa9687989
+        summarizeBy: none
+        sourceColumn: IsArchiveMailbox
+
+    column DatabaseIssueWarningQuota
+        dataType: string
+        lineageTag: 2e8bf0a8-e724-4887-8517-d0811b1190f9
+        summarizeBy: none
+        sourceColumn: DatabaseIssueWarningQuota
+
+    column DatabaseProhibitSendQuota
+        dataType: string
+        lineageTag: 5fbe7047-2f60-4575-be06-8392c939e859
+        summarizeBy: none
+        sourceColumn: DatabaseProhibitSendQuota
+
+    column DatabaseProhibitSendReceiveQuota
+        dataType: string
+        lineageTag: 0a6695a6-9fb5-44d4-8f49-431d294bbd36
+        summarizeBy: none
+        sourceColumn: DatabaseProhibitSendReceiveQuota
+
+    partition MailboxStatistics = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailbox-statistics.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
