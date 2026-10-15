@@ -157,6 +157,355 @@ table SignInsInteractive
         summarizeBy: none
         sourceColumn: RiskState
 
+    /// Sign-in watch (BRO-565)
+    /// CreatedDateTime (UTC text) as a date and time.
+    column SignInAt =
+            VAR vText = SignInsInteractive[CreatedDateTime]
+            RETURN IF(ISBLANK(vText) || LEN(vText) < 19, BLANK(), DATE(VALUE(LEFT(vText, 4)), VALUE(MID(vText, 6, 2)), VALUE(MID(vText, 9, 2))) + TIME(VALUE(MID(vText, 12, 2)), VALUE(MID(vText, 15, 2)), VALUE(MID(vText, 18, 2))))
+        dataType: dateTime
+        formatString: yyyy-mm-dd hh:nn
+        isHidden
+        lineageTag: 83cbdb61-c487-5365-8fd5-55d21acd36c5
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// In the 30 days up to the latest sign-in in either sign-in file.
+    column InWindow =
+            VAR vEnd = MAX(MAX(SignInsInteractive[SignInAt]), MAX(SignInsNonInteractive[SignInAt]))
+            RETURN NOT ISBLANK(SignInsInteractive[SignInAt]) && SignInsInteractive[SignInAt] > vEnd - 30
+        dataType: boolean
+        isHidden
+        lineageTag: 2ed2441d-a9b3-5140-a165-a58f83e1d2fb
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A sign-in with an error code other than 0.
+    column IsFailure = NOT ISBLANK(SignInsInteractive[ErrorCode]) && SignInsInteractive[ErrorCode] <> "0"
+        dataType: boolean
+        isHidden
+        lineageTag: ae3ff271-6f94-5fbd-8c1d-40164512cc28
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The error code in plain words (https://learn.microsoft.com/entra/identity-platform/reference-error-codes).
+    column FailureGroup =
+            VAR vCode = SignInsInteractive[ErrorCode]
+            RETURN IF(ISBLANK(vCode) || vCode = "0", BLANK(), SWITCH(TRUE(), vCode = "50126", "Wrong password", vCode IN {"50074", "50076", "500121", "50072", "50079", "50158"}, "MFA not finished", vCode IN {"53003", "53000", "53001", "53002", "530032", "530035", "50131"}, "Blocked by a policy", vCode IN {"50058", "50089", "50132", "50133", "50173", "70043", "70044"}, "Session expired", vCode = "50053", "Account locked", vCode = "50057", "Disabled account tried", "Other"))
+        dataType: string
+        isHidden
+        lineageTag: 4e9110d4-152c-5432-837a-2d332d256bf6
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The password was right: the sign-in succeeded, or stopped only at MFA.
+    column PasswordWorked = SignInsInteractive[ErrorCode] = "0" || SignInsInteractive[ErrorCode] IN {"50074", "50076", "500121", "50072", "50079", "50158"}
+        dataType: boolean
+        isHidden
+        lineageTag: e6fdc031-b127-54ab-8ec9-d994d2f9d180
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Legacy authentication client (https://learn.microsoft.com/entra/identity/conditional-access/concept-conditional-access-conditions#client-apps); blank for Browser and Mobile Apps and Desktop clients.
+    column LegacyMethod =
+            VAR vClient = SignInsInteractive[ClientAppUsed]
+            RETURN IF(ISBLANK(vClient) || vClient IN {"Browser", "Mobile Apps and Desktop clients"}, BLANK(), SWITCH(vClient, "IMAP4", "IMAP", "Authenticated SMTP", "Authenticated SMTP", "POP3", "POP", "Other old clients"))
+        dataType: string
+        isHidden
+        lineageTag: d5838ce0-2674-5859-b921-25acb76becb1
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The account a sign-in was for: the lower-case UPN, else the user ID.
+    column AccountKey =
+            VAR vUpn = LOWER(SignInsInteractive[UserPrincipalName])
+            RETURN IF(ISBLANK(vUpn), SignInsInteractive[UserId], vUpn)
+        dataType: string
+        isHidden
+        lineageTag: f04b2beb-600d-593f-a405-ef6ef16fe9e8
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A readable name from the UPN: first.last becomes First Last.
+    column PersonName =
+            VAR vUpn = SignInsInteractive[UserPrincipalName]
+            VAR vLocal = IF(ISBLANK(vUpn), BLANK(), LEFT(vUpn, FIND("@", vUpn & "@") - 1))
+            VAR vGuest = CONTAINSSTRING(vLocal, "#EXT#")
+            VAR vPath = SUBSTITUTE(vLocal, ".", "|")
+            VAR vParts = IF(ISBLANK(vLocal), 0, PATHLENGTH(vPath))
+            RETURN IF(ISBLANK(vLocal), "Unknown account", IF(vGuest, LEFT(vLocal, SEARCH("#EXT#", vLocal) - 1), IF(vParts < 2, vLocal, CONCATENATEX(GENERATESERIES(1, vParts), VAR vWord = PATHITEM(vPath, [Value]) RETURN UPPER(LEFT(vWord, 1)) & MID(vWord, 2, 200), " ", [Value], ASC))))
+        dataType: string
+        isHidden
+        lineageTag: 98a6728d-de40-5b22-b525-82f2d1478c71
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// City and country or region.
+    column Place =
+            VAR vCity = SignInsInteractive[City]
+            VAR vCountry = SignInsInteractive[CountryOrRegion]
+            RETURN IF(ISBLANK(vCity), vCountry, IF(ISBLANK(vCountry), vCity, vCity & ", " & vCountry))
+        dataType: string
+        isHidden
+        lineageTag: 0f50a97e-6fb4-5c13-bf18-381f0d7d75d3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// SharePoint, Teams, Outlook on web, Exchange or Other apps, from the app and resource names.
+    column AppArea =
+            VAR vApp = SignInsInteractive[AppDisplayName]
+            VAR vRes = SignInsInteractive[ResourceDisplayName]
+            RETURN SWITCH(TRUE(), CONTAINSSTRING(vApp, "SharePoint") || CONTAINSSTRING(vApp, "OneDrive") || CONTAINSSTRING(vRes, "SharePoint"), "SharePoint", CONTAINSSTRING(vApp, "Teams") || CONTAINSSTRING(vRes, "Teams"), "Teams", CONTAINSSTRING(vApp, "Outlook Web") || CONTAINSSTRING(vApp, "OWA"), "Outlook on web", CONTAINSSTRING(vApp, "Exchange") || CONTAINSSTRING(vApp, "Outlook") || CONTAINSSTRING(vRes, "Exchange"), "Exchange", "Other apps")
+        dataType: string
+        isHidden
+        lineageTag: 5f8ae4d0-5fbf-5bb7-a244-4ffa6acd7770
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A successful sign-in from a device that is not managed (DeviceIsManaged not True).
+    column UnmanagedSuccess = SignInsInteractive[ErrorCode] = "0" && SignInsInteractive[DeviceIsManaged] <> "True"
+        dataType: boolean
+        isHidden
+        lineageTag: b6b58f56-fd9f-58cd-8726-7e3cffafda96
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// riskLevelDuringSignIn as High, Medium or Low; blank for none, hidden and anything else.
+    column RiskBand = SWITCH(LOWER(SignInsInteractive[RiskLevelDuringSignIn]), "high", "High", "medium", "Medium", "low", "Low", BLANK())
+        dataType: string
+        isHidden
+        lineageTag: 95f9b15b-bf88-5071-9731-2606c517da6d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The latest sign-in in either sign-in file; the page reads the 30 days up to it.
+    measure 'Sign-in Window End' =
+            MAX(MAX(SignInsInteractive[SignInAt]), MAX(SignInsNonInteractive[SignInAt]))
+        formatString: yyyy-mm-dd
+        displayFolder: Sign-in watch
+        lineageTag: b821a122-eba2-5c38-9b12-a59a0f1ed017
+
+    /// Header line: the window the page reads.
+    measure 'Sign-in Window Line' =
+            VAR vEnd = [Sign-in Window End]
+            RETURN IF(ISBLANK(vEnd), "No sign-ins collected", "Last 30 days to " & FORMAT(vEnd, "yyyy-mm-dd"))
+        displayFolder: Sign-in watch
+        lineageTag: 4871c032-7b1a-587f-a4df-842372adf497
+
+    /// Sign-ins in the window with an error code other than 0, interactive and non-interactive.
+    measure 'Failed Sign-ins' =
+            CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), SignInsInteractive[IsFailure] = TRUE()) + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), SignInsNonInteractive[IsFailure] = TRUE()) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: 6e2a92e7-5fe6-58b8-8dd4-ddaa40dcfe8f
+
+    /// Addresses that failed a password on 10 or more accounts in the window (PasswordSprays).
+    measure 'Password Sprays' =
+            COUNTROWS(PasswordSprays) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: 3c5edc05-c0d5-5bae-838f-2a57150010fa
+
+    /// Sign-ins in the window through a legacy authentication client, which cannot do MFA.
+    measure 'Old Sign-in Methods' =
+            CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsInteractive[LegacyMethod])) + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsNonInteractive[LegacyMethod])) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: 887fb723-d064-5fad-9c86-4a181272cc56
+
+    /// Accounts with a legacy authentication sign-in in the window.
+    measure 'Old Sign-in Accounts' =
+            COUNTROWS(DISTINCT(UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && NOT ISBLANK(SignInsInteractive[LegacyMethod])), "Acct", SignInsInteractive[AccountKey]), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && NOT ISBLANK(SignInsNonInteractive[LegacyMethod])), "Acct", SignInsNonInteractive[AccountKey])))) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: f3ee6dfd-e430-52a1-83fa-40df0efc810a
+
+    /// Sign-ins in the window that Microsoft scored low, medium or high risk (riskLevelDuringSignIn).
+    measure 'Risky Sign-ins' =
+            CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsInteractive[RiskBand])) + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsNonInteractive[RiskBand])) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: c00a1d5a-44e1-530f-94d2-7ace4a265255
+
+    /// Risky sign-ins still At risk: nobody confirmed, dismissed or remediated them (https://learn.microsoft.com/entra/id-protection/howto-identity-protection-remediate-unblock).
+    measure 'Risky Sign-ins Unreviewed' =
+            CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsInteractive[RiskBand]), SignInsInteractive[RiskState] = "atRisk") + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), NOT ISBLANK(SignInsNonInteractive[RiskBand]), SignInsNonInteractive[RiskState] = "atRisk") + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: 2b79c5fd-f694-5aa8-b536-6496d99f4166
+
+    /// Tile text: unreviewed of all risky sign-ins.
+    measure 'Risky Sign-ins Tile' =
+            FORMAT([Risky Sign-ins Unreviewed], "#,0") & " of " & FORMAT([Risky Sign-ins], "#,0")
+        displayFolder: Sign-in watch
+        lineageTag: 06b1e6ed-f739-54db-822d-3c0242fbbc9d
+
+    /// Successful sign-ins in the window from a device that is not managed.
+    measure 'Unmanaged Device Sign-ins' =
+            CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), SignInsInteractive[UnmanagedSuccess] = TRUE()) + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), SignInsNonInteractive[UnmanagedSuccess] = TRUE()) + 0
+        formatString: #,0
+        displayFolder: Sign-in watch
+        lineageTag: 8a41c5b7-038f-5453-aeb3-01765ae898fc
+
+    /// Subtitle of the failure reasons panel.
+    measure 'Failure Reasons Subtitle' =
+            FORMAT([Failed Sign-ins], "#,0") & IF([Failed Sign-ins] = 1, " failure", " failures") & " in 30 days, from Microsoft's error codes."
+        displayFolder: Sign-in watch
+        lineageTag: d5de0e3c-9568-5b50-a1ff-51d82c46e1a1
+
+    /// Subtitle of the old sign-in methods panel.
+    measure 'Old Sign-in Subtitle' =
+            VAR vCount = [Old Sign-in Methods]
+            VAR vAccounts = [Old Sign-in Accounts]
+            RETURN IF(vCount = 0, "No sign-in used an old method in the last 30 days.", FORMAT(vCount, "#,0") & IF(vCount = 1, " sign-in", " sign-ins") & " from " & FORMAT(vAccounts, "#,0") & IF(vAccounts = 1, " account.", " accounts."))
+        displayFolder: Sign-in watch
+        lineageTag: 72352c7a-fe30-537b-9f0e-9f5dc1b91432
+
+    /// Footer sources line; names sample data when the sign-ins are example.com accounts.
+    measure 'Sign-in Watch Sources' =
+            VAR vSample = CALCULATE(COUNTROWS(SignInsInteractive), RIGHT(LOWER(SignInsInteractive[UserPrincipalName]), 12) = "@example.com") + CALCULATE(COUNTROWS(SignInsNonInteractive), RIGHT(LOWER(SignInsNonInteractive[UserPrincipalName]), 12) = "@example.com") + 0
+            RETURN "Sources: interactive and background sign-ins · error code, client app, device and Microsoft risk level on each sign-in" & IF(vSample > 0, " · sample data, example.com", "")
+        displayFolder: Sign-in watch
+        lineageTag: e7e52242-c95d-5e9c-8f4b-9ea3a1a8af9e
+
+    /// The headline sentence: the biggest finding on the page.
+    measure 'Sign-in Watch Headline' =
+            VAR vSprays = [Password Sprays]
+            VAR vGot = SUM(PasswordSprays[GotIn]) + 0
+            VAR vTopTried = MAX(PasswordSprays[AccountsTried])
+            VAR vLegacyAccounts = [Old Sign-in Accounts]
+            VAR vFailed = [Failed Sign-ins]
+            VAR vSprayPart = SWITCH(TRUE(), vSprays = 0, BLANK(), vGot > 0, "A password spray got " & FORMAT(vGot, "#,0") & IF(vGot = 1, " password", " passwords") & " right", vSprays = 1, "One address tried passwords on " & FORMAT(vTopTried, "#,0") & " accounts and none got in", FORMAT(vSprays, "#,0") & " addresses sprayed passwords across many accounts and none got in")
+            VAR vLegacyPart = IF(vLegacyAccounts = 0, BLANK(), FORMAT(vLegacyAccounts, "#,0") & IF(vLegacyAccounts = 1, " account still signs in", " accounts still sign in") & " with old methods that skip MFA")
+            RETURN SWITCH(TRUE(), NOT ISBLANK(vSprayPart) && NOT ISBLANK(vLegacyPart), vSprayPart & IF(vGot > 0, ", and ", ", but ") & vLegacyPart & ".", NOT ISBLANK(vSprayPart), vSprayPart & ".", NOT ISBLANK(vLegacyPart), "No password spray in 30 days, but " & vLegacyPart & ".", FORMAT(vFailed, "#,0") & " sign-ins failed in 30 days, with no password spray and no old sign-in methods.")
+        displayFolder: Sign-in watch
+        lineageTag: 121d9c4a-1004-555b-b4f6-4119064252b1
+
+    /// ONE FIX title: the single action that closes the biggest risk on the page (a guessed password, then unreviewed high risk, then old sign-in methods, then unmanaged devices).
+    measure 'Sign-in Watch One Fix Title' =
+            VAR vGot = SUM(PasswordSprays[GotIn]) + 0
+            VAR vHighOpen = CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), SignInsInteractive[RiskBand] = "High", SignInsInteractive[RiskState] = "atRisk") + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), SignInsNonInteractive[RiskBand] = "High", SignInsNonInteractive[RiskState] = "atRisk") + 0
+            VAR vLegacy = [Old Sign-in Methods]
+            VAR vUnmanaged = [Unmanaged Device Sign-ins]
+            VAR vCase = SWITCH(TRUE(), vGot > 0, "spray", vHighOpen > 0, "risk", vLegacy > 0, "legacy", vUnmanaged > 0, "device", "none")VAR vTop = TOPN(1, FILTER(PasswordSprays, PasswordSprays[GotIn] > 0), PasswordSprays[GotInAt], ASC, PasswordSprays[Ip], ASC)
+            VAR vName = MAXX(vTop, PasswordSprays[GotInName])
+            RETURN SWITCH(vCase, "spray", IF(vGot = 1, "Reset " & vName & "'s password", "Reset the " & FORMAT(vGot, "#,0") & " passwords a spray guessed"), "risk", "Review " & FORMAT(vHighOpen, "#,0") & IF(vHighOpen = 1, " high-risk sign-in", " high-risk sign-ins"), "legacy", "Block old sign-in methods", "device", "Require a managed device", "Nothing to fix this month")
+        displayFolder: Sign-in watch
+        lineageTag: 6d0f1781-6d81-5d03-8689-e4f65bfeb272
+
+    /// ONE FIX detail sentence, from the same figures as the title.
+    measure 'Sign-in Watch One Fix Detail' =
+            VAR vGot = SUM(PasswordSprays[GotIn]) + 0
+            VAR vHighOpen = CALCULATE(COUNTROWS(SignInsInteractive), SignInsInteractive[InWindow] = TRUE(), SignInsInteractive[RiskBand] = "High", SignInsInteractive[RiskState] = "atRisk") + CALCULATE(COUNTROWS(SignInsNonInteractive), SignInsNonInteractive[InWindow] = TRUE(), SignInsNonInteractive[RiskBand] = "High", SignInsNonInteractive[RiskState] = "atRisk") + 0
+            VAR vLegacy = [Old Sign-in Methods]
+            VAR vUnmanaged = [Unmanaged Device Sign-ins]
+            VAR vCase = SWITCH(TRUE(), vGot > 0, "spray", vHighOpen > 0, "risk", vLegacy > 0, "legacy", vUnmanaged > 0, "device", "none")VAR vTop = TOPN(1, FILTER(PasswordSprays, PasswordSprays[GotIn] > 0), PasswordSprays[GotInAt], ASC, PasswordSprays[Ip], ASC)
+            VAR vName = MAXX(vTop, PasswordSprays[GotInName])
+            VAR vIp = MAXX(vTop, PasswordSprays[Ip])
+            VAR vWhen = MAXX(vTop, PasswordSprays[GotInAt])
+            VAR vSigned = SUM(PasswordSprays[SignedIn]) + 0
+            VAR vLegacyAccounts = [Old Sign-in Accounts]
+            VAR vMethods = CONCATENATEX(DISTINCT(UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && NOT ISBLANK(SignInsInteractive[LegacyMethod])), "Meth", SignInsInteractive[LegacyMethod]), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && NOT ISBLANK(SignInsNonInteractive[LegacyMethod])), "Meth", SignInsNonInteractive[LegacyMethod]))), [Meth], ", ", [Meth], ASC)
+            RETURN SWITCH(vCase,
+                "spray", IF(vGot = 1, "The spray from " & vIp & " got one password right, " & vName & "'s, on " & FORMAT(vWhen, "yyyy-mm-dd") & ". " & IF(vSigned > 0, "The sign-in went through, so revoke the sessions too.", "MFA stopped the sign-in, but the password is known."), "Sprays got " & FORMAT(vGot, "#,0") & " passwords right" & IF(vSigned > 0, "; " & FORMAT(vSigned, "#,0") & " of those sign-ins went through, so revoke their sessions too.", ". MFA stopped the sign-ins, but the passwords are known.")),
+                "risk", "Microsoft scored " & FORMAT(vHighOpen, "#,0") & IF(vHighOpen = 1, " sign-in", " sign-ins") & " high risk and nobody has confirmed or dismissed them. Confirm each one compromised or safe in ID Protection.",
+                "legacy", FORMAT(vLegacy, "#,0") & IF(vLegacy = 1, " sign-in", " sign-ins") & " from " & FORMAT(vLegacyAccounts, "#,0") & IF(vLegacyAccounts = 1, " account", " accounts") & " used old methods that cannot do MFA (" & SUBSTITUTE(vMethods, "Other old clients", "other old clients") & "). One Conditional Access policy that blocks legacy authentication closes them all.",
+                "device", FORMAT(vUnmanaged, "#,0") & " successful sign-ins came from devices IT does not manage. A Conditional Access policy that requires a compliant device closes them.",
+                "No spray got a password, no high-risk sign-in waits for review and no old sign-in method was used in the last 30 days.")
+        displayFolder: Sign-in watch
+        lineageTag: daaa68b0-cd8c-5867-a3d9-a763f29cabca
+
+    /// SVG: failed sign-ins by reason, one bar per reason, scaled to the largest.
+    measure 'Failure Reasons Bars' =
+            VAR vFail = UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && SignInsInteractive[IsFailure]), "FailGrp", SignInsInteractive[FailureGroup]), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && SignInsNonInteractive[IsFailure]), "FailGrp", SignInsNonInteractive[FailureGroup]))
+            VAR vGroups = DATATABLE("Grp", STRING, "Ord", INTEGER, "Note", STRING, "Colr", STRING, {
+                {"Wrong password", 1, "Typos, old saved passwords, and sprays.", "%2316324A"},
+                {"MFA not finished", 2, "Prompt ignored or denied. Watch for floods on one person.", "%23D98A00"},
+                {"Blocked by a policy", 3, "Conditional Access did its job.", "%23138A8A"},
+                {"Session expired", 4, "Normal. Sign in again.", "%23A9B7C2"},
+                {"Account locked", 5, "Too many wrong passwords in a row.", "%23C62828"},
+                {"Disabled account tried", 6, "Leavers' devices still trying.", "%23C62828"},
+                {"Other", 7, "", "%23A9B7C2"}
+            })
+            VAR vCounted = ADDCOLUMNS(vGroups, "Cnt", VAR vName = [Grp] RETURN COUNTROWS(FILTER(vFail, [FailGrp] = vName)) + 0)
+            VAR vMax = MAXX(vCounted, [Cnt])
+            VAR vBars = CONCATENATEX(vCounted, VAR vY = ([Ord] - 1) * 46 VAR vW = IF(vMax > 0, ROUND(330 * [Cnt] / vMax, 1), 0) RETURN "<text x='0' y='" & (vY + 12) & "' font-size='11.5' font-weight='600' fill='%231F2A33'>" & [Grp] & "</text><text x='330' y='" & (vY + 12) & "' font-size='11.5' text-anchor='end' fill='%231F2A33'>" & FORMAT([Cnt], "#,0") & "</text><rect x='0' y='" & (vY + 17) & "' width='330' height='7' fill='%23EEF1F4'/><rect x='0' y='" & (vY + 17) & "' width='" & vW & "' height='7' fill='" & [Colr] & "'/><text x='0' y='" & (vY + 37) & "' font-size='10' fill='%235B6B78'>" & [Note] & "</text>", "", [Ord], ASC)
+            RETURN "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='660' height='644' viewBox='0 0 330 322' font-family='Segoe UI'>" & vBars & "</svg>"
+        displayFolder: Sign-in watch
+        dataCategory: ImageUrl
+        lineageTag: 15a09e21-8863-5016-8397-8d61f56941af
+
+    /// SVG: the two largest sprays (From, When, Accounts tried, Got in, Result); times are UTC.
+    measure 'Password Spray Table' =
+            VAR vTop = TOPN(2, PasswordSprays, PasswordSprays[AccountsTried], DESC, PasswordSprays[Ip], ASC)
+            VAR vCount = COUNTROWS(PasswordSprays) + 0
+            VAR vRanked = ADDCOLUMNS(vTop, "Rk", VAR vTried = PasswordSprays[AccountsTried] VAR vThisIp = PasswordSprays[Ip] RETURN COUNTROWS(FILTER(vTop, PasswordSprays[AccountsTried] > vTried || (PasswordSprays[AccountsTried] = vTried && PasswordSprays[Ip] < vThisIp))) + 1)
+            VAR vHeader = "<rect x='0' y='0' width='544' height='22' fill='%2316324A'/><g font-size='10.5' font-weight='600' fill='%23FFFFFF'><text x='12' y='15'>From</text><text x='150' y='15'>When</text><text x='268' y='15'>Accounts tried</text><text x='357' y='15'>Got in</text><text x='435' y='15'>Result</text></g>"
+            VAR vBody = CONCATENATEX(vRanked,
+                VAR vY = 22 + ([Rk] - 1) * 40
+                VAR vGot = PasswordSprays[GotIn]
+                VAR vSameDay = INT(PasswordSprays[FirstTry]) = INT(PasswordSprays[LastTry])
+                VAR vWhen = FORMAT(PasswordSprays[FirstTry], "mm-dd hh:nn") & " to " & IF(vSameDay, FORMAT(PasswordSprays[LastTry], "hh:nn"), FORMAT(PasswordSprays[LastTry], "mm-dd hh:nn"))
+                VAR vL1 = IF(vGot = 0, "All failed.", IF(vGot = 1, SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(PasswordSprays[GotInName], "%", "%25"), "&", "&amp;"), "<", "&lt;"), "#", "%23") & "'s", FORMAT(vGot, "#,0") & " passwords"))
+                VAR vL2 = IF(vGot = 0, IF(PasswordSprays[FlaggedSignIns] > 0, "Microsoft flagged", "Microsoft did not"), IF(vGot = 1, "password worked.", "worked."))
+                VAR vL3 = IF(vGot = 0, IF(PasswordSprays[FlaggedSignIns] > 0, "it as risky.", "flag it."), IF(PasswordSprays[SignedIn] > 0, "Signed in.", "MFA stopped it."))
+                VAR vResultColour = IF(vGot = 0, "%231F2A33", "%23C62828")
+                RETURN "<text x='12' y='" & (vY + 16) & "' font-size='11.5' font-weight='600' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(PasswordSprays[Ip], "%", "%25"), "&", "&amp;"), "<", "&lt;"), "#", "%23") & "</text><text x='12' y='" & (vY + 31) & "' font-size='10' fill='%235B6B78'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(PasswordSprays[Place], "%", "%25"), "&", "&amp;"), "<", "&lt;"), "#", "%23") & "</text><text x='150' y='" & (vY + 24) & "' font-size='11' fill='%231F2A33'>" & vWhen & "</text><text x='268' y='" & (vY + 24) & "' font-size='11.5' font-weight='600' fill='%231F2A33'>" & FORMAT(PasswordSprays[AccountsTried], "#,0") & "</text><text x='357' y='" & (vY + 24) & "' font-size='11.5' font-weight='600' fill='" & IF(vGot = 0, "%232E7D32", "%23C62828") & "'>" & FORMAT(vGot, "#,0") & "</text><g font-size='10.5' fill='" & vResultColour & "'><text x='435' y='" & (vY + 12) & "' font-weight='600'>" & vL1 & "</text><text x='435' y='" & (vY + 25) & "'>" & vL2 & "</text><text x='435' y='" & (vY + 38) & "'>" & vL3 & "</text></g><rect x='0' y='" & (vY + 40) & "' width='544' height='1' fill='%23EEF1F4'/>",
+                "", [Rk], ASC)
+            VAR vEmpty = IF(vCount = 0, "<text x='12' y='48' font-size='10.5' fill='%235B6B78'>No address failed a password on 10 or more accounts in the last 30 days.</text>", "")
+            VAR vMore = IF(vCount > 2, "<text x='12' y='106' font-size='9.5' fill='%235B6B78'>+" & (vCount - 2) & " more " & IF(vCount - 2 = 1, "address", "addresses") & "</text>", "")
+            RETURN "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1088' height='216' viewBox='0 0 544 108' font-family='Segoe UI'>" & vHeader & vBody & vEmpty & vMore & "</svg>"
+        displayFolder: Sign-in watch
+        dataCategory: ImageUrl
+        lineageTag: cacaa12e-3c2d-58e9-917b-491adcb318b4
+
+    /// SVG: legacy authentication sign-ins by method, with the accounts that used each.
+    measure 'Old Sign-in Methods Table' =
+            VAR vLegacy = UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && NOT ISBLANK(SignInsInteractive[LegacyMethod])), "Meth", SignInsInteractive[LegacyMethod], "Acct", SignInsInteractive[AccountKey], "Nm", SignInsInteractive[PersonName]), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && NOT ISBLANK(SignInsNonInteractive[LegacyMethod])), "Meth", SignInsNonInteractive[LegacyMethod], "Acct", SignInsNonInteractive[AccountKey], "Nm", SignInsNonInteractive[PersonName]))
+            VAR vMethods = DATATABLE("Method", STRING, "Ord", INTEGER, {{"IMAP", 1}, {"Authenticated SMTP", 2}, {"POP", 3}, {"Other old clients", 4}})
+            VAR vSignIns = ADDCOLUMNS(vMethods, "SignIns", VAR vThis = [Method] RETURN COUNTROWS(FILTER(vLegacy, [Meth] = vThis)) + 0)
+            VAR vAccounts = ADDCOLUMNS(vSignIns, "Accounts", VAR vThis = [Method] RETURN COUNTROWS(DISTINCT(SELECTCOLUMNS(FILTER(vLegacy, [Meth] = vThis), "A", [Acct]))) + 0)
+            VAR vWho = ADDCOLUMNS(vAccounts, "Who",
+                VAR vThis = [Method]
+                VAR vNames = DISTINCT(SELECTCOLUMNS(FILTER(vLegacy, [Meth] = vThis), "PersonNm", [Nm]))
+                VAR vN = COUNTROWS(vNames) + 0
+                VAR vFirstTwo = TOPN(2, vNames, [PersonNm], ASC)
+                VAR vFirst = MINX(TOPN(1, vNames, [PersonNm], ASC), [PersonNm])
+                VAR vSecond = MAXX(vFirstTwo, [PersonNm])
+                RETURN SWITCH(TRUE(), vN = 0, "None", vN = 1, vFirst, vN = 2, vFirst & " and " & vSecond, vFirst & ", " & vSecond & " and " & (vN - 2) & " more"))
+            VAR vHeader = "<rect x='0' y='0' width='544' height='22' fill='%2316324A'/><g font-size='10.5' font-weight='600' fill='%23FFFFFF'><text x='12' y='15'>Method</text><text x='140' y='15'>Sign-ins</text><text x='218' y='15'>Accounts</text><text x='296' y='15'>Who</text></g>"
+            VAR vBody = CONCATENATEX(vWho,
+                VAR vY = 22 + ([Ord] - 1) * 31
+                RETURN "<text x='12' y='" & (vY + 20) & "' font-size='11.5' font-weight='600' fill='%231F2A33'>" & [Method] & "</text><text x='140' y='" & (vY + 20) & "' font-size='11.5' fill='%231F2A33'>" & FORMAT([SignIns], "#,0") & "</text><text x='218' y='" & (vY + 20) & "' font-size='11.5' fill='%231F2A33'>" & FORMAT([Accounts], "#,0") & "</text><text x='296' y='" & (vY + 20) & "' font-size='11' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE([Who], "%", "%25"), "&", "&amp;"), "<", "&lt;"), "#", "%23") & "</text><rect x='0' y='" & (vY + 31) & "' width='544' height='1' fill='%23EEF1F4'/>",
+                "", [Ord], ASC)
+            RETURN "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1088' height='294' viewBox='0 0 544 147' font-family='Segoe UI'>" & vHeader & vBody & "</svg>"
+        displayFolder: Sign-in watch
+        dataCategory: ImageUrl
+        lineageTag: 5b432562-d1b5-58e0-8020-8dd8f1d93efb
+
+    /// SVG: successful sign-ins from unmanaged devices by app area; the largest bar is red.
+    measure 'Unmanaged Device Bars' =
+            VAR vSignIns = UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && SignInsInteractive[UnmanagedSuccess]), "Area", SignInsInteractive[AppArea]), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && SignInsNonInteractive[UnmanagedSuccess]), "Area", SignInsNonInteractive[AppArea]))
+            VAR vAreas = DATATABLE("AppName", STRING, "Ord", INTEGER, {{"SharePoint", 1}, {"Teams", 2}, {"Outlook on web", 3}, {"Exchange", 4}})
+            VAR vCounted = ADDCOLUMNS(vAreas, "Cnt", VAR vThis = [AppName] RETURN COUNTROWS(FILTER(vSignIns, [Area] = vThis)) + 0)
+            VAR vMax = MAXX(vCounted, [Cnt])
+            VAR vBars = CONCATENATEX(vCounted, VAR vY = ([Ord] - 1) * 22 VAR vW = IF(vMax > 0, ROUND(156 * [Cnt] / vMax, 1), 0) RETURN "<text x='0' y='" & (vY + 14) & "' font-size='11.5' font-weight='600' fill='%231F2A33'>" & [AppName] & "</text><rect x='100' y='" & (vY + 5) & "' width='156' height='10' fill='%23EEF1F4'/><rect x='100' y='" & (vY + 5) & "' width='" & vW & "' height='10' fill='" & IF([Cnt] = vMax && vMax > 0, "%23C62828", "%2316324A") & "'/><text x='300' y='" & (vY + 14) & "' font-size='11.5' text-anchor='end' fill='%231F2A33'>" & FORMAT([Cnt], "#,0") & "</text>", "", [Ord], ASC)
+            RETURN "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='176' viewBox='0 0 300 88' font-family='Segoe UI'>" & vBars & "</svg>"
+        displayFolder: Sign-in watch
+        dataCategory: ImageUrl
+        lineageTag: 3ce3661f-8ac7-5b6e-8e57-830ec141506e
+
+    /// SVG: risky sign-ins by Microsoft risk level, and how many of each nobody reviewed (risk state At risk).
+    measure 'Risk Level Boxes' =
+            VAR vRisky = UNION(SELECTCOLUMNS(FILTER(SignInsInteractive, SignInsInteractive[InWindow] && NOT ISBLANK(SignInsInteractive[RiskBand])), "Band", SignInsInteractive[RiskBand], "Open", IF(SignInsInteractive[RiskState] = "atRisk", 1, 0)), SELECTCOLUMNS(FILTER(SignInsNonInteractive, SignInsNonInteractive[InWindow] && NOT ISBLANK(SignInsNonInteractive[RiskBand])), "Band", SignInsNonInteractive[RiskBand], "Open", IF(SignInsNonInteractive[RiskState] = "atRisk", 1, 0)))
+            VAR vBands = DATATABLE("BandName", STRING, "Ord", INTEGER, "Colr", STRING, {{"HIGH", 1, "%23C62828"}, {"MEDIUM", 2, "%23D98A00"}, {"LOW", 3, "%23A9B7C2"}})
+            VAR vCounted = ADDCOLUMNS(vBands, "Cnt", VAR vThis = [BandName] RETURN COUNTROWS(FILTER(vRisky, UPPER([Band]) = vThis)) + 0)
+            VAR vOpen = ADDCOLUMNS(vCounted, "OpenCnt", VAR vThis = [BandName] RETURN SUMX(FILTER(vRisky, UPPER([Band]) = vThis), [Open]) + 0)
+            VAR vBoxes = CONCATENATEX(vOpen, VAR vX = ([Ord] - 1) * 102 RETURN "<rect x='" & vX & "' y='0' width='96' height='72' fill='%23F4F6F8'/><rect x='" & vX & "' y='0' width='96' height='3' fill='" & [Colr] & "'/><text x='" & (vX + 8) & "' y='17' font-size='9.5' font-weight='600' fill='" & IF([Ord] = 3, "%235B6B78", [Colr]) & "'>" & [BandName] & "</text><text x='" & (vX + 8) & "' y='39' font-size='19' font-weight='600' fill='%231F2A33'>" & FORMAT([Cnt], "#,0") & "</text><text x='" & (vX + 8) & "' y='54' font-size='10' fill='%235B6B78'>" & FORMAT([OpenCnt], "#,0") & " nobody</text><text x='" & (vX + 8) & "' y='66' font-size='10' fill='%235B6B78'>reviewed</text>", "", [Ord], ASC)
+            RETURN "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='144' viewBox='0 0 300 72' font-family='Segoe UI'>" & vBoxes & "</svg>"
+        displayFolder: Sign-in watch
+        dataCategory: ImageUrl
+        lineageTag: b43f60c4-49fa-5263-97ad-ed0859614fc5
+
     partition SignInsInteractive = m
         mode: import
         source =
