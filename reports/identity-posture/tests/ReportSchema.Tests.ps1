@@ -23,8 +23,11 @@ $script:ReportRoot = Join-Path $script:Root 'reports/identity-posture/report'
 $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../guest-access/tests/schemas')).ProviderPath
 
 # -Force: a `.platform` file is a dotfile and Get-ChildItem hides those by default.
+# StaticResources/ holds registered resources, not PBIR: the house-style theme (BRO-501)
+# names the Power BI report theme schema, which is not vendored here, and the SVG icons
+# have no schema at all. `powerbi-report-author validate` checks the theme.
 $script:AllFiles = @(Get-ChildItem -LiteralPath $script:ReportRoot -Recurse -File -Force |
-        Where-Object { $_.Extension -in '.json', '.pbir', '.pbism' -or $_.Name -eq '.platform' })
+        Where-Object { ($_.Extension -in '.json', '.pbir', '.pbism' -or $_.Name -eq '.platform') -and $_.FullName -notmatch '[\\/]StaticResources[\\/]' })
 
 BeforeAll {
     . (Join-Path $PSScriptRoot '../../guest-access/tests/SchemaValidator.ps1')
@@ -34,7 +37,7 @@ BeforeAll {
     $script:SchemaRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../guest-access/tests/schemas')).ProviderPath
 
     $script:AllFiles = @(Get-ChildItem -LiteralPath $script:ReportRoot -Recurse -File -Force |
-            Where-Object { $_.Extension -in '.json', '.pbir', '.pbism' -or $_.Name -eq '.platform' })
+            Where-Object { ($_.Extension -in '.json', '.pbir', '.pbism' -or $_.Name -eq '.platform') -and $_.FullName -notmatch '[\\/]StaticResources[\\/]' })
 
     $script:SchemaBearingFiles = @($script:AllFiles | Where-Object {
             $data = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
@@ -85,14 +88,17 @@ Describe 'Every PBIR/platform JSON file declares and validates against its schem
     }
 }
 
-Describe 'The report is laid out as seven pages, each with the common controls' {
+Describe 'The report is laid out as the one approved page' {
+    # BRO-501 replaced the seven pages the contract proposed (Overview ... Risky users), each
+    # with its own date, entity and anonymize slicers, with the approved Accounts to fix page.
+    # The design has no slicers; the anonymize toggle is a report-level filter (ReportModel.Tests.ps1).
     BeforeAll {
         $script:PagesFolder = Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/pages'
         $script:PageOrder = (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable).pageOrder
     }
 
-    It 'lists the seven pages the contract proposes, in order' {
-        $script:PageOrder -join ',' | Should -Be 'overview,authentication-methods,conditional-access,privileged-roles,account-hygiene,legacy-authentication,risky-users'
+    It 'lists the approved page only' {
+        $script:PageOrder -join ',' | Should -Be 'accounts-to-fix'
     }
 
     It 'has a page.json for every listed page and no unlisted page folder' {
@@ -103,26 +109,21 @@ Describe 'The report is laid out as seven pages, each with the common controls' 
         }
     }
 
-    It '<Page> has a date-range slicer, an entity slicer and the anonymize toggle' -ForEach @(
-        @{ Page = 'overview' }, @{ Page = 'authentication-methods' }, @{ Page = 'conditional-access' },
-        @{ Page = 'privileged-roles' }, @{ Page = 'account-hygiene' }, @{ Page = 'legacy-authentication' },
-        @{ Page = 'risky-users' }
-    ) {
-        $visuals = Join-Path $script:PagesFolder "$Page/visuals"
-        (Join-Path $visuals 'slicer-date-range/visual.json') | Should -Exist
-        (Join-Path $visuals 'slicer-entity/visual.json') | Should -Exist
-        (Join-Path $visuals 'slicer-anonymize/visual.json') | Should -Exist
-
-        $date = Get-Content -LiteralPath (Join-Path $visuals 'slicer-date-range/visual.json') -Raw | ConvertFrom-Json -AsHashtable
-        $date.visual.query.queryState.Values.projections[0].queryRef | Should -Be 'DateDim.Date'
-        $anon = Get-Content -LiteralPath (Join-Path $visuals 'slicer-anonymize/visual.json') -Raw | ConvertFrom-Json -AsHashtable
-        $anon.visual.query.queryState.Values.projections[0].queryRef | Should -Be 'AnonymizeMode.Mode'
+    It 'registers the house-style theme and every image the page uses' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
+        $theme = $report.themeCollection.customTheme.name
+        $theme | Should -Match '^BacklogKrewHouseStyle-[0-9a-f]{8,12}\.json$'
+        $items = @($report.resourcePackages | Where-Object name -EQ 'RegisteredResources' | ForEach-Object { $_.items })
+        $resources = Join-Path $script:ReportRoot 'IdentityPosture.Report/StaticResources/RegisteredResources'
+        foreach ($item in $items) { Join-Path $resources $item.path | Should -Exist }
+        ($items | Where-Object type -EQ 'CustomTheme').name | Should -Be $theme
+        (Get-Content -LiteralPath (Join-Path $resources $theme) -Raw | ConvertFrom-Json).name | Should -Be $theme
     }
 }
 
 Describe 'The schema validator flags a broken identity-posture visual' {
     It 'rejects a visual that lost its required name' {
-        $path = Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/pages/overview/visuals/card-no-mfa/visual.json'
+        $path = Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/pages/accounts-to-fix/visuals/fix-tile-1/visual.json'
         (Test-PbirSchema -Path $path -SchemaRoot $script:SchemaRoot).Count | Should -Be 0
 
         $broken = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable

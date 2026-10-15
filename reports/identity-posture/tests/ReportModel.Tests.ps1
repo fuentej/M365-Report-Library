@@ -11,11 +11,16 @@
       columns that CSV has, in the same order, for the populated sample and for the
       header-only file a tenant without the licence gets;
     - every relationship names columns that exist, and the report builds no page on
-      the two beta-only sources the README lists as not collected.
+      the two beta-only sources the README lists as not collected;
+    - the report has the one approved page (BRO-501: Accounts to fix), the report
+      filter pane carries the anonymize toggle, and names reach a visual only through
+      the toggle.
 
-    UsersCurrent (latest-snapshot import of users.csv), the calculated RoleDefinitions, and the helper tables that are
-    not sourced from any CSV (DateDim and the AnonymizeMode toggle) are exempt from the
-    CSV-mapping check. $CsvBackedTables below is the complete list of what is checked.
+    UsersCurrent (latest-snapshot import of users.csv), the calculated RoleDefinitions, the
+    'User Display' import table built from the UsersCurrent query (BRO-501, chart axis
+    names) and the helper tables that are not sourced from any CSV (DateDim and the
+    AnonymizeMode toggle) are exempt from the CSV-mapping check. $CsvBackedTables below is
+    the complete list of what is checked.
 #>
 
 BeforeAll {
@@ -89,8 +94,8 @@ AfterAll {
 
 Describe 'The semantic model has tables to check' {
     It 'parses the nine CSV-backed tables plus the calculated and helper tables' {
-        $script:Model.Keys.Count | Should -Be 13
-        foreach ($name in $script:CsvBackedTables.Keys + @('UsersCurrent', 'RoleDefinitions', 'DateDim', 'AnonymizeMode')) {
+        $script:Model.Keys.Count | Should -Be 14
+        foreach ($name in $script:CsvBackedTables.Keys + @('UsersCurrent', 'RoleDefinitions', 'DateDim', 'AnonymizeMode', 'User Display')) {
             $script:Model.ContainsKey($name) | Should -BeTrue -Because "the model should have a $name table"
         }
     }
@@ -123,7 +128,8 @@ Describe 'Every visual field reference resolves against the TMDL model' {
 
     It 'has field references to check' {
         # Guards the tests below against silently passing because nothing was found.
-        $script:AllReferences.Count | Should -BeGreaterThan 100
+        # BRO-501 replaced the seven old pages with one approved page (about 45 references).
+        $script:AllReferences.Count | Should -BeGreaterThan 30
     }
 
     It 'references only tables that exist in the model' {
@@ -315,21 +321,23 @@ Describe 'Empty values are Unknown, never zero' {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'RiskyUsers.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape("measure 'Listed On Snapshot' ="))
         ([regex]::Matches($tmdl, [regex]::Escape('IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))'))).Count | Should -Be 3 -Because 'Risk Level, Risk State and Role Overlap must stay blank for a user the list did not return'
-        $visual = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'risky-users/visuals/table-users/visual.json') -Raw
-        $visual | Should -Match ([regex]::Escape('"Property": "Listed On Snapshot"'))
-        $visual | Should -Match '"ComparisonKind": 0'
+        # BRO-501: the Accounts to fix table draws risk from [Risk Level], so an account the
+        # list did not return shows no pill, and only high, medium and low get one.
+        $users = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
+        $users | Should -Match "measure 'Fix Signals Image'[\s\S]*?VAR RiskLevelText = \[Risk Level\]"
+        $users | Should -Match ([regex]::Escape('SWITCH(RiskLevelText, "high", "High", "medium", "Medium", "low", "Low")'))
     }
 
-    It 'shows the registration userType on the authentication methods table' {
+    It 'keeps the registration userType measure apart from the directory userType' {
         # userRegistrationDetails.userType is member, guest, or unknownFutureValue.
         # The directory user resource uses Member and Guest.
         # https://learn.microsoft.com/graph/api/resources/userregistrationdetails
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AuthenticationMethods.tmdl') -Raw
         $tmdl | Should -Match ([regex]::Escape("measure 'User Type (Display)' ="))
         $tmdl | Should -Match ([regex]::Escape('IF(NOT (Listed > 0), BLANK(), IF(ISBLANK(V), "Unknown", V))'))
-        $visual = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'authentication-methods/visuals/table-users/visual.json') -Raw
-        $visual | Should -Match ([regex]::Escape('"Property": "User Type (Display)"'))
-        $visual | Should -Not -Match 'UsersCurrent.UserType'
+        # BRO-501: "Guest" under an account name is the directory userType (users.csv, Guest).
+        $users = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
+        $users | Should -Match ([regex]::Escape('VAR Place = IF(UserKind = "Guest", "Guest", SELECTEDVALUE(UsersCurrent[Department]))'))
     }
 
     It 'treats a blank MethodsRegistered as unknown, not zero methods' {
@@ -406,14 +414,108 @@ Describe 'No page is built on a beta-only source' {
         $beta -join '; ' | Should -BeNullOrEmpty
     }
 
-    It 'says in the page titles that the legacy sign-in counts are a lower bound' {
-        $cards = Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder 'legacy-authentication/visuals') -Filter visual.json -Recurse |
-            ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable).visual.visualContainerObjects.title[0].properties.text.expr.Literal.Value }
-        @($cards | Where-Object { $_ -match 'at least' }).Count | Should -BeGreaterOrEqual 4
+    It 'describes the legacy sign-in count as a lower bound' {
+        # The approved page (BRO-501) titles the chart "Legacy sign-ins by account" with no
+        # "at least"; the model description and the README keep the caveat.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'SignIns.tmdl') -Raw
+        $tmdl | Should -Match "/// At least: signins.csv holds interactive and successful federated sign-ins only[^\n]*\n(?:\s*///[^\n]*\n)*\s*measure 'Legacy Sign-Ins' ="
     }
 
-    It 'says the role page groups by role definition ID because names are not collected' {
-        $path = Join-Path $script:PagesFolder 'privileged-roles/visuals/bar-by-role/visual.json'
-        (Get-Content -LiteralPath $path -Raw) | Should -Match 'role names and the privileged flag are not collected'
+    It 'names only built-in roles, by template ID, and never reads a privileged flag' {
+        # Role names are not collected (README); built-in roles use their template ID as the
+        # role definition ID, so RoleDefinitions[Role Name] maps those IDs from the Microsoft
+        # Entra built-in roles page and shows any other role by the start of its ID.
+        # https://learn.microsoft.com/entra/identity/role-based-access-control/permissions-reference
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'RoleDefinitions.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('"62e90394-69f5-4237-9190-012177145e10", "Global Admin",'))
+        $tmdl | Should -Match ([regex]::Escape('"Role " & LEFT(RoleDefinitions[RoleDefinitionId], 8)'))
+        $tmdl | Should -Not -Match 'isPrivileged'
+    }
+}
+
+Describe 'The report has the approved Accounts to fix page and its filter' {
+    # BRO-501 replaced the seven pages (Overview ... Risky users) with the approved page 1
+    # from docs/design/identity-posture. The design has no slicers: the anonymize toggle is a
+    # report-level filter, as on the Teams and Groups lifecycle pages (BRO-499).
+    BeforeAll {
+        $script:PageVisuals = Join-Path $script:PagesFolder 'accounts-to-fix/visuals'
+        $script:UsersTmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
+    }
+
+    It 'lists exactly the approved page in pages.json' {
+        $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable
+        @($pages.pageOrder) -join ',' | Should -Be 'accounts-to-fix'
+        $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'accounts-to-fix/page.json') -Raw | ConvertFrom-Json -AsHashtable
+        $page.displayName | Should -Be 'Accounts to fix'
+    }
+
+    It 'carries the anonymize toggle in the report filter pane' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
+        $fields = @($report.filterConfig.filters | ForEach-Object { '{0}.{1}' -f $_.field.Column.Expression.SourceRef.Entity, $_.field.Column.Property })
+        $fields | Should -Contain 'AnonymizeMode.Mode'
+    }
+
+    It 'names accounts through the toggle in the table, the chart and the caption' {
+        $script:UsersTmdl | Should -Match "measure 'Fix Account Image'[\s\S]*?VAR ShownName = \[User Display Name\]"
+        $script:UsersTmdl | Should -Match "measure 'Legacy Caption'[\s\S]*?\[User Display Name\]"
+        foreach ($measure in 'Legacy Succeeded (Fix Now)', 'Legacy Succeeded (Other)', 'Legacy Blocked', 'Legacy Chart Order') {
+            $script:UsersTmdl | Should -Match ("measure '" + [regex]::Escape($measure) + "'[\s\S]*?SELECTEDVALUE\(AnonymizeMode\[Mode\], `"Show names`"\)[\s\S]*?'User Display'\[Mode\] = ModeShown")
+        }
+        $chart = Get-Content -LiteralPath (Join-Path $script:PageVisuals 'fix-legacy-chart/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $chart.visual.query.queryState.Category.projections[0].queryRef | Should -Be 'User Display.Name'
+    }
+
+    It 'builds the User Display pseudonym the way UsersCurrent[Pseudonym] does' {
+        # DAX: SUMX(GENERATESERIES(1, LEN(Id)), UNICODE(MID(Id, i, 1)) * i), MOD 9000, + 1000.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'User Display.tmdl') -Raw
+        $tmdl | Should -Match ([regex]::Escape('Number.Mod(List.Sum(List.Transform({1..Text.Length(id)}, (i) => Character.ToNumber(Text.At(id, i - 1)) * i)), 9000) + 1000'))
+        $tmdl | Should -Match ([regex]::Escape('"User " & Text.PadStart('))
+        $tmdl | Should -Match "partition 'User Display' = m"
+        $script:UsersTmdl | Should -Match ([regex]::Escape('MOD(HashSeed, 9000) + 1000'))
+    }
+
+    It 'sorts the accounts table on the hidden Fix Order column, worst first' {
+        $table = Get-Content -LiteralPath (Join-Path $script:PageVisuals 'fix-table/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $key = @($table.visual.query.queryState.Values.projections | Where-Object { $_.queryRef -eq 'UsersCurrent.Fix Order' })
+        $key.Count | Should -Be 1
+        $key[0].hidden | Should -BeTrue
+        $table.visual.query.sortDefinition.sort[0].field.Column.Property | Should -Be 'Fix Order'
+        $table.visual.query.sortDefinition.sort[0].direction | Should -Be 'Ascending'
+    }
+
+    It 'gives every account its own Fix Order, so no two accounts merge into one table row' {
+        # The table has Fix Order as its only column; two accounts with one key (same name, same
+        # band, same legacy count) would show as one row with blank cells and drop out of the list.
+        $measure = [regex]::Match($script:UsersTmdl, "measure 'Fix Sort Key' =[\s\S]*?lineageTag").Value
+        $measure | Should -Not -BeNullOrEmpty
+        $measure | Should -Match ([regex]::Escape('UsersCurrent[Id] < UserKey'))
+        # Bands are scaled so the name position (1 to the number of accounts) cannot reach the legacy count digits.
+        $scales = [regex]::Match($measure, 'Band \* (\d+) \+ \(99 - MIN\(LegacyOk, 99\)\) \* (\d+) \+ NamePosition')
+        $scales.Success | Should -BeTrue
+        [int64]$scales.Groups[2].Value | Should -BeGreaterOrEqual 1000000
+        [int64]$scales.Groups[1].Value | Should -BeGreaterOrEqual (100 * [int64]$scales.Groups[2].Value)
+    }
+
+    It 'flags fix now only with a successful legacy sign-in, as the footnote says' {
+        $script:UsersTmdl | Should -Match ([regex]::Escape('LegacyOk > 0 && [Fix At Risk] = 1 && [Fix No MFA] = 1, 1,'))
+        $script:UsersTmdl | Should -Match ([regex]::Escape('LegacyOk > 0 && [Fix Has Active Role] = 1, 2,'))
+        $script:UsersTmdl | Should -Match ([regex]::Escape('LegacyOk > 0 && [Fix Disabled] = 1, 3,'))
+    }
+
+    It 'avoids the DAX VAR names Desktop 2.158 rejects' {
+        # Desktop 2.158 reports "The syntax for '<name>' is incorrect" for these (BRO-501, BRO-502).
+        $bad = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
+            Select-String -LiteralPath $file.FullName -Pattern '\bVAR (Value|Status|Scope|Disabled|Hidden|FirstDate|LastDate|Lead|At|Rows|Level)\b' |
+                ForEach-Object { '{0}:{1}' -f $file.Name, $_.LineNumber }
+        }
+        $bad -join '; ' | Should -BeNullOrEmpty
+    }
+
+    It 'never filters CALCULATE on a column compared with a measure' {
+        # Desktop 2.158 put the nine Conditional Access detail measures in error ("A function
+        # 'PLACEHOLDER' has been used in a True/False expression that is used as a table filter
+        # expression"); BRO-501 reads the snapshot date into a VAR first.
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'ConditionalAccessPolicies.tmdl') -Raw
+        $tmdl | Should -Not -Match ([regex]::Escape('ConditionalAccessPolicies[RunDate] = [Conditional Access Snapshot Date]'))
     }
 }
