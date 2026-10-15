@@ -5,7 +5,50 @@
       "name": "CY24SU10",
       "reportVersionAtImport": "5.55",
       "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "BacklogKrewHouseStyle-e565a1c7d3.json",
+      "reportVersionAtImport": "5.55",
+      "type": "RegisteredResources"
     }
   },
-  "layoutOptimization": "None"
+  "layoutOptimization": "None",
+  "resourcePackages": [
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "BacklogKrewHouseStyle-e565a1c7d3.json",
+          "type": "CustomTheme",
+          "path": "BacklogKrewHouseStyle-e565a1c7d3.json"
+        },
+        {
+          "name": "icon-failed.svg",
+          "path": "icon-failed.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-spray.svg",
+          "path": "icon-spray.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-mail.svg",
+          "path": "icon-mail.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-shield.svg",
+          "path": "icon-shield.svg",
+          "type": "Image"
+        },
+        {
+          "name": "premium-dashed-box.svg",
+          "path": "premium-dashed-box.svg",
+          "type": "Image"
+        }
+      ]
+    }
+  ]
 }

@@ -8,3 +8,4 @@ ref table SignInsNonInteractive
 ref table SignInConditionalAccess
 ref table DirectoryAudits
 ref table RetentionReference
+ref table PasswordSprays

@@ -157,6 +157,126 @@ table SignInsNonInteractive
         summarizeBy: none
         sourceColumn: RiskState
 
+    /// Sign-in watch (BRO-565)
+    /// CreatedDateTime (UTC text) as a date and time.
+    column SignInAt =
+            VAR vText = SignInsNonInteractive[CreatedDateTime]
+            RETURN IF(ISBLANK(vText) || LEN(vText) < 19, BLANK(), DATE(VALUE(LEFT(vText, 4)), VALUE(MID(vText, 6, 2)), VALUE(MID(vText, 9, 2))) + TIME(VALUE(MID(vText, 12, 2)), VALUE(MID(vText, 15, 2)), VALUE(MID(vText, 18, 2))))
+        dataType: dateTime
+        formatString: yyyy-mm-dd hh:nn
+        isHidden
+        lineageTag: 19c01cd0-9175-569d-97ee-c0eb1079ed08
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// In the 30 days up to the latest sign-in in either sign-in file.
+    column InWindow =
+            VAR vEnd = MAX(MAX(SignInsInteractive[SignInAt]), MAX(SignInsNonInteractive[SignInAt]))
+            RETURN NOT ISBLANK(SignInsNonInteractive[SignInAt]) && SignInsNonInteractive[SignInAt] > vEnd - 30
+        dataType: boolean
+        isHidden
+        lineageTag: 07a709fd-882a-515b-b602-f18b94b86409
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A sign-in with an error code other than 0.
+    column IsFailure = NOT ISBLANK(SignInsNonInteractive[ErrorCode]) && SignInsNonInteractive[ErrorCode] <> "0"
+        dataType: boolean
+        isHidden
+        lineageTag: f36b6f89-4793-58fe-b8a7-b6c983a7d151
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The error code in plain words (https://learn.microsoft.com/entra/identity-platform/reference-error-codes).
+    column FailureGroup =
+            VAR vCode = SignInsNonInteractive[ErrorCode]
+            RETURN IF(ISBLANK(vCode) || vCode = "0", BLANK(), SWITCH(TRUE(), vCode = "50126", "Wrong password", vCode IN {"50074", "50076", "500121", "50072", "50079", "50158"}, "MFA not finished", vCode IN {"53003", "53000", "53001", "53002", "530032", "530035", "50131"}, "Blocked by a policy", vCode IN {"50058", "50089", "50132", "50133", "50173", "70043", "70044"}, "Session expired", vCode = "50053", "Account locked", vCode = "50057", "Disabled account tried", "Other"))
+        dataType: string
+        isHidden
+        lineageTag: 9dcfbe4e-07df-59c5-87ca-f9bc57fe231a
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The password was right: the sign-in succeeded, or stopped only at MFA.
+    column PasswordWorked = SignInsNonInteractive[ErrorCode] = "0" || SignInsNonInteractive[ErrorCode] IN {"50074", "50076", "500121", "50072", "50079", "50158"}
+        dataType: boolean
+        isHidden
+        lineageTag: 3c332f9f-c189-5e15-a745-6a2d358eb486
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Legacy authentication client (https://learn.microsoft.com/entra/identity/conditional-access/concept-conditional-access-conditions#client-apps); blank for Browser and Mobile Apps and Desktop clients.
+    column LegacyMethod =
+            VAR vClient = SignInsNonInteractive[ClientAppUsed]
+            RETURN IF(ISBLANK(vClient) || vClient IN {"Browser", "Mobile Apps and Desktop clients"}, BLANK(), SWITCH(vClient, "IMAP4", "IMAP", "Authenticated SMTP", "Authenticated SMTP", "POP3", "POP", "Other old clients"))
+        dataType: string
+        isHidden
+        lineageTag: 364e4002-f39a-55c3-bbe4-839f02a86662
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// The account a sign-in was for: the lower-case UPN, else the user ID.
+    column AccountKey =
+            VAR vUpn = LOWER(SignInsNonInteractive[UserPrincipalName])
+            RETURN IF(ISBLANK(vUpn), SignInsNonInteractive[UserId], vUpn)
+        dataType: string
+        isHidden
+        lineageTag: d51e7d82-268d-5297-b0c4-6d8650264bf3
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A readable name from the UPN: first.last becomes First Last.
+    column PersonName =
+            VAR vUpn = SignInsNonInteractive[UserPrincipalName]
+            VAR vLocal = IF(ISBLANK(vUpn), BLANK(), LEFT(vUpn, FIND("@", vUpn & "@") - 1))
+            VAR vGuest = CONTAINSSTRING(vLocal, "#EXT#")
+            VAR vPath = SUBSTITUTE(vLocal, ".", "|")
+            VAR vParts = IF(ISBLANK(vLocal), 0, PATHLENGTH(vPath))
+            RETURN IF(ISBLANK(vLocal), "Unknown account", IF(vGuest, LEFT(vLocal, SEARCH("#EXT#", vLocal) - 1), IF(vParts < 2, vLocal, CONCATENATEX(GENERATESERIES(1, vParts), VAR vWord = PATHITEM(vPath, [Value]) RETURN UPPER(LEFT(vWord, 1)) & MID(vWord, 2, 200), " ", [Value], ASC))))
+        dataType: string
+        isHidden
+        lineageTag: 98957bfd-dd8d-5031-be2f-cf5b717f5f40
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// City and country or region.
+    column Place =
+            VAR vCity = SignInsNonInteractive[City]
+            VAR vCountry = SignInsNonInteractive[CountryOrRegion]
+            RETURN IF(ISBLANK(vCity), vCountry, IF(ISBLANK(vCountry), vCity, vCity & ", " & vCountry))
+        dataType: string
+        isHidden
+        lineageTag: a91a848a-9e21-5b4f-98d9-5d0b1bc79f9d
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// SharePoint, Teams, Outlook on web, Exchange or Other apps, from the app and resource names.
+    column AppArea =
+            VAR vApp = SignInsNonInteractive[AppDisplayName]
+            VAR vRes = SignInsNonInteractive[ResourceDisplayName]
+            RETURN SWITCH(TRUE(), CONTAINSSTRING(vApp, "SharePoint") || CONTAINSSTRING(vApp, "OneDrive") || CONTAINSSTRING(vRes, "SharePoint"), "SharePoint", CONTAINSSTRING(vApp, "Teams") || CONTAINSSTRING(vRes, "Teams"), "Teams", CONTAINSSTRING(vApp, "Outlook Web") || CONTAINSSTRING(vApp, "OWA"), "Outlook on web", CONTAINSSTRING(vApp, "Exchange") || CONTAINSSTRING(vApp, "Outlook") || CONTAINSSTRING(vRes, "Exchange"), "Exchange", "Other apps")
+        dataType: string
+        isHidden
+        lineageTag: 2ad3522e-040d-513e-903f-dbc8edd6db1c
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// A successful sign-in from a device that is not managed (DeviceIsManaged not True).
+    column UnmanagedSuccess = SignInsNonInteractive[ErrorCode] = "0" && SignInsNonInteractive[DeviceIsManaged] <> "True"
+        dataType: boolean
+        isHidden
+        lineageTag: 0634aced-5771-5a51-b762-a9dd553e5246
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// riskLevelDuringSignIn as High, Medium or Low; blank for none, hidden and anything else.
+    column RiskBand = SWITCH(LOWER(SignInsNonInteractive[RiskLevelDuringSignIn]), "high", "High", "medium", "Medium", "low", "Low", BLANK())
+        dataType: string
+        isHidden
+        lineageTag: 88ce8a6d-58bb-5818-8319-8519a134dd4a
+        summarizeBy: none
+        isDataTypeInferred: false
+
     partition SignInsNonInteractive = m
         mode: import
         source =
