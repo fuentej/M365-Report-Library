@@ -10,8 +10,9 @@
     - every semantic-model table sourced directly from a CSV must import exactly
       the columns that CSV has, in the same order -- the same guarantee
       SampleData.Tests.ps1 holds the collectors to, extended to the report;
-    - the report keeps its eight pages, and every page keeps the date, workload,
-      department and user slicers and the anonymize toggle.
+    - the report has the approved page (BRO-502: Label downgrades), the report
+      filter pane carries the anonymize toggle, and the downgrade table keys its
+      rows on the hidden ActivityExplorerEvents[RecordIdentity] column.
 
     Calculated tables (Labels, RetentionLabels, SensitivityAtRest, RetentionAtRest,
     Calendar, Workload, User Display) and the disconnected Anonymize Toggle and
@@ -116,7 +117,8 @@ Describe 'Every visual field reference resolves against the TMDL model' {
 
     It 'has field references to check' {
         # Guards the tests below against silently passing because nothing was found.
-        $script:AllReferences.Count | Should -BeGreaterThan 100
+        # BRO-502 replaced the eight old pages with one approved page (about 30 references).
+        $script:AllReferences.Count | Should -BeGreaterThan 25
     }
 
     It 'references only tables that exist in the model' {
@@ -228,59 +230,84 @@ Describe 'Every CSV-backed table matches its sample CSV' {
     }
 }
 
-Describe 'The report keeps its eight pages and their filters' {
-    BeforeAll {
-        $script:PageNames = @{
-            Overview         = 'Overview'
-            LabelCoverage    = 'Label coverage'
-            LabelActivity    = 'Label activity'
-            Dlp              = 'DLP'
-            Retention        = 'Retention'
-            PolicyPosture    = 'Policy posture'
-            CopilotAi        = 'Copilot and AI'
-            OrgDecomposition = 'Org decomposition'
-        }
-    }
-
-    It 'lists exactly the eight pages in pages.json' {
+Describe 'The report has the approved Label downgrades page and its filter' {
+    # BRO-502 replaced the eight pages (Overview ... Org decomposition) with the approved
+    # page 1 from docs/design/purview-ip. The design has no slicers: the anonymize toggle
+    # is a report-level filter, as on the Teams and Groups lifecycle pages (BRO-499).
+    It 'lists exactly the approved page in pages.json' {
         $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable
-        (@($pages.pageOrder) | Sort-Object) -join ',' | Should -Be ((@($script:PageNames.Keys) | Sort-Object) -join ',')
+        @($pages.pageOrder) -join ',' | Should -Be 'label-downgrades'
     }
 
-    It 'names the <Folder> page <Display>' -ForEach @(
-        @{ Folder = 'Overview'; Display = 'Overview' }
-        @{ Folder = 'LabelCoverage'; Display = 'Label coverage' }
-        @{ Folder = 'LabelActivity'; Display = 'Label activity' }
-        @{ Folder = 'Dlp'; Display = 'DLP' }
-        @{ Folder = 'Retention'; Display = 'Retention' }
-        @{ Folder = 'PolicyPosture'; Display = 'Policy posture' }
-        @{ Folder = 'CopilotAi'; Display = 'Copilot and AI' }
-        @{ Folder = 'OrgDecomposition'; Display = 'Org decomposition' }
-    ) {
-        $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder "$Folder/page.json") -Raw | ConvertFrom-Json -AsHashtable
-        $page.displayName | Should -Be $Display
+    It 'names the page Label downgrades' {
+        $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'label-downgrades/page.json') -Raw | ConvertFrom-Json -AsHashtable
+        $page.displayName | Should -Be 'Label downgrades'
     }
 
-    It 'has the date, workload, department and user slicers and the anonymize toggle on <Folder>' -ForEach @(
-        @{ Folder = 'Overview' }
-        @{ Folder = 'LabelCoverage' }
-        @{ Folder = 'LabelActivity' }
-        @{ Folder = 'Dlp' }
-        @{ Folder = 'Retention' }
-        @{ Folder = 'PolicyPosture' }
-        @{ Folder = 'CopilotAi' }
-        @{ Folder = 'OrgDecomposition' }
+    It 'carries the anonymize toggle in the report filter pane' {
+        $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'PurviewIPReport.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
+        $fields = @($report.filterConfig.filters | ForEach-Object { '{0}.{1}' -f $_.field.Column.Expression.SourceRef.Entity, $_.field.Column.Property })
+        $fields | Should -Contain 'Anonymize Toggle.Anonymize Toggle'
+    }
+
+    It 'shows people only through a measure that honours the anonymize toggle' {
+        # Users[DisplayName] or ActivityExplorerEvents[User] on a visual would bypass the toggle.
+        $raw = @($script:VisualFiles | ForEach-Object {
+                $json = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
+                foreach ($ref in (Get-VisualFieldReference -Node $json)) {
+                    if ($ref.Kind -eq 'Column' -and ('{0}.{1}' -f $ref.Entity, $ref.Property) -in 'Users.DisplayName', 'Users.UserPrincipalName', 'ActivityExplorerEvents.User') { $_.FullName }
+                }
+            })
+        $raw -join '; ' | Should -BeNullOrEmpty
+        $tmdl = Get-Content -LiteralPath $script:Model['_Measures'].Path -Raw
+        $tmdl | Should -Match "measure 'Downgrade Person'[\s\S]*?\[Anonymize Toggle Value\] = 1"
+    }
+
+    It 'keys each downgrade table row on the hidden RecordIdentity column' {
+        $table = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'label-downgrades/visuals/downgrades-table/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $key = @($table.visual.query.queryState.Values.projections | Where-Object { $_.queryRef -eq 'ActivityExplorerEvents.RecordIdentity' })
+        $key.Count | Should -Be 1
+        $key[0].hidden | Should -BeTrue
+    }
+}
+
+Describe 'The Label downgrades page matches Content Explorer tags on the label Name' {
+    # Get-ContentExplorerSnapshot writes Get-Label's Name as SensitivityAtRest[TagName].
+    # Name and DisplayName differ in a real tenant, so a match on DisplayName finds no
+    # snapshot rows and the trend tile, caption and chart come up empty.
+    # https://learn.microsoft.com/powershell/module/exchange/get-label
+    # https://learn.microsoft.com/powershell/module/exchange/export-contentexplorerdata
+    BeforeAll {
+        $script:MeasuresTmdl = Get-Content -LiteralPath $script:Model['_Measures'].Path -Raw
+        $script:AtRestTmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'SensitivityAtRest.tmdl') -Raw
+    }
+
+    It 'has a collector that writes the label Name as the Sensitivity TagName' {
+        $collector = Get-Content -LiteralPath (Join-Path $script:Root 'reports/purview-ip/collectors/Get-ContentExplorerSnapshot.ps1') -Raw
+        $collector | Should -Match "Get-Label[\s\S]*?\`$name = Get-PurviewProperty \`$label 'Name'[\s\S]*?TagType = 'Sensitivity'; TagName = \[string\]\`$name"
+    }
+
+    It 'looks up a snapshot row''s label priority by Labels[Name]' {
+        $script:AtRestTmdl | Should -Match "column 'Label Priority' = [^\r\n]*Labels\[Name\] = SensitivityAtRest\[TagName\]"
+    }
+
+    It 'never compares Labels[DisplayName] with SensitivityAtRest[TagName]' {
+        $script:AtRestTmdl | Should -Not -Match 'Labels\[DisplayName\]\s*=\s*SensitivityAtRest\[TagName\]'
+        $script:MeasuresTmdl | Should -Not -Match 'Labels\[DisplayName\]\s*=\s*SensitivityAtRest\[TagName\]'
+    }
+
+    It 'counts first and latest snapshot items for the top label''s Name' -ForEach @(
+        @{ Measure = 'Top Label Items First' }
+        @{ Measure = 'Top Label Items Latest' }
     ) {
-        $entities = @(Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder "$Folder/visuals") -Filter 'visual.json' -Recurse -File |
-                Where-Object { (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable).visual.visualType -eq 'slicer' } |
-                ForEach-Object {
-                    $json = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
-                    foreach ($ref in (Get-VisualFieldReference -Node $json)) { '{0}.{1}' -f $ref.Entity, $ref.Property }
-                })
-        $entities | Should -Contain 'Calendar.Date'
-        $entities | Should -Contain 'Workload.Workload'
-        $entities | Should -Contain 'Users.Department'
-        $entities | Should -Contain 'Anonymize Toggle.Anonymize Toggle'
-        @($entities | Where-Object { $_ -like 'User Display.*' }).Count | Should -BeGreaterThan 0
+        $script:MeasuresTmdl | Should -Match "measure '$Measure' =\s*VAR TopName = \[Top Label Tag Name\]"
+        $script:MeasuresTmdl | Should -Match "measure 'Top Label Tag Name' =[\s\S]*?Labels\[Name\]\)"
+    }
+
+    It 'names the chart series by display name, not by the raw TagName' {
+        $chart = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'label-downgrades/visuals/downgrades-trend-chart/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $series = @($chart.visual.query.queryState.Series.projections | ForEach-Object { $_.queryRef })
+        $series | Should -Be @('SensitivityAtRest.Label Name')
+        $script:AtRestTmdl | Should -Match "column 'Label Name' = COALESCE\(MAXX\(FILTER\(Labels, Labels\[Name\] = SensitivityAtRest\[TagName\]\), Labels\[DisplayName\]\)"
     }
 }
