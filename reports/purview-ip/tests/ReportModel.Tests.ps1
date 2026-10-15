@@ -234,14 +234,20 @@ Describe 'The report has the approved Label downgrades page and its filter' {
     # BRO-502 replaced the eight pages (Overview ... Org decomposition) with the approved
     # page 1 from docs/design/purview-ip. The design has no slicers: the anonymize toggle
     # is a report-level filter, as on the Teams and Groups lifecycle pages (BRO-499).
-    It 'lists exactly the approved page in pages.json' {
+    # BRO-503 adds the approved page 2, What Copilot and agents read, after page 1.
+    It 'lists exactly the approved pages in pages.json, in order' {
         $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable
-        @($pages.pageOrder) -join ',' | Should -Be 'label-downgrades'
+        @($pages.pageOrder) -join ',' | Should -Be 'label-downgrades,copilot-reads'
     }
 
     It 'names the page Label downgrades' {
         $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'label-downgrades/page.json') -Raw | ConvertFrom-Json -AsHashtable
         $page.displayName | Should -Be 'Label downgrades'
+    }
+
+    It 'names page 2 What Copilot and agents read' {
+        $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'copilot-reads/page.json') -Raw | ConvertFrom-Json -AsHashtable
+        $page.displayName | Should -Be 'What Copilot and agents read'
     }
 
     It 'carries the anonymize toggle in the report filter pane' {
@@ -255,12 +261,13 @@ Describe 'The report has the approved Label downgrades page and its filter' {
         $raw = @($script:VisualFiles | ForEach-Object {
                 $json = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json -AsHashtable
                 foreach ($ref in (Get-VisualFieldReference -Node $json)) {
-                    if ($ref.Kind -eq 'Column' -and ('{0}.{1}' -f $ref.Entity, $ref.Property) -in 'Users.DisplayName', 'Users.UserPrincipalName', 'ActivityExplorerEvents.User') { $_.FullName }
+                    if ($ref.Kind -eq 'Column' -and ('{0}.{1}' -f $ref.Entity, $ref.Property) -in 'Users.DisplayName', 'Users.UserPrincipalName', 'ActivityExplorerEvents.User', 'CopilotAccessedResources.UserId') { $_.FullName }
                 }
             })
         $raw -join '; ' | Should -BeNullOrEmpty
         $tmdl = Get-Content -LiteralPath $script:Model['_Measures'].Path -Raw
         $tmdl | Should -Match "measure 'Downgrade Person'[\s\S]*?\[Anonymize Toggle Value\] = 1"
+        $tmdl | Should -Match "measure 'AI Read Person'[\s\S]*?\[Anonymize Toggle Value\] = 1"
     }
 
     It 'keys each downgrade table row on the hidden RecordIdentity column' {
@@ -268,6 +275,20 @@ Describe 'The report has the approved Label downgrades page and its filter' {
         $key = @($table.visual.query.queryState.Values.projections | Where-Object { $_.queryRef -eq 'ActivityExplorerEvents.RecordIdentity' })
         $key.Count | Should -Be 1
         $key[0].hidden | Should -BeTrue
+    }
+
+    It 'keys each AI read table row on the hidden Read Key column' {
+        # One Copilot interaction (RecordId) can read several resources, so RecordId alone would merge rows.
+        $table = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'copilot-reads/visuals/reads-table/visual.json') -Raw | ConvertFrom-Json -AsHashtable
+        $key = @($table.visual.query.queryState.Values.projections | Where-Object { $_.queryRef -eq 'CopilotAccessedResources.Read Key' })
+        $key.Count | Should -Be 1
+        $key[0].hidden | Should -BeTrue
+    }
+
+    It 'ranks a Copilot read''s label by Labels[Priority], not by its name' {
+        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'CopilotAccessedResources.tmdl') -Raw
+        $tmdl | Should -Match "column 'Label Rank' =[\s\S]*?Labels\[Priority\] > LabelPriority"
+        $tmdl | Should -Match "column 'Sensitive Read' =[\s\S]*?\[Label Rank\] <= 2"
     }
 }
 
