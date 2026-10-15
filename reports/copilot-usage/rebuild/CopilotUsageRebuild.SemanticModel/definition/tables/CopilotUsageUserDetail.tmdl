@@ -160,6 +160,144 @@ table CopilotUsageUserDetail
         summarizeBy: none
         sourceColumn: CopilotAgentLastActivityDate
 
+    /// People in the per-person usage rows of the latest run.
+    measure 'People Listed' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            RETURN
+                COUNTROWS ( FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run ) ) + 0
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 4795f561-4543-431f-9b36-303336bf5020
+
+    /// People with 10 or more active days in the per-person usage rows of the latest run.
+    measure 'Habit People' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            RETURN
+                COUNTROWS ( FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && CopilotUsageUserDetail[ActiveUsageDaysAllApps] >= 10 ) ) + 0
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: b9fd318b-578e-4288-9b71-a84b6c73629c
+
+    /// How habit is counted, with the per-person figures.
+    measure 'Funnel Note' =
+            VAR _listed = [People Listed]
+            VAR _habit = [Habit People]
+            RETURN
+                "Habit counts each person's active days in the last 28 days from the per-person usage rows. The data lists "
+                    & FORMAT ( _listed, "#,0" ) & " people; " & FORMAT ( _habit, "#,0" )
+                    & IF ( _habit = 1, " has", " have" ) & " 10 or more active days."
+        displayFolder: Licence to habit
+        lineageTag: afc4803f-601f-47ac-8f40-b58e6aa746e3
+
+    /// The person with the most active days in the per-person rows (then most prompts).
+    measure 'Champion Name' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _people = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && CopilotUsageUserDetail[ActiveUsageDaysAllApps] > 0 )
+            VAR _top = TOPN ( 1, _people, CopilotUsageUserDetail[ActiveUsageDaysAllApps], DESC, CopilotUsageUserDetail[PromptsSubmittedAllApps], DESC, CopilotUsageUserDetail[DisplayName], ASC )
+            RETURN
+                IF ( ISEMPTY ( _top ), "Nobody yet", MAXX ( _top, CopilotUsageUserDetail[DisplayName] ) )
+        displayFolder: Licence to habit
+        lineageTag: 71ecc3da-27ce-405e-a8ef-e8557e3327d2
+
+    /// Prompts, active days, apps used in the last 28 days and last activity date of the champion.
+    measure 'Champion Detail' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _ref = MAX ( CopilotUsageUserDetail[ReportRefreshDate] )
+            VAR _since = _ref - 28
+            VAR _people = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && CopilotUsageUserDetail[ActiveUsageDaysAllApps] > 0 )
+            VAR _top = TOPN ( 1, _people, CopilotUsageUserDetail[ActiveUsageDaysAllApps], DESC, CopilotUsageUserDetail[PromptsSubmittedAllApps], DESC, CopilotUsageUserDetail[DisplayName], ASC )
+            VAR _appDates = {
+                ( 1, "Chat", MAXX ( _top, CopilotUsageUserDetail[CopilotChatLastActivityDate] ) ),
+                ( 2, "Teams", MAXX ( _top, CopilotUsageUserDetail[MicrosoftTeamsCopilotLastActivityDate] ) ),
+                ( 3, "Outlook", MAXX ( _top, CopilotUsageUserDetail[OutlookCopilotLastActivityDate] ) ),
+                ( 4, "Word", MAXX ( _top, CopilotUsageUserDetail[WordCopilotLastActivityDate] ) ),
+                ( 5, "Excel", MAXX ( _top, CopilotUsageUserDetail[ExcelCopilotLastActivityDate] ) ),
+                ( 6, "PowerPoint", MAXX ( _top, CopilotUsageUserDetail[PowerPointCopilotLastActivityDate] ) ),
+                ( 7, "OneNote", MAXX ( _top, CopilotUsageUserDetail[OneNoteCopilotLastActivityDate] ) ),
+                ( 8, "Loop", MAXX ( _top, CopilotUsageUserDetail[LoopCopilotLastActivityDate] ) )
+            }
+            VAR _used = FILTER ( _appDates, NOT ISBLANK ( [Value3] ) && [Value3] > _since )
+            VAR _appCount = COUNTROWS ( _used ) + 0
+            VAR _appList = CONCATENATEX ( _used, [Value2], ", ", [Value1], ASC )
+            VAR _prompts = MAXX ( _top, CopilotUsageUserDetail[PromptsSubmittedAllApps] ) + 0
+            VAR _days = MAXX ( _top, CopilotUsageUserDetail[ActiveUsageDaysAllApps] ) + 0
+            VAR _last = MAXX ( _top, CopilotUsageUserDetail[LastActivityDate] )
+            RETURN
+                IF (
+                    ISEMPTY ( _top ),
+                    "Nobody has an active day in the per-person rows.",
+                    FORMAT ( _prompts, "#,0" ) & " prompts on " & FORMAT ( _days, "0" ) & " days"
+                        & IF ( _appCount > 0, " in " & _appCount & IF ( _appCount = 1, " app: ", " apps: " ) & _appList, "" )
+                        & ". Last active " & FORMAT ( _last, "yyyy-mm-dd" ) & "."
+                )
+        displayFolder: Licence to habit
+        lineageTag: 75413242-ab7a-41d8-9123-8c0c9a0e2ecb
+
+    /// The person who used Copilot in the last 28 days but not the last 7 and stopped earliest, with how many more did the same.
+    measure 'Fading Name' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _ref = MAX ( CopilotUsageUserDetail[ReportRefreshDate] )
+            VAR _faded = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && NOT ISBLANK ( CopilotUsageUserDetail[LastActivityDate] ) && CopilotUsageUserDetail[LastActivityDate] > _ref - 28 && CopilotUsageUserDetail[LastActivityDate] <= _ref - 7 )
+            VAR _top = TOPN ( 1, _faded, CopilotUsageUserDetail[LastActivityDate], ASC, CopilotUsageUserDetail[PromptsSubmittedAllApps], DESC, CopilotUsageUserDetail[DisplayName], ASC )
+            VAR _more = COUNTROWS ( _faded ) - 1
+            RETURN
+                IF ( ISEMPTY ( _top ), "Nobody", MAXX ( _top, CopilotUsageUserDetail[DisplayName] ) & IF ( _more > 0, " and " & _more & " more", "" ) )
+        displayFolder: Licence to habit
+        lineageTag: f12c78f8-911d-4633-af47-fee890b56852
+
+    /// Prompts, active days, apps and last activity date of the fading person.
+    measure 'Fading Detail' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _ref = MAX ( CopilotUsageUserDetail[ReportRefreshDate] )
+            VAR _faded = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && NOT ISBLANK ( CopilotUsageUserDetail[LastActivityDate] ) && CopilotUsageUserDetail[LastActivityDate] > _ref - 28 && CopilotUsageUserDetail[LastActivityDate] <= _ref - 7 )
+            VAR _top = TOPN ( 1, _faded, CopilotUsageUserDetail[LastActivityDate], ASC, CopilotUsageUserDetail[PromptsSubmittedAllApps], DESC, CopilotUsageUserDetail[DisplayName], ASC )
+            VAR _since = _ref - 28
+            VAR _appDates = {
+                ( 1, "Chat", MAXX ( _top, CopilotUsageUserDetail[CopilotChatLastActivityDate] ) ),
+                ( 2, "Teams", MAXX ( _top, CopilotUsageUserDetail[MicrosoftTeamsCopilotLastActivityDate] ) ),
+                ( 3, "Outlook", MAXX ( _top, CopilotUsageUserDetail[OutlookCopilotLastActivityDate] ) ),
+                ( 4, "Word", MAXX ( _top, CopilotUsageUserDetail[WordCopilotLastActivityDate] ) ),
+                ( 5, "Excel", MAXX ( _top, CopilotUsageUserDetail[ExcelCopilotLastActivityDate] ) ),
+                ( 6, "PowerPoint", MAXX ( _top, CopilotUsageUserDetail[PowerPointCopilotLastActivityDate] ) ),
+                ( 7, "OneNote", MAXX ( _top, CopilotUsageUserDetail[OneNoteCopilotLastActivityDate] ) ),
+                ( 8, "Loop", MAXX ( _top, CopilotUsageUserDetail[LoopCopilotLastActivityDate] ) )
+            }
+            VAR _used = FILTER ( _appDates, NOT ISBLANK ( [Value3] ) && [Value3] > _since )
+            VAR _appList = CONCATENATEX ( _used, [Value2], ", ", [Value1], ASC )
+            VAR _prompts = MAXX ( _top, CopilotUsageUserDetail[PromptsSubmittedAllApps] ) + 0
+            VAR _days = MAXX ( _top, CopilotUsageUserDetail[ActiveUsageDaysAllApps] ) + 0
+            VAR _last = MAXX ( _top, CopilotUsageUserDetail[LastActivityDate] )
+            RETURN
+                IF (
+                    ISEMPTY ( _top ),
+                    "Everyone who used Copilot this month also used it this week.",
+                    FORMAT ( _prompts, "#,0" ) & " prompts on " & FORMAT ( _days, "0" ) & IF ( _days = 1, " day", " days" )
+                        & IF ( ISBLANK ( _appList ), "", ", " & _appList )
+                        & ". Nothing since " & FORMAT ( _last, "yyyy-mm-dd" ) & "."
+                )
+        displayFolder: Licence to habit
+        lineageTag: f5b6cab0-521c-429d-a599-d69c4d175ae7
+
+    /// A licensed person in the per-person rows with no Copilot activity on record, with how many more.
+    measure 'Never Started Name' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _never = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && ISBLANK ( CopilotUsageUserDetail[LastActivityDate] ) )
+            VAR _top = TOPN ( 1, _never, CopilotUsageUserDetail[DisplayName], ASC )
+            VAR _more = COUNTROWS ( _never ) - 1
+            RETURN
+                IF ( ISEMPTY ( _top ), "Nobody", MAXX ( _top, CopilotUsageUserDetail[DisplayName] ) & IF ( _more > 0, " and " & _more & " more", "" ) )
+        displayFolder: Licence to habit
+        lineageTag: afc37de6-301e-4f16-a32f-f923d9660a2c
+
+    /// What never started means, or that everyone has started.
+    measure 'Never Started Detail' =
+            VAR _run = MAX ( CopilotUsageUserDetail[RunDate] )
+            VAR _never = FILTER ( ALL ( CopilotUsageUserDetail ), CopilotUsageUserDetail[RunDate] = _run && ISBLANK ( CopilotUsageUserDetail[LastActivityDate] ) )
+            RETURN
+                IF ( ISEMPTY ( _never ), "Every person in the per-person rows has used Copilot at least once.", "Licensed, 0 prompts, no activity on record." )
+        displayFolder: Licence to habit
+        lineageTag: 27cedbd7-e4af-44db-932e-2f9cf204ac14
+
     partition CopilotUsageUserDetail = m
         mode: import
         source =

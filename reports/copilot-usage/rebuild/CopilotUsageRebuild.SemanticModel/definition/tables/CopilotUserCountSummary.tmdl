@@ -218,6 +218,231 @@ table CopilotUserCountSummary
         summarizeBy: none
         sourceColumn: AveragePromptsSubmitted
 
+    /// People with a Microsoft 365 Copilot licence in the latest run: AnyAppEnabledUsers for the 28-day period.
+    measure Licensed =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            RETURN
+                CALCULATE ( MAX ( CopilotUserCountSummary[AnyAppEnabledUsers] ), CopilotUserCountSummary[ReportPeriod] = 28, CopilotUserCountSummary[RunDate] = _run ) + 0
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 0f022ba6-6f32-4a29-bf24-34b9420b54cb
+
+    /// Licensed people who used Copilot in any app in the last 28 days: AnyAppActiveUsers for the 28-day period.
+    measure 'Used It This Month' =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            RETURN
+                CALCULATE ( MAX ( CopilotUserCountSummary[AnyAppActiveUsers] ), CopilotUserCountSummary[ReportPeriod] = 28, CopilotUserCountSummary[RunDate] = _run ) + 0
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 98e541fe-3f48-4bce-ade1-ae129a2f288e
+
+    /// Licensed people who used Copilot in any app in the last 7 days: AnyAppActiveUsers for the 7-day period.
+    measure 'Used It This Week' =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            RETURN
+                CALCULATE ( MAX ( CopilotUserCountSummary[AnyAppActiveUsers] ), CopilotUserCountSummary[ReportPeriod] = 7, CopilotUserCountSummary[RunDate] = _run ) + 0
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 71d668e8-5a1d-451d-80ad-29c1792532c5
+
+    /// Licensed people who did not use Copilot in the last 28 days.
+    measure 'Idle Licences' =
+            MAX ( 0, [Licensed] - [Used It This Month] )
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 405c25df-5193-4be5-b189-7c9af39a91ed
+
+    /// People who used Copilot in the last 28 days but not in the last 7.
+    measure 'Stopped This Week' =
+            MAX ( 0, [Used It This Month] - [Used It This Week] )
+        formatString: #,0
+        displayFolder: Licence to habit
+        lineageTag: 50f535df-140a-4cc2-a55a-b001b242dc9e
+
+    /// Header text: run date, licensed people and the period.
+    measure 'Adoption Run Header' =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            RETURN
+                "Run " & FORMAT ( _run, "yyyy-mm-dd" ) & " · " & FORMAT ( [Licensed], "#,0" ) & " licensed · last 28 days"
+        displayFolder: Licence to habit
+        lineageTag: b703a2f9-f364-4845-adcd-c503bdeb5ade
+
+    /// The headline sentence for the From licence to habit page, from the funnel figures.
+    measure 'Adoption Headline' =
+            VAR _lic = [Licensed]
+            VAR _mo = [Used It This Month]
+            VAR _wk = [Used It This Week]
+            VAR _tried =
+                SWITCH (
+                    TRUE (),
+                    _lic = 0, "No Copilot licences in this run.",
+                    _mo >= 0.9 * _lic, "Almost everyone tried it.",
+                    _mo >= 0.5 * _lic, "Most people tried it.",
+                    "Only " & FORMAT ( _mo, "#,0" ) & " of " & FORMAT ( _lic, "#,0" ) & " tried it."
+                )
+            VAR _back =
+                SWITCH (
+                    TRUE (),
+                    _mo = 0, "",
+                    _wk <= 0.5 * _mo, " Half didn't come back this week.",
+                    _wk < _mo, " " & FORMAT ( _mo - _wk, "#,0" ) & " didn't come back this week.",
+                    " All of them came back this week."
+                )
+            RETURN
+                _tried & _back
+        displayFolder: Licence to habit
+        lineageTag: 97c06c6b-db27-4b8b-862d-096a9b89ed5f
+
+    /// The licence-to-habit funnel as an SVG image: licensed, used this month, came back this week, habit. Bar widths are shares of licensed people.
+    measure 'Adoption Funnel Image' =
+            VAR _lic = [Licensed]
+            VAR _mo = [Used It This Month]
+            VAR _wk = [Used It This Week]
+            VAR _hab = [Habit People]
+            VAR _full = 735
+            VAR _w1 = _full
+            VAR _w2 = IF ( _lic = 0, _full, MAX ( 300, _full * _mo / _lic ) )
+            VAR _w3 = IF ( _lic = 0, _full, MAX ( 300, _full * _wk / _lic ) )
+            VAR _w4 = IF ( _lic = 0, _full, MAX ( 300, _full * _hab / _lic ) )
+            VAR _x2 = ( _full - _w2 ) / 2
+            VAR _x3 = ( _full - _w3 ) / 2
+            VAR _x4 = ( _full - _w4 ) / 2
+            VAR _drop1 = FORMAT ( MAX ( 0, _lic - _mo ), "#,0" ) & " not used in 28 days"
+            VAR _drop2 = FORMAT ( MAX ( 0, _mo - _wk ), "#,0" ) & " used it this month, not this week"
+            VAR _tri = "<polygon points='-8,-6 8,-6 0,6' fill='%23C62828'/>"
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 735 424' font-family='Segoe UI, sans-serif'>"
+                    & "<defs><pattern id='h' width='12' height='12' patternUnits='userSpaceOnUse' patternTransform='rotate(45)'><rect width='12' height='12' fill='%23EEF1F4'/><rect width='5' height='12' fill='%23E1E6EB'/></pattern></defs>"
+                    & "<rect x='0' y='0' width='" & _w1 & "' height='90' fill='%2316324A'/>"
+                    & "<text x='25' y='53' font-size='20' font-weight='600' fill='%23FFFFFF'>Licensed</text>"
+                    & "<text x='" & _w1 - 25 & "' y='57' font-size='34' font-weight='600' fill='%23FFFFFF' text-anchor='end'>" & FORMAT ( _lic, "#,0" ) & "</text>"
+                    & "<g transform='translate(" & ( _full - LEN ( _drop1 ) * 7.6 ) / 2 - 4 & ",106)'>" & _tri & "</g>"
+                    & "<text x='" & ( _full - LEN ( _drop1 ) * 7.6 ) / 2 + 10 & "' y='112' font-size='16' font-weight='600' fill='%23C62828'>" & _drop1 & "</text>"
+                    & "<rect x='" & _x2 & "' y='122' width='" & _w2 & "' height='90' fill='%2316324A'/>"
+                    & "<text x='" & _x2 + 25 & "' y='175' font-size='20' font-weight='600' fill='%23FFFFFF'>Used it this month</text>"
+                    & "<text x='" & _x2 + _w2 - 25 & "' y='179' font-size='34' font-weight='600' fill='%23FFFFFF' text-anchor='end'>" & FORMAT ( _mo, "#,0" ) & "</text>"
+                    & "<g transform='translate(" & ( _full - LEN ( _drop2 ) * 7.6 ) / 2 - 4 & ",228)'>" & _tri & "</g>"
+                    & "<text x='" & ( _full - LEN ( _drop2 ) * 7.6 ) / 2 + 10 & "' y='234' font-size='16' font-weight='600' fill='%23C62828'>" & _drop2 & "</text>"
+                    & "<rect x='" & _x3 & "' y='244' width='" & _w3 & "' height='90' fill='%23138A8A'/>"
+                    & "<text x='" & _x3 + 25 & "' y='297' font-size='20' font-weight='600' fill='%23FFFFFF'>Came back this week</text>"
+                    & "<text x='" & _x3 + _w3 - 25 & "' y='301' font-size='34' font-weight='600' fill='%23FFFFFF' text-anchor='end'>" & FORMAT ( _wk, "#,0" ) & "</text>"
+                    & "<rect x='" & _x4 & "' y='334' width='" & _w4 & "' height='88' fill='url(%23h)' stroke='%239AA8B4' stroke-width='1.5' stroke-dasharray='5 4'/>"
+                    & "<text x='" & _x4 + 25 & "' y='372' font-size='19' fill='%235B6B78'>Habit: 10+</text>"
+                    & "<text x='" & _x4 + 25 & "' y='397' font-size='19' fill='%235B6B78'>active days</text>"
+                    & "<text x='" & _x4 + _w4 - 25 & "' y='392' font-size='34' font-weight='600' fill='%235B6B78' text-anchor='end'>" & FORMAT ( _hab, "#,0" ) & "</text>"
+                    & "</svg>"
+        displayFolder: Licence to habit
+        dataCategory: ImageUrl
+        lineageTag: 2783cbb2-6c3f-44d3-bbc0-620f65868bef
+
+    /// Where it sticks as an SVG image: people who used Copilot in each app this week and this month, against licensed people. An app under 1 in 5 licensed people this month is drawn orange.
+    measure 'App Stickiness Image' =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            VAR _lic = [Licensed]
+            VAR _w = FILTER ( ALL ( CopilotUserCountSummary ), CopilotUserCountSummary[RunDate] = _run && CopilotUserCountSummary[ReportPeriod] = 7 )
+            VAR _m = FILTER ( ALL ( CopilotUserCountSummary ), CopilotUserCountSummary[RunDate] = _run && CopilotUserCountSummary[ReportPeriod] = 28 )
+            VAR _raw = {
+                ( 1, "Copilot Chat", MAXX ( _w, CopilotUserCountSummary[CopilotChatActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[CopilotChatActiveUsers] ) + 0 ),
+                ( 2, "Outlook", MAXX ( _w, CopilotUserCountSummary[OutlookActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[OutlookActiveUsers] ) + 0 ),
+                ( 3, "Teams", MAXX ( _w, CopilotUserCountSummary[MicrosoftTeamsActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[MicrosoftTeamsActiveUsers] ) + 0 ),
+                ( 4, "Word", MAXX ( _w, CopilotUserCountSummary[WordActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[WordActiveUsers] ) + 0 ),
+                ( 5, "Excel", MAXX ( _w, CopilotUserCountSummary[ExcelActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[ExcelActiveUsers] ) + 0 ),
+                ( 6, "PowerPoint", MAXX ( _w, CopilotUserCountSummary[PowerPointActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[PowerPointActiveUsers] ) + 0 ),
+                ( 7, "OneNote", MAXX ( _w, CopilotUserCountSummary[OneNoteActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[OneNoteActiveUsers] ) + 0 ),
+                ( 8, "Loop", MAXX ( _w, CopilotUserCountSummary[LoopActiveUsers] ) + 0, MAXX ( _m, CopilotUserCountSummary[LoopActiveUsers] ) + 0 )
+            }
+            VAR _apps = SELECTCOLUMNS ( _raw, "Idx", [Value1], "App", [Value2], "Wk", [Value3], "Mo", [Value4] )
+            VAR _ranked = ADDCOLUMNS ( _apps, "Ord", RANKX ( _apps, [Wk] * 1000000000 + [Mo] * 100 + ( 10 - [Idx] ),, DESC, DENSE ) )
+            VAR _scale = IF ( _lic = 0, 0, 250 / _lic )
+            VAR _rowsSvg =
+                CONCATENATEX (
+                    _ranked,
+                    VAR _y = ( [Ord] - 1 ) * 58
+                    VAR _low = _lic > 0 && [Mo] * 5 < _lic
+                    RETURN
+                        "<text x='0' y='" & _y + 36 & "' font-size='20' font-weight='600' fill='%231F2A33'>" & [App] & "</text>"
+                            & "<rect x='140' y='" & _y + 17 & "' width='250' height='26' fill='%23F1F3F5'/>"
+                            & "<rect x='140' y='" & _y + 17 & "' width='" & MIN ( 250, [Mo] * _scale ) & "' height='26' fill='%23B8C7D3'/>"
+                            & "<rect x='140' y='" & _y + 17 & "' width='" & MAX ( IF ( [Wk] > 0, 2, 0 ), MIN ( 250, [Wk] * _scale ) ) & "' height='26' fill='" & IF ( _low, "%23D98A0B", "%2316324A" ) & "'/>"
+                            & "<text x='640' y='" & _y + 36 & "' font-size='18' fill='%231F2A33' text-anchor='end'><tspan font-weight='700'>" & FORMAT ( [Wk], "#,0" ) & "</tspan> week · " & FORMAT ( [Mo], "#,0" ) & " month</text>"
+                            & "<rect x='0' y='" & _y + 57 & "' width='640' height='1' fill='%23E3E8EC'/>",
+                    "",
+                    [Ord], ASC
+                )
+            VAR _legendY = 8 * 58 + 22
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 " & _legendY + 12 & "' font-family='Segoe UI, sans-serif'>"
+                    & _rowsSvg
+                    & "<rect x='0' y='" & _legendY - 12 & "' width='15' height='15' fill='%2316324A'/><text x='22' y='" & _legendY + 1 & "' font-size='16' fill='%235B6B78'>used this week</text>"
+                    & "<rect x='165' y='" & _legendY - 12 & "' width='15' height='15' fill='%23B8C7D3'/><text x='187' y='" & _legendY + 1 & "' font-size='16' fill='%235B6B78'>used this month</text>"
+                    & "<rect x='345' y='" & _legendY - 12 & "' width='15' height='15' fill='%23D98A0B'/><text x='367' y='" & _legendY + 1 & "' font-size='16' fill='%235B6B78'>under 1 in 5 people</text>"
+                    & "</svg>"
+        displayFolder: Licence to habit
+        dataCategory: ImageUrl
+        lineageTag: 34657084-00ab-4437-a466-9cfac372a5c2
+
+    /// The Where it sticks subtitle: the two apps with most people this month, and the app with fewest.
+    measure 'App Stickiness Subtitle' =
+            VAR _run = MAX ( CopilotUserCountSummary[RunDate] )
+            VAR _lic = [Licensed]
+            VAR _m = FILTER ( ALL ( CopilotUserCountSummary ), CopilotUserCountSummary[RunDate] = _run && CopilotUserCountSummary[ReportPeriod] = 28 )
+            VAR _raw = {
+                ( 1, "Copilot Chat", MAXX ( _m, CopilotUserCountSummary[CopilotChatActiveUsers] ) + 0 ),
+                ( 2, "Outlook", MAXX ( _m, CopilotUserCountSummary[OutlookActiveUsers] ) + 0 ),
+                ( 3, "Teams", MAXX ( _m, CopilotUserCountSummary[MicrosoftTeamsActiveUsers] ) + 0 ),
+                ( 4, "Word", MAXX ( _m, CopilotUserCountSummary[WordActiveUsers] ) + 0 ),
+                ( 5, "Excel", MAXX ( _m, CopilotUserCountSummary[ExcelActiveUsers] ) + 0 ),
+                ( 6, "PowerPoint", MAXX ( _m, CopilotUserCountSummary[PowerPointActiveUsers] ) + 0 ),
+                ( 7, "OneNote", MAXX ( _m, CopilotUserCountSummary[OneNoteActiveUsers] ) + 0 ),
+                ( 8, "Loop", MAXX ( _m, CopilotUserCountSummary[LoopActiveUsers] ) + 0 )
+            }
+            VAR _apps = SELECTCOLUMNS ( _raw, "Idx", [Value1], "App", [Value2], "Mo", [Value3] )
+            VAR _ranked = ADDCOLUMNS ( _apps, "Ord", RANKX ( _apps, [Mo] * 100 + ( 10 - [Idx] ),, DESC, DENSE ) )
+            VAR _first = MAXX ( FILTER ( _ranked, [Ord] = 1 ), [App] )
+            VAR _second = MAXX ( FILTER ( _ranked, [Ord] = 2 ), [App] )
+            VAR _last = MAXX ( FILTER ( _ranked, [Ord] = 8 ), [App] )
+            VAR _lastMo = MAXX ( FILTER ( _ranked, [Ord] = 8 ), [Mo] )
+            VAR _under = COUNTROWS ( FILTER ( _ranked, [Mo] * 5 < _lic ) ) + 0
+            VAR _reach =
+                IF ( _lastMo = 0, _last & " reaches nobody", _last & " reaches 1 in " & FORMAT ( ROUND ( _lic / _lastMo, 0 ), "0" ) & " licensed people" )
+            RETURN
+                IF (
+                    _lic = 0,
+                    "No Copilot licences in this run.",
+                    _first & " and " & _second & " carry it. " & _reach & " this month. "
+                        & IF ( _under = 0, "No app is under 1 in 5 people.", FORMAT ( _under, "0" ) & IF ( _under = 1, " app is", " apps are" ) & " under 1 in 5 people." )
+                )
+        displayFolder: Licence to habit
+        lineageTag: 5d4ad194-51aa-4c73-b2e1-c1ab317b3973
+
+    /// ONE FIX title: reclaim idle licences when there are any, else win back the people who stopped this week.
+    measure 'One Fix Title' =
+            VAR _idle = [Idle Licences]
+            VAR _stopped = [Stopped This Week]
+            RETURN
+                SWITCH (
+                    TRUE (),
+                    _idle > 0, "Reclaim the " & FORMAT ( _idle, "#,0" ) & IF ( _idle = 1, " idle licence", " idle licences" ),
+                    _stopped > 0, "Win back the " & FORMAT ( _stopped, "#,0" ) & " who stopped this week",
+                    "Keep the weekly habit going"
+                )
+        displayFolder: Licence to habit
+        lineageTag: f7e32912-7caf-49eb-9e3a-431b2342380e
+
+    /// ONE FIX detail sentence for the One Fix Title.
+    measure 'One Fix Detail' =
+            VAR _idle = [Idle Licences]
+            VAR _stopped = [Stopped This Week]
+            RETURN
+                SWITCH (
+                    TRUE (),
+                    _idle > 0, FORMAT ( _idle, "#,0" ) & IF ( _idle = 1, " person has", " people have" ) & " not used Copilot in 28 days. Give the licences to someone who will.",
+                    _stopped > 0, FORMAT ( _stopped, "#,0" ) & IF ( _stopped = 1, " person", " people" ) & " used Copilot this month but not in the last 7 days. Ask what got in the way before the habit fades.",
+                    "Every licensed person used Copilot this week. Share what the champions do with the rest."
+                )
+        displayFolder: Licence to habit
+        lineageTag: e903f19a-cae0-4b76-bf6f-b3c1534032db
+
     partition CopilotUserCountSummary = m
         mode: import
         source =

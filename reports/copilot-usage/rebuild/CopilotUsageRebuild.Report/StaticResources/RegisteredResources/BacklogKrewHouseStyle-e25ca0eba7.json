@@ -1,0 +1,181 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/powerbi-desktop-samples/main/Report%20Theme%20JSON%20Schema/reportThemeSchema-2.157.json",
+  "name": "BacklogKrewHouseStyle-e25ca0eba7.json",
+  "dataColors": [
+    "#138A8A",
+    "#16324A",
+    "#C62828",
+    "#D98A00",
+    "#A9B7C2",
+    "#0E6B6B",
+    "#2E7D32",
+    "#9ED3D3"
+  ],
+  "good": "#138A8A",
+  "neutral": "#D98A00",
+  "bad": "#C62828",
+  "minimum": "#F2FAFA",
+  "center": "#9ED3D3",
+  "maximum": "#138A8A",
+  "foreground": "#1F2A33",
+  "foregroundNeutralSecondary": "#5B6B78",
+  "foregroundNeutralTertiary": "#A9B7C2",
+  "background": "#FFFFFF",
+  "secondaryBackground": "#EEF1F4",
+  "backgroundLight": "#F2FAFA",
+  "tableAccent": "#16324A",
+  "firstLevelElements": "#1F2A33",
+  "secondLevelElements": "#3D4C58",
+  "thirdLevelElements": "#D5DCE2",
+  "fourthLevelElements": "#5B6B78",
+  "hyperlink": "#0E6B6B",
+  "textClasses": {
+    "callout": { "fontSize": 17, "fontFace": "Segoe UI Semibold", "color": "#1F2A33" },
+    "largeTitle": { "fontSize": 14, "fontFace": "Segoe UI Semibold", "color": "#1F2A33" },
+    "title": { "fontSize": 10, "fontFace": "Segoe UI Semibold", "color": "#1F2A33" },
+    "header": { "fontSize": 8, "fontFace": "Segoe UI Semibold", "color": "#1F2A33" },
+    "label": { "fontSize": 9, "fontFace": "Segoe UI", "color": "#1F2A33" }
+  },
+  "visualStyles": {
+    "page": {
+      "*": {
+        "background": [{ "color": { "solid": { "color": "#EEF1F4" } }, "transparency": 0 }],
+        "outspace": [{ "color": { "solid": { "color": "#EEF1F4" } }, "transparency": 0 }]
+      }
+    },
+    "*": {
+      "*": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#FFFFFF" } }, "transparency": 0 }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#D5DCE2" } }, "width": 1, "radius": 0 }],
+        "dropShadow": [{ "show": false }],
+        "title": [{
+          "fontColor": { "solid": { "color": "#1F2A33" } },
+          "fontFamily": "Segoe UI Semibold",
+          "fontSize": 10,
+          "bold": false
+        }],
+        "legend": [{
+          "fontSize": 8,
+          "labelColor": { "solid": { "color": "#3D4C58" } }
+        }],
+        "categoryAxis": [{
+          "fontSize": 8,
+          "labelColor": { "solid": { "color": "#3D4C58" } },
+          "gridlineShow": false
+        }],
+        "valueAxis": [{
+          "fontSize": 8,
+          "labelColor": { "solid": { "color": "#3D4C58" } },
+          "gridlineShow": false
+        }]
+      }
+    },
+    "card": {
+      "*": {
+        "title": [{
+          "show": true,
+          "fontColor": { "solid": { "color": "#5B6B78" } },
+          "fontFamily": "Segoe UI",
+          "fontSize": 9,
+          "bold": false
+        }],
+        "labels": [{
+          "color": { "solid": { "color": "#1F2A33" } },
+          "fontFamily": "Segoe UI Semibold",
+          "fontSize": 17
+        }],
+        "categoryLabels": [{ "show": false }]
+      }
+    },
+    "cardVisual": {
+      "*": {
+        "label": [{
+          "show": true,
+          "fontColor": { "solid": { "color": "#5B6B78" } },
+          "fontFamily": "Segoe UI",
+          "fontSize": 9,
+          "$id": "default"
+        }],
+        "value": [{
+          "fontColor": { "solid": { "color": "#1F2A33" } },
+          "fontFamily": "Segoe UI Semibold",
+          "fontSize": 17,
+          "$id": "default"
+        }]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "columnHeaders": [{
+          "autoSizeColumnWidth": true,
+          "columnAdjustment": "growToFit",
+          "backColor": { "solid": { "color": "#16324A" } },
+          "fontColor": { "solid": { "color": "#FFFFFF" } },
+          "fontFamily": "Segoe UI Semibold",
+          "fontSize": 8
+        }],
+        "values": [{
+          "backColorPrimary": { "solid": { "color": "#FFFFFF" } },
+          "backColorSecondary": { "solid": { "color": "#FFFFFF" } },
+          "fontColorPrimary": { "solid": { "color": "#1F2A33" } },
+          "fontColorSecondary": { "solid": { "color": "#1F2A33" } },
+          "fontSize": 9
+        }],
+        "grid": [{
+          "gridHorizontal": true,
+          "gridHorizontalColor": { "solid": { "color": "#EEF1F4" } },
+          "gridHorizontalWeight": 1,
+          "gridVertical": false
+        }]
+      }
+    },
+    "pivotTable": {
+      "*": {
+        "columnHeaders": [{
+          "autoSizeColumnWidth": true,
+          "columnAdjustment": "growToFit",
+          "backColor": { "solid": { "color": "#16324A" } },
+          "fontColor": { "solid": { "color": "#FFFFFF" } },
+          "fontFamily": "Segoe UI Semibold",
+          "fontSize": 8
+        }],
+        "values": [{
+          "backColorPrimary": { "solid": { "color": "#FFFFFF" } },
+          "backColorSecondary": { "solid": { "color": "#FFFFFF" } },
+          "fontColorPrimary": { "solid": { "color": "#1F2A33" } },
+          "fontColorSecondary": { "solid": { "color": "#1F2A33" } },
+          "fontSize": 9
+        }],
+        "grid": [{
+          "gridHorizontal": true,
+          "gridHorizontalColor": { "solid": { "color": "#EEF1F4" } },
+          "gridHorizontalWeight": 1,
+          "gridVertical": false
+        }]
+      }
+    },
+    "slicer": {
+      "*": {
+        "header": [{
+          "fontColor": { "solid": { "color": "#1F2A33" } },
+          "fontFamily": "Segoe UI Semibold",
+          "textSize": 9
+        }]
+      }
+    },
+    "textbox": {
+      "*": {
+        "background": [{ "show": false }],
+        "border": [{ "show": false }]
+      },
+      "One fix": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#FFFFFF" } }, "transparency": 0 }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#C62828" } }, "width": 2, "radius": 0 }]
+      },
+      "Premium": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#F2FAFA" } }, "transparency": 0 }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#138A8A" } }, "width": 1, "radius": 0 }]
+      }
+    }
+  }
+}
