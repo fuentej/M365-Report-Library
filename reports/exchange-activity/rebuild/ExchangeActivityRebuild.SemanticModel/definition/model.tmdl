@@ -8,3 +8,4 @@ ref table MailboxUsageStorage
 ref table EmailActivityUserDetail
 ref table EmailAppUsageUserDetail
 ref table ReportSettings
+ref table Mailboxes
