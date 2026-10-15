@@ -471,6 +471,14 @@ Describe 'The report has the approved Accounts to fix page and its filter' {
         $script:UsersTmdl | Should -Match "measure 'Accounts To Fix One Fix Title Line 2' =[\s\S]*?LEN\(SecondLine\) > 28, LEFT\(SecondLine, 26\) & UNICHAR\(8230\)"
     }
 
+    It 'describes the collected role names and the house-style elements in the README, not the removed lookup' {
+        $readme = Get-Content -LiteralPath (Join-Path $script:Root 'reports/identity-posture/README.md') -Raw
+        $readme | Should -Not -Match 'Role names are not collected'
+        $readme | Should -Not -Match 'RoleDefinitions\[Role Name\]'
+        $readme | Should -Match 'RoleDisplayName'
+        $readme | Should -Match 'ONE FIX'
+    }
+
     It 'carries the anonymize toggle in the report filter pane' {
         $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
         $fields = @($report.filterConfig.filters | ForEach-Object { '{0}.{1}' -f $_.field.Column.Expression.SourceRef.Entity, $_.field.Column.Property })
