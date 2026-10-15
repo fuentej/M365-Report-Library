@@ -1,0 +1,3 @@
+relationship 4e90869e-2c7e-4f88-9596-c70750c402d3
+    fromColumn: GuestSignIns.UserId
+    toColumn: GuestsCurrent.Id
