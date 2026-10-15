@@ -9,3 +9,4 @@ ref table SharePointSiteUsageStorage
 ref table OneDriveUsageStorage
 ref table SharePointActivityUserDetail
 ref table OneDriveActivityUserDetail
+ref table ReportSettings

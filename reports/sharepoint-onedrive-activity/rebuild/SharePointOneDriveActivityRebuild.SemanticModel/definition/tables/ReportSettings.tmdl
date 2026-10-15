@@ -1,0 +1,29 @@
+table ReportSettings
+    lineageTag: b13a218a-cbcb-473b-a25f-dfde74f206f5
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 06fa05e0-e86e-4847-9dde-1a75f4c77388
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column DisplayConcealedNames
+        dataType: string
+        lineageTag: 86a520ea-7b78-4dc9-8b97-ec16a031d4c0
+        summarizeBy: none
+        sourceColumn: DisplayConcealedNames
+
+    partition ReportSettings = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\report-settings.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
