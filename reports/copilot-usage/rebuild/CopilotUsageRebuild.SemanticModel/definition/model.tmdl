@@ -8,3 +8,4 @@ ref table CopilotUserCountSummary
 ref table CopilotUserCountTrend
 ref table CopilotAuditEvents
 ref table CopilotInteractions
+ref table CopilotFeatureAvailability
