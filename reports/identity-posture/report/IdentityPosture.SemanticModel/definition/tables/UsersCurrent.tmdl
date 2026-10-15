@@ -554,11 +554,12 @@ table UsersCurrent
         displayFolder: Accounts to fix
         lineageTag: 7255e2f5-296c-431a-96be-571157034f36
 
-    /// Line 2 of Accounts To Fix One Fix Title, split at the last space before 28 characters: a card value does not wrap.
+    /// Line 2 of Accounts To Fix One Fix Title, split at the last space before 28 characters: a card value does not wrap. A tenant-chosen policy name can run past the 216 px card, so a line longer than 28 characters is cut to 26 and ends with an ellipsis.
     measure 'Accounts To Fix One Fix Title Line 2' = 
             VAR FullText = [Accounts To Fix One Fix Title]
             VAR Cut = IF(LEN(FullText) <= 28, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 29), MID(FullText, [Value], 1) = " "), [Value]))
-            RETURN IF(LEN(FullText) <= 28, BLANK(), TRIM(MID(FullText, Cut + 1, 200)))
+            VAR SecondLine = TRIM(MID(FullText, Cut + 1, 200))
+            RETURN IF(LEN(FullText) <= 28, BLANK(), IF(LEN(SecondLine) > 28, LEFT(SecondLine, 26) & UNICHAR(8230), SecondLine))
         displayFolder: Accounts to fix
         lineageTag: 63e580c6-4abd-4c24-b2c9-37088684ced0
 

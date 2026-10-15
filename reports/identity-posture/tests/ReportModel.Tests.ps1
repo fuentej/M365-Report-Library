@@ -466,6 +466,11 @@ Describe 'The report has the approved Accounts to fix page and its filter' {
         $script:UsersTmdl | Should -Match "measure 'Accounts To Fix One Fix Detail' =[\s\S]*?\[Legacy Sign-Ins Succeeded\]"
     }
 
+    It 'cuts a long policy name on ONE FIX title line 2, which sits in a 216 px card that does not wrap' {
+        # A Conditional Access display name is chosen by the tenant; an uncut name runs out of the card.
+        $script:UsersTmdl | Should -Match "measure 'Accounts To Fix One Fix Title Line 2' =[\s\S]*?LEN\(SecondLine\) > 28, LEFT\(SecondLine, 26\) & UNICHAR\(8230\)"
+    }
+
     It 'carries the anonymize toggle in the report filter pane' {
         $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'IdentityPosture.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
         $fields = @($report.filterConfig.filters | ForEach-Object { '{0}.{1}' -f $_.field.Column.Expression.SourceRef.Entity, $_.field.Column.Property })
