@@ -1,0 +1,57 @@
+table AuditRetentionPolicies
+    lineageTag: 39c9303b-1ff9-41be-9bad-33bf6164a9d8
+
+    column RunDate
+        dataType: string
+        lineageTag: 02bbaca7-c561-4dae-aeaf-d3a0c570a12e
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Priority
+        dataType: string
+        lineageTag: 06ceac58-1e6f-4a42-8f16-46c678eefc8d
+        summarizeBy: none
+        sourceColumn: Priority
+
+    column Name
+        dataType: string
+        lineageTag: 66bb097c-0832-49c0-a395-59a9814e3432
+        summarizeBy: none
+        sourceColumn: Name
+
+    column RecordTypes
+        dataType: string
+        lineageTag: 5482334d-d1cf-4aab-9285-6df93363809b
+        summarizeBy: none
+        sourceColumn: RecordTypes
+
+    column Operations
+        dataType: string
+        lineageTag: e5b4f854-4bfe-415d-8360-49a88b7eaee6
+        summarizeBy: none
+        sourceColumn: Operations
+
+    column UserIds
+        dataType: string
+        lineageTag: c1ffb696-68b9-4ce4-9027-f0f7a10cbebe
+        summarizeBy: none
+        sourceColumn: UserIds
+
+    column RetentionDuration
+        dataType: string
+        lineageTag: d43bfca6-c1a8-451c-91ed-6625bf3d2600
+        summarizeBy: none
+        sourceColumn: RetentionDuration
+
+    partition AuditRetentionPolicies = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-retention-policies.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table

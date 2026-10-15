@@ -7,3 +7,4 @@ ref table AuditSearchCmdlet
 ref table AuditGraphRecords
 ref table AuditActivityFeed
 ref table AuditIngestion
+ref table AuditRetentionPolicies
