@@ -103,6 +103,118 @@ table AppRoleAssignments
         formatString: #,0
         lineageTag: f03b86b4-f4ec-51d9-b303-cb5e487734f9
 
+    /// Apps holding a Microsoft Graph Mail.* application permission (Mail.Read, Mail.ReadBasic, Mail.ReadWrite, Mail.Send) in the latest run: each works on every mailbox without a signed-in user unless an Exchange application access policy or RBAC for Applications scopes it, which this report does not collect. MailboxSettings.* is left out: it reads settings, not mail.
+    measure 'Apps Reaching Every Mailbox' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(AppRoleAssignments[RunDate]), ALL(AppRoleAssignments)))
+            VAR AppRows = SELECTCOLUMNS(FILTER(ALL(AppRoleAssignments), AppRoleAssignments[RunDate] = LatestRun && LEFT(AppRoleAssignments[AppRoleValue], 5) = "Mail."), "AppKey", LOWER(AppRoleAssignments[PrincipalId]), "Role", AppRoleAssignments[AppRoleValue], "Dt", IF(ISBLANK(AppRoleAssignments[CreatedDateTime]), BLANK(), DATE(YEAR(AppRoleAssignments[CreatedDateTime]), MONTH(AppRoleAssignments[CreatedDateTime]), DAY(AppRoleAssignments[CreatedDateTime]))), "Id", AppRoleAssignments[AssignmentId])
+            VAR AppN = COUNTROWS(DISTINCT(SELECTCOLUMNS(AppRows, "K", [AppKey]))) + 0
+            RETURN IF(NOT Collected, BLANK(), AppN)
+        formatString: #,0
+        displayFolder: Who else can read
+        lineageTag: 50958ec9-ca12-4583-aea5-e23f19907029
+
+    /// Of the apps reaching every mailbox, those holding Mail.Send: send mail as any user.
+    measure 'Mail Apps That Send As Anyone' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(AppRoleAssignments[RunDate]), ALL(AppRoleAssignments)))
+            VAR AppRows = SELECTCOLUMNS(FILTER(ALL(AppRoleAssignments), AppRoleAssignments[RunDate] = LatestRun && LEFT(AppRoleAssignments[AppRoleValue], 5) = "Mail."), "AppKey", LOWER(AppRoleAssignments[PrincipalId]), "Role", AppRoleAssignments[AppRoleValue], "Dt", IF(ISBLANK(AppRoleAssignments[CreatedDateTime]), BLANK(), DATE(YEAR(AppRoleAssignments[CreatedDateTime]), MONTH(AppRoleAssignments[CreatedDateTime]), DAY(AppRoleAssignments[CreatedDateTime]))), "Id", AppRoleAssignments[AssignmentId])
+            VAR AppN = COUNTROWS(DISTINCT(SELECTCOLUMNS(AppRows, "K", [AppKey]))) + 0
+            RETURN IF(NOT Collected, BLANK(), COUNTROWS(DISTINCT(SELECTCOLUMNS(FILTER(AppRows, [Role] = "Mail.Send"), "K", [AppKey]))) + 0)
+        formatString: #,0
+        displayFolder: Who else can read
+        lineageTag: 303d3ca8-9d7b-4dec-a7ec-6e0fd885d04d
+
+    /// Panel subtitle: when the Mail.* application permissions were granted.
+    measure 'Mail Apps Window' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(AppRoleAssignments[RunDate]), ALL(AppRoleAssignments)))
+            VAR AppRows = SELECTCOLUMNS(FILTER(ALL(AppRoleAssignments), AppRoleAssignments[RunDate] = LatestRun && LEFT(AppRoleAssignments[AppRoleValue], 5) = "Mail."), "AppKey", LOWER(AppRoleAssignments[PrincipalId]), "Role", AppRoleAssignments[AppRoleValue], "Dt", IF(ISBLANK(AppRoleAssignments[CreatedDateTime]), BLANK(), DATE(YEAR(AppRoleAssignments[CreatedDateTime]), MONTH(AppRoleAssignments[CreatedDateTime]), DAY(AppRoleAssignments[CreatedDateTime]))), "Id", AppRoleAssignments[AssignmentId])
+            VAR AppN = COUNTROWS(DISTINCT(SELECTCOLUMNS(AppRows, "K", [AppKey]))) + 0
+            VAR Dated = FILTER(AppRows, NOT ISBLANK([Dt]))
+            VAR FirstGrant = MINX(Dated, [Dt])
+            VAR LastGrant = MAXX(Dated, [Dt])
+            VAR Days = INT(LastGrant - FirstGrant) + 1
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    NOT Collected, "Not collected: app-role-assignments.csv is empty.",
+                    AppN = 0, "No app holds a Mail application permission in the latest run.",
+                    ISBLANK(FirstGrant), "Grant dates were not collected.",
+                    AppN = 1, "Granted on " & FORMAT(FirstGrant, "yyyy-MM-dd") & ".",
+                    Days = 1, "All " & AppN & " were granted on " & FORMAT(FirstGrant, "yyyy-MM-dd") & ".",
+                    Days <= 31, "All " & AppN & " were granted in one " & Days & "-day window, " & FORMAT(FirstGrant, "yyyy-MM-dd") & " to " & FORMAT(LastGrant, "yyyy-MM-dd") & ".",
+                    "Granted between " & FORMAT(FirstGrant, "yyyy-MM-dd") & " and " & FORMAT(LastGrant, "yyyy-MM-dd") & "."
+                )
+        displayFolder: Who else can read
+        lineageTag: 56912c94-f625-4dae-a39c-108422678816
+
+    /// The Apps that can reach every mailbox panel as an SVG image: a timeline of grant dates, then one row per Mail.* application permission (app, permission, what it allows, granted). App names follow the Anonymize toggle. At most 12 rows.
+    measure 'Mail Apps Image' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(AppRoleAssignments[RunDate]), ALL(AppRoleAssignments)))
+            VAR AppRows = SELECTCOLUMNS(FILTER(ALL(AppRoleAssignments), AppRoleAssignments[RunDate] = LatestRun && LEFT(AppRoleAssignments[AppRoleValue], 5) = "Mail."), "AppKey", LOWER(AppRoleAssignments[PrincipalId]), "Role", AppRoleAssignments[AppRoleValue], "Dt", IF(ISBLANK(AppRoleAssignments[CreatedDateTime]), BLANK(), DATE(YEAR(AppRoleAssignments[CreatedDateTime]), MONTH(AppRoleAssignments[CreatedDateTime]), DAY(AppRoleAssignments[CreatedDateTime]))), "Id", AppRoleAssignments[AssignmentId], "AppName", VAR NameKey = LOWER(AppRoleAssignments[PrincipalId]) RETURN IF(Anon, IF(NameKey = "", BLANK(), "App " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey)), UNICODE(MID(NameKey, [Value], 1)) * [Value]), 9000) + 1000, "0000")), COALESCE(AppRoleAssignments[PrincipalDisplayName], "Unknown app name")))
+            VAR AppN = COUNTROWS(DISTINCT(SELECTCOLUMNS(AppRows, "K", [AppKey]))) + 0
+            VAR Dated = FILTER(AppRows, NOT ISBLANK([Dt]))
+            VAR FirstGrant = MINX(Dated, [Dt])
+            VAR LastGrant = MAXX(Dated, [Dt])
+            VAR SpanDays = INT(LastGrant - FirstGrant)
+            VAR Bars =
+                CONCATENATEX(
+                    Dated,
+                    VAR BarX = IF(SpanDays = 0, 264, 24 + INT([Dt] - FirstGrant) / SpanDays * 480)
+                    VAR BarH = IF([Role] IN {"Mail.Send", "Mail.ReadWrite"}, 28, 18)
+                    RETURN "<rect x='" & ROUND(BarX - 5, 1) & "' y='" & (54 - BarH) & "' width='10' height='" & BarH & "' fill='" & SWITCH([Role], "Mail.ReadWrite", "%23D98A00", "Mail.Send", "%23C62828", "Mail.Read", "%2316324A", "%235B6B78") & "'/>",
+                    "",
+                    [Dt], ASC
+                )
+            VAR MidGrant = FirstGrant + INT(SpanDays / 2)
+            VAR AxisSvg = IF(ISBLANK(FirstGrant), "", "<line x1='18' y1='54' x2='516' y2='54' stroke='%23A9B7C2'/>" & "<text x='" & IF(SpanDays = 0, 264, 24) & "' y='70' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' fill='%235B6B78'>" & FORMAT(FirstGrant, "MMM d") & "</text>" & IF(SpanDays >= 2, "<text x='264' y='70' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' fill='%235B6B78'>" & FORMAT(MidGrant, "MMM d") & "</text>") & IF(SpanDays >= 1, "<text x='504' y='70' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' fill='%235B6B78'>" & FORMAT(LastGrant, "MMM d") & "</text>"))
+            VAR Keyed = ADDCOLUMNS(AppRows, "SortKey", IF(ISBLANK([Dt]), "99999999", FORMAT([Dt], "yyyyMMdd")) & "|" & [AppName] & "|" & [Id])
+            VAR Ranked = ADDCOLUMNS(Keyed, "Rk", VAR ThisSort = [SortKey] RETURN COUNTROWS(FILTER(Keyed, [SortKey] < ThisSort)) + 1)
+            VAR RowN = COUNTROWS(Keyed) + 0
+            VAR ShownN = IF(RowN > 12, 11, RowN)
+            VAR AppRowSvg =
+                CONCATENATEX(
+                    FILTER(Ranked, [Rk] <= ShownN),
+                    VAR RowTop = 86 + ([Rk] - 1) * 31
+                    VAR AppText = IF(LEN([AppName]) > 26, LEFT([AppName], 25) & UNICHAR(8230), [AppName])
+                    VAR RoleText = IF(LEN([Role]) > 18, LEFT([Role], 17) & UNICHAR(8230), [Role])
+                    VAR Meaning = SWITCH([Role], "Mail.ReadWrite", "read, change and delete any mail", "Mail.Read", "read any mail", "Mail.Send", "send as any user", "Mail.ReadBasic", "read any mail except the body", "Mail.ReadBasic.All", "read any mail except the body", "mail access in every mailbox")
+                    RETURN
+                        "<text x='0' y='" & (RowTop + 20) & "' font-family='Segoe UI, sans-serif' font-size='12' font-weight='600' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(AppText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & "<rect x='182' y='" & (RowTop + 8) & "' width='106' height='17' fill='" & SWITCH([Role], "Mail.ReadWrite", "%23D98A00", "Mail.Send", "%23C62828", "Mail.Read", "%2316324A", "%235B6B78") & "'/>"
+                            & "<text x='235' y='" & (RowTop + 20.5) & "' text-anchor='middle' font-family='Segoe UI, sans-serif' font-size='9.5' font-weight='600' fill='%23FFFFFF'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(RoleText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & "<text x='298' y='" & (RowTop + 20) & "' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%233D4C58'>" & Meaning & "</text>"
+                            & "<text x='536' y='" & (RowTop + 20) & "' text-anchor='end' font-family='Segoe UI, sans-serif' font-size='11' fill='%233D4C58'>" & IF(ISBLANK([Dt]), "date unknown", FORMAT([Dt], "yyyy-MM-dd")) & "</text>"
+                            & "<line x1='0' y1='" & (RowTop + 31) & "' x2='536' y2='" & (RowTop + 31) & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [Rk], ASC
+                )
+            VAR MoreNote = IF(RowN > ShownN, "<text x='0' y='" & (86 + ShownN * 31 + 20) & "' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%235B6B78'>+" & (RowN - ShownN) & " more permissions</text>")
+            VAR EmptyNote = IF(RowN = 0, "<text x='0' y='100' font-family='Segoe UI, sans-serif' font-size='11' fill='%235B6B78'>" & IF(NOT Collected, "Not collected: app-role-assignments.csv is empty.", "No app holds a Mail application permission in the latest run.") & "</text>")
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1072' height='916' viewBox='0 0 536 458'>" & Bars & AxisSvg & AppRowSvg & MoreNote & EmptyNote & "</svg>"
+        dataCategory: ImageUrl
+        displayFolder: Who else can read
+        lineageTag: a389ad09-4d88-4371-adfc-365cd45d0417
+
+    /// Panel footnote: application permissions need no signed-in user, plus apps consented for all users (AllPrincipals) with a Mail.* delegated scope in the latest run.
+    measure 'Mail Apps Footnote' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR ConsentsCollected = NOT ISBLANK(CALCULATE(MAX(DelegatedConsents[RunDate]), ALL(DelegatedConsents)))
+            VAR TenantWide = SELECTCOLUMNS(FILTER(ALL(DelegatedConsents), DelegatedConsents[RunDate] = LatestRun && DelegatedConsents[ConsentType] = "AllPrincipals"), "CId", DelegatedConsents[ClientId], "ScopePath", SUBSTITUTE(TRIM(DelegatedConsents[Scope]), " ", "|"))
+            VAR Tokens = ADDCOLUMNS(GENERATE(TenantWide, GENERATESERIES(1, MAX(1, PATHLENGTH([ScopePath])))), "Tok", PATHITEM([ScopePath], [Value]))
+            VAR MailTokens = FILTER(Tokens, LEFT([Tok], 5) = "Mail.")
+            VAR ConsentAppN = COUNTROWS(DISTINCT(SELECTCOLUMNS(MailTokens, "C", [CId]))) + 0
+            VAR ScopeList = CONCATENATEX(DISTINCT(SELECTCOLUMNS(MailTokens, "T", [Tok])), [T], " or ", [T], ASC)
+            RETURN
+                "Application permissions, not delegated: each app works on every mailbox without a signed-in user."
+                    & IF(NOT ConsentsCollected, " Delegated consents were not collected.", IF(ConsentAppN > 0, " Plus " & ConsentAppN & IF(ConsentAppN = 1, " app", " apps") & " consented for all users with " & ScopeList & ".", ""))
+        displayFolder: Who else can read
+        lineageTag: 2608cef0-1ea3-4dae-9404-734e8d306adb
+
     partition AppRoleAssignments = m
         mode: import
         source =

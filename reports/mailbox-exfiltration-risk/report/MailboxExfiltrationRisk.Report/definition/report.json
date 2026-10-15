@@ -24,6 +24,11 @@
           "type": "CustomTheme"
         },
         {
+          "name": "icon-apps.svg",
+          "path": "icon-apps.svg",
+          "type": "Image"
+        },
+        {
           "name": "icon-copy.svg",
           "path": "icon-copy.svg",
           "type": "Image"
@@ -41,6 +46,21 @@
         {
           "name": "icon-globe.svg",
           "path": "icon-globe.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-key.svg",
+          "path": "icon-key.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-person.svg",
+          "path": "icon-person.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-send.svg",
+          "path": "icon-send.svg",
           "type": "Image"
         },
         {
