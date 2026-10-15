@@ -1,0 +1,89 @@
+table Mailboxes
+    lineageTag: 0ae6dea1-9567-4e17-9bca-9bee944cb72d
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 91dac7c6-26b3-429b-b128-e4ae9fb82b18
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column ExternalDirectoryObjectId
+        dataType: string
+        lineageTag: 5cfbc844-2d81-484d-8d71-86e099c26cc9
+        summarizeBy: none
+        sourceColumn: ExternalDirectoryObjectId
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 77ab291d-c8db-4a47-9edd-78712b087ad3
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column PrimarySmtpAddress
+        dataType: string
+        lineageTag: 27190aaf-7367-4d77-af5c-69304ce487a8
+        summarizeBy: none
+        sourceColumn: PrimarySmtpAddress
+
+    column RecipientType
+        dataType: string
+        lineageTag: 93c32477-faa6-4992-92bd-25c84c7dbf49
+        summarizeBy: none
+        sourceColumn: RecipientType
+
+    column RecipientTypeDetails
+        dataType: string
+        lineageTag: fd159dd6-13a8-4fd4-8583-19bbc361c7b5
+        summarizeBy: none
+        sourceColumn: RecipientTypeDetails
+
+    column IssueWarningQuota
+        dataType: string
+        lineageTag: d15656b8-afb5-48c0-9919-1510ff94d744
+        summarizeBy: none
+        sourceColumn: IssueWarningQuota
+
+    column ProhibitSendQuota
+        dataType: string
+        lineageTag: 5a0dffd8-e440-4cc1-b2e8-992afc431d22
+        summarizeBy: none
+        sourceColumn: ProhibitSendQuota
+
+    column ProhibitSendReceiveQuota
+        dataType: string
+        lineageTag: 3fa550af-c1dc-4f4e-b7cf-dd5a99217116
+        summarizeBy: none
+        sourceColumn: ProhibitSendReceiveQuota
+
+    column RecoverableItemsQuota
+        dataType: string
+        lineageTag: ee89ad52-c1e2-46bb-825e-fe78e7c7d931
+        summarizeBy: none
+        sourceColumn: RecoverableItemsQuota
+
+    column ArchiveQuota
+        dataType: string
+        lineageTag: 46464081-fe34-45a2-8696-c35f70d5387c
+        summarizeBy: none
+        sourceColumn: ArchiveQuota
+
+    column UseDatabaseQuotaDefaults
+        dataType: string
+        lineageTag: a69de183-7533-4820-afb7-eaf85799eda3
+        summarizeBy: none
+        sourceColumn: UseDatabaseQuotaDefaults
+
+    partition Mailboxes = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\mailboxes.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
