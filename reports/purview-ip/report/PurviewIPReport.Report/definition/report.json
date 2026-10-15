@@ -54,6 +54,31 @@
           "name": "premium-dashed-box.svg",
           "path": "premium-dashed-box.svg",
           "type": "Image"
+        },
+        {
+          "name": "icon-file.svg",
+          "path": "icon-file.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-shield.svg",
+          "path": "icon-shield.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-sparkle.svg",
+          "path": "icon-sparkle.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-bot.svg",
+          "path": "icon-bot.svg",
+          "type": "Image"
+        },
+        {
+          "name": "premium-dashed-box-tall.svg",
+          "path": "premium-dashed-box-tall.svg",
+          "type": "Image"
         }
       ]
     }

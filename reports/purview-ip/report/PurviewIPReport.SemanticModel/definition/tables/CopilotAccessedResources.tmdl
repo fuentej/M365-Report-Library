@@ -142,6 +142,45 @@ table CopilotAccessedResources
 		sourceColumn: PolicyRules
 		summarizeBy: none
 
+	/// BRO-503: 1 for the highest-priority sensitivity label, 2 for the next, and
+	/// so on (Labels[Priority], Purview's order: higher is more sensitive). Blank
+	/// when the resource has no label. Read by the "What Copilot and agents read" page.
+	column 'Label Rank' =
+			VAR LabelPriority = MAXX(FILTER(Labels, Labels[ObjectId] = CopilotAccessedResources[SensitivityLabelId]), Labels[Priority])
+			RETURN
+			    IF(
+			        ISBLANK(LabelPriority),
+			        BLANK(),
+			        COUNTROWS(FILTER(DISTINCT(Labels[Priority]), Labels[Priority] > LabelPriority)) + 1
+			    )
+		dataType: int64
+		type: calculated
+		isHidden
+		summarizeBy: none
+
+	/// BRO-503: 1 when an AI tool read a resource carrying one of the two
+	/// highest-priority labels (Restricted and Highly Confidential in the samples).
+	column 'Sensitive Read' =
+			IF(
+			    CopilotAccessedResources[ResourceId] <> ""
+			        && NOT ISBLANK(CopilotAccessedResources[Label Rank])
+			        && CopilotAccessedResources[Label Rank] <= 2,
+			    1,
+			    0
+			)
+		dataType: int64
+		type: calculated
+		isHidden
+		summarizeBy: none
+
+	/// BRO-503: one key per resource row. RecordId alone repeats when one
+	/// Copilot interaction read several resources.
+	column 'Read Key' = CopilotAccessedResources[RecordId] & "|" & CopilotAccessedResources[ResourceId] & "|" & CopilotAccessedResources[ListItemUniqueId]
+		dataType: string
+		type: calculated
+		isHidden
+		summarizeBy: none
+
 	partition CopilotAccessedResources = m
 		mode: import
 		source =

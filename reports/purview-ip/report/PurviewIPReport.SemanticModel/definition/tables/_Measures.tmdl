@@ -570,6 +570,345 @@ table _Measures
 		displayFolder: Label downgrades
 		isHidden
 
+	/// BRO-503: display name of the second-highest-priority sensitivity label
+	/// (Highly Confidential in the samples).
+	measure 'Second Label Name' =
+			VAR TopPriority = CALCULATE(MAX(Labels[Priority]), ALL(Labels))
+			VAR NextPriority = CALCULATE(MAX(Labels[Priority]), ALL(Labels), Labels[Priority] < TopPriority)
+			RETURN
+			    MAXX(FILTER(ALL(Labels), Labels[Priority] = NextPriority), Labels[DisplayName])
+		displayFolder: AI reads
+
+	/// Reads by any AI tool of a resource carrying one of the two top labels.
+	measure 'AI Sensitive Reads' = CALCULATE(COUNTROWS(CopilotAccessedResources), CopilotAccessedResources[Sensitive Read] = 1) + 0
+		formatString: #,##0
+		displayFolder: AI reads
+
+	measure 'AI Sensitive Files' = CALCULATE(DISTINCTCOUNT(CopilotAccessedResources[ResourceId]), CopilotAccessedResources[Sensitive Read] = 1) + 0
+		formatString: #,##0
+		displayFolder: AI reads
+
+	/// AccessedResources on the CopilotInteraction audit record: a resource the
+	/// DLP for Copilot policy stopped carries AccessBlocked = True.
+	measure 'AI Sensitive Reads Blocked' =
+			CALCULATE(
+			    COUNTROWS(CopilotAccessedResources),
+			    CopilotAccessedResources[Sensitive Read] = 1,
+			    CopilotAccessedResources[AccessBlocked] = "True"
+			) + 0
+		formatString: #,##0
+		displayFolder: AI reads
+
+	measure 'AI Sensitive Reads Not Blocked' = [AI Sensitive Reads] - [AI Sensitive Reads Blocked]
+		formatString: #,##0
+		displayFolder: AI reads
+
+	measure 'AI Not Blocked Text' = FORMAT([AI Sensitive Reads Not Blocked], "#,##0") & " of " & FORMAT([AI Sensitive Reads], "#,##0")
+		displayFolder: AI reads
+
+	measure 'AI Reads Total' = CALCULATE(COUNTROWS(CopilotAccessedResources), CopilotAccessedResources[ResourceId] <> "") + 0
+		formatString: #,##0
+		displayFolder: AI reads
+
+	measure 'AI Tools Reading Files' = CALCULATE(DISTINCTCOUNT(CopilotAccessedResources[AgentName]), CopilotAccessedResources[ResourceId] <> "") + 0
+		formatString: #,##0
+		displayFolder: AI reads
+
+	measure 'AI Reads Run Header' =
+			VAR FirstEvent = CALCULATE(MIN(CopilotAccessedResources[EventDate]), ALL(CopilotAccessedResources))
+			VAR LastEvent = CALCULATE(MAX(CopilotAccessedResources[EventDate]), ALL(CopilotAccessedResources))
+			VAR People = CALCULATE(DISTINCTCOUNT(CopilotAccessedResources[UserId]), ALL(CopilotAccessedResources))
+			VAR Files = CALCULATE(DISTINCTCOUNT(CopilotAccessedResources[ResourceId]), ALL(CopilotAccessedResources), CopilotAccessedResources[ResourceId] <> "")
+			RETURN
+			    "Copilot interactions " & FORMAT(FirstEvent, "yyyy-mm-dd") & " to " & FORMAT(LastEvent, "yyyy-mm-dd")
+			        & " " & UNICHAR(183) & " " & People & IF(People = 1, " person", " people")
+			        & " " & UNICHAR(183) & " " & Files & IF(Files = 1, " file", " files")
+		displayFolder: AI reads
+
+	/// The AI tool with the most sensitive reads that were not blocked (ties: most
+	/// sensitive reads, then name). Drawn red on the map and in the table.
+	measure 'AI Lead Tool' =
+			VAR Tools = SUMMARIZE(FILTER(ALL(CopilotAccessedResources), CopilotAccessedResources[Sensitive Read] = 1), CopilotAccessedResources[AgentName])
+			VAR Scored =
+			    ADDCOLUMNS(
+			        Tools,
+			        "Open",
+			            VAR ToolName = CopilotAccessedResources[AgentName]
+			            RETURN
+			                COUNTROWS(
+			                    FILTER(
+			                        ALL(CopilotAccessedResources),
+			                        CopilotAccessedResources[AgentName] = ToolName
+			                            && CopilotAccessedResources[Sensitive Read] = 1
+			                            && CopilotAccessedResources[AccessBlocked] <> "True"
+			                    )
+			                ) + 0,
+			        "Reads",
+			            VAR ToolName = CopilotAccessedResources[AgentName]
+			            RETURN
+			                COUNTROWS(
+			                    FILTER(
+			                        ALL(CopilotAccessedResources),
+			                        CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[Sensitive Read] = 1
+			                    )
+			                )
+			    )
+			VAR LeadTool = TOPN(1, FILTER(Scored, [Open] > 0), [Open], DESC, [Reads], DESC, CopilotAccessedResources[AgentName], ASC)
+			RETURN
+			    MAXX(LeadTool, CopilotAccessedResources[AgentName])
+		displayFolder: AI reads
+
+	measure 'AI Map Subtitle' =
+			VAR LeadTool = [AI Lead Tool]
+			VAR LabelPair = [Top Label Name] & " or " & [Second Label Name]
+			VAR LeadFiles = CALCULATE(DISTINCTCOUNT(CopilotAccessedResources[ResourceId]), ALL(CopilotAccessedResources), CopilotAccessedResources[Sensitive Read] = 1, CopilotAccessedResources[AgentName] = LeadTool)
+			VAR LeadOpen =
+			    CALCULATE(
+			        COUNTROWS(CopilotAccessedResources),
+			        ALL(CopilotAccessedResources),
+			        CopilotAccessedResources[Sensitive Read] = 1,
+			        CopilotAccessedResources[AgentName] = LeadTool,
+			        CopilotAccessedResources[AccessBlocked] <> "True"
+			    ) + 0
+			VAR LeadReads = CALCULATE(COUNTROWS(CopilotAccessedResources), ALL(CopilotAccessedResources), CopilotAccessedResources[Sensitive Read] = 1, CopilotAccessedResources[AgentName] = LeadTool)
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        CALCULATE([AI Sensitive Reads], ALL(CopilotAccessedResources)) = 0, "No AI tool read a " & LabelPair & " file in this window.",
+			        ISBLANK(LeadTool), "Every " & LabelPair & " read by an AI tool was blocked.",
+			        LeadTool & " read " & LeadFiles & IF(LeadFiles = 1, " " & LabelPair & " file", " " & LabelPair & " files")
+			            & ", and " & LeadOpen & " of its " & LeadReads & IF(LeadReads = 1, " read", " reads") & " got through, the most of any AI tool."
+			    )
+		displayFolder: AI reads
+
+	/// Map of AI tool to label, sensitive reads only: up to four tools on the
+	/// left, the two top labels on the right, line width by reads. Drawn as an SVG
+	/// image so no custom visual is needed.
+	measure 'AI Read Map' =
+			VAR Font = "font-family='Segoe UI, sans-serif'"
+			VAR LeadTool = [AI Lead Tool]
+			VAR TopName = [Top Label Name]
+			VAR NextName = [Second Label Name]
+			VAR Sensitive = FILTER(ALL(CopilotAccessedResources), CopilotAccessedResources[Sensitive Read] = 1)
+			VAR Tools0 = SUMMARIZE(Sensitive, CopilotAccessedResources[AgentName])
+			VAR Tools1 =
+			    ADDCOLUMNS(
+			        Tools0,
+			        "Reads", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName)),
+			        "Blocked", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[AccessBlocked] = "True")) + 0,
+			        "TopReads", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[Label Rank] = 1)) + 0,
+			        "TopBlocked", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[Label Rank] = 1 && CopilotAccessedResources[AccessBlocked] = "True")) + 0,
+			        "NextReads", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[Label Rank] = 2)) + 0,
+			        "NextBlocked", VAR ToolName = CopilotAccessedResources[AgentName] RETURN COUNTROWS(FILTER(Sensitive, CopilotAccessedResources[AgentName] = ToolName && CopilotAccessedResources[Label Rank] = 2 && CopilotAccessedResources[AccessBlocked] = "True")) + 0
+			    )
+			VAR Ranked =
+			    ADDCOLUMNS(
+			        Tools1,
+			        "Pos",
+			            VAR ThisReads = [Reads]
+			            VAR ThisName = CopilotAccessedResources[AgentName]
+			            RETURN
+			                COUNTROWS(FILTER(Tools1, [Reads] > ThisReads || ([Reads] = ThisReads && CopilotAccessedResources[AgentName] < ThisName))) + 1
+			    )
+			VAR Shown = FILTER(Ranked, [Pos] <= 4)
+			VAR ToolCount = COUNTROWS(Shown)
+			VAR NotShown = COUNTROWS(Ranked) - ToolCount
+			VAR Slot = 300 / MAX(ToolCount, 1)
+			VAR MaxLink = MAX(MAXX(Shown, [TopReads]), MAXX(Shown, [NextReads]))
+			VAR TopTotal = SUMX(Ranked, [TopReads])
+			VAR NextTotal = SUMX(Ranked, [NextReads])
+			VAR CircleX = 420
+			VAR TopY = 90
+			VAR TopR = 50
+			VAR NextY = 250
+			VAR NextR = 52
+			VAR BoxRight = 172
+			VAR Placed =
+			    ADDCOLUMNS(
+			        Shown,
+			        "CenterY", 20 + ([Pos] - 1) * Slot + Slot / 2,
+			        "Safe", SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(CopilotAccessedResources[AgentName], "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "'", "&apos;")
+			    )
+			VAR LinkSvg =
+			    CONCATENATEX(
+			        Placed,
+			        VAR CenterY = [CenterY]
+			        VAR TopW = 1.5 + 7 * [TopReads] / MaxLink
+			        VAR NextW = 1.5 + 7 * [NextReads] / MaxLink
+			        VAR TopEndX = CircleX - TopR
+			        VAR NextEndX = CircleX - NextR
+			        VAR TopLabelX = BoxRight + (TopEndX - BoxRight) * 0.45
+			        VAR TopLabelY = CenterY + (TopY - CenterY) * 0.3 + 3
+			        VAR NextLabelX = BoxRight + (NextEndX - BoxRight) * 0.45
+			        VAR NextLabelY = CenterY + (NextY - CenterY) * 0.3 + 3
+			        VAR TopText = [TopReads] & IF([TopBlocked] > 0, " " & UNICHAR(183) & " " & [TopBlocked] & " blocked")
+			        VAR NextText = [NextReads] & IF([NextBlocked] > 0, " " & UNICHAR(183) & " " & [NextBlocked] & " blocked")
+			        VAR TopTextW = LEN(TopText) * 5 + 8
+			        VAR NextTextW = LEN(NextText) * 5 + 8
+			        RETURN
+			            IF(
+			                [TopReads] > 0,
+			                "<line x1='" & BoxRight & "' y1='" & CenterY & "' x2='" & TopEndX & "' y2='" & TopY & "' stroke='%23C62828' stroke-width='" & FORMAT(TopW, "0.0") & "'/>"
+			                    & "<rect x='" & FORMAT(TopLabelX - TopTextW / 2, "0.0") & "' y='" & FORMAT(TopLabelY - 10, "0.0") & "' width='" & TopTextW & "' height='13' fill='%23FFFFFF'/>"
+			                    & "<text x='" & FORMAT(TopLabelX, "0.0") & "' y='" & FORMAT(TopLabelY, "0.0") & "' text-anchor='middle' " & Font & " font-size='9' fill='%23C62828'>"
+			                    & TopText & "</text>"
+			            )
+			                & IF(
+			                    [NextReads] > 0,
+			                    "<line x1='" & BoxRight & "' y1='" & CenterY & "' x2='" & NextEndX & "' y2='" & NextY & "' stroke='%2316324A' stroke-width='" & FORMAT(NextW, "0.0") & "'/>"
+			                        & "<rect x='" & FORMAT(NextLabelX - NextTextW / 2, "0.0") & "' y='" & FORMAT(NextLabelY - 10, "0.0") & "' width='" & NextTextW & "' height='13' fill='%23FFFFFF'/>"
+			                    & "<text x='" & FORMAT(NextLabelX, "0.0") & "' y='" & FORMAT(NextLabelY, "0.0") & "' text-anchor='middle' " & Font & " font-size='9' fill='%2316324A'>"
+			                        & NextText & "</text>"
+			                ),
+			        "",
+			        [Pos], ASC
+			    )
+			VAR BoxSvg =
+			    CONCATENATEX(
+			        Placed,
+			        VAR IsLead = CopilotAccessedResources[AgentName] = LeadTool
+			        VAR BoxY = [CenterY] - 26
+			        RETURN
+			            "<rect x='12' y='" & BoxY & "' width='160' height='52' fill='" & IF(IsLead, "%23FCEDED", "%23EEF4F8") & "' stroke='" & IF(IsLead, "%23C62828", "%2316324A") & "' stroke-width='2'/>"
+			                & "<text x='92' y='" & (BoxY + 22) & "' text-anchor='middle' " & Font & " font-size='11' font-weight='600' fill='" & IF(IsLead, "%23C62828", "%2316324A") & "'>" & [Safe] & "</text>"
+			                & "<text x='92' y='" & (BoxY + 39) & "' text-anchor='middle' " & Font & " font-size='8.5' fill='%233D4C58'>"
+			                & [Reads] & IF([Reads] = 1, " sensitive read", " sensitive reads") & " " & UNICHAR(183) & " " & [Blocked] & " blocked</text>",
+			        "",
+			        [Pos], ASC
+			    )
+			VAR CircleSvg =
+			    "<circle cx='" & CircleX & "' cy='" & TopY & "' r='" & TopR & "' fill='%23C62828'/>"
+			        & "<text x='" & CircleX & "' y='" & (TopY - 2) & "' text-anchor='middle' " & Font & " font-size='10' font-weight='600' fill='%23FFFFFF'>" & TopName & "</text>"
+			        & "<text x='" & CircleX & "' y='" & (TopY + 15) & "' text-anchor='middle' " & Font & " font-size='9' fill='%23FFFFFF'>" & TopTotal & IF(TopTotal = 1, " read", " reads") & "</text>"
+			        & "<circle cx='" & CircleX & "' cy='" & NextY & "' r='" & NextR & "' fill='%2316324A'/>"
+			        & "<text x='" & CircleX & "' y='" & (NextY - 2) & "' text-anchor='middle' " & Font & " font-size='10' font-weight='600' fill='%23FFFFFF'>" & NextName & "</text>"
+			        & "<text x='" & CircleX & "' y='" & (NextY + 15) & "' text-anchor='middle' " & Font & " font-size='9' fill='%23FFFFFF'>" & NextTotal & IF(NextTotal = 1, " read", " reads") & "</text>"
+			VAR MoreSvg = IF(NotShown > 0, "<text x='92' y='334' text-anchor='middle' " & Font & " font-size='9' fill='%235B6B78'>+" & NotShown & IF(NotShown = 1, " more tool", " more tools") & "</text>")
+			RETURN
+			    IF(
+			        ToolCount > 0,
+			        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1000' height='680' viewBox='0 0 500 340'>" & LinkSvg & BoxSvg & CircleSvg & MoreSvg & "</svg>"
+			    )
+		displayFolder: AI reads
+		dataCategory: ImageUrl
+
+	/// One table row per sensitive read; blank on every other row so the table drops it.
+	measure 'AI Read Date' =
+			IF(
+			    [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			    FORMAT(SELECTEDVALUE(CopilotAccessedResources[EventDate]), "yyyy-mm-dd")
+			)
+		displayFolder: AI reads
+
+	measure 'AI Read Tool' =
+			IF(
+			    [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			    SELECTEDVALUE(CopilotAccessedResources[AgentName])
+			)
+		displayFolder: AI reads
+
+	/// Who the AI tool read the file for. Honours the anonymize filter.
+	measure 'AI Read Person' =
+			VAR Upn = SELECTEDVALUE(CopilotAccessedResources[UserId])
+			VAR RealName = MAXX(FILTER(ALL(Users), Users[UserPrincipalName] = Upn), Users[DisplayName])
+			VAR Pseudonym = MAXX(FILTER(ALL(Users), Users[UserPrincipalName] = Upn), Users[Anonymous Display Name])
+			RETURN
+			    IF(
+			        [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			        IF(
+			            [Anonymize Toggle Value] = 1,
+			            COALESCE(Pseudonym, "Unknown user"),
+			            COALESCE(RealName, Upn)
+			        )
+			    )
+		displayFolder: AI reads
+
+	measure 'AI Read File' =
+			IF(
+			    [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			    SELECTEDVALUE(CopilotAccessedResources[ResourceName])
+			)
+		displayFolder: AI reads
+
+	measure 'AI Read Label' =
+			VAR LabelId = SELECTEDVALUE(CopilotAccessedResources[SensitivityLabelId])
+			RETURN
+			    IF(
+			        [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			        MAXX(FILTER(ALL(Labels), Labels[ObjectId] = LabelId), Labels[DisplayName])
+			    )
+		displayFolder: AI reads
+
+	measure 'AI Read Blocked' =
+			IF(
+			    [AI Sensitive Reads] = 1 && HASONEVALUE(CopilotAccessedResources[Read Key]),
+			    IF(SELECTEDVALUE(CopilotAccessedResources[AccessBlocked]) = "True", "BLOCKED", "")
+			)
+		displayFolder: AI reads
+
+	measure 'AI Read Row Fill' = IF(SELECTEDVALUE(CopilotAccessedResources[Label Rank]) = 1, "#FDF3F3", "#FFFFFF")
+		displayFolder: AI reads
+		isHidden
+
+	measure 'AI Read Label Fill' = IF(SELECTEDVALUE(CopilotAccessedResources[Label Rank]) = 1, "#FBE3E3", "#EEF1F4")
+		displayFolder: AI reads
+		isHidden
+
+	measure 'AI Read Label Color' = IF(SELECTEDVALUE(CopilotAccessedResources[Label Rank]) = 1, "#C62828", "#16324A")
+		displayFolder: AI reads
+		isHidden
+
+	measure 'AI Read Tool Color' = IF(SELECTEDVALUE(CopilotAccessedResources[AgentName]) = [AI Lead Tool], "#C62828", "#1F2A33")
+		displayFolder: AI reads
+		isHidden
+
+	/// The enabled DLP rule, in a Copilot-scoped DLP policy, that blocks access
+	/// and names the top label (in its name or its label list).
+	measure 'AI One Fix Rule' =
+			VAR TopName = [Top Label Name]
+			VAR CopilotPolicies = CALCULATETABLE(VALUES(Policies[ObjectId]), ALL(Policies), Policies[ObjectType] = "DlpPolicy", Policies[AppliesToCopilot] = "True")
+			VAR Rules =
+			    FILTER(
+			        ALL(Policies),
+			        Policies[ObjectType] = "DlpRule"
+			            && Policies[Enabled] = "True"
+			            && Policies[BlockAccess] = "True"
+			            && Policies[ParentId] IN CopilotPolicies
+			            && (CONTAINSSTRING(Policies[Name], TopName) || CONTAINSSTRING(Policies[LabelNames], TopName))
+			    )
+			RETURN
+			    MINX(Rules, Policies[Name])
+		displayFolder: AI reads
+
+	measure 'AI One Fix Title' =
+			VAR RuleName = [AI One Fix Rule]
+			RETURN
+			    IF(ISBLANK(RuleName), "Block Copilot from " & [Top Label Name] & " files", "Fix " & UNICHAR(8220) & RuleName & UNICHAR(8221))
+		displayFolder: AI reads
+
+	measure 'AI One Fix Detail' =
+			VAR TopName = [Top Label Name]
+			VAR TopReads = CALCULATE(COUNTROWS(CopilotAccessedResources), ALL(CopilotAccessedResources), CopilotAccessedResources[Label Rank] = 1, CopilotAccessedResources[ResourceId] <> "") + 0
+			VAR TopBlocked = CALCULATE(COUNTROWS(CopilotAccessedResources), ALL(CopilotAccessedResources), CopilotAccessedResources[Label Rank] = 1, CopilotAccessedResources[ResourceId] <> "", CopilotAccessedResources[AccessBlocked] = "True") + 0
+			VAR HasRule = NOT ISBLANK([AI One Fix Rule])
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        TopReads = 0, "No AI tool has read a " & TopName & " file yet.",
+			        HasRule && TopBlocked < TopReads, "It shows as enabled, yet it stopped only " & TopBlocked & " of " & TopReads & " " & TopName & " reads.",
+			        HasRule, "It stopped all " & TopReads & " " & TopName & " reads. Keep it on.",
+			        "No enabled DLP rule stops Copilot on " & TopName & "; " & (TopReads - TopBlocked) & " of " & TopReads & " reads went through."
+			    )
+		displayFolder: AI reads
+
+	/// "sample data, example.com" appears only when users.csv holds @example.com accounts.
+	measure 'AI Reads Sources' =
+			VAR SampleUsers = CALCULATE(COUNTROWS(Users), ALL(Users), RIGHT(Users[UserPrincipalName], 12) = "@example.com")
+			RETURN
+			    "Sources: copilot-accessed-resources.csv " & UNICHAR(183) & " policies.csv"
+			        & IF(SampleUsers > 0, " " & UNICHAR(183) & " sample data, example.com")
+		displayFolder: AI reads
+
 	partition _Measures = calculated
 		mode: import
 		source =
