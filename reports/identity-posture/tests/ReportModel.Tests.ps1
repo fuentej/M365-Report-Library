@@ -421,15 +421,18 @@ Describe 'No page is built on a beta-only source' {
         $tmdl | Should -Match "/// At least: signins.csv holds interactive and successful federated sign-ins only[^\n]*\n(?:\s*///[^\n]*\n)*\s*measure 'Legacy Sign-Ins' ="
     }
 
-    It 'names only built-in roles, by template ID, and never reads a privileged flag' {
-        # Role names are not collected (README); built-in roles use their template ID as the
-        # role definition ID, so RoleDefinitions[Role Name] maps those IDs from the Microsoft
-        # Entra built-in roles page and shows any other role by the start of its ID.
-        # https://learn.microsoft.com/entra/identity/role-based-access-control/permissions-reference
-        $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'RoleDefinitions.tmdl') -Raw
-        $tmdl | Should -Match ([regex]::Escape('"62e90394-69f5-4237-9190-012177145e10", "Global Admin",'))
-        $tmdl | Should -Match ([regex]::Escape('"Role " & LEFT(RoleDefinitions[RoleDefinitionId], 8)'))
-        $tmdl | Should -Not -Match 'isPrivileged'
+    It 'names roles by the collected RoleDisplayName, with no hard-coded lookup, and never reads a privileged flag' {
+        # BRO-554: the collectors write RoleDisplayName (BRO-553, from roleDefinitions), so the
+        # page shows built-in and custom roles by their real name. The 16-ID lookup from BRO-501
+        # and its "Role " + ID fallback are gone.
+        # https://learn.microsoft.com/graph/api/resources/unifiedroledefinition?view=graph-rest-1.0
+        $roles = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'RoleDefinitions.tmdl') -Raw
+        $roles | Should -Not -Match "column 'Role Name'"
+        $roles | Should -Not -Match '62e90394-69f5-4237-9190-012177145e10'
+        $users = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'UsersCurrent.tmdl') -Raw
+        $users | Should -Not -Match '"Role " & LEFT\('
+        $users | Should -Match "measure 'Fix Admin Role' =[\s\S]*?ActiveRoleAssignments\[RoleDisplayName\][\s\S]*?RoleAssignments\[RoleDisplayName\][\s\S]*?EligibleRoleAssignments\[RoleDisplayName\]"
+        $roles | Should -Not -Match 'isPrivileged'
     }
 }
 
@@ -447,6 +450,20 @@ Describe 'The report has the approved Accounts to fix page and its filter' {
         @($pages.pageOrder) -join ',' | Should -Be 'accounts-to-fix'
         $page = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'accounts-to-fix/page.json') -Raw | ConvertFrom-Json -AsHashtable
         $page.displayName | Should -Be 'Accounts to fix'
+    }
+
+    It 'carries the house-style headline, red ONE FIX box and dashed Premium box, with figures from measures' {
+        # BRO-554: the approved image has none of the three; Joshua decided on 2026-10-14 the page follows the house style.
+        $read = { param($name) Get-Content -LiteralPath (Join-Path $script:PageVisuals "$name/visual.json") -Raw | ConvertFrom-Json -AsHashtable }
+        (& $read 'fix-headline').visual.query.queryState.Data.projections[0].nativeQueryRef | Should -Be 'Accounts To Fix Headline'
+        $panel = & $read 'fix-onefix-panel'
+        $panel.visual.objects.outline[0].properties.lineColor.solid.color.expr.Literal.Value | Should -Be "'#C62828'"
+        (& $read 'fix-onefix-title-1').visual.query.queryState.Data.projections[0].nativeQueryRef | Should -Be 'Accounts To Fix One Fix Title Line 1'
+        (& $read 'fix-onefix-detail').visual.query.queryState.Data.projections[0].nativeQueryRef | Should -Be 'Accounts To Fix One Fix Detail'
+        (& $read 'fix-premium-box').visual.objects.general[0].properties.imageUrl.expr.ResourcePackageItem.ItemName | Should -Be 'premium-dashed-box.svg'
+        (& $read 'fix-premium-body').visual.objects.general[0].properties.paragraphs[0].textRuns[0].value | Should -Match 'Premium edition at backlogkrew\.com$'
+        $script:UsersTmdl | Should -Match "measure 'Accounts To Fix Headline' =[\s\S]*?\[Fix Now Accounts\]"
+        $script:UsersTmdl | Should -Match "measure 'Accounts To Fix One Fix Detail' =[\s\S]*?\[Legacy Sign-Ins Succeeded\]"
     }
 
     It 'carries the anonymize toggle in the report filter pane' {

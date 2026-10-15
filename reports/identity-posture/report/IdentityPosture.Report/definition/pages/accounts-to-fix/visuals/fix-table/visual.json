@@ -3,10 +3,10 @@
   "name": "fix-table",
   "position": {
     "x": 13,
-    "y": 166,
+    "y": 192,
     "z": 3000,
     "width": 539,
-    "height": 470,
+    "height": 444,
     "tabOrder": 3000
   },
   "visual": {
@@ -225,7 +225,7 @@
             "wordWrap": {
               "expr": {
                 "Literal": {
-                  "Value": "false"
+                  "Value": "true"
                 }
               }
             }

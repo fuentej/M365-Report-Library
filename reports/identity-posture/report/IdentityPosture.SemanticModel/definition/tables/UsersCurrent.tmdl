@@ -270,18 +270,15 @@ table UsersCurrent
         dataCategory: ImageUrl
         lineageTag: 41ca6932-45d0-5182-b28c-064c567c5c22
 
-    /// Active directory roles on the latest snapshot, by name. When the account holds none, its eligible (PIM) roles followed by "(eligible)". Falls back to role-assignments.csv when the PIM file has no rows.
+    /// Active directory roles on the latest snapshot, by the RoleDisplayName the collectors write (BRO-553; "Unnamed role" when the name is empty because the role definitions read failed). When the account holds none, its eligible (PIM) roles followed by "(eligible)". Falls back to role-assignments.csv when the PIM file has no rows.
     measure 'Fix Admin Role' = 
             VAR UsePim = COUNTROWS(ALL(ActiveRoleAssignments)) > 0
             VAR ActiveSnap = IF(UsePim, [Active Role Assignments Snapshot Date], CALCULATE(MAX(RoleAssignments[RunDate]), ALLSELECTED(RoleAssignments), ALLSELECTED(UsersCurrent)))
-            VAR PimIds = CALCULATETABLE(VALUES(ActiveRoleAssignments[RoleDefinitionId]), ActiveRoleAssignments[RunDate] = ActiveSnap)
-            VAR PlainIds = CALCULATETABLE(VALUES(RoleAssignments[RoleDefinitionId]), RoleAssignments[RunDate] = ActiveSnap)
-            VAR PimNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(PimIds, RoleDefinitions[RoleDefinitionId]))
-            VAR PlainNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(PlainIds, RoleDefinitions[RoleDefinitionId]))
+            VAR PimNames = CONCATENATEX(CALCULATETABLE(VALUES(ActiveRoleAssignments[RoleDisplayName]), ActiveRoleAssignments[RunDate] = ActiveSnap), IF(ActiveRoleAssignments[RoleDisplayName] = "", "Unnamed role", ActiveRoleAssignments[RoleDisplayName]), ", ", ActiveRoleAssignments[RoleDisplayName], ASC)
+            VAR PlainNames = CONCATENATEX(CALCULATETABLE(VALUES(RoleAssignments[RoleDisplayName]), RoleAssignments[RunDate] = ActiveSnap), IF(RoleAssignments[RoleDisplayName] = "", "Unnamed role", RoleAssignments[RoleDisplayName]), ", ", RoleAssignments[RoleDisplayName], ASC)
             VAR ActiveNames = IF(UsePim, PimNames, PlainNames)
             VAR EligibleSnap = [Eligible Role Assignments Snapshot Date]
-            VAR EligibleIds = CALCULATETABLE(VALUES(EligibleRoleAssignments[RoleDefinitionId]), EligibleRoleAssignments[RunDate] = EligibleSnap)
-            VAR EligibleNames = CALCULATE(CONCATENATEX(VALUES(RoleDefinitions[Role Name]), RoleDefinitions[Role Name], ", ", RoleDefinitions[Role Name], ASC), TREATAS(EligibleIds, RoleDefinitions[RoleDefinitionId]))
+            VAR EligibleNames = CONCATENATEX(CALCULATETABLE(VALUES(EligibleRoleAssignments[RoleDisplayName]), EligibleRoleAssignments[RunDate] = EligibleSnap), IF(EligibleRoleAssignments[RoleDisplayName] = "", "Unnamed role", EligibleRoleAssignments[RoleDisplayName]), ", ", EligibleRoleAssignments[RoleDisplayName], ASC)
             RETURN
                 IF(
                     HASONEVALUE(UsersCurrent[Id]),
@@ -480,6 +477,106 @@ table UsersCurrent
                 )
         displayFolder: Accounts to fix
         lineageTag: e66e8331-22e8-5875-b89e-45b342e50727
+
+    /// BRO-554: the page headline. Every fix-now reason needs a successful legacy sign-in (Fix Reason), so the sentence says so.
+    measure 'Accounts To Fix Headline' = 
+            VAR FixNow = [Fix Now Accounts]
+            VAR Accounts = COUNTROWS(UsersCurrent)
+            VAR WithRole = COUNTROWS(FILTER(VALUES(UsersCurrent[Id]), [Fix Reason] > 0 && [Fix Has Active Role] = 1))
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(Accounts), BLANK(),
+                    FixNow = 0, "No account needs fixing now.",
+                    FORMAT(FixNow, "#,0") & " of " & FORMAT(Accounts, "#,0") & IF(FixNow = 1, " account needs", " accounts need") & " fixing now, and "
+                        & IF(FixNow = 1, "it", "every one") & " signed in with a legacy client"
+                        & IF(WithRole > 0, "; " & FORMAT(WithRole, "#,0") & IF(WithRole = 1, " holds", " hold") & " an admin role.", ".")
+                )
+        displayFolder: Accounts to fix
+        lineageTag: a344e2e0-e9c6-4c72-a44e-b241c3da4263
+
+    /// The Conditional Access policy that blocks legacy clients (ClientAppTypes exchangeActiveSync or other, BuiltInControls block) on the latest snapshot, enabled first, as "name|state".
+    /// https://learn.microsoft.com/entra/identity/conditional-access/policy-block-legacy-authentication
+    measure 'Legacy Block Policy' = 
+            VAR Snap = [Conditional Access Snapshot Date]
+            VAR Blocking =
+                FILTER(
+                    ALL(ConditionalAccessPolicies),
+                    ConditionalAccessPolicies[RunDate] = Snap
+                        && CONTAINSSTRING(ConditionalAccessPolicies[BuiltInControls], "block")
+                        && (CONTAINSSTRING(ConditionalAccessPolicies[ClientAppTypes], "exchangeActiveSync") || CONTAINSSTRING(ConditionalAccessPolicies[ClientAppTypes], "other"))
+                )
+            VAR Picked = TOPN(1, Blocking, IF(ConditionalAccessPolicies[State] = "enabled", 0, 1), ASC, ConditionalAccessPolicies[DisplayName], ASC)
+            RETURN MAXX(Picked, ConditionalAccessPolicies[DisplayName] & "|" & ConditionalAccessPolicies[State])
+        displayFolder: Accounts to fix
+        isHidden
+        lineageTag: 27bf60fb-6309-4586-af45-6f94c2948f7f
+
+    /// BRO-554 ONE FIX: a successful legacy sign-in is the one signal every fix-now account shares, so the fix is the legacy-authentication block.
+    measure 'Accounts To Fix One Fix Title' = 
+            VAR Found = [Legacy Block Policy]
+            VAR PolicyName = IF(ISBLANK(Found), BLANK(), LEFT(Found, SEARCH("|", Found) - 1))
+            VAR PolicyState = IF(ISBLANK(Found), BLANK(), MID(Found, SEARCH("|", Found) + 1, 100))
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(Found), "Block legacy authentication",
+                    PolicyState <> "enabled", "Turn on " & UNICHAR(8220) & PolicyName & UNICHAR(8221),
+                    "Close the gaps in " & UNICHAR(8220) & PolicyName & UNICHAR(8221)
+                )
+        displayFolder: Accounts to fix
+        lineageTag: 605314e2-4405-4cad-bffe-6f91c8298d1a
+
+    measure 'Accounts To Fix One Fix Detail' = 
+            VAR Found = [Legacy Block Policy]
+            VAR PolicyState = IF(ISBLANK(Found), BLANK(), MID(Found, SEARCH("|", Found) + 1, 100))
+            VAR LegacyAccounts = COUNTROWS(FILTER(VALUES(UsersCurrent[Id]), [Legacy Sign-Ins Succeeded] > 0))
+            VAR FixNow = [Fix Now Accounts]
+            VAR Who = FORMAT(LegacyAccounts, "#,0") & IF(LegacyAccounts = 1, " account", " accounts") & " signed in with a legacy client"
+                & IF(FixNow > 0, ", including all " & FORMAT(FixNow, "#,0") & " fix-now.", ".")
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISBLANK(LegacyAccounts) || LegacyAccounts = 0, "No account signed in with a legacy client in the sign-in log.",
+                    ISBLANK(Found), "No Conditional Access policy blocks legacy clients. " & Who,
+                    PolicyState = "enabledForReportingButNotEnforced", "It only reports. " & Who,
+                    PolicyState <> "enabled", "It is off. " & Who,
+                    "It is on, yet " & Who
+                )
+        displayFolder: Accounts to fix
+        lineageTag: da169e86-79b2-4da9-b589-966ecfe6e536
+
+    /// Line 1 of Accounts To Fix One Fix Title, split at the last space before 28 characters: a card value does not wrap.
+    measure 'Accounts To Fix One Fix Title Line 1' = 
+            VAR FullText = [Accounts To Fix One Fix Title]
+            VAR Cut = IF(LEN(FullText) <= 28, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 29), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN TRIM(LEFT(FullText, Cut))
+        displayFolder: Accounts to fix
+        lineageTag: 7255e2f5-296c-431a-96be-571157034f36
+
+    /// Line 2 of Accounts To Fix One Fix Title, split at the last space before 28 characters: a card value does not wrap.
+    measure 'Accounts To Fix One Fix Title Line 2' = 
+            VAR FullText = [Accounts To Fix One Fix Title]
+            VAR Cut = IF(LEN(FullText) <= 28, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 29), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN IF(LEN(FullText) <= 28, BLANK(), TRIM(MID(FullText, Cut + 1, 200)))
+        displayFolder: Accounts to fix
+        lineageTag: 63e580c6-4abd-4c24-b2c9-37088684ced0
+
+    /// Line 1 of Legacy Caption, split at the last space before 78 characters: the narrower legacy panel (BRO-554) needs two lines and a card value does not wrap.
+    measure 'Legacy Caption Line 1' = 
+            VAR FullText = [Legacy Caption]
+            VAR Cut = IF(LEN(FullText) <= 78, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 79), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN TRIM(LEFT(FullText, Cut))
+        displayFolder: Accounts to fix
+        lineageTag: ddf2b33a-9efc-412f-8fd4-f18f12eb977d
+
+    /// Line 2 of Legacy Caption, split at the last space before 78 characters: the narrower legacy panel (BRO-554) needs two lines and a card value does not wrap.
+    measure 'Legacy Caption Line 2' = 
+            VAR FullText = [Legacy Caption]
+            VAR Cut = IF(LEN(FullText) <= 78, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 79), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN IF(LEN(FullText) <= 78, BLANK(), TRIM(MID(FullText, Cut + 1, 300)))
+        displayFolder: Accounts to fix
+        lineageTag: be7b326c-0473-4f13-9d29-6342d7b49d64
 
     partition UsersCurrent = m
         mode: import

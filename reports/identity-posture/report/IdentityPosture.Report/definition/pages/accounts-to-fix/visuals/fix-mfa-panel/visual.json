@@ -3,10 +3,10 @@
   "name": "fix-mfa-panel",
   "position": {
     "x": 563,
-    "y": 134,
+    "y": 160,
     "z": 3500,
     "width": 346,
-    "height": 242,
+    "height": 216,
     "tabOrder": 3500
   },
   "visual": {

@@ -52,6 +52,11 @@
           "name": "icon-shield.svg",
           "path": "icon-shield.svg",
           "type": "Image"
+        },
+        {
+          "name": "premium-dashed-box.svg",
+          "path": "premium-dashed-box.svg",
+          "type": "Image"
         }
       ]
     }

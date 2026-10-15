@@ -3,10 +3,10 @@
   "name": "fix-legacy-caption",
   "position": {
     "x": 577,
-    "y": 659,
+    "y": 647,
     "z": 5900,
-    "width": 680,
-    "height": 26,
+    "width": 422,
+    "height": 18,
     "tabOrder": 5900
   },
   "visual": {
@@ -23,11 +23,11 @@
                       "Entity": "UsersCurrent"
                     }
                   },
-                  "Property": "Legacy Caption"
+                  "Property": "Legacy Caption Line 1"
                 }
               },
-              "queryRef": "UsersCurrent.Legacy Caption",
-              "nativeQueryRef": "Legacy Caption"
+              "queryRef": "UsersCurrent.Legacy Caption Line 1",
+              "nativeQueryRef": "Legacy Caption Line 1"
             }
           ]
         }
@@ -73,13 +73,6 @@
               "expr": {
                 "Literal": {
                   "Value": "false"
-                }
-              }
-            },
-            "textWrap": {
-              "expr": {
-                "Literal": {
-                  "Value": "true"
                 }
               }
             }
