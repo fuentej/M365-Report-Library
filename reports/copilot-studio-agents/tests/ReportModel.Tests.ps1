@@ -39,6 +39,7 @@ BeforeAll {
         AgentComponents    = 'agent-components.csv'
         AgentModifications = 'agent-modifications.csv'
         AgentAuditEvents   = 'agent-audit-events.csv'
+        AgentCreditConsumption = 'agent-credit-consumption.csv'
     }
 
     function Get-VisualFieldReference {
@@ -85,8 +86,8 @@ AfterAll {
 }
 
 Describe 'The semantic model has tables to check' {
-    It 'parses the six CSV-backed tables plus the calculated and helper tables' {
-        $script:Model.Keys.Count | Should -Be 10
+    It 'parses the seven CSV-backed tables plus the calculated and helper tables' {
+        $script:Model.Keys.Count | Should -Be 11
         foreach ($name in $script:CsvBackedTables.Keys + @('AgentsCurrent', 'EnvironmentsCurrent', 'DateDim', 'AnonymizeMode')) {
             $script:Model.ContainsKey($name) | Should -BeTrue -Because "the model should have a $name table"
         }
@@ -186,6 +187,7 @@ Describe 'Every CSV-backed table matches its sample CSV' {
         @{ Table = 'AgentComponents' }
         @{ Table = 'AgentModifications' }
         @{ Table = 'AgentAuditEvents' }
+        @{ Table = 'AgentCreditConsumption' }
     ) {
         $script:Model.ContainsKey($Table) | Should -BeTrue -Because "the model should have a $Table table"
 
@@ -203,13 +205,14 @@ Describe 'Every CSV-backed table matches its sample CSV' {
     }
 
     It 'names every CSV-backed table exactly once' {
-        $script:CsvBackedTables.Keys.Count | Should -Be 6
-        (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 6
+        $script:CsvBackedTables.Keys.Count | Should -Be 7
+        (@($script:CsvBackedTables.Values) | Sort-Object -Unique).Count | Should -Be 7
     }
 
     It 'reads <Table> from the CsvFolder parameter and the CSV named in the map' -ForEach @(
         @{ Table = 'Environments' }, @{ Table = 'Agents' }, @{ Table = 'AgentConnectors' },
-        @{ Table = 'AgentComponents' }, @{ Table = 'AgentModifications' }, @{ Table = 'AgentAuditEvents' }
+        @{ Table = 'AgentComponents' }, @{ Table = 'AgentModifications' }, @{ Table = 'AgentAuditEvents' },
+        @{ Table = 'AgentCreditConsumption' }
     ) {
         $tmdl = Get-Content -LiteralPath (Join-Path $script:TablesFolder "$Table.tmdl") -Raw
         $tmdl | Should -Match ([regex]::Escape('File.Contents(CsvFolder & "\' + $script:CsvBackedTables[$Table] + '")'))
@@ -445,9 +448,11 @@ Describe 'The report has the approved Agent passports page and its filter' {
         $script:Passports = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentsCurrent.tmdl') -Raw
     }
 
-    It 'lists only the agent-passports page' {
+    # BRO-521 adds the approved page 2, Spend, after Agent passports.
+    It 'lists the agent-passports page, then the spend page' {
         $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json
-        @($pages.pageOrder) -join ',' | Should -Be 'agent-passports'
+        @($pages.pageOrder) -join ',' | Should -Be 'agent-passports,spend'
+        (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'spend/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Spend'
         (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'agent-passports/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Agent passports'
     }
 
@@ -457,6 +462,25 @@ Describe 'The report has the approved Agent passports page and its filter' {
         $filter.Count | Should -Be 1
         $filter[0].field.Column.Expression.SourceRef.Entity | Should -Be 'AnonymizeMode'
         $filter[0].displayName | Should -Be 'Anonymize names'
+    }
+
+    It 'names agents and environments on the Spend page only through measures that honour the toggle' {
+        # BRO-521: the credit download carries names only. A visual bound to AgentName or EnvironmentName would bypass Anonymize.
+        $raw = @(Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder 'spend/visuals') -Recurse -Filter visual.json | ForEach-Object {
+                $json = Get-Content -LiteralPath $_.FullName -Raw
+                if ($json -match '"Property":s*"(AgentName|EnvironmentName)"') { $_.FullName }
+            })
+        $raw -join '; ' | Should -BeNullOrEmpty
+        $credit = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentCreditConsumption.tmdl') -Raw
+        foreach ($measure in 'Spend By Agent Image', 'Spend By Environment Image', 'Open Tab Detail', 'Spend One Fix Agent') {
+            $credit | Should -Match ("measure '{0}' =[\s\S]*?Mode = ""Anonymize""" -f [regex]::Escape($measure))
+        }
+    }
+
+    It 'models no prepaid capacity or monthly limit the download does not carry' {
+        # https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#download-detailed-copilot-consumption-for-an-environment
+        $credit = Get-Content -LiteralPath (Join-Path $script:TablesFolder 'AgentCreditConsumption.tmdl') -Raw
+        $credit | Should -Not -Match '(?i)prepaid\s*=|200,?000|capacity\s*='
     }
 
     It 'shows passport <N> in an image bound to [Passport <N>]' -ForEach (1..12 | ForEach-Object { @{ N = $_ } }) {

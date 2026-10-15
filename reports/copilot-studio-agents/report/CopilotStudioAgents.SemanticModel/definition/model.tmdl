@@ -13,3 +13,4 @@ ref table AgentConnectors
 ref table AgentComponents
 ref table AgentModifications
 ref table AgentAuditEvents
+ref table AgentCreditConsumption

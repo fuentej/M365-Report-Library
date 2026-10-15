@@ -47,6 +47,21 @@
           "name": "premium-dashed-box.svg",
           "path": "premium-dashed-box.svg",
           "type": "Image"
+        },
+        {
+          "name": "icon-coin.svg",
+          "path": "icon-coin.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-trend.svg",
+          "path": "icon-trend.svg",
+          "type": "Image"
+        },
+        {
+          "name": "icon-lock-open.svg",
+          "path": "icon-lock-open.svg",
+          "type": "Image"
         }
       ]
     }

@@ -1,0 +1,471 @@
+/// BRO-521: Copilot Credits per agent, product, feature, channel, model and knowledge source or tool, read from the
+/// Power Platform admin center consumption download (Get-AgentCreditConsumption.ps1 / agent-credit-consumption.csv).
+/// The download has no prepaid capacity and no per-agent monthly limit, so neither is modelled.
+/// https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#download-detailed-copilot-consumption-for-an-environment
+table AgentCreditConsumption
+    lineageTag: f8065e40-e120-4837-8ecf-d7ef363956a7
+
+    column Date
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 3abdb6fc-09f7-4d0e-9650-e1af28834307
+        summarizeBy: none
+        sourceColumn: Date
+
+    column EnvironmentName
+        dataType: string
+        lineageTag: 32ddbaa0-d1c9-4d4d-b9e6-f6322b74fdf5
+        summarizeBy: none
+        sourceColumn: EnvironmentName
+
+    column AgentName
+        dataType: string
+        lineageTag: f96eab42-da87-45d4-9c1c-84ed261ead3e
+        summarizeBy: none
+        sourceColumn: AgentName
+
+    column Product
+        dataType: string
+        lineageTag: 0fc36447-6ea7-4617-89e4-23593a11602f
+        summarizeBy: none
+        sourceColumn: Product
+
+    column Feature
+        dataType: string
+        lineageTag: a88d7ba1-9dc7-4512-94cf-196d0a6e0230
+        summarizeBy: none
+        sourceColumn: Feature
+
+    column Channel
+        dataType: string
+        lineageTag: fde47a02-78ef-49c4-b72b-71b3159c0684
+        summarizeBy: none
+        sourceColumn: Channel
+
+    column Model
+        dataType: string
+        lineageTag: b44cb791-5151-493c-b18f-cbe2d2431974
+        summarizeBy: none
+        sourceColumn: Model
+
+    column KnowledgeSourceOrTool
+        dataType: string
+        lineageTag: 44720508-813e-49ee-92e0-dce9f6b8014d
+        summarizeBy: none
+        sourceColumn: KnowledgeSourceOrTool
+
+    column BilledCredits
+        dataType: double
+        formatString: #,0.0
+        lineageTag: fac4d596-b451-4bb7-baad-cdefe3116c8e
+        summarizeBy: sum
+        sourceColumn: BilledCredits
+
+    column NonBilledCredits
+        dataType: double
+        formatString: #,0.0
+        lineageTag: 726cc07b-152e-4f1a-9d74-4f54e009380a
+        summarizeBy: sum
+        sourceColumn: NonBilledCredits
+
+    column SourceFile
+        dataType: string
+        lineageTag: 88ccf60c-9bc7-49f6-80e8-10da0bbc1eed
+        summarizeBy: none
+        sourceColumn: SourceFile
+
+    /// The inventory agent this row belongs to: same display name, in the environment with this display name. The
+    /// download carries names only, no ids. Blank when no agent in the latest run matches.
+    column 'Matched AgentId' =
+            VAR EnvId = MAXX(FILTER(EnvironmentsCurrent, EnvironmentsCurrent[DisplayName] = AgentCreditConsumption[EnvironmentName]), EnvironmentsCurrent[EnvironmentId])
+            RETURN
+                MAXX(
+                    FILTER(
+                        AgentsCurrent,
+                        AgentsCurrent[DisplayName] = AgentCreditConsumption[AgentName]
+                            && (ISBLANK(EnvId) || AgentsCurrent[EnvironmentId] = EnvId)
+                    ),
+                    AgentsCurrent[AgentId]
+                )
+        dataType: string
+        isHidden
+        lineageTag: ae26bf38-4e1f-41f3-ace4-2616ab66031b
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// 1 when the matched agent is live with no sign-in (Passport Concern 1 or 2 on page 1): anyone who reaches it can spend credits.
+    column 'No Sign-in Agent' =
+            VAR Concern = LOOKUPVALUE(AgentsCurrent[Passport Concern], AgentsCurrent[AgentId], AgentCreditConsumption[Matched AgentId])
+            RETURN IF(NOT ISBLANK(Concern) && Concern <= 2, 1, 0)
+        dataType: int64
+        formatString: 0
+        isHidden
+        lineageTag: 6e31c93e-0a6f-46e7-9ad4-b655658b33ab
+        summarizeBy: none
+        isDataTypeInferred: false
+
+    /// Billed credits: the credits that deducted capacity or were billed (Learn: "Billed credits / Non-billed credits").
+    measure 'Credits Billed' = SUM(AgentCreditConsumption[BilledCredits]) + 0
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 54ae761a-daac-452b-8afe-2094f595ff19
+
+    measure 'Credits Not Billed' = SUM(AgentCreditConsumption[NonBilledCredits]) + 0
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: f4bf7a89-5ce2-4a04-b745-82f940713a0a
+
+    measure 'Credit Days' = DISTINCTCOUNT(AgentCreditConsumption[Date])
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 824c504d-356b-49b4-a4ae-962686276a44
+
+    measure 'Credits Per Day' = DIVIDE([Credits Billed], [Credit Days])
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 496c68e6-ba2f-435d-8fbe-7f397c240cfb
+
+    measure 'Spending Agents' = CALCULATE(DISTINCTCOUNT(AgentCreditConsumption[AgentName]), AgentCreditConsumption[BilledCredits] > 0) + 0
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 674f661c-5b05-46b6-b242-3decf5ddd09e
+
+    measure 'No Sign-in Spending Agents' = CALCULATE(DISTINCTCOUNT(AgentCreditConsumption[AgentName]), AgentCreditConsumption[BilledCredits] > 0, AgentCreditConsumption[No Sign-in Agent] = 1) + 0
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 6ba3b68e-c7d1-4d03-9438-aaac934014e2
+
+    measure 'No Sign-in Spending Agents Text' = FORMAT([No Sign-in Spending Agents], "#,0") & " of " & FORMAT([Spending Agents], "#,0")
+        displayFolder: Spend
+        lineageTag: 3dbc66fa-c231-4a01-a8bf-e6d9f89cd9fb
+
+    measure 'No Sign-in Credits Billed' = CALCULATE([Credits Billed], AgentCreditConsumption[No Sign-in Agent] = 1)
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: fa92c615-5c1a-4d67-96af-f8cce27174cc
+
+    /// Billed credits up to and including the date on the chart axis.
+    measure 'Credits Running Total' =
+            VAR UpTo = MAX(AgentCreditConsumption[Date])
+            RETURN CALCULATE([Credits Billed], ALL(AgentCreditConsumption[Date]), AgentCreditConsumption[Date] <= UpTo)
+        formatString: #,0
+        displayFolder: Spend
+        lineageTag: 1bd57f76-5ddf-46e5-9d8b-618a91dce761
+
+    measure 'Spend Run Header' =
+            VAR FirstDay = CALCULATE(MIN(AgentCreditConsumption[Date]), ALL(AgentCreditConsumption))
+            VAR LastDay = CALCULATE(MAX(AgentCreditConsumption[Date]), ALL(AgentCreditConsumption))
+            VAR DayCount = CALCULATE([Credit Days], ALL(AgentCreditConsumption))
+            VAR AgentCount = CALCULATE(DISTINCTCOUNT(AgentCreditConsumption[AgentName]), ALL(AgentCreditConsumption))
+            RETURN
+                IF(
+                    ISBLANK(FirstDay),
+                    "No consumption download in this run",
+                    "Credits " & FORMAT(FirstDay, "yyyy-MM-dd") & " to " & FORMAT(LastDay, "yyyy-MM-dd")
+                        & " " & UNICHAR(183) & " " & DayCount & IF(DayCount = 1, " day", " days")
+                        & " " & UNICHAR(183) & " " & AgentCount & IF(AgentCount = 1, " agent", " agents")
+                )
+        displayFolder: Spend
+        lineageTag: bd0794b3-0837-4eab-81df-f24d0f6edb50
+
+    measure 'Spend Chart Subtitle' =
+            VAR DayCount = CALCULATE([Credit Days], ALL(AgentCreditConsumption))
+            RETURN
+                "Average " & FORMAT(CALCULATE([Credits Per Day], ALL(AgentCreditConsumption)), "#,0") & " billed credits a day over "
+                    & DayCount & IF(DayCount = 1, " day.", " days.")
+        displayFolder: Spend
+        lineageTag: 6f569c6f-e78a-4ed7-9e8a-a595930c2a9d
+
+    /// Agent name for one row of the spend panels. Follows the Anonymize toggle; an agent with no inventory match keeps its download name unless anonymized.
+    measure 'Spend Agent Name' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR AgentKey = SELECTEDVALUE(AgentCreditConsumption[Matched AgentId])
+            VAR Pseudo = LOOKUPVALUE(AgentsCurrent[Pseudonym], AgentsCurrent[AgentId], AgentKey)
+            RETURN IF(Mode = "Anonymize", COALESCE(Pseudo, "Unmatched agent"), SELECTEDVALUE(AgentCreditConsumption[AgentName]))
+        displayFolder: Spend
+        lineageTag: 3fc3d2ee-9379-48af-9a25-bbfae5330abc
+
+    /// The Credits by agent panel as an SVG image: up to ten agents, most billed credits first, a bar (red when the agent answers with no sign-in), the credits and the share.
+    measure 'Spend By Agent Image' =
+            VAR Font = "font-family='Segoe UI, sans-serif'"
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR GrandTotal = CALCULATE([Credits Billed], ALL(AgentCreditConsumption))
+            VAR PerAgent =
+                ADDCOLUMNS(
+                    SUMMARIZE(ALL(AgentCreditConsumption), AgentCreditConsumption[AgentName], AgentCreditConsumption[Matched AgentId]),
+                    "Billed", CALCULATE(SUM(AgentCreditConsumption[BilledCredits])),
+                    "Open", CALCULATE(MAX(AgentCreditConsumption[No Sign-in Agent])),
+                    "Shown",
+                        VAR Pseudo = LOOKUPVALUE(AgentsCurrent[Pseudonym], AgentsCurrent[AgentId], AgentCreditConsumption[Matched AgentId])
+                        RETURN IF(Mode = "Anonymize", COALESCE(Pseudo, "Unmatched agent"), AgentCreditConsumption[AgentName])
+                )
+            VAR Ranked =
+                ADDCOLUMNS(
+                    PerAgent,
+                    "Pos",
+                        VAR ThisBilled = [Billed]
+                        VAR ThisName = AgentCreditConsumption[AgentName]
+                        RETURN COUNTROWS(FILTER(PerAgent, [Billed] > ThisBilled || ([Billed] = ThisBilled && AgentCreditConsumption[AgentName] < ThisName))) + 1
+                )
+            VAR Shown = FILTER(Ranked, [Pos] <= 10)
+            VAR MaxBilled = MAXX(Shown, [Billed])
+            VAR NotShown = COUNTROWS(Ranked) - COUNTROWS(Shown)
+            VAR HeaderSvg =
+                "<rect x='0' y='0' width='440' height='24' fill='%2316324A'/>"
+                    & "<text x='14' y='16' " & Font & " font-size='9.5' font-weight='600' fill='%23FFFFFF'>Agent</text>"
+                    & "<text x='160' y='16' " & Font & " font-size='9.5' font-weight='600' fill='%23FFFFFF'>Credits</text>"
+                    & "<text x='358' y='16' text-anchor='end' " & Font & " font-size='9.5' font-weight='600' fill='%23FFFFFF'>Billed</text>"
+                    & "<text x='428' y='16' text-anchor='end' " & Font & " font-size='9.5' font-weight='600' fill='%23FFFFFF'>Share</text>"
+            VAR RowSvg =
+                CONCATENATEX(
+                    Shown,
+                    VAR RowY = 24 + ([Pos] - 1) * 30
+                    VAR BarW = ROUND(110 * DIVIDE([Billed], MaxBilled), 1)
+                    VAR Safe = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE([Shown], "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "'", "&apos;")
+                    RETURN
+                        "<text x='14' y='" & (RowY + 19) & "' " & Font & " font-size='10.5' font-weight='600' fill='%231F2A33'>" & Safe & "</text>"
+                            & "<rect x='160' y='" & (RowY + 9) & "' width='110' height='11' fill='%23EEF1F4'/>"
+                            & "<rect x='160' y='" & (RowY + 9) & "' width='" & BarW & "' height='11' fill='" & IF([Open] = 1, "%23C62828", "%2316324A") & "'/>"
+                            & "<text x='358' y='" & (RowY + 19) & "' text-anchor='end' " & Font & " font-size='10.5' fill='%231F2A33'>" & FORMAT([Billed], "#,0") & "</text>"
+                            & "<text x='428' y='" & (RowY + 19) & "' text-anchor='end' " & Font & " font-size='10' font-weight='600' fill='" & IF([Open] = 1, "%23C62828", "%233D4C58") & "'>" & SUBSTITUTE(FORMAT(DIVIDE([Billed], GrandTotal), "0%"), "%", "%25") & "</text>"
+                            & "<line x1='0' y1='" & (RowY + 30) & "' x2='440' y2='" & (RowY + 30) & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [Pos], ASC
+                )
+            VAR MoreSvg = IF(NotShown > 0, "<text x='14' y='" & (24 + 10 * 30 + 18) & "' " & Font & " font-size='9' fill='%235B6B78'>+" & NotShown & " more</text>")
+            RETURN
+                IF(
+                    COUNTROWS(Shown) > 0,
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='880' height='680' viewBox='0 0 440 340'>" & HeaderSvg & RowSvg & MoreSvg & "</svg>"
+                )
+        displayFolder: Spend
+        dataCategory: ImageUrl
+        lineageTag: 9ddbbf01-4c20-43d9-97a7-318c9c7188a5
+
+    /// What the credits bought, as an SVG image: one stacked bar of billed credits by feature and a legend with each share.
+    measure 'Spend By Feature Image' =
+            VAR Font = "font-family='Segoe UI, sans-serif'"
+            VAR GrandTotal = CALCULATE([Credits Billed], ALL(AgentCreditConsumption))
+            VAR PerFeature =
+                ADDCOLUMNS(
+                    SUMMARIZE(ALL(AgentCreditConsumption), AgentCreditConsumption[Feature]),
+                    "Billed", CALCULATE(SUM(AgentCreditConsumption[BilledCredits]))
+                )
+            VAR Ranked =
+                ADDCOLUMNS(
+                    FILTER(PerFeature, [Billed] > 0),
+                    "Pos",
+                        VAR ThisBilled = [Billed]
+                        VAR ThisName = AgentCreditConsumption[Feature]
+                        RETURN COUNTROWS(FILTER(PerFeature, [Billed] > 0 && ([Billed] > ThisBilled || ([Billed] = ThisBilled && AgentCreditConsumption[Feature] < ThisName)))) + 1
+                )
+            VAR Placed =
+                ADDCOLUMNS(
+                    Ranked,
+                    "StartX", VAR ThisPos = [Pos] RETURN 470 * DIVIDE(SUMX(FILTER(Ranked, [Pos] < ThisPos), [Billed]), GrandTotal),
+                    "Colour", SWITCH([Pos], 1, "%2316324A", 2, "%23138A8A", 3, "%235B8DB8", 4, "%23D98A00", 5, "%23A9B6C2", "%23C5CED6")
+                )
+            VAR BarSvg =
+                CONCATENATEX(
+                    Placed,
+                    "<rect x='" & FORMAT([StartX], "0.0") & "' y='0' width='" & FORMAT(470 * DIVIDE([Billed], GrandTotal), "0.0") & "' height='18' fill='" & [Colour] & "'/>",
+                    "",
+                    [Pos], ASC
+                )
+            VAR LegendSvg =
+                CONCATENATEX(
+                    Placed,
+                    VAR LegendCol = MOD([Pos] - 1, 3)
+                    VAR LegendRow = INT(([Pos] - 1) / 3)
+                    VAR LegendX = LegendCol * 160
+                    VAR LegendY = 34 + LegendRow * 20
+                    VAR Safe = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(COALESCE(AgentCreditConsumption[Feature], "Not stated"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "'", "&apos;")
+                    RETURN
+                        "<rect x='" & LegendX & "' y='" & (LegendY - 8) & "' width='9' height='9' fill='" & [Colour] & "'/>"
+                            & "<text x='" & (LegendX + 14) & "' y='" & LegendY & "' " & Font & " font-size='9.5' fill='%231F2A33'>" & Safe
+                            & " <tspan font-weight='600'>" & SUBSTITUTE(FORMAT(DIVIDE([Billed], GrandTotal), "0%"), "%", "%25") & "</tspan></text>",
+                    "",
+                    [Pos], ASC
+                )
+            RETURN
+                IF(
+                    GrandTotal > 0,
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='940' height='160' viewBox='0 0 470 80'>" & BarSvg & LegendSvg & "</svg>"
+                )
+        displayFolder: Spend
+        dataCategory: ImageUrl
+        lineageTag: 1663e018-cd4d-4041-8c22-52d5d303a922
+
+    /// By environment, as an SVG image: up to six environments, most billed credits first; personal (Developer) and trial environments in red.
+    measure 'Spend By Environment Image' =
+            VAR Font = "font-family='Segoe UI, sans-serif'"
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR PerEnv =
+                ADDCOLUMNS(
+                    SUMMARIZE(ALL(AgentCreditConsumption), AgentCreditConsumption[EnvironmentName]),
+                    "Billed", CALCULATE(SUM(AgentCreditConsumption[BilledCredits])),
+                    "EnvType", VAR EnvName = AgentCreditConsumption[EnvironmentName] RETURN MAXX(FILTER(EnvironmentsCurrent, EnvironmentsCurrent[DisplayName] = EnvName), EnvironmentsCurrent[EnvironmentType]),
+                    "Pseudo", VAR EnvName = AgentCreditConsumption[EnvironmentName] RETURN MAXX(FILTER(EnvironmentsCurrent, EnvironmentsCurrent[DisplayName] = EnvName), EnvironmentsCurrent[Pseudonym])
+                )
+            VAR Ranked =
+                ADDCOLUMNS(
+                    PerEnv,
+                    "Pos",
+                        VAR ThisBilled = [Billed]
+                        VAR ThisName = AgentCreditConsumption[EnvironmentName]
+                        RETURN COUNTROWS(FILTER(PerEnv, [Billed] > ThisBilled || ([Billed] = ThisBilled && AgentCreditConsumption[EnvironmentName] < ThisName))) + 1
+                )
+            VAR Shown = FILTER(Ranked, [Pos] <= 6)
+            VAR RowSvg =
+                CONCATENATEX(
+                    Shown,
+                    VAR RowY = ([Pos] - 1) * 21
+                    VAR Hot = [EnvType] IN {"Developer", "Trial"}
+                    VAR EnvLabel = IF(Mode = "Anonymize", COALESCE([Pseudo], "Unmatched environment"), AgentCreditConsumption[EnvironmentName])
+                    VAR Safe = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(EnvLabel, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "'", "&apos;")
+                    RETURN
+                        "<text x='0' y='" & (RowY + 14) & "' " & Font & " font-size='10' " & IF(Hot, "font-weight='600' fill='%23C62828'", "fill='%231F2A33'") & ">" & Safe & "</text>"
+                            & "<text x='270' y='" & (RowY + 14) & "' text-anchor='end' " & Font & " font-size='10' fill='%231F2A33'>" & FORMAT([Billed], "#,0") & "</text>"
+                            & "<line x1='0' y1='" & (RowY + 20) & "' x2='270' y2='" & (RowY + 20) & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [Pos], ASC
+                )
+            RETURN
+                IF(
+                    COUNTROWS(Shown) > 0,
+                    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='540' height='252' viewBox='0 0 270 126'>" & RowSvg & "</svg>"
+                )
+        displayFolder: Spend
+        dataCategory: ImageUrl
+        lineageTag: 02e8eb51-9369-429d-ab61-bbdafd113b1a
+
+    /// "Anyone on the internet" only when a spending agent with no sign-in is on the Website channel (Passport Concern 1).
+    measure 'Open Tab Title' =
+            VAR OpenIds = SUMMARIZE(FILTER(ALL(AgentCreditConsumption), AgentCreditConsumption[No Sign-in Agent] = 1 && AgentCreditConsumption[BilledCredits] > 0), AgentCreditConsumption[Matched AgentId])
+            VAR OnWebsite = COUNTROWS(FILTER(OpenIds, LOOKUPVALUE(AgentsCurrent[Passport Concern], AgentsCurrent[AgentId], AgentCreditConsumption[Matched AgentId]) = 1))
+            RETURN
+                SWITCH(
+                    TRUE(),
+                    ISEMPTY(OpenIds), "Every spending agent asks users to sign in",
+                    OnWebsite > 0, "Anyone on the internet can spend your credits",
+                    "Agents with no sign-in are spending your credits"
+                )
+        displayFolder: Spend
+        lineageTag: 8dae29b6-ea16-462c-807e-58b1f4cd52b4
+
+    measure 'Open Tab Detail' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR OpenAgents = SUMMARIZE(FILTER(ALL(AgentCreditConsumption), AgentCreditConsumption[No Sign-in Agent] = 1 && AgentCreditConsumption[BilledCredits] > 0), AgentCreditConsumption[AgentName], AgentCreditConsumption[Matched AgentId])
+            VAR Named = ADDCOLUMNS(OpenAgents, "Shown", VAR Pseudo = LOOKUPVALUE(AgentsCurrent[Pseudonym], AgentsCurrent[AgentId], AgentCreditConsumption[Matched AgentId]) RETURN IF(Mode = "Anonymize", COALESCE(Pseudo, "Unmatched agent"), AgentCreditConsumption[AgentName]))
+            VAR OpenCount = COUNTROWS(Named)
+            VAR Names = CONCATENATEX(Named, [Shown], " and ", [Shown], ASC)
+            VAR OpenCredits = CALCULATE([No Sign-in Credits Billed], ALL(AgentCreditConsumption))
+            VAR GrandTotal = CALCULATE([Credits Billed], ALL(AgentCreditConsumption))
+            RETURN
+                IF(
+                    OpenCount = 0,
+                    "No agent that spent credits in this download answers without sign-in.",
+                    Names & IF(OpenCount = 1, " answers", " answer") & " with no sign-in: "
+                        & FORMAT(OpenCredits, "#,0") & " billed credits, "
+                        & FORMAT(DIVIDE(OpenCredits, GrandTotal), "0%") & " of the total."
+                )
+        displayFolder: Spend
+        lineageTag: dcd69a36-fbcf-407a-9170-afb927df16a6
+
+    /// The single action that closes the biggest risk on the page: a monthly credit limit on the biggest-spending agent with no sign-in (or, if none, the biggest spender).
+    /// Per-agent monthly limits are set in Power Platform admin center, Licensing, Copilot Studio, Manage Agents; the download does not include them.
+    /// https://learn.microsoft.com/power-platform/admin/manage-copilot-studio-copilot-credits-capacity#manage-monthly-consumption-limits-for-copilot-studio-agents
+    measure 'Spend One Fix Agent' =
+            VAR Mode = SELECTEDVALUE(AnonymizeMode[Mode], "Show names")
+            VAR AnyOpen = CALCULATE([No Sign-in Spending Agents], ALL(AgentCreditConsumption)) > 0
+            VAR Pool = FILTER(ALL(AgentCreditConsumption), NOT AnyOpen || AgentCreditConsumption[No Sign-in Agent] = 1)
+            VAR PerAgent = ADDCOLUMNS(SUMMARIZE(Pool, AgentCreditConsumption[AgentName], AgentCreditConsumption[Matched AgentId]), "Billed", CALCULATE(SUM(AgentCreditConsumption[BilledCredits])))
+            VAR Biggest = TOPN(1, PerAgent, [Billed], DESC, AgentCreditConsumption[AgentName], ASC)
+            VAR RealName = MAXX(Biggest, AgentCreditConsumption[AgentName])
+            VAR Pseudo = LOOKUPVALUE(AgentsCurrent[Pseudonym], AgentsCurrent[AgentId], MAXX(Biggest, AgentCreditConsumption[Matched AgentId]))
+            RETURN IF(Mode = "Anonymize", COALESCE(Pseudo, "Unmatched agent"), RealName)
+        displayFolder: Spend
+        lineageTag: 1f418146-b649-49f4-b9e7-41ae326ab99f
+
+    measure 'Spend One Fix Title' = IF(ISBLANK([Spend One Fix Agent]), "No agent spent credits in this download", "Put a monthly credit limit on " & [Spend One Fix Agent])
+        displayFolder: Spend
+        lineageTag: ee6351de-9d54-400b-bbd6-42e057ec5cf8
+
+    measure 'Spend One Fix Detail' =
+            VAR AnyOpen = CALCULATE([No Sign-in Spending Agents], ALL(AgentCreditConsumption)) > 0
+            RETURN
+                IF(
+                    ISBLANK([Spend One Fix Agent]),
+                    BLANK(),
+                    IF(AnyOpen, "It answers anyone with no sign-in. ", "It spends the most. ")
+                        & "Set it in Power Platform admin center, Manage Agents."
+                )
+        displayFolder: Spend
+        lineageTag: 721833b4-4b39-4c20-ac43-9408dd74277e
+
+    /// "sample data, example.com" only when the agents' Dataverse URLs are example.com, as on page 1.
+    measure 'Spend Sources' =
+            VAR IsSample = CONTAINSSTRING([Passport Sources], "sample data")
+            RETURN
+                "Sources: agent-credit-consumption.csv " & UNICHAR(183) & " agents.csv " & UNICHAR(183) & " environments.csv"
+                    & IF(IsSample, " " & UNICHAR(183) & " sample data, example.com")
+        displayFolder: Spend
+        lineageTag: 87e41ccc-5f9f-49e0-8e0c-085826202a3a
+
+    /// Line 1 of Open Tab Title, split at the last space before 36 characters: a card value does not wrap.
+    measure 'Open Tab Title Line 1' =
+            VAR FullText = [Open Tab Title]
+            VAR Cut = IF(LEN(FullText) <= 36, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 37), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN TRIM(LEFT(FullText, Cut))
+        displayFolder: Spend
+        lineageTag: 8a3de933-29d2-4511-9eed-490f08f850d8
+
+    /// Line 2 of Open Tab Title, split at the last space before 36 characters: a card value does not wrap.
+    measure 'Open Tab Title Line 2' =
+            VAR FullText = [Open Tab Title]
+            VAR Cut = IF(LEN(FullText) <= 36, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 37), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN IF(LEN(FullText) <= 36, BLANK(), TRIM(MID(FullText, Cut + 1, 200)))
+        displayFolder: Spend
+        lineageTag: 9266397e-5246-42f4-ae19-eb293ee9102d
+
+    /// Line 1 of Spend One Fix Title, split at the last space before 36 characters: a card value does not wrap.
+    measure 'Spend One Fix Title Line 1' =
+            VAR FullText = [Spend One Fix Title]
+            VAR Cut = IF(LEN(FullText) <= 36, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 37), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN TRIM(LEFT(FullText, Cut))
+        displayFolder: Spend
+        lineageTag: 7a5e2547-c78f-489f-bc3a-86bfd6cdc4ad
+
+    /// Line 2 of Spend One Fix Title, split at the last space before 36 characters: a card value does not wrap.
+    measure 'Spend One Fix Title Line 2' =
+            VAR FullText = [Spend One Fix Title]
+            VAR Cut = IF(LEN(FullText) <= 36, LEN(FullText), MAXX(FILTER(GENERATESERIES(1, 37), MID(FullText, [Value], 1) = " "), [Value]))
+            RETURN IF(LEN(FullText) <= 36, BLANK(), TRIM(MID(FullText, Cut + 1, 200)))
+        displayFolder: Spend
+        lineageTag: 04142ae4-4710-45a9-a0ce-ce5ba8aadb69
+
+    measure 'Credits Billed Text' = FORMAT([Credits Billed], "#,0")
+        displayFolder: Spend
+        lineageTag: 9b837091-8773-4b67-adb0-76e68ae39160
+
+    measure 'Credits Not Billed Text' = FORMAT([Credits Not Billed], "#,0")
+        displayFolder: Spend
+        lineageTag: 98defe5e-9c9e-446a-8ecd-0f27a60e33ce
+
+    measure 'Credits Per Day Text' = FORMAT([Credits Per Day], "#,0")
+        displayFolder: Spend
+        lineageTag: ee3f7a36-a6be-4fdc-a924-c4c7215c1e36
+
+    partition AgentCreditConsumption = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\agent-credit-consumption.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"Date", type date}, {"BilledCredits", type number}, {"NonBilledCredits", type number}}, "en-US")
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table

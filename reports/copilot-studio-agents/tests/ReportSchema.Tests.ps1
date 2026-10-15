@@ -97,8 +97,8 @@ Describe 'The report is laid out as the one approved page' {
         $script:PageOrder = (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable).pageOrder
     }
 
-    It 'lists the approved page only' {
-        $script:PageOrder -join ',' | Should -Be 'agent-passports'
+    It 'lists the approved pages only' {
+        $script:PageOrder -join ',' | Should -Be 'agent-passports,spend'
     }
 
     It 'has a page.json for every listed page and no unlisted page folder' {
