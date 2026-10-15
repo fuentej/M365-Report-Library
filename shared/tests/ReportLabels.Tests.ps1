@@ -54,6 +54,7 @@ $script:Reports = @(
     'teams-groups-lifecycle/report/TeamsGroupsLifecycle.Report'
     'copilot-studio-agents/report/CopilotStudioAgents.Report'
     'mailbox-exfiltration-risk/report/MailboxExfiltrationRisk.Report'
+    'copilot-usage/rebuild/CopilotUsageRebuild.Report'
 )
 # Visuals that show no number need no label; tables are labelled by their column headers.
 $script:DecorativeTypes = @('textbox', 'shape', 'basicShape', 'image', 'actionButton', 'slicer')
@@ -252,7 +253,7 @@ Describe 'Labels on <Report> / <Name>' -ForEach $script:Visuals {
 }
 
 $script:ReportFiles = foreach ($report in $script:Reports) {
-    $reportRoot = Join-Path $script:RepoRoot "reports/$($report.Split('/')[0])/report"
+    $reportRoot = Split-Path -Parent (Join-Path $script:RepoRoot "reports/$report")
     @{
         Report   = $report.Split('/')[0]
         Platform = Join-Path $script:RepoRoot "reports/$report/.platform"
