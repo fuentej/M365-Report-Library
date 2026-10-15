@@ -1,0 +1,27 @@
+table AuditIngestion
+    lineageTag: 025680fe-f9a8-47d0-9132-cb50805c99d1
+
+    column RunDate
+        dataType: string
+        lineageTag: dfab89cd-cf95-40f3-9628-2b0fd8a0da58
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column UnifiedAuditLogIngestionEnabled
+        dataType: string
+        lineageTag: aad5e829-afb4-4860-93b8-6f2fca0aa800
+        summarizeBy: none
+        sourceColumn: UnifiedAuditLogIngestionEnabled
+
+    partition AuditIngestion = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\audit-ingestion.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
