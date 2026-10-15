@@ -9,3 +9,4 @@ ref table TeamsDeviceUsageUserDetail
 ref table TeamsTeamActivityDetail
 ref table ReportSettings
 ref table CallRecords
+ref table TeamsAuditEvents

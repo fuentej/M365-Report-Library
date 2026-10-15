@@ -1,0 +1,45 @@
+table TeamsAuditEvents
+    lineageTag: 057b98df-1880-407d-bcb6-76adb8c5bdbb
+
+    column Date
+        dataType: string
+        lineageTag: dd3d0ee8-fda8-443f-9927-b990d514cf0f
+        summarizeBy: none
+        sourceColumn: Date
+
+    column Workload
+        dataType: string
+        lineageTag: 563bc16a-fd29-442e-98f3-d74281b31e89
+        summarizeBy: none
+        sourceColumn: Workload
+
+    column UserId
+        dataType: string
+        lineageTag: b75fd867-4a87-400e-b5e0-13dc34148b01
+        summarizeBy: none
+        sourceColumn: UserId
+
+    column Operation
+        dataType: string
+        lineageTag: 66eb6867-7cda-4ecc-bf52-5ee0cee9b1ab
+        summarizeBy: none
+        sourceColumn: Operation
+
+    column EventCount
+        dataType: string
+        lineageTag: 6c89f998-524b-4f25-84be-dad49acd006b
+        summarizeBy: none
+        sourceColumn: EventCount
+
+    partition TeamsAuditEvents = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\teams-audit-events.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
