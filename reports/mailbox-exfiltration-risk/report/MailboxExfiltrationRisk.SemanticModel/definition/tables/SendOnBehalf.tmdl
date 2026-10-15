@@ -80,6 +80,187 @@ table SendOnBehalf
             RETURN IF(Mode = "Anonymize", Pseudo, RealName)
         lineageTag: 1db5a41b-d8b3-54f2-b088-6d4b80ba4e11
 
+    /// Who else can read: the latest run across the app, consent, delegate and users files. Users is written every run, so a run that removed the last grant still moves the anchor.
+    measure 'Who Else Latest Run' =
+            VAR Runs = UNION(SELECTCOLUMNS(ALL(AppRoleAssignments[RunDate]), "D", AppRoleAssignments[RunDate]), SELECTCOLUMNS(ALL(DelegatedConsents[RunDate]), "D", DelegatedConsents[RunDate]), SELECTCOLUMNS(ALL(MailboxFullAccess[RunDate]), "D", MailboxFullAccess[RunDate]), SELECTCOLUMNS(ALL(SendAsPermissions[RunDate]), "D", SendAsPermissions[RunDate]), SELECTCOLUMNS(ALL(SendOnBehalf[RunDate]), "D", SendOnBehalf[RunDate]), SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate]))
+            RETURN MAXX(Runs, [D])
+        formatString: yyyy-MM-dd
+        displayFolder: Who else can read
+        lineageTag: 7ab3cd87-d526-4e21-85cf-fd429b50f209
+
+    /// Full Access, explicit Allow Send As and Send on Behalf grants in the latest run. Blank when all three files are header-only: not collected, never zero.
+    measure 'Delegate Grants' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxFullAccess[RunDate]), ALL(MailboxFullAccess))) || NOT ISBLANK(CALCULATE(MAX(SendAsPermissions[RunDate]), ALL(SendAsPermissions))) || NOT ISBLANK(CALCULATE(MAX(SendOnBehalf[RunDate]), ALL(SendOnBehalf)))
+            VAR FaN = COUNTROWS(FILTER(ALL(MailboxFullAccess), MailboxFullAccess[RunDate] = LatestRun)) + 0
+            VAR SaN = COUNTROWS(FILTER(ALL(SendAsPermissions), SendAsPermissions[RunDate] = LatestRun && SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited]))) + 0
+            VAR SobN = COUNTROWS(FILTER(ALL(SendOnBehalf), SendOnBehalf[RunDate] = LatestRun)) + 0
+            RETURN IF(NOT Collected, BLANK(), FaN + SaN + SobN)
+        formatString: #,0
+        displayFolder: Who else can read
+        lineageTag: a9bf254b-9a1f-4a27-a01b-1aa9a18eea3e
+
+    /// Delegates whose own mailbox has a live outside route (an inbox rule or mailbox forward, as on Exit routes) or one that was set and is now gone. Send on Behalf delegates are matched to users by display name.
+    measure 'Delegates With A Way Out' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxFullAccess[RunDate]), ALL(MailboxFullAccess))) || NOT ISBLANK(CALCULATE(MAX(SendAsPermissions[RunDate]), ALL(SendAsPermissions))) || NOT ISBLANK(CALCULATE(MAX(SendOnBehalf[RunDate]), ALL(SendOnBehalf)))
+            VAR FaRows = SELECTCOLUMNS(FILTER(ALL(MailboxFullAccess), MailboxFullAccess[RunDate] = LatestRun), "DKey", MailboxFullAccess[DelegateKey], "DRaw", MailboxFullAccess[User], "MRaw", MailboxFullAccess[MailboxUserPrincipalName], "Kind", 2, "ByName", 0)
+            VAR SaRows = SELECTCOLUMNS(FILTER(ALL(SendAsPermissions), SendAsPermissions[RunDate] = LatestRun && SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited])), "DKey", SendAsPermissions[TrusteeKey], "DRaw", SendAsPermissions[Trustee], "MRaw", COALESCE(SendAsPermissions[MailboxKey], SendAsPermissions[Identity]), "Kind", 1, "ByName", 0)
+            VAR SobRows = SELECTCOLUMNS(FILTER(ALL(SendOnBehalf), SendOnBehalf[RunDate] = LatestRun), "DKey", SendOnBehalf[DelegateKey], "DRaw", SendOnBehalf[Delegate], "MRaw", SendOnBehalf[UserPrincipalName], "Kind", 3, "ByName", 1)
+            VAR Grants = FILTER(UNION(SaRows, FaRows, SobRows), NOT ISBLANK([DKey]))
+            VAR LiveRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[ExitRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 1, "Dt", InboxRules[RunDate], "RTxt", "has a live inbox rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain"))
+            VAR LiveFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 1, "Dt", MailboxForwarding[RunDate], "RTxt", "has a live forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain"))
+            VAR GhostRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[GhostRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 0, "Dt", InboxRules[RunDate], "RTxt", "had a rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain") & " in the " & FORMAT(InboxRules[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[GhostRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 0, "Dt", MailboxForwarding[RunDate], "RTxt", "had a forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain") & " in the " & FORMAT(MailboxForwarding[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostEvent = SELECTCOLUMNS(FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute] && MailboxChangeEvents[RouteKind] IN {"inbox rule", "mailbox forward"}), "RKey", LOWER(IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN])), "Live", 0, "Dt", MailboxChangeEvents[ActivityDate], "RTxt", IF(MailboxChangeEvents[RouteKind] = "inbox rule", "set a rule forwarding to ", "set a forward to ") & COALESCE(MailboxChangeEvents[RouteDomain], "an outside domain") & " on " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & " that is now gone")
+            VAR Routes = UNION(LiveRule, LiveFwd, GhostRule, GhostFwd, GhostEvent)
+            VAR RouteKeys = DISTINCT(SELECTCOLUMNS(Routes, "WKey", [RKey]))
+            RETURN IF(NOT Collected, BLANK(), COUNTROWS(INTERSECT(DISTINCT(SELECTCOLUMNS(Grants, "WKey", [DKey])), RouteKeys)) + 0)
+        formatString: #,0
+        displayFolder: Who else can read
+        lineageTag: d1deadfc-41a3-49a5-930f-02ac35f3cc55
+
+    /// The DELEGATES WHO ALSO HAVE A WAY OUT box as an SVG image: each such delegate once, with the grant shown first in the table and the route (live first, then the latest that is gone). Names follow the Anonymize toggle. At most 3 entries.
+    measure 'Way Out Image' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxFullAccess[RunDate]), ALL(MailboxFullAccess))) || NOT ISBLANK(CALCULATE(MAX(SendAsPermissions[RunDate]), ALL(SendAsPermissions))) || NOT ISBLANK(CALCULATE(MAX(SendOnBehalf[RunDate]), ALL(SendOnBehalf)))
+            VAR FaRows = SELECTCOLUMNS(FILTER(ALL(MailboxFullAccess), MailboxFullAccess[RunDate] = LatestRun), "DKey", MailboxFullAccess[DelegateKey], "DRaw", MailboxFullAccess[User], "MRaw", MailboxFullAccess[MailboxUserPrincipalName], "Kind", 2, "ByName", 0)
+            VAR SaRows = SELECTCOLUMNS(FILTER(ALL(SendAsPermissions), SendAsPermissions[RunDate] = LatestRun && SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited])), "DKey", SendAsPermissions[TrusteeKey], "DRaw", SendAsPermissions[Trustee], "MRaw", COALESCE(SendAsPermissions[MailboxKey], SendAsPermissions[Identity]), "Kind", 1, "ByName", 0)
+            VAR SobRows = SELECTCOLUMNS(FILTER(ALL(SendOnBehalf), SendOnBehalf[RunDate] = LatestRun), "DKey", SendOnBehalf[DelegateKey], "DRaw", SendOnBehalf[Delegate], "MRaw", SendOnBehalf[UserPrincipalName], "Kind", 3, "ByName", 1)
+            VAR Grants = FILTER(UNION(SaRows, FaRows, SobRows), NOT ISBLANK([DKey]))
+            VAR LiveRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[ExitRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 1, "Dt", InboxRules[RunDate], "RTxt", "has a live inbox rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain"))
+            VAR LiveFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 1, "Dt", MailboxForwarding[RunDate], "RTxt", "has a live forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain"))
+            VAR GhostRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[GhostRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 0, "Dt", InboxRules[RunDate], "RTxt", "had a rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain") & " in the " & FORMAT(InboxRules[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[GhostRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 0, "Dt", MailboxForwarding[RunDate], "RTxt", "had a forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain") & " in the " & FORMAT(MailboxForwarding[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostEvent = SELECTCOLUMNS(FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute] && MailboxChangeEvents[RouteKind] IN {"inbox rule", "mailbox forward"}), "RKey", LOWER(IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN])), "Live", 0, "Dt", MailboxChangeEvents[ActivityDate], "RTxt", IF(MailboxChangeEvents[RouteKind] = "inbox rule", "set a rule forwarding to ", "set a forward to ") & COALESCE(MailboxChangeEvents[RouteDomain], "an outside domain") & " on " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & " that is now gone")
+            VAR Routes = UNION(LiveRule, LiveFwd, GhostRule, GhostFwd, GhostEvent)
+            VAR RouteKeys = DISTINCT(SELECTCOLUMNS(Routes, "WKey", [RKey]))
+            VAR UserNames = SELECTCOLUMNS(ALL(Users[UserPrincipalName], Users[DisplayName]), "UKey", LOWER(Users[UserPrincipalName]), "UName", Users[DisplayName])
+            VAR Named = ADDCOLUMNS(Grants, "DName", VAR NameKey = LOWER([DKey]) RETURN IF(Anon, IF(NameKey = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey)), UNICODE(MID(NameKey, [Value], 1)) * [Value]), 9000) + 1000, "0000")), COALESCE(MAXX(FILTER(UserNames, [UKey] = NameKey), [UName]), [DRaw])), "MName", VAR NameKey = LOWER([MRaw]) RETURN IF(Anon, IF(NameKey = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey)), UNICODE(MID(NameKey, [Value], 1)) * [Value]), 9000) + 1000, "0000")), COALESCE(MAXX(FILTER(UserNames, [UKey] = NameKey), [UName]), [MRaw])))
+            VAR Flagged = ADDCOLUMNS(Named, "Way", VAR ThisKey = [DKey] RETURN IF(COUNTROWS(FILTER(RouteKeys, [WKey] = ThisKey)) > 0, 1, 0))
+            VAR Picked = ADDCOLUMNS(Flagged, "Pick", VAR ThisKey = [DKey] VAR ThisKind = [Kind] VAR ThisMailbox = [MName] RETURN IF([Way] = 1 && COUNTROWS(FILTER(Flagged, [DKey] = ThisKey && ([Kind] < ThisKind || ([Kind] = ThisKind && [MName] < ThisMailbox)))) = 0, 1, 0))
+            VAR Entries =
+                ADDCOLUMNS(
+                    ADDCOLUMNS(FILTER(Picked, [Pick] = 1), "SortKey", [Kind] & "|" & [DName] & "|" & [DKey]),
+                    "Txt",
+                    VAR ThisKey = [DKey]
+                    VAR RouteText = MAXX(TOPN(1, FILTER(Routes, [RKey] = ThisKey), [Live], DESC, [Dt], DESC), [RTxt])
+                    RETURN SWITCH([Kind], 1, "Can send as " & [MName], 2, "Full access to " & [MName] & "'s mailbox", "Can send on behalf of " & [MName]) & ", and " & RouteText & "." & IF([ByName] = 1, " Matched by name.", "")
+                )
+            VAR Ranked = ADDCOLUMNS(Entries, "Rk", VAR ThisSort = [SortKey] RETURN COUNTROWS(FILTER(Entries, [SortKey] < ThisSort)) + 1)
+            VAR WayN = COUNTROWS(Entries) + 0
+            VAR ShownN = IF(WayN > 3, 2, WayN)
+            VAR Wrapped =
+                ADDCOLUMNS(
+                    FILTER(Ranked, [Rk] <= ShownN),
+                    "Packed",
+                    VAR T0 = SUBSTITUTE([Txt], "|", "/")
+                    VAR Sp1 = IF(LEN(T0) <= 98, LEN(T0) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 99), MID(T0, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 99, LastSpace))
+                    VAR L1 = LEFT(T0, Sp1 - 1)
+                    VAR T1 = IF(MID(T0, Sp1, 1) = " ", MID(T0, Sp1 + 1, 2000), MID(T0, Sp1, 2000))
+                    VAR Sp2 = IF(LEN(T1) <= 98, LEN(T1) + 1, VAR LastSpace = MAXX(FILTER(GENERATESERIES(1, 99), MID(T1, [Value], 1) = " "), [Value]) RETURN IF(ISBLANK(LastSpace), 99, LastSpace))
+                    VAR L2 = LEFT(T1, Sp2 - 1)
+                    VAR T2 = IF(MID(T1, Sp2, 1) = " ", MID(T1, Sp2 + 1, 2000), MID(T1, Sp2, 2000))
+                    VAR L3 = IF(LEN(T2) > 98, LEFT(T2, 97) & UNICHAR(8230), T2)
+                    RETURN L1 & IF(L2 <> "", "|" & L2) & IF(L3 <> "", "|" & L3)
+                )
+            VAR Sized = ADDCOLUMNS(Wrapped, "LineN", PATHLENGTH([Packed]))
+            VAR Placed = ADDCOLUMNS(Sized, "Top", VAR ThisRk = [Rk] RETURN SUMX(FILTER(Sized, [Rk] < ThisRk), [LineN] * 15.5 + 12) + 0)
+            VAR EntrySvg =
+                CONCATENATEX(
+                    Placed,
+                    VAR EntryTop = [Top]
+                    VAR Packed = [Packed]
+                    VAR NameText = IF(LEN([DName]) > 22, LEFT([DName], 21) & UNICHAR(8230), [DName])
+                    VAR BodyLines = CONCATENATEX(FILTER(GENERATESERIES(1, 3), [Value] <= PATHLENGTH(Packed)), VAR LineText = PATHITEM(Packed, [Value]) RETURN "<text x='150' y='" & ROUND(EntryTop + 12 + ([Value] - 1) * 15.5, 1) & "' font-family='Segoe UI, sans-serif' font-size='11' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(LineText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>", "", [Value], ASC)
+                    VAR RuleY = ROUND(EntryTop + [LineN] * 15.5 + 5, 1)
+                    RETURN
+                        "<text x='0' y='" & ROUND(EntryTop + 12, 1) & "' font-family='Segoe UI, sans-serif' font-size='11.5' font-weight='600' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(NameText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & BodyLines
+                            & "<line x1='0' y1='" & RuleY & "' x2='660' y2='" & RuleY & "' stroke='%23F2C9C9'/>",
+                    "",
+                    [Rk], ASC
+                )
+            VAR LastBottom = SUMX(Sized, [LineN] * 15.5 + 12) + 0
+            VAR MoreNote = IF(WayN > ShownN, "<text x='0' y='" & ROUND(LastBottom + 12, 1) & "' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%235B6B78'>+" & (WayN - ShownN) & " more delegates with a way out, highlighted in the table below.</text>")
+            VAR EmptyNote = IF(WayN = 0, "<text x='0' y='14' font-family='Segoe UI, sans-serif' font-size='11' fill='%235B6B78'>" & IF(NOT Collected, "Not collected: the Full Access, Send As and Send on Behalf files are empty.", "No delegate has a live outside route on their own mailbox, or one that was set and is now gone.") & "</text>")
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1320' height='250' viewBox='0 0 660 125'>" & EntrySvg & MoreNote & EmptyNote & "</svg>"
+        dataCategory: ImageUrl
+        displayFolder: Who else can read
+        lineageTag: df0508da-f0ee-4c76-808a-eed857d7a118
+
+    /// The delegate table as an SVG image: Delegate, Can, On mailbox. The grant each delegate with a way out is named for in the box above comes first, highlighted; then Full Access, Send As and Send on Behalf. Names follow the Anonymize toggle. At most 15 rows.
+    measure 'Delegate Grants Image' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"
+            VAR Collected = NOT ISBLANK(CALCULATE(MAX(MailboxFullAccess[RunDate]), ALL(MailboxFullAccess))) || NOT ISBLANK(CALCULATE(MAX(SendAsPermissions[RunDate]), ALL(SendAsPermissions))) || NOT ISBLANK(CALCULATE(MAX(SendOnBehalf[RunDate]), ALL(SendOnBehalf)))
+            VAR FaRows = SELECTCOLUMNS(FILTER(ALL(MailboxFullAccess), MailboxFullAccess[RunDate] = LatestRun), "DKey", MailboxFullAccess[DelegateKey], "DRaw", MailboxFullAccess[User], "MRaw", MailboxFullAccess[MailboxUserPrincipalName], "Kind", 2, "ByName", 0)
+            VAR SaRows = SELECTCOLUMNS(FILTER(ALL(SendAsPermissions), SendAsPermissions[RunDate] = LatestRun && SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited])), "DKey", SendAsPermissions[TrusteeKey], "DRaw", SendAsPermissions[Trustee], "MRaw", COALESCE(SendAsPermissions[MailboxKey], SendAsPermissions[Identity]), "Kind", 1, "ByName", 0)
+            VAR SobRows = SELECTCOLUMNS(FILTER(ALL(SendOnBehalf), SendOnBehalf[RunDate] = LatestRun), "DKey", SendOnBehalf[DelegateKey], "DRaw", SendOnBehalf[Delegate], "MRaw", SendOnBehalf[UserPrincipalName], "Kind", 3, "ByName", 1)
+            VAR Grants = FILTER(UNION(SaRows, FaRows, SobRows), NOT ISBLANK([DKey]))
+            VAR LiveRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[ExitRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 1, "Dt", InboxRules[RunDate], "RTxt", "has a live inbox rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain"))
+            VAR LiveFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[ExitRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 1, "Dt", MailboxForwarding[RunDate], "RTxt", "has a live forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain"))
+            VAR GhostRule = SELECTCOLUMNS(FILTER(ALL(InboxRules), InboxRules[GhostRoute]), "RKey", LOWER(InboxRules[MailboxUserPrincipalName]), "Live", 0, "Dt", InboxRules[RunDate], "RTxt", "had a rule forwarding to " & COALESCE(InboxRules[OutsideDomain], "an outside domain") & " in the " & FORMAT(InboxRules[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostFwd = SELECTCOLUMNS(FILTER(ALL(MailboxForwarding), MailboxForwarding[GhostRoute]), "RKey", LOWER(MailboxForwarding[UserPrincipalName]), "Live", 0, "Dt", MailboxForwarding[RunDate], "RTxt", "had a forward to " & COALESCE(LOWER(MailboxForwarding[ForwardingSmtpDomain]), "an outside domain") & " in the " & FORMAT(MailboxForwarding[RunDate], "yyyy-MM-dd") & " run that is now gone")
+            VAR GhostEvent = SELECTCOLUMNS(FILTER(ALL(MailboxChangeEvents), MailboxChangeEvents[GhostRoute] && MailboxChangeEvents[RouteKind] IN {"inbox rule", "mailbox forward"}), "RKey", LOWER(IF(ISBLANK(MailboxChangeEvents[MailboxOwnerUPN]), MailboxChangeEvents[ObjectId], MailboxChangeEvents[MailboxOwnerUPN])), "Live", 0, "Dt", MailboxChangeEvents[ActivityDate], "RTxt", IF(MailboxChangeEvents[RouteKind] = "inbox rule", "set a rule forwarding to ", "set a forward to ") & COALESCE(MailboxChangeEvents[RouteDomain], "an outside domain") & " on " & FORMAT(MailboxChangeEvents[ActivityDate], "yyyy-MM-dd") & " that is now gone")
+            VAR Routes = UNION(LiveRule, LiveFwd, GhostRule, GhostFwd, GhostEvent)
+            VAR RouteKeys = DISTINCT(SELECTCOLUMNS(Routes, "WKey", [RKey]))
+            VAR UserNames = SELECTCOLUMNS(ALL(Users[UserPrincipalName], Users[DisplayName]), "UKey", LOWER(Users[UserPrincipalName]), "UName", Users[DisplayName])
+            VAR Named = ADDCOLUMNS(Grants, "DName", VAR NameKey = LOWER([DKey]) RETURN IF(Anon, IF(NameKey = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey)), UNICODE(MID(NameKey, [Value], 1)) * [Value]), 9000) + 1000, "0000")), COALESCE(MAXX(FILTER(UserNames, [UKey] = NameKey), [UName]), [DRaw])), "MName", VAR NameKey = LOWER([MRaw]) RETURN IF(Anon, IF(NameKey = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey)), UNICODE(MID(NameKey, [Value], 1)) * [Value]), 9000) + 1000, "0000")), COALESCE(MAXX(FILTER(UserNames, [UKey] = NameKey), [UName]), [MRaw])))
+            VAR Flagged = ADDCOLUMNS(Named, "Way", VAR ThisKey = [DKey] RETURN IF(COUNTROWS(FILTER(RouteKeys, [WKey] = ThisKey)) > 0, 1, 0))
+            VAR Picked = ADDCOLUMNS(Flagged, "Pick", VAR ThisKey = [DKey] VAR ThisKind = [Kind] VAR ThisMailbox = [MName] RETURN IF([Way] = 1 && COUNTROWS(FILTER(Flagged, [DKey] = ThisKey && ([Kind] < ThisKind || ([Kind] = ThisKind && [MName] < ThisMailbox)))) = 0, 1, 0))
+            VAR Keyed = ADDCOLUMNS(Picked, "SortKey", IF([Pick] = 1, "0|" & [Kind], "1|" & SWITCH([Kind], 2, 1, 1, 2, 3)) & "|" & [DName] & "|" & [MName] & "|" & [DKey])
+            VAR Ranked = ADDCOLUMNS(Keyed, "Rk", VAR ThisSort = [SortKey] RETURN COUNTROWS(FILTER(Keyed, [SortKey] < ThisSort)) + 1)
+            VAR GrantN = COUNTROWS(Keyed) + 0
+            VAR ShownN = IF(GrantN > 15, 14, GrantN)
+            VAR RowSvg =
+                CONCATENATEX(
+                    FILTER(Ranked, [Rk] <= ShownN),
+                    VAR RowTop = 23 + ([Rk] - 1) * 23
+                    VAR IsPick = [Pick] = 1
+                    VAR WhoText = IF(LEN([DName]) > 30, LEFT([DName], 29) & UNICHAR(8230), [DName])
+                    VAR MailboxText = IF(LEN([MName]) > 44, LEFT([MName], 43) & UNICHAR(8230), [MName])
+                    VAR CanText = SWITCH([Kind], 1, "Send as", 2, "Full access", "Send on behalf")
+                    VAR CanInk = SWITCH([Kind], 1, "%23D98A00", 2, "%23C62828", "%2316324A")
+                    RETURN
+                        IF(IsPick, "<rect x='0' y='" & RowTop & "' width='685' height='23' fill='%23FDF1F1'/>")
+                            & "<text x='14' y='" & (RowTop + 15.5) & "' font-family='Segoe UI, sans-serif' font-size='11' " & IF(IsPick, "font-weight='600' ", "") & "fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(WhoText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & "<text x='192' y='" & (RowTop + 15.5) & "' font-family='Segoe UI, sans-serif' font-size='10.5' font-weight='600' fill='" & CanInk & "'>" & CanText & "</text>"
+                            & "<text x='310' y='" & (RowTop + 15.5) & "' font-family='Segoe UI, sans-serif' font-size='11' fill='%231F2A33'>" & SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(MailboxText, "%", "%25"), "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), "#", "%23"), UNICHAR(8220), "%E2%80%9C"), UNICHAR(8221), "%E2%80%9D"), UNICHAR(183), "%C2%B7"), UNICHAR(8230), "%E2%80%A6"), UNICHAR(8217), "%E2%80%99") & "</text>"
+                            & "<line x1='0' y1='" & (RowTop + 23) & "' x2='685' y2='" & (RowTop + 23) & "' stroke='%23EEF1F4'/>",
+                    "",
+                    [Rk], ASC
+                )
+            VAR MoreNote = IF(GrantN > ShownN, "<text x='14' y='" & (23 + ShownN * 23 + 15.5) & "' font-family='Segoe UI, sans-serif' font-size='10.5' fill='%235B6B78'>+" & (GrantN - ShownN) & " more grants</text>")
+            VAR EmptyNote = IF(GrantN = 0, "<text x='14' y='42' font-family='Segoe UI, sans-serif' font-size='11' fill='%235B6B78'>" & IF(NOT Collected, "Not collected: the Full Access, Send As and Send on Behalf files are empty.", "No mailbox has a Full Access, Send As or Send on Behalf delegate in the latest run.") & "</text>")
+            RETURN
+                "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1370' height='736' viewBox='0 0 685 368'>"
+                    & "<rect x='0' y='0' width='685' height='23' fill='%2316324A'/><text x='14' y='15.5' font-family='Segoe UI, sans-serif' font-size='10.5' font-weight='600' fill='%23FFFFFF'>Delegate</text><text x='192' y='15.5' font-family='Segoe UI, sans-serif' font-size='10.5' font-weight='600' fill='%23FFFFFF'>Can</text><text x='310' y='15.5' font-family='Segoe UI, sans-serif' font-size='10.5' font-weight='600' fill='%23FFFFFF'>On mailbox</text>"
+                    & RowSvg & MoreNote & EmptyNote
+                    & "</svg>"
+        dataCategory: ImageUrl
+        displayFolder: Who else can read
+        lineageTag: 031c6014-0911-46c6-84b5-c0e4ad436b03
+
+    /// Header run line: the latest run, and the users with a mail address in the latest users file.
+    measure 'Who Else Run Header' =
+            VAR LatestRun = [Who Else Latest Run]
+            VAR UsersRun = CALCULATE(MAX(Users[RunDate]), ALL(Users))
+            VAR MailUserN = COUNTROWS(FILTER(ALL(Users), Users[RunDate] = UsersRun && NOT ISBLANK(Users[Mail]))) + 0
+            RETURN IF(ISBLANK(LatestRun), "No run collected", "Run " & FORMAT(LatestRun, "yyyy-MM-dd") & " " & UNICHAR(183) & " " & IF(ISBLANK(UsersRun), "users not collected", FORMAT(MailUserN, "#,0") & IF(MailUserN = 1, " mailbox user", " mailbox users")))
+        displayFolder: Who else can read
+        lineageTag: 75dcc6a6-896d-4a2d-937e-ed50b166b7f6
+
+    /// Footer: the files the page reads, and "sample data, example.com" only when users.csv holds example.com accounts.
+    measure 'Who Else Sources' =
+            VAR IsSample = COUNTROWS(FILTER(ALL(Users[UserPrincipalName]), CONTAINSSTRING(Users[UserPrincipalName], "@example.com"))) > 0
+            RETURN "Sources: app-role-assignments " & UNICHAR(183) & " delegated-consents " & UNICHAR(183) & " mailbox-full-access " & UNICHAR(183) & " send-as-permissions " & UNICHAR(183) & " send-on-behalf " & UNICHAR(183) & " users " & UNICHAR(183) & " inbox-rules " & UNICHAR(183) & " mailbox-forwarding " & UNICHAR(183) & " mailbox-change-events CSVs" & IF(IsSample, " " & UNICHAR(183) & " sample data, example.com")
+        displayFolder: Who else can read
+        lineageTag: c0c8f8e7-6507-4fb2-8fb5-05d627a0fe66
+
     partition SendOnBehalf = m
         mode: import
         source =

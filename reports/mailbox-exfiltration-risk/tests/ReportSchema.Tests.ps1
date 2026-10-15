@@ -88,17 +88,17 @@ Describe 'Every PBIR/platform JSON file declares and validates against its schem
     }
 }
 
-Describe 'The report is laid out as the one approved page' {
+Describe 'The report is laid out as the two approved pages' {
     # BRO-514 replaced the seven pages the contract proposed (Overview ... Change history), each
-    # with its own date, entity and anonymize slicers, with the approved Exit routes page.
+    # with its own date, entity and anonymize slicers, with the approved Exit routes page. BRO-520 added page 2, Who else can read the mail.
     # The design has no slicers; the anonymize toggle is a report-level filter (ReportModel.Tests.ps1).
     BeforeAll {
         $script:PagesFolder = Join-Path $script:ReportRoot 'MailboxExfiltrationRisk.Report/definition/pages'
         $script:PageOrder = (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json -AsHashtable).pageOrder
     }
 
-    It 'lists the approved page only' {
-        $script:PageOrder -join ',' | Should -Be 'exit-routes'
+    It 'lists the two approved pages in order' {
+        $script:PageOrder -join ',' | Should -Be 'exit-routes,who-else-can-read'
     }
 
     It 'has a page.json for every listed page and no unlisted page folder' {
@@ -109,7 +109,7 @@ Describe 'The report is laid out as the one approved page' {
         }
     }
 
-    It 'registers the house-style theme and every image the page uses' {
+    It 'registers the house-style theme and every image the pages use' {
         $report = Get-Content -LiteralPath (Join-Path $script:ReportRoot 'MailboxExfiltrationRisk.Report/definition/report.json') -Raw | ConvertFrom-Json -AsHashtable
         $theme = $report.themeCollection.customTheme.name
         $theme | Should -Match '^BacklogKrewHouseStyle-[0-9a-f]{8,12}.json$'

@@ -106,8 +106,8 @@ Describe 'The semantic model has tables to check' {
     }
 
     It 'finds visual.json files to check' {
-        # The one approved Exit routes page (BRO-514) has 36 visuals.
-        $script:VisualFiles.Count | Should -BeGreaterThan 30
+        # Exit routes (BRO-514) has 36 visuals; Who else can read the mail (BRO-520) has 33.
+        $script:VisualFiles.Count | Should -BeGreaterThan 60
     }
 
     It 'lists every table in model.tmdl' {
@@ -546,10 +546,11 @@ Describe 'The report has the approved Exit routes page and its filter' {
         $script:Forwarding = Get-TableText -Name 'MailboxForwarding'
     }
 
-    It 'lists only the exit-routes page' {
+    It 'lists the exit-routes page, then who-else-can-read' {
         $pages = Get-Content -LiteralPath (Join-Path $script:PagesFolder 'pages.json') -Raw | ConvertFrom-Json
-        @($pages.pageOrder) -join ',' | Should -Be 'exit-routes'
+        @($pages.pageOrder) -join ',' | Should -Be 'exit-routes,who-else-can-read'
         (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'exit-routes/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Exit routes'
+        (Get-Content -LiteralPath (Join-Path $script:PagesFolder 'who-else-can-read/page.json') -Raw | ConvertFrom-Json).displayName | Should -Be 'Who else can read the mail'
     }
 
     It 'puts the anonymize toggle in the report filter pane' {
@@ -615,7 +616,7 @@ Describe 'The report has the approved Exit routes page and its filter' {
     }
 
     It 'uses no VAR name Desktop 2.158 rejects' {
-        $rejected = 'Value', 'Status', 'Scope', 'Disabled', 'Hidden', 'FirstDate', 'LastDate', 'Lead', 'At', 'Rows', 'Level', 'Key', 'Top', 'Weight', 'Earliest'
+        $rejected = 'Value', 'Status', 'Scope', 'Disabled', 'Hidden', 'FirstDate', 'LastDate', 'Lead', 'At', 'Rows', 'Level', 'Key', 'Top', 'Weight', 'Earliest', 'Axis', 'Empty'
         $found = foreach ($file in Get-ChildItem -LiteralPath $script:TablesFolder -Filter '*.tmdl') {
             $text = Get-Content -LiteralPath $file.FullName -Raw
             foreach ($name in $rejected) {
@@ -632,5 +633,77 @@ Describe 'The report has the approved Exit routes page and its filter' {
             foreach ($m in [regex]::Matches($text, '\w+\[\w+\] = \[[^\]]+\]')) { "$($file.Name): $($m.Value)" }
         }
         $found -join '; ' | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'The report has the approved Who else can read the mail page' {
+    # BRO-520: page 2, built to docs/design/mailbox-exfiltration-risk/page-2-who-else-can-read-it.png.
+    BeforeAll {
+        $script:PageVisuals = Join-Path $script:PagesFolder 'who-else-can-read/visuals'
+        $script:Delegates = Get-TableText -Name 'SendOnBehalf'
+        $script:Apps = Get-TableText -Name 'AppRoleAssignments'
+    }
+
+    It 'binds tile <N> to [<Measure>] with the label <Label>' -ForEach @(
+        @{ N = 1; Entity = 'AppRoleAssignments'; Measure = 'Apps Reaching Every Mailbox'; Label = 'Apps reaching every mailbox' }
+        @{ N = 2; Entity = 'AppRoleAssignments'; Measure = 'Mail Apps That Send As Anyone'; Label = 'Of them can send as anyone' }
+        @{ N = 3; Entity = 'SendOnBehalf'; Measure = 'Delegate Grants'; Label = 'Delegate grants' }
+        @{ N = 4; Entity = 'SendOnBehalf'; Measure = 'Delegates With A Way Out'; Label = 'Delegates with a way out' }
+    ) {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals "read-tile-$N/visual.json") -Raw | ConvertFrom-Json -AsHashtable
+        $visual.visual.query.queryState.Data.projections[0].queryRef | Should -Be "$Entity.$Measure"
+        $visual.visual.objects.label[0].properties.text.expr.Literal.Value | Should -Be "'$Label'"
+    }
+
+    It 'shows <Visual> as an image bound to [<Measure>], marked as an image URL' -ForEach @(
+        @{ Visual = 'read-apps-image'; Entity = 'AppRoleAssignments'; Measure = 'Mail Apps Image' }
+        @{ Visual = 'read-wayout-image'; Entity = 'SendOnBehalf'; Measure = 'Way Out Image' }
+        @{ Visual = 'read-grants-image'; Entity = 'SendOnBehalf'; Measure = 'Delegate Grants Image' }
+    ) {
+        $visual = Get-Content -LiteralPath (Join-Path $script:PageVisuals "$Visual/visual.json") -Raw | ConvertFrom-Json -AsHashtable
+        $visual.visual.visualType | Should -Be 'image'
+        $visual.visual.objects.image[0].properties.sourceField.expr.Measure.Expression.SourceRef.Entity | Should -Be $Entity
+        $visual.visual.objects.image[0].properties.sourceField.expr.Measure.Property | Should -Be $Measure
+        (Get-TableText -Name $Entity) | Should -Match ("(?s)measure '" + [regex]::Escape($Measure) + "' =.*?dataCategory: ImageUrl")
+    }
+
+    It 'counts apps by Mail.* application permissions, not MailboxSettings.*' {
+        # Mail.Read, Mail.ReadBasic, Mail.ReadWrite and Mail.Send application permissions work on all mailboxes
+        # without a signed-in user. https://learn.microsoft.com/graph/permissions-reference
+        $script:Apps | Should -Match ([regex]::Escape('LEFT(AppRoleAssignments[AppRoleValue], 5) = "Mail."'))
+        $script:Apps | Should -Match ([regex]::Escape('FILTER(AppRows, [Role] = "Mail.Send")'))
+    }
+
+    It 'counts only explicit Allow Send As grants as delegate grants' {
+        # https://learn.microsoft.com/powershell/module/exchangepowershell/get-recipientpermission
+        $script:Delegates | Should -Match ([regex]::Escape('SendAsPermissions[AccessControlType] = "Allow" && SendAsPermissions[IsInherited] = FALSE() && NOT ISBLANK(SendAsPermissions[IsInherited])'))
+    }
+
+    It 'judges every figure against the latest run of the whole report, with Users in the anchor' {
+        $script:Delegates | Should -Match ("(?s)measure 'Who Else Latest Run' =.*?" + [regex]::Escape('SELECTCOLUMNS(ALL(Users[RunDate]), "D", Users[RunDate])'))
+        foreach ($name in 'Delegate Grants', 'Delegates With A Way Out', 'Way Out Image', 'Delegate Grants Image') {
+            $script:Delegates | Should -Match ("(?s)measure '" + [regex]::Escape($name) + "' =\s+VAR LatestRun = \[Who Else Latest Run\]")
+        }
+        foreach ($name in 'Apps Reaching Every Mailbox', 'Mail Apps That Send As Anyone', 'Mail Apps Window', 'Mail Apps Image', 'Mail Apps Footnote') {
+            $script:Apps | Should -Match ("(?s)measure '" + [regex]::Escape($name) + "' =\s+VAR LatestRun = \[Who Else Latest Run\]")
+        }
+    }
+
+    It 'finds a way out from the same live and gone routes as Exit routes, on the delegate''s own mailbox' {
+        foreach ($route in 'InboxRules[ExitRoute]', 'MailboxForwarding[ExitRoute]', 'InboxRules[GhostRoute]', 'MailboxForwarding[GhostRoute]', 'MailboxChangeEvents[GhostRoute]') {
+            $script:Delegates | Should -Match ([regex]::Escape("FILTER(ALL($($route.Split('[')[0])), $route"))
+        }
+        $script:Delegates | Should -Match ([regex]::Escape('" Matched by name."'))
+    }
+
+    It 'shows names only through the anonymize toggle' {
+        $script:Delegates | Should -Match ([regex]::Escape('VAR Anon = SELECTEDVALUE(AnonymizeMode[Mode], "Show names") = "Anonymize"'))
+        $script:Delegates | Should -Match ([regex]::Escape('RETURN IF(Anon, IF(NameKey = "", BLANK(), "Person " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey))'))
+        $script:Apps | Should -Match ([regex]::Escape('RETURN IF(Anon, IF(NameKey = "", BLANK(), "App " & FORMAT(MOD(SUMX(GENERATESERIES(1, LEN(NameKey))'))
+    }
+
+    It 'leaves page 1 unchanged' {
+        $visuals = @(Get-ChildItem -LiteralPath (Join-Path $script:PagesFolder 'exit-routes/visuals') -Directory)
+        $visuals.Count | Should -Be 36
     }
 }
