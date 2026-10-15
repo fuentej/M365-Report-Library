@@ -272,7 +272,7 @@ Open `report/IdentityPosture.pbip` in Power BI Desktop and set the `CsvFolder` p
 the collectors wrote (or to `samples/`). The report has one page, **Accounts to fix**, built to the
 approved design `docs/design/identity-posture/page-1-accounts-to-fix.png` (BRO-501): six tiles, the
 accounts ranked worst first, MFA registration and Conditional Access donuts, and successful and blocked
-legacy sign-ins by account. The house-style theme from `shared/theme/` is registered in the report.
+legacy sign-ins by account, plus the house-style headline, ONE FIX box and Premium box (BRO-554). The house-style theme from `shared/theme/` is registered in the report.
 The page has no slicers; **Anonymize names** in the filter pane swaps display names for a stable
 pseudonym derived from the user `Id`.
 
@@ -284,9 +284,14 @@ pseudonym derived from the user `Id`.
 * Snapshot measures read the latest `RunDate`.
 * Active role counts fall back to `role-assignments.csv` when `role-assignments-active.csv` is
   header-only.
-* Role names are not collected. `RoleDefinitions[Role Name]` names built-in roles from their template ID
-  ([Microsoft Entra built-in roles](https://learn.microsoft.com/entra/identity/role-based-access-control/permissions-reference));
-  any other role shows as "Role " and the start of its ID.
+* Role names are the `RoleDisplayName` the collectors write (BRO-553, from
+  [unifiedRoleDefinition.displayName](https://learn.microsoft.com/graph/api/resources/unifiedroledefinition?view=graph-rest-1.0)),
+  so custom roles show their own name. There is no role lookup in the model. When the role definitions
+  read failed and the name is empty, the page shows "Unnamed role", never an ID.
+* The headline, the red **ONE FIX** box (the Conditional Access policy that blocks legacy clients, from
+  `ClientAppTypes` and `BuiltInControls`) and the dashed **Premium** box (BRO-554) take their figures from
+  measures. They are not in the approved image; Joshua decided on 2026-10-14 that the page follows the
+  house style.
 * The privileged flag (source 4d) and non-interactive sign-ins (source 6b) are not collected, so the
   legacy sign-in counts are a lower bound.
 

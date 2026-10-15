@@ -3,10 +3,10 @@
   "name": "fix-ca-panel",
   "position": {
     "x": 920,
-    "y": 134,
+    "y": 160,
     "z": 4300,
     "width": 347,
-    "height": 242,
+    "height": 216,
     "tabOrder": 4300
   },
   "visual": {
