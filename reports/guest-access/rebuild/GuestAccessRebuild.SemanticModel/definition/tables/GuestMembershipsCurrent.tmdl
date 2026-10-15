@@ -1,0 +1,58 @@
+table GuestMembershipsCurrent
+    lineageTag: 72d81a87-831b-40a0-bef4-244181c0eb54
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 5a17d586-b343-4458-ba96-30853c82dd1a
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column GuestId
+        dataType: string
+        lineageTag: 94e42930-7e13-43b4-9395-cd6a7eb985af
+        summarizeBy: none
+        sourceColumn: GuestId
+
+    column GroupId
+        dataType: string
+        lineageTag: 6722a9e4-1eb3-4aa2-aa41-2d9aff2594a9
+        summarizeBy: none
+        sourceColumn: GroupId
+
+    column GroupDisplayName
+        dataType: string
+        lineageTag: b580571e-5cc1-4097-8fbd-9693824d4d7f
+        summarizeBy: none
+        sourceColumn: GroupDisplayName
+
+    column IsTeam
+        dataType: boolean
+        lineageTag: 6379d19b-3eaa-44ac-b1e7-63f3892f3f24
+        summarizeBy: none
+        sourceColumn: IsTeam
+
+    column Visibility
+        dataType: string
+        lineageTag: 2d96c8d2-be8e-49d4-b136-fba4770393f1
+        summarizeBy: none
+        sourceColumn: Visibility
+
+    partition GuestMembershipsCurrent = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\guest-memberships.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"IsTeam", type logical}}),
+                Selected = Table.SelectColumns(#"Changed Type", {"RunDate", "GuestId", "GroupId", "GroupDisplayName", "IsTeam", "Visibility"}),
+                // Blank cells are null. List.Max includes nulls by default and can
+                // return null, and the row filter then keeps nothing.
+                LatestRunDate = List.Max(List.RemoveNulls(Selected[RunDate])),
+                Latest = Table.SelectRows(Selected, each [RunDate] = LatestRunDate)
+            in
+                Latest
+
+    annotation PBI_ResultType = Table

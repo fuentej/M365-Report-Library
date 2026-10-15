@@ -11,3 +11,4 @@ ref table GuestInvitations
 ref table SharingEvents
 ref table GuestsCurrent
 ref table UsersCurrent
+ref table GuestMembershipsCurrent
