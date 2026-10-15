@@ -1,0 +1,66 @@
+table CopilotFeatureAvailability
+    lineageTag: f374367e-10ef-4e3b-af2a-391d7876b6c8
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: ea99df10-5c7f-4c79-8a6e-a8b5b28fe396
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column Feature
+        dataType: string
+        lineageTag: ded752f7-7746-410a-bc17-136833f31005
+        summarizeBy: none
+        sourceColumn: Feature
+
+    column Commercial
+        dataType: string
+        lineageTag: 0f374bcd-e4d3-49ba-ad8b-69924337698b
+        summarizeBy: none
+        sourceColumn: Commercial
+
+    column GCC
+        dataType: string
+        lineageTag: 0bc43ba3-20e7-4e5b-a437-cd0747becbb4
+        summarizeBy: none
+        sourceColumn: GCC
+
+    column GCCHigh
+        dataType: string
+        lineageTag: 4d5eeca5-f008-4344-a351-4f2bf0db516d
+        summarizeBy: none
+        sourceColumn: GCCHigh
+
+    column Note
+        dataType: string
+        lineageTag: f1b144cc-b13c-4156-b016-7dcfdfd0b8b7
+        summarizeBy: none
+        sourceColumn: Note
+
+    column PageReadDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 7900eaad-346e-4b29-bd2a-494cf0c21dea
+        summarizeBy: none
+        sourceColumn: PageReadDate
+
+    column Reference
+        dataType: string
+        lineageTag: 827ddf3e-d214-458d-a850-56360922d36a
+        summarizeBy: none
+        sourceColumn: Reference
+
+    partition CopilotFeatureAvailability = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\copilot-feature-availability.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}, {"PageReadDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
