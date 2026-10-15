@@ -1,0 +1,99 @@
+table CallRecords
+    lineageTag: 8f4e652b-10a2-4aad-9ee3-bcebef809293
+
+    column CallRecordId
+        dataType: string
+        lineageTag: 385ef523-057a-4fed-8b5b-3a840e1831a3
+        summarizeBy: none
+        sourceColumn: CallRecordId
+
+    column Version
+        dataType: string
+        lineageTag: 68557358-9e16-453f-9185-ba1ddc0015ff
+        summarizeBy: none
+        sourceColumn: Version
+
+    column Type
+        dataType: string
+        lineageTag: 53cf635e-b25c-4a71-bc81-3be51d330022
+        summarizeBy: none
+        sourceColumn: Type
+
+    column Modalities
+        dataType: string
+        lineageTag: 8f178d15-aadc-4570-82f2-fb830e3df010
+        summarizeBy: none
+        sourceColumn: Modalities
+
+    column StartDateTime
+        dataType: string
+        lineageTag: 83b6a690-86d0-4df2-8f7f-118855e226e5
+        summarizeBy: none
+        sourceColumn: StartDateTime
+
+    column EndDateTime
+        dataType: string
+        lineageTag: f0094d47-700b-4ca5-b249-e72e2193ad0f
+        summarizeBy: none
+        sourceColumn: EndDateTime
+
+    column LastModifiedDateTime
+        dataType: string
+        lineageTag: 2c532251-b95c-49d3-b784-00719f5d3861
+        summarizeBy: none
+        sourceColumn: LastModifiedDateTime
+
+    column SessionId
+        dataType: string
+        lineageTag: df9feb1a-51ac-410b-902d-deef2695502a
+        summarizeBy: none
+        sourceColumn: SessionId
+
+    column SessionStartDateTime
+        dataType: string
+        lineageTag: f7f8a578-f293-41b7-a5b8-79bc82cd1238
+        summarizeBy: none
+        sourceColumn: SessionStartDateTime
+
+    column SessionEndDateTime
+        dataType: string
+        lineageTag: 8269dab8-3dbe-4ea0-a9a7-4f99da35dbeb
+        summarizeBy: none
+        sourceColumn: SessionEndDateTime
+
+    column CallerUserId
+        dataType: string
+        lineageTag: 0a08759f-460b-44e6-b0ce-a18f629912c2
+        summarizeBy: none
+        sourceColumn: CallerUserId
+
+    column CallerPlatform
+        dataType: string
+        lineageTag: dae0a12c-154f-4765-ad8f-1285d2d4f293
+        summarizeBy: none
+        sourceColumn: CallerPlatform
+
+    column CalleeUserId
+        dataType: string
+        lineageTag: bae8c5b9-66d6-47eb-b4fb-86fa6986e4ff
+        summarizeBy: none
+        sourceColumn: CalleeUserId
+
+    column CalleePlatform
+        dataType: string
+        lineageTag: 4b09e7c9-65cf-4a07-8b5f-5e12123ce71a
+        summarizeBy: none
+        sourceColumn: CalleePlatform
+
+    partition CallRecords = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\call-records.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText))
+            in
+                Cleaned
+
+    annotation PBI_ResultType = Table
