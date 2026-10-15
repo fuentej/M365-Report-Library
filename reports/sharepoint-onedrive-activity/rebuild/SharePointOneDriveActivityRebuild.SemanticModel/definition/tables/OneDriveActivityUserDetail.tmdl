@@ -1,0 +1,95 @@
+table OneDriveActivityUserDetail
+    lineageTag: 62e3db43-810e-4f77-a459-033410d6f3e5
+
+    column RunDate
+        dataType: dateTime
+        formatString: Short Date
+        lineageTag: 5f19e317-5af6-4675-9b4d-08d8c136590c
+        summarizeBy: none
+        sourceColumn: RunDate
+
+    column QueryDate
+        dataType: string
+        lineageTag: 5429369b-a3e7-494f-8503-542a0491e24f
+        summarizeBy: none
+        sourceColumn: QueryDate
+
+    column ReportRefreshDate
+        dataType: string
+        lineageTag: d8d2e0fb-891d-40e0-9131-a261027bfc48
+        summarizeBy: none
+        sourceColumn: ReportRefreshDate
+
+    column UserPrincipalName
+        dataType: string
+        lineageTag: 267604fc-e21b-4161-b094-121e23ae11ad
+        summarizeBy: none
+        sourceColumn: UserPrincipalName
+
+    column IsDeleted
+        dataType: string
+        lineageTag: efea4023-5a20-4ae0-a659-cd9cea5a48de
+        summarizeBy: none
+        sourceColumn: IsDeleted
+
+    column DeletedDate
+        dataType: string
+        lineageTag: 67a463c1-f1a7-4a2b-95ff-a66be34b0778
+        summarizeBy: none
+        sourceColumn: DeletedDate
+
+    column LastActivityDate
+        dataType: string
+        lineageTag: 59cc0f06-1af5-4116-ba00-88969006b1cd
+        summarizeBy: none
+        sourceColumn: LastActivityDate
+
+    column ViewedOrEditedFileCount
+        dataType: string
+        lineageTag: 45c56e72-6d14-44d7-8565-06ef1657619c
+        summarizeBy: none
+        sourceColumn: ViewedOrEditedFileCount
+
+    column SyncedFileCount
+        dataType: string
+        lineageTag: 7caaf385-607d-4921-87a4-2455ab292c53
+        summarizeBy: none
+        sourceColumn: SyncedFileCount
+
+    column SharedInternallyFileCount
+        dataType: string
+        lineageTag: a32a7c31-e6b7-4ce4-b0d9-b93b6f398ed1
+        summarizeBy: none
+        sourceColumn: SharedInternallyFileCount
+
+    column SharedExternallyFileCount
+        dataType: string
+        lineageTag: 480be10f-564e-48f9-8ae2-ca96fe79f9e3
+        summarizeBy: none
+        sourceColumn: SharedExternallyFileCount
+
+    column AssignedProducts
+        dataType: string
+        lineageTag: b3e38517-53a6-40bd-b3fc-c66dfc59dd3c
+        summarizeBy: none
+        sourceColumn: AssignedProducts
+
+    column ReportPeriod
+        dataType: string
+        lineageTag: 9f20c353-577c-4eb3-9286-69040b3658db
+        summarizeBy: none
+        sourceColumn: ReportPeriod
+
+    partition OneDriveActivityUserDetail = m
+        mode: import
+        source =
+            let
+                Source = Csv.Document(File.Contents(CsvFolder & "\onedrive-activity-user-detail.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+                Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+                AllText = Table.TransformColumnTypes(Promoted, List.Transform(Table.ColumnNames(Promoted), each {_, type text})),
+                Cleaned = Table.ReplaceValue(AllText, "", null, Replacer.ReplaceValue, Table.ColumnNames(AllText)),
+                #"Changed Type" = Table.TransformColumnTypes(Cleaned, {{"RunDate", type date}})
+            in
+                #"Changed Type"
+
+    annotation PBI_ResultType = Table
